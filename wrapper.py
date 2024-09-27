@@ -1,6 +1,6 @@
 import itertools
 import os
-from typing import Any
+from typing import Any, TypeVar
 import pyRDDLGym
 import numpy as np
 import gymnasium as gym
@@ -46,18 +46,25 @@ def split_obs_keys(obs):
     return {split_key(key): value for key, value in obs.items()}
 
 
-def to_graphviz(first_nodes, second_nodes, edges, edge_attributes):
+def to_graphviz(
+    first_nodes, second_nodes, edges, edge_attributes, idx_to_symb, numeric
+):
     colors = ["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]
     graph = "graph G {\n"
     first_mapping = {}
     second_mapping = {}
     global_idx = 0
     for idx, data in enumerate(first_nodes):
-        graph += f'"{global_idx}" [label="{data}", shape=box]\n'
+        label = (
+            f'"{idx_to_symb[int(data[1])]}={data[0]}"'
+            if numeric[idx]
+            else f'"{idx_to_symb[int(data[1])]}={bool(data[0])}"'
+        )
+        graph += f'"{global_idx}" [label={label}, shape=box]\n'
         first_mapping[idx] = global_idx
         global_idx += 1
     for idx, data in enumerate(second_nodes):
-        graph += f'"{global_idx}" [label="{data}", shape=circle]\n'
+        graph += f'"{global_idx}" [label="{idx_to_symb[data]}", shape=circle]\n'
         second_mapping[idx] = global_idx
         global_idx += 1
     for attribute, edge in zip(edge_attributes, edges):
@@ -75,7 +82,43 @@ def objects(key: str) -> list[str]:
     return split[1].split("__") if len(split) > 1 else []
 
 
-def generate_bipartite_obs(obs: dict[str, bool], symb_to_idx: dict[str, int]):
+def translate_edges(
+    groundings: list[str], object_list: list[str], edges: set[tuple[str, str, int]]
+):
+    return np.array(
+        [(groundings.index(key[0]), object_list.index(key[1])) for key in edges],
+        dtype=np.uint,
+    )
+
+
+T = TypeVar("T")
+
+
+def concat(a1: np.ndarray[T, Any], a2: np.ndarray[T, Any]) -> np.ndarray[T, Any]:
+    return np.concatenate([a1, a2])
+
+
+def edge_attr(edges: set[tuple[str, str, int]]) -> np.ndarray[np.uint, Any]:
+    return np.array([v for _, _, v in edges], dtype=np.uint)
+
+
+def generate_bipartite_obs(
+    obs: dict[str, bool],
+    action_groundings: list[str],
+    action_edges: set[tuple[str, str, int]],
+    non_fluent_values: dict[str, int],
+    non_fluent_groundings: list[str],
+    non_fluent_edges: set[tuple[str, str, int]],
+    symb_to_idx: dict[str, int],
+    idx_to_symb: list[str],
+    variable_ranges: dict[str, str],
+) -> tuple[
+    np.ndarray[np.bool_, Any],
+    np.ndarray[np.int_, Any],
+    np.ndarray[np.uint, Any],
+    np.ndarray[np.uint, Any],
+    np.ndarray[np.bool_, Any],
+]:
     edges: set[tuple[str, str, int]] = set()
     obs_objects: set[str] = set()
 
@@ -94,24 +137,76 @@ def generate_bipartite_obs(obs: dict[str, bool], symb_to_idx: dict[str, int]):
         [symb_to_idx[predicate(key)] for key in groundings], dtype=np.int_
     )
 
-    edge_indices = np.array(
-        [(groundings.index(key[0]), object_list.index(key[1])) for key in edges],
-        dtype=np.uint,
-    )
+    edge_indices = translate_edges(groundings, object_list, edges)
 
-    edge_attributes = np.array([key[2] for key in edges], dtype=np.uint)
+    edge_attributes = edge_attr(edges)
 
     object_nodes = np.array([symb_to_idx[object] for object in object_list])
 
-    return (
-        object_nodes,
-        fact_node_values,
-        fact_node_predicate,
-        edge_indices,
-        edge_attributes,
-        groundings,
-        object_list,
+    # add action fluents
+
+    action_node_values = np.array(
+        [False for _ in action_groundings],
+        dtype=np.bool_,
     )
+    action_node_symbols = np.array(
+        [symb_to_idx[predicate(key)] for key in action_groundings],
+        dtype=np.int_,
+    )
+
+    groundings += action_groundings
+    fact_node_values: np.ndarray[np.bool_, Any] = concat(
+        fact_node_values, action_node_values
+    )
+    fact_node_predicate: np.ndarray[np.bool_, Any] = concat(
+        fact_node_predicate, action_node_symbols
+    )
+    edge_indices = concat(
+        edge_indices,
+        translate_edges(groundings, object_list, action_edges),
+    )
+
+    edge_attributes = concat(
+        edge_attributes,
+        edge_attr(action_edges),
+    )
+
+    # add non_fluents
+
+    groundings += non_fluent_groundings
+
+    non_fluent_nodes_values = np.array(
+        [non_fluent_values[k] for k in non_fluent_groundings]
+    )
+    non_fluent_nodes_symbols = np.array(
+        [symb_to_idx[predicate(k)] for k in non_fluent_groundings]
+    )
+
+    fact_node_values = concat(fact_node_values, non_fluent_nodes_values)
+    fact_node_predicate = concat(fact_node_predicate, non_fluent_nodes_symbols)
+
+    edge_indices: np.ndarray[np.uint, Any] = concat(
+        edge_indices, translate_edges(groundings, object_list, non_fluent_edges)
+    )
+
+    edge_attributes: np.ndarray[np.uint, Any] = concat(
+        edge_attributes,
+        np.array([v for _, _, v in non_fluent_edges], dtype=np.uint),
+    )
+
+    numeric = np.array(
+        [
+            1 if variable_ranges[idx_to_symb[idx]] in ["real", "int"] else 0
+            for idx in fact_node_predicate
+        ],
+        dtype=np.bool_,
+    )
+
+    fact_nodes = np.stack(
+        [fact_node_values, fact_node_predicate], axis=1, dtype=np.float_
+    )
+
+    return (fact_nodes, object_nodes, edge_indices, edge_attributes, numeric)
 
 
 def generate_hetero_obs(obs, object_to_index):
@@ -140,10 +235,7 @@ def generate_hetero_obs(obs, object_to_index):
 
 
 class RDDLGraphWrapper:
-    def __init__(self, instance: str) -> None:
-        # domain = "SysAdmin_MDP_ippc2011"
-        # domain = "RecSim_ippc2023"
-        domain = "Elevators_MDP_ippc2011"
+    def __init__(self, domain: str, instance: str) -> None:
         env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)
         model = env.model
         object_to_type: dict[str, str] = model.object_to_type
@@ -197,6 +289,7 @@ class RDDLGraphWrapper:
             object_terms + non_fluents + state_fluents + action_fluents
         )
 
+        self.variable_ranges: dict[str, str] = model._variable_ranges
         self.non_fluents_values = non_fluent_values
         self.non_fluent_groundings = list(non_fluent_values.keys())
         self.non_fluent_edges = non_fluent_edges
@@ -220,105 +313,31 @@ class RDDLGraphWrapper:
     def reset(self, seed: int | None = None):
         obs, info = self.env.reset(seed)
 
-        (
-            object_nodes,
-            fact_node_values,
-            fact_node_predicate,
-            edge_indices,
-            edge_attributes,
-            groundings,
-            object_list,
-        ) = generate_bipartite_obs(obs, self.symb_to_idx)
-
-        # add action fluents
-
-        action_node_values = np.array(
-            [False for _ in self.action_groundings],
-            dtype=np.bool_,
+        (nodes, object_nodes, edge_indices, edge_attributes, numeric) = (
+            generate_bipartite_obs(
+                obs,
+                self.action_groundings,
+                self.action_edges,
+                self.non_fluents_values,
+                self.non_fluent_groundings,
+                self.non_fluent_edges,
+                self.symb_to_idx,
+                self.idx_to_symb,
+                self.variable_ranges,
+            )
         )
-        action_node_symbols = np.array(
-            [self.symb_to_idx[predicate(key)] for key in self.action_groundings],
-            dtype=np.int_,
-        )
-
-        groundings += self.action_groundings
-        fact_node_values = np.concatenate([fact_node_values, action_node_values])
-        fact_node_predicate = np.concatenate([fact_node_predicate, action_node_symbols])
-        edge_indices = np.concatenate(
-            [
-                edge_indices,
-                np.array(
-                    [
-                        (groundings.index(s1), object_list.index(s2))
-                        for s1, s2, _ in self.action_edges
-                    ]
-                ),
-            ],
-            axis=0,
-        )
-
-        edge_attributes = np.concatenate(
-            [
-                edge_attributes,
-                np.array([v for _, _, v in self.action_edges], dtype=np.uint),
-            ],
-            axis=0,
-        )
-
-        # add non_fluents
-
-        groundings += self.non_fluent_groundings
-
-        non_fluent_nodes_values = np.array(
-            [self.non_fluents_values[k] for k in self.non_fluent_groundings]
-        )
-        non_fluent_nodes_symbols = np.array(
-            [self.symb_to_idx[predicate(k)] for k in self.non_fluent_groundings]
-        )
-
-        fact_node_values = np.concatenate(
-            [fact_node_values, non_fluent_nodes_values], axis=0
-        )
-        fact_node_predicate = np.concatenate(
-            [fact_node_predicate, non_fluent_nodes_symbols], axis=0
-        )
-
-        edge_indices = np.concatenate(
-            [
-                edge_indices,
-                np.array(
-                    [
-                        (groundings.index(s1), object_list.index(s2))
-                        for s1, s2, _ in self.non_fluent_edges
-                    ]
-                ),
-            ],
-            axis=0,
-        )
-
-        edge_attributes = np.concatenate(
-            [
-                edge_attributes,
-                np.array([v for _, _, v in self.non_fluent_edges], dtype=np.uint),
-            ],
-            axis=0,
-        )
-
-        numeric = np.array(
-            [
-                1
-                if self.model._variable_ranges[self.idx_to_symb[idx]] in ["real", "int"]
-                else 0
-                for idx in fact_node_predicate
-            ],
-            dtype=np.bool_,
-        )
-
-        nodes = np.stack([fact_node_values, fact_node_predicate], axis=1)
 
         with open("g.dot", "w") as f:
-            f.write(to_graphviz(nodes, object_nodes, edge_indices, edge_attributes))
-            os.system("dot -Tpng g.dot -O")
+            f.write(
+                to_graphviz(
+                    nodes,
+                    object_nodes,
+                    edge_indices,
+                    edge_attributes,
+                    self.idx_to_symb,
+                    numeric,
+                )
+            )
 
         # combine the two dictionaries
         obs = {
@@ -343,7 +362,11 @@ class RDDLGraphWrapper:
 
 def main():
     instance = 1
-    sysadmin = RDDLGraphWrapper(instance)
+    # domain = "Elevators_MDP_ippc2011"
+    # domain = "SysAdmin_MDP_ippc2011"
+    # domain = "RecSim_ippc2023"
+    domain = "SkillTeaching_MDP_ippc2011"
+    sysadmin = RDDLGraphWrapper(domain, instance)
     obs, info = sysadmin.reset()
     done = False
     time = 0

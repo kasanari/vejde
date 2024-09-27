@@ -139,7 +139,7 @@ def generate_hetero_obs(obs, object_to_index):
     return graph
 
 
-class SysAdmin:
+class RDDLGraphWrapper:
     def __init__(self, instance: str) -> None:
         # domain = "SysAdmin_MDP_ippc2011"
         # domain = "RecSim_ippc2023"
@@ -343,7 +343,7 @@ class SysAdmin:
 
 def main():
     instance = 1
-    sysadmin = SysAdmin(instance)
+    sysadmin = RDDLGraphWrapper(instance)
     obs, info = sysadmin.reset()
     done = False
     time = 0

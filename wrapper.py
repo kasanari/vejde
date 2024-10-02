@@ -1,5 +1,5 @@
-import itertools
-import os
+from copy import copy
+import random
 from typing import Any, TypeVar
 import pyRDDLGym
 import numpy as np
@@ -238,13 +238,14 @@ class RDDLGraphWrapper:
     def __init__(self, domain: str, instance: str) -> None:
         env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)
         model = env.model
-        object_to_type: dict[str, str] = model.object_to_type
+        object_to_type: dict[str, str] = copy(model.object_to_type)
         types = set(object_to_type.values())
         num_objects = sum(env.model.object_counts(types))
         state_fluents: list[str] = list(env.model.state_fluents.keys())
-        groundings: dict[str, list[str]] = env.model.variable_groundings
-        variable_params: dict[str, list[str]] = env.model.variable_params
-
+        groundings: dict[str, list[str]] = copy(env.model.variable_groundings)
+        variable_params: dict[str, list[str]] = copy(env.model.variable_params)
+        self.domain = domain
+        self.instance = instance
         type_to_fluent: dict[str, list[str]] = {
             value[0]: [k for k, v in variable_params.items() if v == value]
             for _, value in variable_params.items()
@@ -259,7 +260,7 @@ class RDDLGraphWrapper:
         }
         assert max(arities.values()) <= 2, "Only up to binary predicates are supported"
         non_fluents: list[str] = list(env.model.non_fluents.keys())
-        object_to_index: dict[str, int] = model.object_to_index
+        object_to_index: dict[str, int] = copy(model.object_to_index)
         index_to_object: list[str] = list(object_to_index.keys())
 
         action_groundings: list[str] = list(
@@ -269,7 +270,6 @@ class RDDLGraphWrapper:
         for key in action_groundings:
             object_terms = objects(key)
             for pos, object in enumerate(object_terms):
-                object_to_index[object] = len(object_to_index)
                 action_edges.add((key, object, pos))
 
         non_fluent_values: dict[str, int] = dict(
@@ -280,7 +280,6 @@ class RDDLGraphWrapper:
         for key in non_fluent_values:
             object_terms = objects(key)
             for pos, object in enumerate(object_terms):
-                object_to_index[object] = len(object_to_index)
                 non_fluent_edges.add((key, object, pos))
 
         object_terms: list[str] = list(model.object_to_index.keys())
@@ -307,11 +306,62 @@ class RDDLGraphWrapper:
         self.idx_to_symb = symbol_list
         self.symb_to_idx = {symb: idx for idx, symb in enumerate(symbol_list)}
         self.env = env
-        self.observation_space = gym.spaces.Box(0, 1, (10,))
-        self.action_space = gym.spaces.Discrete(len(index_to_object))
+        self.iter = 0
+        # self.observation_space = gym.spaces.Box(0, 1, (10,))
+        # self.action_space = gym.spaces.Discrete(len(index_to_object))
 
     def reset(self, seed: int | None = None):
         obs, info = self.env.reset(seed)
+        (nodes, object_nodes, edge_indices, edge_attributes, numeric) = (
+            generate_bipartite_obs(
+                obs,
+                self.action_groundings,
+                self.action_edges,
+                self.non_fluents_values,
+                self.non_fluent_groundings,
+                self.non_fluent_edges,
+                self.symb_to_idx,
+                self.idx_to_symb,
+                self.variable_ranges,
+            )
+        )
+
+        # combine the two dictionaries
+        obs = {
+            "nodes": nodes,
+            "object_nodes": object_nodes,
+            "numeric": numeric,
+            "edge_indices": edge_indices,
+            "edge_attributes": edge_attributes,
+        }
+
+        self.iter = 0
+        self.last_obs = obs
+
+        return obs, info
+
+    def render(self):
+        obs = self.last_obs
+        nodes = obs["nodes"]
+        object_nodes = obs["object_nodes"]
+        edge_indices = obs["edge_indices"]
+        edge_attributes = obs["edge_attributes"]
+        numeric = obs["numeric"]
+
+        with open(f"{self.domain}_{self.instance}_{self.iter}.dot", "w") as f:
+            f.write(
+                to_graphviz(
+                    nodes,
+                    object_nodes,
+                    edge_indices,
+                    edge_attributes,
+                    self.idx_to_symb,
+                    numeric,
+                )
+            )
+
+    def step(self, action: dict[str, int]):
+        obs, reward, terminated, truncated, info = self.env.step(action)
 
         (nodes, object_nodes, edge_indices, edge_attributes, numeric) = (
             generate_bipartite_obs(
@@ -327,63 +377,45 @@ class RDDLGraphWrapper:
             )
         )
 
-        with open("g.dot", "w") as f:
-            f.write(
-                to_graphviz(
-                    nodes,
-                    object_nodes,
-                    edge_indices,
-                    edge_attributes,
-                    self.idx_to_symb,
-                    numeric,
-                )
-            )
-
         # combine the two dictionaries
         obs = {
             "nodes": nodes,
-            "numeric": numeric,
+            "object_nodes": object_nodes,
             "edge_indices": edge_indices,
             "edge_attributes": edge_attributes,
+            "numeric": numeric,
         }
-        return obs, info
 
-    def step(self, action):
-        # action_name = self.index_to_action[action[0]]
-        action_name = "reboot"
-        object_name = self.index_to_object[action]
-        rddl_action = {f"{action_name}___{object_name}": 1}
-        obs, reward, terminated, truncated, info = self.env.step(rddl_action)
+        self.iter += 1
+        self.last_obs = obs
 
-        graph = generate_bipartite_obs(obs, self.adjacency, self.object_to_index)
-
-        return graph, reward, terminated, truncated, info
+        return obs, reward, terminated, truncated, info
 
 
 def main():
     instance = 1
-    # domain = "Elevators_MDP_ippc2011"
+    domain = "Elevators_MDP_ippc2011"
     # domain = "SysAdmin_MDP_ippc2011"
     # domain = "RecSim_ippc2023"
-    domain = "SkillTeaching_MDP_ippc2011"
-    sysadmin = RDDLGraphWrapper(domain, instance)
-    obs, info = sysadmin.reset()
+    # domain = "SkillTeaching_MDP_ippc2011"
+    env = RDDLGraphWrapper(domain, instance)
+    obs, info = env.reset()
+    env.render()
     done = False
     time = 0
     sum_reward = 0
     while not done:
         time += 1
-        action = (
-            0,
-            0,
-        )  # np.random.randint(0, len(sysadmin.index_to_action)), np.random.randint(0, len(sysadmin.index_to_object))
-        obs, reward, terminated, truncated, info = sysadmin.step(action)
+        action = env.env.action_space.sample()
+
+        action = random.choice(list(action.items()))
+        action = {action[0]: action[1]}
+        obs, reward, terminated, truncated, info = env.step(action)
+        env.render()
         done = terminated or truncated
-        # render = obs_to_graphviz(obs)
-        # with open(f"sysadmin_{instance}_{time:0>3}.dot", "w") as f:
-        # 	f.write(render)
+
         sum_reward += reward
-        print(obs)
+        # print(obs)
         print(action)
         print(reward)
     print(sum_reward)

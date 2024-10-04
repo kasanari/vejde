@@ -77,6 +77,10 @@ def create_edges(d: dict[str, Any]) -> set[Edge]:
     return edges
 
 
+def is_fluent_to_skip(key: str, obs: dict[str, bool]) -> bool:
+    return isinstance(obs[key], np.bool_) and not obs[key]
+
+
 def generate_bipartite_obs(
     obs: dict[str, bool],
     groundings: list[str],
@@ -239,16 +243,16 @@ class RDDLGraphWrapper(gym.Wrapper):
         obs |= self.action_values
         obs |= self.non_fluents_values
 
-        observed_groundings = sorted(
-            [k for k in self.groundings if isinstance(obs[k], np.bool_) and obs[k]]
+        filtered_groundings = sorted(
+            [g for g in self.groundings if not is_fluent_to_skip(g, obs)]
         )
 
-        filtered_obs: dict[str, Any] = {k: obs[k] for k in observed_groundings}
+        filtered_obs: dict[str, Any] = {k: obs[k] for k in filtered_groundings}
 
         (nodes, object_nodes, edge_indices, edge_attributes, numeric) = (
             generate_bipartite_obs(
                 filtered_obs,
-                observed_groundings,
+                filtered_groundings,
                 self.symb_to_idx,
                 self.variable_ranges,
             )
@@ -294,16 +298,16 @@ class RDDLGraphWrapper(gym.Wrapper):
         obs |= self.action_values
         obs |= self.non_fluents_values
 
-        observed_groundings = sorted(
-            [k for k in self.groundings if isinstance(obs[k], np.bool_) and obs[k]]
+        filtered_groundings = sorted(
+            [g for g in self.groundings if not is_fluent_to_skip(g, obs)]
         )
 
-        filtered_obs: dict[str, Any] = {k: obs[k] for k in observed_groundings}
+        filtered_obs: dict[str, Any] = {k: obs[k] for k in filtered_groundings}
 
         (nodes, object_nodes, edge_indices, edge_attributes, numeric) = (
             generate_bipartite_obs(
                 filtered_obs,
-                observed_groundings,
+                filtered_groundings,
                 self.symb_to_idx,
                 self.variable_ranges,
             )

@@ -1,6 +1,6 @@
 from copy import copy
 import random
-from typing import Any, TypeVar
+from typing import Any, TypeVar, NamedTuple
 import pyRDDLGym
 import numpy as np
 import gymnasium as gym
@@ -13,37 +13,7 @@ class Arity(Enum):
     BINARY = 2
 
 
-def obs_to_graphviz(obs):
-    # obs is a dictionary with keys "unary" and "binary"
-    # "unary" is a numpy array of unary predicates
-    # "binary" is a numpy array of binary predicates
-    # This function returns a string that can be used to visualize the graph
-    # using graphviz
-    unary = obs["unary"]
-    binary = obs["binary"]
-    num_objects = unary.shape[0]
-    graph = "digraph G {\n"
-    for i in range(num_objects):
-        if unary[i] == 1:
-            graph += f'node{i} [label="{i}", style=filled, fillcolor=green]\n'
-        else:
-            graph += f'node{i} [label="{i}"]\n'
-    for i in range(num_objects):
-        for j in range(num_objects):
-            if binary[i, j] == 1:
-                graph += f"node{i} -> node{j}\n"
-    graph += "}"
-    return graph
-
-
-def split_key(key):
-    predicate, objects_str = key.split("___")
-    objects = objects_str.split("__")
-    return (predicate, tuple(objects))
-
-
-def split_obs_keys(obs):
-    return {split_key(key): value for key, value in obs.items()}
+Edge = NamedTuple("Edge", [("predicate", str), ("object", str), ("pos", int)])
 
 
 def to_graphviz(
@@ -102,15 +72,19 @@ def edge_attr(edges: set[tuple[str, str, int]]) -> np.ndarray[np.uint, Any]:
     return np.array([v for _, _, v in edges], dtype=np.uint)
 
 
+def create_edges(d: dict[str, Any]):
+    edges: set[Edge] = set()
+    for key in d:
+        for pos, object in enumerate(objects(key)):
+            new_key = Edge(key, object, pos)
+            edges.add(new_key)
+    return edges
+
+
 def generate_bipartite_obs(
     obs: dict[str, bool],
-    action_groundings: list[str],
-    action_edges: set[tuple[str, str, int]],
-    non_fluent_values: dict[str, int],
-    non_fluent_groundings: list[str],
-    non_fluent_edges: set[tuple[str, str, int]],
+    groundings: list[str],
     symb_to_idx: dict[str, int],
-    idx_to_symb: list[str],
     variable_ranges: dict[str, str],
 ) -> tuple[
     np.ndarray[np.bool_, Any],
@@ -128,7 +102,6 @@ def generate_bipartite_obs(
             edges.add(new_key)
             obs_objects.add(object)
 
-    groundings = sorted(list(obs.keys()))
     object_list: list[str] = sorted(obs_objects)
 
     fact_node_values = np.array([obs[key] for key in groundings], dtype=np.bool_)
@@ -143,107 +116,42 @@ def generate_bipartite_obs(
 
     object_nodes = np.array([symb_to_idx[object] for object in object_list])
 
-    # add action fluents
-
-    action_node_values = np.array(
-        [False for _ in action_groundings],
-        dtype=np.bool_,
-    )
-    action_node_symbols = np.array(
-        [symb_to_idx[predicate(key)] for key in action_groundings],
-        dtype=np.int_,
-    )
-
-    groundings += action_groundings
-    fact_node_values: np.ndarray[np.bool_, Any] = concat(
-        fact_node_values, action_node_values
-    )
-    fact_node_predicate: np.ndarray[np.bool_, Any] = concat(
-        fact_node_predicate, action_node_symbols
-    )
-    edge_indices = concat(
-        edge_indices,
-        translate_edges(groundings, object_list, action_edges),
-    )
-
-    edge_attributes = concat(
-        edge_attributes,
-        edge_attr(action_edges),
-    )
-
-    # add non_fluents
-
-    groundings += non_fluent_groundings
-
-    non_fluent_nodes_values = np.array(
-        [non_fluent_values[k] for k in non_fluent_groundings]
-    )
-    non_fluent_nodes_symbols = np.array(
-        [symb_to_idx[predicate(k)] for k in non_fluent_groundings]
-    )
-
-    fact_node_values = concat(fact_node_values, non_fluent_nodes_values)
-    fact_node_predicate = concat(fact_node_predicate, non_fluent_nodes_symbols)
-
-    edge_indices: np.ndarray[np.uint, Any] = concat(
-        edge_indices, translate_edges(groundings, object_list, non_fluent_edges)
-    )
-
-    edge_attributes: np.ndarray[np.uint, Any] = concat(
-        edge_attributes,
-        np.array([v for _, _, v in non_fluent_edges], dtype=np.uint),
+    fact_nodes = np.stack(
+        [fact_node_values, fact_node_predicate], axis=1, dtype=np.float_
     )
 
     numeric = np.array(
         [
-            1 if variable_ranges[idx_to_symb[idx]] in ["real", "int"] else 0
-            for idx in fact_node_predicate
+            1 if variable_ranges[predicate(g)] in ["real", "int"] else 0
+            for g in groundings
         ],
         dtype=np.bool_,
-    )
-
-    fact_nodes = np.stack(
-        [fact_node_values, fact_node_predicate], axis=1, dtype=np.float_
     )
 
     return (fact_nodes, object_nodes, edge_indices, edge_attributes, numeric)
 
 
-def generate_hetero_obs(obs, object_to_index):
-    new_obs = split_obs_keys(obs)
-
-    nullary = {key: value for key, value in new_obs.items() if len(key[1]) == 0}
-    unary = {key: value for key, value in new_obs.items() if len(key[1]) == 1}
-    binary = {key: value for key, value in new_obs.items() if len(key[1]) == 2}
-
-    # reshape unary to make it per object
-    unary_per_object = {
-        key[1][0]: {k[0]: v for k, v in unary.items() if k[1][0] == key[1][0]}
-        for key, value in unary.items()
-    }
-
-    state_dict = {}
-    state_dict["running"] = np.zeros(len(object_to_index), dtype=np.bool_)
-    for key in obs:
-        state_dict[predicate][object_idx] = int(obs[key])
-
-    graph = {
-        1: state_dict["running"],
-    }
-
-    return graph
-
-
 class RDDLGraphWrapper:
-    def __init__(self, domain: str, instance: str) -> None:
-        env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)
+    metadata = {"render.modes": ["human"]}
+
+    def __init__(self, domain: str, instance: int, render_mode: str = "human") -> None:
+        env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
         model = env.model
-        object_to_type: dict[str, str] = copy(model.object_to_type)
+        object_to_type: dict[str, str] = copy(model.object_to_type)  # type: ignore
         types = set(object_to_type.values())
         num_objects = sum(env.model.object_counts(types))
-        state_fluents: list[str] = list(env.model.state_fluents.keys())
-        groundings: dict[str, list[str]] = copy(env.model.variable_groundings)
-        variable_params: dict[str, list[str]] = copy(env.model.variable_params)
+        state_fluents: list[str] = list(env.model.state_fluents.keys())  # type: ignore
+        action_groundings: list[str] = list(
+            dict(env.model.ground_vars_with_values(model.action_fluents)).keys()  # type: ignore
+        )
+        groundings: list[str] = [
+            g
+            for _, v in env.model.variable_groundings.items()  # type: ignore
+            for g in v
+            if g[-1] != "'"
+        ] + action_groundings
+
+        variable_params: dict[str, list[str]] = copy(env.model.variable_params)  # type: ignore
         self.domain = domain
         self.instance = instance
         type_to_fluent: dict[str, list[str]] = {
@@ -259,13 +167,8 @@ class RDDLGraphWrapper:
             for _, value in arities.items()
         }
         assert max(arities.values()) <= 2, "Only up to binary predicates are supported"
-        non_fluents: list[str] = list(env.model.non_fluents.keys())
-        object_to_index: dict[str, int] = copy(model.object_to_index)
-        index_to_object: list[str] = list(object_to_index.keys())
+        non_fluents: list[str] = list(env.model.non_fluents.keys())  # type: ignore
 
-        action_groundings: list[str] = list(
-            dict(env.model.ground_vars_with_values(model.action_fluents)).keys()
-        )
         action_edges: set[tuple[str, str, int]] = set()
         for key in action_groundings:
             object_terms = objects(key)
@@ -273,7 +176,7 @@ class RDDLGraphWrapper:
                 action_edges.add((key, object, pos))
 
         non_fluent_values: dict[str, int] = dict(
-            env.model.ground_vars_with_values(model.non_fluents)
+            env.model.ground_vars_with_values(model.non_fluents)  # type: ignore
         )
 
         non_fluent_edges: set[tuple[str, str, int]] = set()
@@ -282,17 +185,22 @@ class RDDLGraphWrapper:
             for pos, object in enumerate(object_terms):
                 non_fluent_edges.add((key, object, pos))
 
-        object_terms: list[str] = list(model.object_to_index.keys())
-        action_fluents: list[str] = list(model.action_fluents.keys())
+        object_terms: list[str] = list(model.object_to_index.keys())  # type: ignore
+        action_fluents: list[str] = list(model.action_fluents.keys())  # type: ignore
         symbol_list = sorted(
             object_terms + non_fluents + state_fluents + action_fluents
         )
 
-        self.variable_ranges: dict[str, str] = model._variable_ranges
+        symb_to_idx = {symb: idx for idx, symb in enumerate(symbol_list)}
+
+        action_groundings: list[str] = action_groundings
+        action_values = {k: False for k in action_groundings}
+
+        variable_ranges: dict[str, str] = model._variable_ranges  # type: ignore
+        self.variable_ranges = variable_ranges
+        self.action_values = action_values
         self.non_fluents_values = non_fluent_values
-        self.non_fluent_groundings = list(non_fluent_values.keys())
         self.non_fluent_edges = non_fluent_edges
-        self.action_groundings: list[str] = action_groundings
         self.action_edges = action_edges
         self.type_to_fluent = type_to_fluent
         self.model = model
@@ -304,24 +212,47 @@ class RDDLGraphWrapper:
         self.groundings = groundings
         self.state_fluents = state_fluents
         self.idx_to_symb = symbol_list
-        self.symb_to_idx = {symb: idx for idx, symb in enumerate(symbol_list)}
+        self.symb_to_idx = symb_to_idx
         self.env = env
         self.iter = 0
-        # self.observation_space = gym.spaces.Box(0, 1, (10,))
+        self.observation_space = gym.spaces.Dict(
+            {
+                "nodes": gym.spaces.Box(
+                    low=0, high=1, shape=(len(groundings), 2), dtype=np.float32
+                ),
+                "object_nodes": gym.spaces.Box(
+                    low=0, high=len(symbol_list), shape=(num_objects,), dtype=np.int32
+                ),
+                "edge_indices": gym.spaces.Box(
+                    low=0,
+                    high=num_objects,
+                    shape=(len(action_groundings) + len(non_fluent_values), 2),
+                    dtype=np.uint,
+                ),
+                "edge_attributes": gym.spaces.Box(
+                    low=0,
+                    high=1,
+                    shape=(len(action_groundings) + len(non_fluent_values),),
+                    dtype=np.uint,
+                ),
+                "numeric": gym.spaces.Box(
+                    low=0, high=1, shape=(len(symbol_list),), dtype=np.bool_
+                ),
+            }
+        )
         # self.action_space = gym.spaces.Discrete(len(index_to_object))
 
     def reset(self, seed: int | None = None):
         obs, info = self.env.reset(seed)
+
+        obs |= self.action_values
+        obs |= self.non_fluents_values
+
         (nodes, object_nodes, edge_indices, edge_attributes, numeric) = (
             generate_bipartite_obs(
                 obs,
-                self.action_groundings,
-                self.action_edges,
-                self.non_fluents_values,
-                self.non_fluent_groundings,
-                self.non_fluent_edges,
+                self.groundings,
                 self.symb_to_idx,
-                self.idx_to_symb,
                 self.variable_ranges,
             )
         )
@@ -363,16 +294,14 @@ class RDDLGraphWrapper:
     def step(self, action: dict[str, int]):
         obs, reward, terminated, truncated, info = self.env.step(action)
 
+        obs |= self.action_values
+        obs |= self.non_fluents_values
+
         (nodes, object_nodes, edge_indices, edge_attributes, numeric) = (
             generate_bipartite_obs(
                 obs,
-                self.action_groundings,
-                self.action_edges,
-                self.non_fluents_values,
-                self.non_fluent_groundings,
-                self.non_fluent_edges,
+                self.groundings,
                 self.symb_to_idx,
-                self.idx_to_symb,
                 self.variable_ranges,
             )
         )

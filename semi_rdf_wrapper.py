@@ -235,10 +235,16 @@ class RDDLGraphWrapper(gym.Wrapper):
         obs |= self.action_values
         obs |= self.non_fluents_values
 
+        observed_groundings = sorted(
+            [k for k in self.groundings if isinstance(obs[k], np.bool_) and obs[k]]
+        )
+
+        filtered_obs: dict[str, Any] = {k: obs[k] for k in observed_groundings}
+
         (nodes, object_nodes, edge_indices, edge_attributes, numeric) = (
             generate_bipartite_obs(
-                obs,
-                self.groundings,
+                filtered_obs,
+                observed_groundings,
                 self.symb_to_idx,
                 self.variable_ranges,
             )

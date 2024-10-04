@@ -1,6 +1,6 @@
 from copy import copy
 import random
-from typing import Any, NamedTuple, TypeVar
+from typing import Any, TypeVar, NamedTuple
 import pyRDDLGym
 import numpy as np
 import gymnasium as gym
@@ -52,9 +52,11 @@ def objects(key: str) -> list[str]:
     return split[1].split("__") if len(split) > 1 else []
 
 
-def translate_edges(groundings: list[str], object_list: list[str], edges: set[Edge]):
+def translate_edges(
+    source_symbols: list[str], target_symbols: list[str], edges: set[Edge]
+):
     return np.array(
-        [(groundings.index(key[0]), object_list.index(key[1])) for key in edges],
+        [(source_symbols.index(key[0]), target_symbols.index(key[1])) for key in edges],
         dtype=np.uint,
     )
 
@@ -63,7 +65,7 @@ T = TypeVar("T")
 
 
 def edge_attr(edges: set[Edge]) -> np.ndarray[np.uint, Any]:
-    return np.array([v for _, _, v in edges], dtype=np.uint)
+    return np.array([key[2] for key in edges], dtype=np.uint)
 
 
 def create_edges(d: dict[str, Any]) -> set[Edge]:
@@ -96,7 +98,9 @@ def generate_bipartite_obs(
 
     object_list: list[str] = sorted(obs_objects)
 
-    object_nodes = np.array([symb_to_idx[object] for object in object_list])
+    object_nodes = np.array(
+        [symb_to_idx[object] for object in object_list], dtype=np.int32
+    )
     fact_node_values = np.array([obs[key] for key in groundings], dtype=np.float32)
 
     fact_node_predicate = np.array(

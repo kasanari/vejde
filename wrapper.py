@@ -260,6 +260,8 @@ class RDDLGraphWrapper(gym.Wrapper):
         self.iter = 0
         self.last_obs = obs
 
+        info["symbol_list"] = self.idx_to_symb
+
         return obs, info
 
     def render(self):
@@ -308,6 +310,8 @@ class RDDLGraphWrapper(gym.Wrapper):
 
         self.iter += 1
         self.last_obs = obs
+
+        info["symbol_list"] = self.idx_to_symb
 
         return obs, reward, terminated, truncated, info
 

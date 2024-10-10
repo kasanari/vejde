@@ -1,0 +1,6 @@
+__pycache__
+typings
+.vscode
+wandb
+*.pdf
+*.dot

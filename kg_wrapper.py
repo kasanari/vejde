@@ -5,6 +5,7 @@ import pyRDDLGym
 import numpy as np
 import gymnasium as gym
 from enum import Enum
+from utils import objects, predicate
 
 
 class Arity(Enum):
@@ -26,58 +27,45 @@ Graph = NamedTuple(
     "Graph",
     [
         ("nodes", np.ndarray[np.int32, Any]),
+        ("node_classes", np.ndarray[np.int32, Any]),
         ("edge_indices", np.ndarray[np.uint, Any]),
         ("edge_attributes", np.ndarray[np.uint, Any]),
-        ("numeric", np.ndarray[np.bool_, Any]),
     ],
 )
 
 
-def to_graphviz(obs: dict[tuple[str, str], Graph], idx_to_symb):
+def graph_to_dict(graph: Graph) -> dict[str, Any]:
+    return {
+        "nodes": graph.nodes,
+        "node_classes": graph.node_classes,
+        "edge_index": graph.edge_indices,
+        "edge_attr": graph.edge_attributes,
+    }
+
+
+def to_graphviz(
+    obs: Graph, idx_to_obj: dict[int, str], idx_to_rel: dict[int, str]
+) -> str:
     colors = ["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]
     graph = "digraph G {\n"
     value_mapping = {}
     individ_mapping = {}
     global_idx = 0
 
-    individ_nodes = obs[("individual", "individual")].nodes
-    edges = obs[("individual", "individual")].edge_indices
-    edge_attributes = obs[("individual", "individual")].edge_attributes
+    individ_nodes = obs.nodes
+    edges = obs.edge_indices
+    edge_attributes = obs.edge_attributes
 
     for idx, data in enumerate(individ_nodes):
-        graph += f'"{global_idx}" [label="{idx_to_symb[data]}", shape=circle]\n'
+        graph += f'"{global_idx}" [label="{idx_to_obj[data]}", shape=circle]\n'
         individ_mapping[idx] = global_idx
         global_idx += 1
 
     for attribute, edge in zip(edge_attributes, edges):
-        graph += f'"{individ_mapping[edge[0]]}" -> "{individ_mapping[edge[1]]}" [label="{idx_to_symb[attribute]}"]\n'
-
-    value_nodes = obs[("individual", "value")].nodes
-    numeric = obs[("individual", "value")].numeric
-
-    for idx, data in enumerate(value_nodes):
-        label = f'"{data}"' if numeric[idx] else f'"{bool(data)}"'
-        graph += f'"{global_idx}" [label={label}, shape=box]\n'
-        value_mapping[idx] = global_idx
-        global_idx += 1
-
-    edges = obs[("individual", "value")].edge_indices
-    edge_attributes = obs[("individual", "value")].edge_attributes
-
-    for attribute, edge in zip(edge_attributes, edges):
-        graph += f'"{individ_mapping[edge[0]]}" -> "{value_mapping[edge[1]]}" [label="{idx_to_symb[attribute]}"]\n'
+        graph += f'"{individ_mapping[edge[0]]}" -> "{individ_mapping[edge[1]]}" [label="{idx_to_rel[attribute]}"]\n'
 
     graph += "}"
     return graph
-
-
-def predicate(key: str) -> str:
-    return key.split("___")[0]
-
-
-def objects(key: str) -> list[str]:
-    split = key.split("___")
-    return split[1].split("__") if len(split) > 1 else []
 
 
 def translate_edges(
@@ -97,11 +85,18 @@ def edge_attr(edges: set[Edge], symbols: dict[str, int]) -> np.ndarray[np.uint, 
     return np.array([symbols[e[2]] for e in edges], dtype=np.uint)
 
 
-def create_edges(d: dict[str, Any]) -> dict[tuple[str, str], set[Edge]]:
-    edges: dict[tuple[str, str], set[Edge]] = {
-        ("individual", "individual"): set(),
-        ("individual", "value"): set(),
-    }
+def create_inverse_predicate(predicate: str) -> str:
+    return f"inv({predicate})"
+
+
+def create_inverse_grounding(g: str) -> str:
+    o = objects(g)
+    p = predicate(g)
+    return f"{create_inverse_predicate(p)}___{o[1]}__{o[0]}"
+
+
+def create_edges(d: dict[str, Any]) -> set[Edge]:
+    edges: set[Edge] = set()
 
     for value_id in d.keys():
         if is_fluent_to_skip(value_id, d):
@@ -113,14 +108,18 @@ def create_edges(d: dict[str, Any]) -> dict[tuple[str, str], set[Edge]]:
             continue
         elif len(o) == 1:
             object = o[0]
-            edges[("individual", "value")].add(Edge(object, value_id, p))
+            edges.add(Edge(object, object, p))
         elif len(o) == 2:
             o1, o2 = o
-            edges[("individual", "individual")].add(Edge(o1, o2, p))
+            edges.add(Edge(o1, o2, p))
         else:
             raise ValueError("Only up to binary relations are supported")
 
     return edges
+
+
+def is_numeric(key: str, obs: dict[str, Any]) -> bool:
+    return not isinstance(obs[key], np.bool_)
 
 
 def is_false_binary_relation(key: str, obs: dict[str, bool]) -> bool:
@@ -132,19 +131,23 @@ def is_nullary_relation(key: str) -> bool:
 
 
 def is_fluent_to_skip(key: str, obs: dict[str, bool]) -> bool:
-    return is_false_binary_relation(key, obs) or is_nullary_relation(key)
+    return is_numeric(key, obs) or not obs[key] or is_nullary_relation(key)
+
+
+def inverse_relations(groundings: set[str]) -> set[str]:
+    new_groundings: set[str] = set()
+    for g in groundings:
+        if len(objects(g)) == 2:
+            new_groundings.add(create_inverse_grounding(g))
+    return new_groundings
 
 
 def generate_bipartite_obs(
     obs: dict[str, bool],
-    groundings: list[str],
-    symb_to_idx: dict[str, int],
-    variable_ranges: dict[str, str],
-) -> dict[tuple[str, str], Graph]:
-    edge_indices = {}
-    edge_attributes = {}
-    o = {}
-
+    obj_to_idx: dict[str, int],
+    obj_to_type_idx: dict[str, int],
+    rel_to_idx: dict[str, int],
+) -> Graph:
     edges = create_edges(obs)
 
     obs_objects: set[str] = set()
@@ -156,52 +159,29 @@ def generate_bipartite_obs(
     object_list: list[str] = sorted(obs_objects)
 
     object_nodes = np.array(
-        [symb_to_idx[object] for object in object_list], dtype=np.int32
+        [obj_to_idx[object] for object in object_list], dtype=np.int32
     )
 
-    fact_node_values = np.array(
-        [obs[key] for key in groundings],
-        dtype=np.float32,
+    object_node_classes = np.array(
+        [obj_to_type_idx[object] for object in object_list], dtype=np.int32
     )
 
-    numeric = np.array(
-        [
-            1 if variable_ranges[predicate(g)] in ["real", "int"] else 0
-            for g in groundings
-        ],
-        dtype=np.bool_,
-    )
-
-    key = ("individual", "individual")
-    edge_indices[key] = translate_edges(object_list, object_list, edges[key])
-    edge_attributes[key] = edge_attr(edges[key], symb_to_idx)
-    o[key] = Graph(
+    edge_indices = translate_edges(object_list, object_list, edges)
+    edge_attributes = edge_attr(edges, rel_to_idx)
+    o = Graph(
         object_nodes,
-        edge_indices[key],
-        edge_attributes[key],
-        np.zeros(len(object_nodes), dtype=np.bool_),
+        object_node_classes,
+        edge_indices,
+        edge_attributes,
     )
 
-    assert max(edge_indices[("individual", "individual")][:, 1]) < len(object_nodes)
-    assert max(edge_indices[("individual", "individual")][:, 0]) < len(object_nodes)
-
-    key = ("individual", "value")
-    edge_indices[key] = translate_edges(object_list, groundings, edges[key])
-    edge_attributes[key] = edge_attr(edges[key], symb_to_idx)
-    o[key] = Graph(
-        fact_node_values,
-        edge_indices[key],
-        edge_attributes[key],
-        numeric,
-    )
-
-    assert max(edge_indices[("individual", "value")][:, 1]) < len(fact_node_values)
-    assert max(edge_indices[("individual", "value")][:, 0]) < len(object_nodes)
+    if edge_indices.size > 0:
+        assert max(edge_indices[:, 1]) < len(object_nodes)
 
     return o
 
 
-class RDDLGraphWrapper(gym.Wrapper):
+class KGRDDLGraphWrapper(gym.Env):
     metadata = {"render.modes": ["human"]}
 
     def __init__(self, domain: str, instance: int, render_mode: str = "human") -> None:
@@ -209,19 +189,25 @@ class RDDLGraphWrapper(gym.Wrapper):
         model = env.model  # type: ignore
         object_to_type: dict[str, str] = copy(model.object_to_type)  # type: ignore
         types = set(object_to_type.values())  # type: ignore
+        type_list = sorted(types)
         num_objects = sum(env.model.object_counts(types))  # type: ignore
         state_fluents: list[str] = list(env.model.state_fluents.keys())  # type: ignore
-        action_groundings: list[str] = list(
+        action_groundings: list[str] = set(
             dict(env.model.ground_vars_with_values(model.action_fluents)).keys()  # type: ignore
         )
-        groundings: list[str] = [
-            g
-            for _, v in env.model.variable_groundings.items()  # type: ignore
-            for g in v  # type: ignore
-            if g[-1] != env.model.NEXT_STATE_SYM  # type: ignore
-        ]
-
-        groundings = sorted(set(groundings))
+        groundings: list[str] = (
+            set(
+                [
+                    g
+                    for _, v in env.model.variable_groundings.items()  # type: ignore
+                    for g in v  # type: ignore
+                    if g[-1] != env.model.NEXT_STATE_SYM  # type: ignore
+                ]
+            )
+            - action_groundings
+        )
+        groundings |= inverse_relations(groundings)
+        groundings = sorted(groundings)
         variable_params: dict[str, list[str]] = copy(env.model.variable_params)  # type: ignore
         self.domain = domain
         self.instance = instance
@@ -251,19 +237,24 @@ class RDDLGraphWrapper(gym.Wrapper):
 
         object_terms: list[str] = list(model.object_to_index.keys())  # type: ignore
         action_fluents: list[str] = list(model.action_fluents.keys())  # type: ignore
-        symbol_list = sorted(
-            object_terms + non_fluents + state_fluents + action_fluents
-        )
+        object_list = sorted(object_terms)
+
+        relations = non_fluents + state_fluents
+        relations += [create_inverse_predicate(r) for r in relations if arities[r] == 2]
+        relation_list = sorted(relations)
         variable_ranges: dict[str, str] = model._variable_ranges  # type: ignore
 
         self.variable_ranges = variable_ranges  # type: ignore
-        symb_to_idx = {symb: idx for idx, symb in enumerate(symbol_list)}
+        obj_to_idx = {symb: idx for idx, symb in enumerate(object_list)}
+        rel_to_idx = {symb: idx for idx, symb in enumerate(relation_list)}
         self.non_fluents_values = non_fluent_values
         self.non_fluent_edges = non_fluent_edges
         self.action_edges = action_edges
         self.type_to_fluent = type_to_fluent
         self.model = model
         self.num_objects = num_objects
+        self.num_relations = len(relation_list)
+        self.num_types = len(type_list)
         self.arities = arities
         self.arities_to_fluent = arities_to_fluent
         self.non_fluents = non_fluents
@@ -271,8 +262,13 @@ class RDDLGraphWrapper(gym.Wrapper):
         self.object_to_type = object_to_type
         self.groundings = groundings
         self.state_fluents = state_fluents
-        self.idx_to_symb = symbol_list
-        self.symb_to_idx = symb_to_idx
+        self.idx_to_obj = object_list
+        self.obj_to_idx = obj_to_idx
+        self.idx_to_rel = relation_list
+        self.rel_to_idx = rel_to_idx
+        self.obj_to_type_idx = {
+            o: type_list.index(object_to_type[o]) for o in object_list
+        }
         self.env = env
         self.iter = 0
         self.observation_space = gym.spaces.Dict(
@@ -281,7 +277,7 @@ class RDDLGraphWrapper(gym.Wrapper):
                     low=0, high=1, shape=(len(groundings), 2), dtype=np.float32
                 ),
                 "object_nodes": gym.spaces.Box(
-                    low=0, high=len(symbol_list), shape=(num_objects,), dtype=np.int32
+                    low=0, high=len(object_list), shape=(num_objects,), dtype=np.int32
                 ),
                 "edge_indices": gym.spaces.Box(
                     low=0,
@@ -298,71 +294,77 @@ class RDDLGraphWrapper(gym.Wrapper):
                 "numeric": gym.spaces.Box(
                     low=0,
                     high=1,
-                    shape=(len(symbol_list),),
+                    shape=(len(object_list),),
                     dtype=np.bool_,  # type: ignore
                 ),
             }
         )
-        self.action_space = gym.spaces.Discrete(len(groundings))
+        self.action_space = self.env.action_space
 
     def reset(self, seed: int | None = None):
         obs, info = self.env.reset(seed)
 
-        obs |= self.action_values
+        # obs |= self.action_values
         obs |= self.non_fluents_values
 
+        obs |= {
+            create_inverse_grounding(k): v
+            for k, v in obs.items()
+            if self.arities[predicate(k)] == 2
+        }
+
         filtered_groundings = sorted(
-            [g for g in self.groundings if not is_fluent_to_skip(g, obs)]
+            [g for g in self.groundings if g in obs and not is_fluent_to_skip(g, obs)]
         )
 
         filtered_obs: dict[str, Any] = {k: obs[k] for k in filtered_groundings}
 
         graph = generate_bipartite_obs(
             filtered_obs,
-            filtered_groundings,
-            self.symb_to_idx,
-            self.variable_ranges,
+            self.obj_to_idx,
+            self.obj_to_type_idx,
+            self.rel_to_idx,
         )
 
         self.iter = 0
         self.last_obs = graph
 
-        return graph, info
+        return graph_to_dict(graph), info
 
     def render(self):
         obs = self.last_obs
 
         with open(f"{self.domain}_{self.instance}_{self.iter}.dot", "w") as f:
-            f.write(
-                to_graphviz(
-                    obs,
-                    self.idx_to_symb,
-                )
-            )
+            f.write(to_graphviz(obs, self.idx_to_obj, self.idx_to_rel))
 
     def step(self, action: dict[str, int]):
         obs, reward, terminated, truncated, info = self.env.step(action)
 
-        obs |= self.action_values
         obs |= self.non_fluents_values
 
+        obs |= {
+            create_inverse_grounding(k): v
+            for k, v in obs.items()
+            if self.arities[predicate(k)] == 2
+        }
+
         filtered_groundings = sorted(
-            [g for g in self.groundings if not is_fluent_to_skip(g, obs)]
+            [g for g in self.groundings if g in obs and not is_fluent_to_skip(g, obs)]
         )
 
         filtered_obs: dict[str, Any] = {k: obs[k] for k in filtered_groundings}
 
         graph = generate_bipartite_obs(
             filtered_obs,
-            filtered_groundings,
-            self.symb_to_idx,
-            self.variable_ranges,
+            self.obj_to_idx,
+            self.obj_to_type_idx,
+            self.rel_to_idx,
         )
 
         self.iter += 1
         self.last_obs = graph
 
-        return graph, reward, terminated, truncated, info
+        return graph_to_dict(graph), reward, terminated, truncated, info
 
 
 def main():
@@ -371,8 +373,8 @@ def main():
     # domain = "SysAdmin_MDP_ippc2011"
     # domain = "RecSim_ippc2023"
     # domain = "SkillTeaching_MDP_ippc2011"
-    env = RDDLGraphWrapper(domain, instance)
-    obs, info = env.reset()
+    env = KGRDDLGraphWrapper(domain, instance)
+    obs, info = env.reset(0)
     env.render()
     done = False
     time = 0
@@ -382,10 +384,10 @@ def main():
         action = env.env.action_space.sample()
 
         action = random.choice(list(action.items()))
-        action = {action[0]: action[1]}
+        action = action = {"close-door___e0": 0}  # {action[0]: action[1]}
         obs, reward, terminated, truncated, info = env.step(action)
         env.render()
-        exit()
+        # exit()
         done = terminated or truncated
 
         sum_reward += reward

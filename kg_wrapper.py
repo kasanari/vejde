@@ -200,9 +200,10 @@ class KGRDDLGraphWrapper(gym.Env):
         type_list = sorted(types)
         num_objects = sum(env.model.object_counts(types))  # type: ignore
         state_fluents: list[str] = list(env.model.state_fluents.keys())  # type: ignore
-        action_groundings: list[str] = set(
+        action_groundings: set[str] = set(
             dict(env.model.ground_vars_with_values(model.action_fluents)).keys()  # type: ignore
         )
+        action_groundings.add("noop")
         groundings: set[str] = (
             set(
                 [
@@ -217,6 +218,7 @@ class KGRDDLGraphWrapper(gym.Env):
         groundings |= inverse_relations(groundings)
         groundings = sorted(groundings)
         variable_params: dict[str, list[str]] = copy(env.model.variable_params)  # type: ignore
+        variable_params["noop"] = []
         self.domain = domain
         self.instance = instance
         type_to_fluent: dict[str, list[str]] = {
@@ -238,10 +240,8 @@ class KGRDDLGraphWrapper(gym.Env):
             env.model.ground_vars_with_values(model.non_fluents)  # type: ignore
         )
 
-        non_fluent_edges: set[Edge] = create_edges(non_fluent_values)
-
         object_terms: list[str] = list(model.object_to_index.keys())  # type: ignore
-        action_fluents: list[str] = list(model.action_fluents.keys())  # type: ignore
+        action_fluents: list[str] = [predicate(a) for a in action_groundings]
         object_list = sorted(object_terms)
 
         action_mask = {
@@ -259,11 +259,11 @@ class KGRDDLGraphWrapper(gym.Env):
         obj_to_idx = {symb: idx for idx, symb in enumerate(object_list)}
         rel_to_idx = {symb: idx for idx, symb in enumerate(relation_list)}
         self.non_fluents_values = non_fluent_values
-        self.non_fluent_edges = non_fluent_edges
         self.type_to_fluent = type_to_fluent
         self.action_fluents = action_fluents
         self.model = model
         self.num_objects = num_objects
+        self.action_groundings = action_groundings
         self.num_relations = num_relations
         self.num_types = num_types
         self.num_actions = len(action_fluents)
@@ -303,7 +303,12 @@ class KGRDDLGraphWrapper(gym.Env):
         )
         self.action_space = MultiDiscrete([num_objects, len(action_fluents)])
 
-    def reset(self, seed: int | None = None):
+    def reset(
+        self,
+        *,
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> tuple[dict, dict[str, Any]]:
         obs, info = self.env.reset(seed)
 
         # obs |= self.action_values
@@ -328,6 +333,12 @@ class KGRDDLGraphWrapper(gym.Env):
             self.rel_to_idx,
         )
 
+        action_mask = np.stack(
+            [np.array([x for x in v.values()]) for v in self.action_mask.values()]
+        )
+
+        info["action_mask"] = action_mask
+
         self.iter = 0
         self.last_obs = graph
 
@@ -339,8 +350,17 @@ class KGRDDLGraphWrapper(gym.Env):
         with open(f"{self.domain}_{self.instance}_{self.iter}.dot", "w") as f:
             f.write(to_graphviz(obs, self.idx_to_obj, self.idx_to_rel))
 
-    def step(self, action: dict[str, int]):
-        obs, reward, terminated, truncated, info = self.env.step(action)
+    def step(self, action: tuple[int, int]):
+        action_fluent = self.action_fluents[action[0]]
+        object_id = self.idx_to_obj[action[1]]
+
+        rddl_action = f"{action_fluent}___{object_id}"
+
+        rddl_action_dict = (
+            {rddl_action: 1} if rddl_action in self.action_groundings else {}
+        )
+
+        obs, reward, terminated, truncated, info = self.env.step(rddl_action_dict)
 
         obs |= self.non_fluents_values
 
@@ -356,12 +376,18 @@ class KGRDDLGraphWrapper(gym.Env):
 
         filtered_obs: dict[str, Any] = {k: obs[k] for k in filtered_groundings}
 
+        action_mask = np.stack(
+            [np.array([x for x in v.values()]) for v in self.action_mask.values()]
+        )
+
         graph = generate_bipartite_obs(
             filtered_obs,
             self.obj_to_idx,
             self.obj_to_type_idx,
             self.rel_to_idx,
         )
+
+        info["action_mask"] = action_mask
 
         self.iter += 1
         self.last_obs = graph
@@ -383,18 +409,20 @@ def main():
     sum_reward = 0
     while not done:
         time += 1
-        action = env.env.action_space.sample()
-
-        action = random.choice(list(action.items()))
-        action = action = {"close-door___e0": 0}  # {action[0]: action[1]}
-        obs, reward, terminated, truncated, info = env.step(action)
+        action: tuple[int, int] = env.action_space.sample()
+        action_fluent = action[1]
+        action_mask = info["action_mask"]
+        valid_objects = np.flatnonzero(action_mask[action_fluent])
+        object_idx = np.random.choice(valid_objects)
+        new_action = (object_idx, action_fluent)
+        obs, reward, terminated, truncated, info = env.step(new_action)
         env.render()
         # exit()
         done = terminated or truncated
 
         sum_reward += reward
         # print(obs)
-        print(action)
+        print(new_action)
         print(reward)
     print(sum_reward)
 

@@ -184,8 +184,16 @@ def generate_bipartite_obs(
 class KGRDDLGraphWrapper(gym.Env):
     metadata = {"render.modes": ["human"]}
 
-    def __init__(self, domain: str, instance: int, render_mode: str = "human") -> None:
-        env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
+    def __init__(
+        self,
+        domain: str,
+        instance: int,
+        render_mode: str = "human",
+        enforce_action_constraints: bool = True,
+    ) -> None:
+        env = pyRDDLGym.make(
+            domain, instance, enforce_action_constraints=enforce_action_constraints
+        )  # type: ignore
         model = env.model  # type: ignore
         object_to_type: dict[str, str] = copy(model.object_to_type)  # type: ignore
         types = set(object_to_type.values())  # type: ignore
@@ -195,7 +203,7 @@ class KGRDDLGraphWrapper(gym.Env):
         action_groundings: list[str] = set(
             dict(env.model.ground_vars_with_values(model.action_fluents)).keys()  # type: ignore
         )
-        groundings: list[str] = (
+        groundings: set[str] = (
             set(
                 [
                     g
@@ -226,9 +234,6 @@ class KGRDDLGraphWrapper(gym.Env):
         assert max(arities.values()) <= 2, "Only up to binary predicates are supported"
         non_fluents: list[str] = list(env.model.non_fluents.keys())  # type: ignore
 
-        action_values = {k: np.bool_(True) for k in action_groundings}
-        action_edges: set[Edge] = create_edges(action_values)
-
         non_fluent_values: dict[str, int] = dict(
             env.model.ground_vars_with_values(model.non_fluents)  # type: ignore
         )
@@ -238,6 +243,11 @@ class KGRDDLGraphWrapper(gym.Env):
         object_terms: list[str] = list(model.object_to_index.keys())  # type: ignore
         action_fluents: list[str] = list(model.action_fluents.keys())  # type: ignore
         object_list = sorted(object_terms)
+
+        action_mask = {
+            a: {o: object_to_type[o] in variable_params[a] for o in object_terms}
+            for a in action_fluents
+        }
 
         relations = non_fluents + state_fluents
         relations += [create_inverse_predicate(r) for r in relations if arities[r] == 2]
@@ -250,16 +260,17 @@ class KGRDDLGraphWrapper(gym.Env):
         rel_to_idx = {symb: idx for idx, symb in enumerate(relation_list)}
         self.non_fluents_values = non_fluent_values
         self.non_fluent_edges = non_fluent_edges
-        self.action_edges = action_edges
         self.type_to_fluent = type_to_fluent
+        self.action_fluents = action_fluents
         self.model = model
         self.num_objects = num_objects
         self.num_relations = num_relations
         self.num_types = num_types
+        self.num_actions = len(action_fluents)
         self.arities = arities
+        self.action_mask = action_mask
         self.arities_to_fluent = arities_to_fluent
         self.non_fluents = non_fluents
-        self.action_values = action_values
         self.object_to_type = object_to_type
         self.groundings = groundings
         self.state_fluents = state_fluents

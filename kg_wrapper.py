@@ -6,6 +6,7 @@ import numpy as np
 import gymnasium as gym
 from enum import Enum
 from utils import objects, predicate
+from gymnasium.spaces import MultiDiscrete, Sequence
 
 
 class Arity(Enum):
@@ -36,8 +37,7 @@ Graph = NamedTuple(
 
 def graph_to_dict(graph: Graph) -> dict[str, Any]:
     return {
-        "nodes": graph.nodes,
-        "node_classes": graph.node_classes,
+        "nodes": graph.node_classes,
         "edge_index": graph.edge_indices,
         "edge_attr": graph.edge_attributes,
     }
@@ -243,7 +243,8 @@ class KGRDDLGraphWrapper(gym.Env):
         relations += [create_inverse_predicate(r) for r in relations if arities[r] == 2]
         relation_list = sorted(relations)
         variable_ranges: dict[str, str] = model._variable_ranges  # type: ignore
-
+        num_types = len(type_list)
+        num_relations = len(relation_list)
         self.variable_ranges = variable_ranges  # type: ignore
         obj_to_idx = {symb: idx for idx, symb in enumerate(object_list)}
         rel_to_idx = {symb: idx for idx, symb in enumerate(relation_list)}
@@ -253,8 +254,8 @@ class KGRDDLGraphWrapper(gym.Env):
         self.type_to_fluent = type_to_fluent
         self.model = model
         self.num_objects = num_objects
-        self.num_relations = len(relation_list)
-        self.num_types = len(type_list)
+        self.num_relations = num_relations
+        self.num_types = num_types
         self.arities = arities
         self.arities_to_fluent = arities_to_fluent
         self.non_fluents = non_fluents
@@ -273,33 +274,23 @@ class KGRDDLGraphWrapper(gym.Env):
         self.iter = 0
         self.observation_space = gym.spaces.Dict(
             {
-                "nodes": gym.spaces.Box(
-                    low=0, high=1, shape=(len(groundings), 2), dtype=np.float32
+                "nodes": Sequence(gym.spaces.Discrete(num_types)),
+                "edge_index": Sequence(
+                    gym.spaces.Box(
+                        low=0,
+                        high=num_objects,
+                        shape=(2,),
+                        dtype=np.uint,
+                    )
                 ),
-                "object_nodes": gym.spaces.Box(
-                    low=0, high=len(object_list), shape=(num_objects,), dtype=np.int32
-                ),
-                "edge_indices": gym.spaces.Box(
-                    low=0,
-                    high=num_objects,
-                    shape=(len(action_groundings) + len(non_fluent_values), 2),
-                    dtype=np.uint,
-                ),
-                "edge_attributes": gym.spaces.Box(
-                    low=0,
-                    high=1,
-                    shape=(len(action_groundings) + len(non_fluent_values),),
-                    dtype=np.uint,
-                ),
-                "numeric": gym.spaces.Box(
-                    low=0,
-                    high=1,
-                    shape=(len(object_list),),
-                    dtype=np.bool_,  # type: ignore
+                "edge_attr": Sequence(
+                    gym.spaces.Discrete(
+                        num_relations,
+                    )
                 ),
             }
         )
-        self.action_space = self.env.action_space
+        self.action_space = MultiDiscrete([num_objects, len(action_fluents)])
 
     def reset(self, seed: int | None = None):
         obs, info = self.env.reset(seed)

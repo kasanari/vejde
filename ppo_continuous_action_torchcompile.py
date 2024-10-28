@@ -3,8 +3,8 @@ import os
 from typing import Any
 
 from geometric import GNNAgent
-from kg_wrapper import KGRDDLGraphWrapper
-from wrapper import RDDLGraphWrapper
+from wrappers.kg_wrapper import KGRDDLGraphWrapper
+from wrappers.wrapper import GroundedRDDLGraphWrapper
 
 os.environ["TORCHDYNAMO_INLINE_INBUILT_NN_MODULES"] = "1"
 
@@ -62,15 +62,15 @@ class Args:
     # Algorithm specific arguments
     env_id: str = "CartPole-v1"
     """the id of the environment"""
-    total_timesteps: int = 1000
+    total_timesteps: int = 100000
     """total timesteps of the experiments"""
-    learning_rate: float = 3e-4
+    learning_rate: float = 3e-5
     """the learning rate of the optimizer"""
     num_envs: int = 1
     """the number of parallel game environments"""
-    num_steps: int = 128
+    num_steps: int = 64
     """the number of steps to run in each environment per policy rollout"""
-    anneal_lr: bool = True
+    anneal_lr: bool = False
     """Toggle learning rate annealing for policy and value networks"""
     gamma: float = 0.99
     """the discount factor gamma"""
@@ -84,13 +84,13 @@ class Args:
     """Toggles advantages normalization"""
     clip_coef: float = 0.2
     """the surrogate clipping coefficient"""
-    clip_vloss: bool = True
+    clip_vloss: bool = False
     """Toggles whether or not to use a clipped loss for the value function, as per the paper."""
     ent_coef: float = 0.0
     """coefficient of the entropy"""
-    vf_coef: float = 0.5
+    vf_coef: float = 0.001
     """coefficient of the value function"""
-    max_grad_norm: float = 0.5
+    max_grad_norm: float = 100
     """the maximum norm for the gradient clipping"""
     target_kl: float = None
     """the target KL divergence threshold"""
@@ -112,13 +112,13 @@ class Args:
     """whether to use cudagraphs on top of compile."""
 
 
-def make_env(env_id: str, idx: int, capture_video: bool, run_name: str):
-    instance = 1
-    domain = "Elevators_MDP_ippc2011"
-
+def make_env(domain: str, instance: int, idx: int, capture_video: bool, run_name: str):
     def thunk():
         if capture_video and idx == 0:
-            env = KGRDDLGraphWrapper(env_id, render_mode="rgb_array")
+            env = KGRDDLGraphWrapper(
+                env_id,
+                render_mode="rgb_array",
+            )
             env = gym.wrappers.RecordVideo(env, f"videos/{run_name}")
         else:
             env = KGRDDLGraphWrapper(domain, instance)
@@ -206,9 +206,11 @@ def gae(next_obs, next_done, container: tensordict.TensorDict) -> tensordict.Ten
     return container
 
 
-def rollout(obs: list[Data], done: bool, avg_returns: list[float] = []):
+def rollout(obs: list[Data], done: bool):
     ts: list[tensordict.TensorDict] = []
     data = []
+    returns = deque()
+    lengths = deque()
     for _ in range(args.num_steps):
         # ALGO LOGIC: action logic
         batch = Batch.from_data_list(obs)
@@ -222,8 +224,10 @@ def rollout(obs: list[Data], done: bool, avg_returns: list[float] = []):
         if "final_info" in infos:
             for info in infos["final_info"]:
                 r = float(info["episode"]["r"].reshape(()))
+                l = int(info["episode"]["l"].reshape(()))
                 # max_ep_ret = max(max_ep_ret, r)
-                avg_returns.append(r)
+                returns.append(r)
+                lengths.append(l)
             # desc = f"global_step={global_step}, episodic_return={torch.tensor(avg_returns).mean(): 4.2f} (max={max_ep_ret: 4.2f})"
 
         ts.append(
@@ -246,7 +250,7 @@ def rollout(obs: list[Data], done: bool, avg_returns: list[float] = []):
 
     container = torch.stack(ts, 0).to(device)
     batch = Batch.from_data_list(data).to(device)
-    return next_obs, done, container, batch
+    return next_obs, done, container, batch, returns, lengths
 
 
 def update(
@@ -348,8 +352,11 @@ if __name__ == "__main__":
     args.num_iterations = args.total_timesteps // args.batch_size
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{args.compile}__{args.cudagraphs}"
 
+    domain = "Elevators_MDP_ippc2011"
+    instance = 1
+
     wandb.init(
-        project="ppo_continuous_action",
+        project="ppo_rddl_gnn",
         name=f"{os.path.splitext(os.path.basename(__file__))[0]}-{run_name}",
         config=vars(args),
         save_code=True,
@@ -366,7 +373,7 @@ if __name__ == "__main__":
     ####### Environment setup #######
     envs = gym.vector.SyncVectorEnv(
         [
-            make_env(args.env_id, i, args.capture_video, run_name)
+            make_env(domain, instance, i, args.capture_video, run_name)
             for i in range(args.num_envs)
         ]
     )
@@ -423,6 +430,7 @@ if __name__ == "__main__":
         update = CudaGraphModule(update)
 
     avg_returns = deque(maxlen=20)
+    avg_lengths = deque(maxlen=20)
     global_step = 0
     container_local = None
     next_obs = envs.reset()[0]
@@ -444,9 +452,12 @@ if __name__ == "__main__":
             optimizer.param_groups[0]["lr"].copy_(lrnow)
 
         torch.compiler.cudagraph_mark_step_begin()
-        next_obs, next_done, container, batch = rollout(
-            next_obs, next_done, avg_returns=avg_returns
+        next_obs, next_done, container, batch, returns, lengths = rollout(
+            next_obs, next_done
         )
+        avg_returns.extend(returns)
+        avg_lengths.extend(lengths)
+
         global_step += container.numel()
 
         container = gae(next_obs, next_done, container)
@@ -489,15 +500,22 @@ if __name__ == "__main__":
             r = container["rewards"].mean()
             r_max = container["rewards"].max()
             avg_returns_t = torch.tensor(avg_returns).mean()
+            avg_lengths_t = torch.tensor(avg_lengths).mean()
 
             with torch.no_grad():
                 logs = {
                     "episode_return": np.array(avg_returns).mean(),
+                    "episode_length": np.array(avg_lengths).mean(),
                     "logprobs": container["logprobs"].mean(),
                     "advantages": container["advantages"].mean(),
                     "returns": container["returns"].mean(),
                     "vals": container["vals"].mean(),
-                    "gn": out["gn"].mean(),
+                    "avg_gradient_norm": out["gn"].mean(),
+                    "v_loss": out["v_loss"].mean(),
+                    "pg_loss": out["pg_loss"].mean(),
+                    "entropy_loss": out["entropy_loss"].mean(),
+                    "approx_kl": out["approx_kl"].mean(),
+                    "clipfrac": out["clipfrac"].mean(),
                 }
 
             lr = optimizer.param_groups[0]["lr"]
@@ -506,13 +524,14 @@ if __name__ == "__main__":
                 f"reward avg: {r :4.2f}, "
                 f"reward max: {r_max:4.2f}, "
                 f"returns: {avg_returns_t: 4.2f},"
+                f"length: {avg_lengths_t: 4.2f},"
                 f"lr: {lr: 4.2f}"
             )
             wandb.log(
                 {
                     "speed": speed,
                     "episode_return": avg_returns_t,
-                    "r": r,
+                    "r_mean": r,
                     "r_max": r_max,
                     "lr": lr,
                     **logs,

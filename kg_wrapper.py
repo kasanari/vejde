@@ -190,6 +190,7 @@ class KGRDDLGraphWrapper(gym.Env):
         instance: int,
         render_mode: str = "human",
         enforce_action_constraints: bool = True,
+        add_inverse_relations: bool = True,
     ) -> None:
         env = pyRDDLGym.make(
             domain, instance, enforce_action_constraints=enforce_action_constraints
@@ -215,7 +216,8 @@ class KGRDDLGraphWrapper(gym.Env):
             )
             - action_groundings
         )
-        groundings |= inverse_relations(groundings)
+        if add_inverse_relations:
+            groundings |= inverse_relations(groundings)
         groundings = sorted(groundings)
         variable_params: dict[str, list[str]] = copy(env.model.variable_params)  # type: ignore
         variable_params["noop"] = []
@@ -250,7 +252,10 @@ class KGRDDLGraphWrapper(gym.Env):
         }
 
         relations = non_fluents + state_fluents
-        relations += [create_inverse_predicate(r) for r in relations if arities[r] == 2]
+        if add_inverse_relations:
+            relations += [
+                create_inverse_predicate(r) for r in relations if arities[r] == 2
+            ]
         relation_list = sorted(relations)
         variable_ranges: dict[str, str] = model._variable_ranges  # type: ignore
         num_types = len(type_list)
@@ -278,6 +283,7 @@ class KGRDDLGraphWrapper(gym.Env):
         self.obj_to_idx = obj_to_idx
         self.idx_to_rel = relation_list
         self.rel_to_idx = rel_to_idx
+        self.add_inverse_relations = add_inverse_relations
         self.obj_to_type_idx = {
             o: type_list.index(object_to_type[o]) for o in object_list
         }
@@ -314,11 +320,12 @@ class KGRDDLGraphWrapper(gym.Env):
         # obs |= self.action_values
         obs |= self.non_fluents_values
 
-        obs |= {
-            create_inverse_grounding(k): v
-            for k, v in obs.items()
-            if self.arities[predicate(k)] == 2
-        }
+        if self.add_inverse_relations:
+            obs |= {
+                create_inverse_grounding(k): v
+                for k, v in obs.items()
+                if self.arities[predicate(k)] == 2
+            }
 
         filtered_groundings = sorted(
             [g for g in self.groundings if g in obs and not is_fluent_to_skip(g, obs)]
@@ -363,12 +370,12 @@ class KGRDDLGraphWrapper(gym.Env):
         obs, reward, terminated, truncated, info = self.env.step(rddl_action_dict)
 
         obs |= self.non_fluents_values
-
-        obs |= {
-            create_inverse_grounding(k): v
-            for k, v in obs.items()
-            if self.arities[predicate(k)] == 2
-        }
+        if self.add_inverse_relations:
+            obs |= {
+                create_inverse_grounding(k): v
+                for k, v in obs.items()
+                if self.arities[predicate(k)] == 2
+            }
 
         filtered_groundings = sorted(
             [g for g in self.groundings if g in obs and not is_fluent_to_skip(g, obs)]
@@ -397,12 +404,12 @@ class KGRDDLGraphWrapper(gym.Env):
 
 def main():
     instance = 1
-    domain = "Elevators_MDP_ippc2011"
-    # domain = "SysAdmin_MDP_ippc2011"
+    # domain = "Elevators_MDP_ippc2011"
+    domain = "SysAdmin_MDP_ippc2011"
     # domain = "RecSim_ippc2023"
     # domain = "SkillTeaching_MDP_ippc2011"
-    env = KGRDDLGraphWrapper(domain, instance)
-    obs, info = env.reset(0)
+    env = KGRDDLGraphWrapper(domain, instance, add_inverse_relations=False)
+    obs, info = env.reset(seed=0)
     env.render()
     done = False
     time = 0
@@ -410,7 +417,7 @@ def main():
     while not done:
         time += 1
         action: tuple[int, int] = env.action_space.sample()
-        action_fluent = action[1]
+        action_fluent = action[0]
         action_mask = info["action_mask"]
         valid_objects = np.flatnonzero(action_mask[action_fluent])
         object_idx = np.random.choice(valid_objects)

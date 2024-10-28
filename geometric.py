@@ -27,7 +27,7 @@ class BipartiteData(Data):
 
 class GNNConv(MessagePassing):
     def __init__(self, in_channels: int, out_channels: int, num_relations: int):
-        super(GNNConv, self).__init__(aggr="max")
+        super(GNNConv, self).__init__(aggr="sum")
         self.root = layer_init(nn.Linear(in_channels, out_channels))
         self.combine = layer_init(nn.Linear(out_channels * 2, out_channels))
         self.relation_embedding = nn.Embedding(num_relations, in_channels)
@@ -47,34 +47,57 @@ class GNNConv(MessagePassing):
         return x + self.combine(torch.concatenate([x, aggr_out], dim=-1))
 
 
+class GlobalNode(nn.Module):
+    def __init__(self, emb_size: int):
+        super(GlobalNode, self).__init__()
+        self.aggr = AttentionalAggregation(
+            nn.Linear(emb_size, 1), nn.Linear(emb_size, emb_size)
+        )
+        self.linear = layer_init(nn.Linear(emb_size * 2, emb_size))
+
+    def forward(self, x: Tensor, g_prev: Tensor, batch_idx: Tensor) -> Tensor:
+        g = self.aggr(x, batch_idx)
+        return g_prev + self.linear(torch.concatenate([g, g_prev], dim=-1))
+
+
 class GNN(nn.Module):
-    def __init__(self, num_object_classes: int, num_predicate_classes: int):
+    def __init__(
+        self,
+        layers: int,
+        embedding_dim: int,
+        num_object_classes: int,
+        num_predicate_classes: int,
+    ):
         super().__init__()
-        self.obj_embedding = nn.Embedding(num_object_classes, 16)
-        self.conv1 = GNNConv(16, 16, num_predicate_classes)
-        self.conv2 = GNNConv(16, 16, num_predicate_classes)
-        self.aggr = AttentionalAggregation(nn.Linear(16, 1), nn.Linear(16, 16))
+        self.obj_embedding = nn.Embedding(num_object_classes, embedding_dim)
+        nn.init.orthogonal_(self.obj_embedding.weight)
+        self.convs = nn.ModuleList(
+            [
+                GNNConv(embedding_dim, embedding_dim, num_predicate_classes)
+                for _ in range(layers)
+            ]
+        )
+        self.aggrs = nn.ModuleList([GlobalNode(embedding_dim) for _ in range(layers)])
+        self.hidden_size = embedding_dim
 
     def forward(
         self, x: Tensor, edge_index: Tensor, edge_attr: Tensor, batch_idx: Tensor
     ):
-        x = self.obj_embedding(x)
-
-        h = self.conv1(x, edge_index, edge_attr)
-        h = self.conv2(h, edge_index, edge_attr)
-
-        g = self.aggr(
-            h, batch_idx
-        )  # torch.sum(torch.softmax(self.gate(h), dim=0) * self.attn(h), dim=0)
+        num_graphs = batch_idx.max().item() + 1
+        g = torch.zeros(num_graphs, self.hidden_size).to(x.device)
+        h = self.obj_embedding(x)
+        for i in range(len(self.convs)):
+            h = self.convs[i](h, edge_index, edge_attr)
+            g = self.aggrs[i](h, g, batch_idx)
 
         return h, g
 
 
 class GNNPolicy(nn.Module):
-    def __init__(self, num_actions: int):
+    def __init__(self, num_actions: int, embedding_dim: int):
         super().__init__()
-        self.node_prob = nn.Linear(16, 1)
-        self.action_prob = nn.Linear(16, num_actions)
+        self.node_prob = nn.Linear(embedding_dim, 1)
+        self.action_prob = nn.Linear(embedding_dim, num_actions)
         self.num_actions = num_actions
 
     def forward(self, h: Tensor, batch_idx: Tensor):
@@ -91,12 +114,22 @@ class GNNPolicy(nn.Module):
 
 class GNNAgent(nn.Module):
     def __init__(
-        self, num_object_classes: int, num_predicate_classes: int, num_actions: int
+        self,
+        num_object_classes: int,
+        num_predicate_classes: int,
+        num_actions: int,
     ):
         super().__init__()
-        self.gnn = GNN(num_object_classes, num_predicate_classes)
-        self.policy = GNNPolicy(num_actions)
-        self.vf = nn.Linear(16, 1)
+        layers = 2
+        embedding_dim = 16
+        self.p_gnn = GNN(
+            layers, embedding_dim, num_object_classes, num_predicate_classes
+        )
+        self.vf_gnn = GNN(
+            layers, embedding_dim, num_object_classes, num_predicate_classes
+        )
+        self.policy = GNNPolicy(num_actions, embedding_dim)
+        self.vf = nn.Linear(embedding_dim, 1)
 
     def value(
         self,
@@ -106,7 +139,7 @@ class GNNAgent(nn.Module):
         batch_idx: Batch,
         num_graphs: int,
     ):
-        _, g = self.gnn(x, edge_index, edge_attr, batch_idx)
+        _, g = self.vf_gnn(x, edge_index, edge_attr, batch_idx)
         value = self.vf(g)
         return value
 
@@ -117,8 +150,9 @@ class GNNAgent(nn.Module):
         edge_attr: Tensor,
         batch_idx: Batch,
     ):
-        h, g = self.gnn(x, edge_index, edge_attr, batch_idx)
+        h, _ = self.p_gnn(x, edge_index, edge_attr, batch_idx)
         actions, logprob, entropy = self.policy(h, batch_idx)
+        _, g = self.vf_gnn(x, edge_index, edge_attr, batch_idx)
         value = self.vf(g)
         return actions, logprob, entropy, value
 

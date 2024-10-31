@@ -348,7 +348,7 @@ def main():
             lrnow = frac * args.learning_rate
             optimizer.param_groups[0]["lr"] = lrnow
 
-        global_step += rollout(
+        global_step = rollout(
             agent,
             envs,
             next_obs,

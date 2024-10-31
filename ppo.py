@@ -187,6 +187,9 @@ def rollout(
 
         # ALGO LOGIC: action logic
         action, logprob, _, value = agent.get_action_and_value(next_obs)
+        assert action.dim() == 1
+        assert logprob.dim() == 1
+        assert value.dim() == 2
         values[step] = value.flatten()
         actions[step] = action
         logprobs[step] = logprob
@@ -230,6 +233,9 @@ def update(
     max_grad_norm: float,
 ):
     _, newlogprob, entropy, newvalue = agent.get_action_and_value(obs, actions)
+    assert newlogprob.dim() == 1
+    assert entropy.dim() == 1
+    assert newvalue.dim() == 2
     logratio = newlogprob - logprobs
     ratio = logratio.exp()
 
@@ -246,7 +252,7 @@ def update(
         )
 
     # Policy loss
-    pg_loss1 = -mb_advantages * ratio
+    pg_loss1 = torch.mul(-mb_advantages, ratio)
     pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
     pg_loss = torch.max(pg_loss1, pg_loss2).mean()
 

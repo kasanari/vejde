@@ -15,6 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torch import Tensor
 
 
+@torch.inference_mode()
 def gae(
     rewards: Tensor,
     dones: Tensor,
@@ -148,17 +149,68 @@ class Agent(nn.Module):
             layer_init(nn.Linear(64, envs.single_action_space.n), std=0.01),
         )
 
-    def get_value(self, x):
+    def get_value(self, x: Tensor):
         return self.critic(x)
 
     def get_action_and_value(
-        self, x, action=None
+        self, x: Tensor, action: Tensor | None = None
     ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         logits = self.actor(x)
         probs = Categorical(logits=logits)
         if action is None:
             action = probs.sample()
         return action, probs.log_prob(action), probs.entropy(), self.critic(x)
+
+
+@torch.inference_mode()
+def rollout(
+    agent: Agent,
+    envs: gym.vector.SyncVectorEnv,
+    next_obs: Tensor,
+    next_done: Tensor,
+    obs: Tensor,
+    dones: Tensor,
+    rewards: Tensor,
+    actions: Tensor,
+    logprobs: Tensor,
+    values: Tensor,
+    writer: SummaryWriter,
+    num_steps: int,
+    num_envs: int,
+    device: torch.device | str,
+    global_step: int,
+):
+    for step in range(0, num_steps):
+        global_step += num_envs
+        obs[step] = next_obs
+        dones[step] = next_done
+
+        # ALGO LOGIC: action logic
+        action, logprob, _, value = agent.get_action_and_value(next_obs)
+        values[step] = value.flatten()
+        actions[step] = action
+        logprobs[step] = logprob
+
+        # TRY NOT TO MODIFY: execute the game and log data.
+        next_obs, reward, terminations, truncations, infos = envs.step(
+            action.cpu().numpy()
+        )
+        next_done = np.logical_or(terminations, truncations)
+        rewards[step] = torch.tensor(reward).to(device).view(-1)
+        next_obs, next_done = (
+            torch.Tensor(next_obs).to(device),
+            torch.Tensor(next_done).to(device),
+        )
+
+        if "episode" in infos:
+            for is_final, r, l in zip(
+                infos["_episode"], infos["episode"]["r"], infos["episode"]["l"]
+            ):
+                if is_final:
+                    print(f"global_step={global_step}, episodic_return={r}")
+                    writer.add_scalar("charts/episodic_return", r, global_step)
+                    writer.add_scalar("charts/episodic_length", l, global_step)
+    return global_step
 
 
 def update(
@@ -296,37 +348,23 @@ def main():
             lrnow = frac * args.learning_rate
             optimizer.param_groups[0]["lr"] = lrnow
 
-        for step in range(0, args.num_steps):
-            global_step += args.num_envs
-            obs[step] = next_obs
-            dones[step] = next_done
-
-            # ALGO LOGIC: action logic
-            with torch.no_grad():
-                action, logprob, _, value = agent.get_action_and_value(next_obs)
-                values[step] = value.flatten()
-            actions[step] = action
-            logprobs[step] = logprob
-
-            # TRY NOT TO MODIFY: execute the game and log data.
-            next_obs, reward, terminations, truncations, infos = envs.step(
-                action.cpu().numpy()
-            )
-            next_done = np.logical_or(terminations, truncations)
-            rewards[step] = torch.tensor(reward).to(device).view(-1)
-            next_obs, next_done = (
-                torch.Tensor(next_obs).to(device),
-                torch.Tensor(next_done).to(device),
-            )
-
-            if "episode" in infos:
-                for is_final, r, l in zip(
-                    infos["_episode"], infos["episode"]["r"], infos["episode"]["l"]
-                ):
-                    if is_final:
-                        print(f"global_step={global_step}, episodic_return={r}")
-                        writer.add_scalar("charts/episodic_return", r, global_step)
-                        writer.add_scalar("charts/episodic_length", l, global_step)
+        global_step += rollout(
+            agent,
+            envs,
+            next_obs,
+            next_done,
+            obs,
+            dones,
+            rewards,
+            actions,
+            logprobs,
+            values,
+            writer,
+            args.num_steps,
+            args.num_envs,
+            device,
+            global_step,
+        )
 
         # bootstrap value if not done
         with torch.no_grad():

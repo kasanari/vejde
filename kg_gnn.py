@@ -2,7 +2,7 @@ from torch_geometric.data import Data, Batch
 from torch_geometric.nn import MessagePassing
 import torch
 from gnn_policy.functional import sample_node_then_action
-from kg_wrapper import KGRDDLGraphWrapper
+from wrappers.kg_wrapper import KGRDDLGraphWrapper
 from torch import Tensor, LongTensor
 import torch.nn as nn
 import random
@@ -106,7 +106,7 @@ class GNNPolicy(nn.Module):
         node_mask = torch.ones(node_logits.shape[0], dtype=torch.bool)
         num_graphs = batch_idx.max().item() + 1
         action_mask = torch.ones((num_graphs, self.num_actions), dtype=torch.bool)
-        actions, logprob, entropy = sample_node_then_action(
+        actions, logprob, entropy, *_ = sample_node_then_action(
             node_logits, action_logits, node_mask, action_mask, batch_idx
         )
         return actions, logprob, entropy

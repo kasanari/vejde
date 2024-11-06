@@ -9,29 +9,83 @@ import random
 import numpy as np
 from numpy.typing import NDArray
 
-from torch_geometric.nn import AttentionalAggregation
+from torch_geometric.nn import AttentionalAggregation, SumAggregation
+
+activation_to_str: dict[type[nn.Module], str] = {
+    nn.ReLU: "relu",
+    nn.LeakyReLU: "leaky_relu",
+    nn.Tanh: "tanh",
+    nn.Sigmoid: "sigmoid",
+    nn.Softmax: "softmax",
+}
 
 
-def layer_init(layer: nn.Linear, std: float = np.sqrt(2), bias_const: float = 0.0):
-    torch.nn.init.orthogonal_(layer.weight, std)
-    torch.nn.init.constant_(layer.bias, bias_const)
+def layer_init(
+    layer: nn.Module,
+    nonlinearity: str,
+    bias_const: float = 0.0,
+):
     return layer
+    gain = torch.nn.init.calculate_gain(nonlinearity, param=None)
+    if isinstance(layer, nn.Linear):
+        torch.nn.init.orthogonal_(layer.weight, gain)
+        # torch.nn.init.xavier_normal_(layer.weight, gain)
+        torch.nn.init.constant_(layer.bias, bias_const)
+    elif isinstance(layer, nn.Embedding):
+        # torch.nn.init.xavier_normal_(layer.weight)
+        torch.nn.init.orthogonal_(layer.weight, gain)
 
 
-class BipartiteData(Data):
-    def __inc__(self, key, value, *args, **kwargs):
-        if key == "edge_index":
-            return torch.tensor([[self.x_p.size(0)], [self.x_o.size(0)]])
-        return super().__inc__(key, value, *args, **kwargs)
+class MLPLayer(nn.Module):
+    def __init__(self, in_features: int, out_features: int, activation: nn.Module):
+        super(MLPLayer, self).__init__()
+        self.linear = layer_init(
+            nn.Linear(in_features, out_features),
+            activation_to_str[activation.__class__],
+        )
+        self.activation = activation
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self.activation(self.linear(x))
+
+
+class EmbeddingLayer(nn.Module):
+    def __init__(self, num_embeddings: int, embedding_dim: int, activation: nn.Module):
+        super(EmbeddingLayer, self).__init__()
+        self.embedding = layer_init(
+            nn.Embedding(num_embeddings, embedding_dim),
+            activation_to_str[activation.__class__],
+        )
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self.embedding(x)
+
+
+class LinearTransform(nn.Module):
+    def __init__(self, in_features: int, out_features: int, activation: nn.Module):
+        super(LinearTransform, self).__init__()
+        self.linear = layer_init(
+            nn.Linear(in_features, out_features),
+            activation_to_str[activation.__class__],
+        )
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self.linear(x)
 
 
 class GNNConv(MessagePassing):
-    def __init__(self, in_channels: int, out_channels: int, num_relations: int):
-        super(GNNConv, self).__init__(aggr="sum")
-        self.root = layer_init(nn.Linear(in_channels, out_channels))
-        self.combine = layer_init(nn.Linear(out_channels * 2, out_channels))
-        self.relation_embedding = nn.Embedding(num_relations, in_channels)
-        nn.init.orthogonal_(self.relation_embedding.weight)
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        num_relations: int,
+        activation: nn.Module,
+        aggregation: str = "sum",
+    ):
+        super(GNNConv, self).__init__(aggr=aggregation)
+        self.combine = MLPLayer(in_channels + out_channels, out_channels, activation)
+        self.msg_combine = MLPLayer(out_channels, out_channels, activation)
+        #
 
     def forward(self, x: Tensor, edge_index: Tensor, edge_attr: Tensor):
         return self.propagate(
@@ -41,21 +95,39 @@ class GNNConv(MessagePassing):
         )
 
     def message(self, x_j: Tensor, edge_attr: Tensor) -> Tensor:
-        return self.relation_embedding(edge_attr) * x_j  # + edge_attr
+        return (
+            self.msg_combine(
+                edge_attr
+            )  # self.msg_combine(torch.concatenate([x_j, edge_attr], dim=-1))
+        )
 
     def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:
         return x + self.combine(torch.concatenate([x, aggr_out], dim=-1))
 
 
 class GlobalNode(nn.Module):
-    def __init__(self, emb_size: int):
-        super(GlobalNode, self).__init__()
+    def __init__(self, emb_size: int, activation: nn.Module):
+        super().__init__()
         self.aggr = AttentionalAggregation(
-            nn.Linear(emb_size, 1), nn.Linear(emb_size, emb_size)
+            LinearTransform(emb_size, 1, activation),
+            LinearTransform(emb_size, emb_size, activation),
         )
-        self.linear = layer_init(nn.Linear(emb_size * 2, emb_size))
+        self.linear = MLPLayer(2 * emb_size, emb_size, activation)
 
     def forward(self, x: Tensor, g_prev: Tensor, batch_idx: Tensor) -> Tensor:
+        g = self.aggr(x, batch_idx)
+        return g_prev + self.linear(torch.concatenate([g, g_prev], dim=-1))
+
+
+class SumGlobalNode(nn.Module):
+    def __init__(self, emb_size: int, activation: nn.Module):
+        super().__init__()
+        self.aggr = SumAggregation()
+        self.msg = MLPLayer(emb_size, emb_size, activation)
+        self.linear = MLPLayer(emb_size * 2, emb_size, activation)
+
+    def forward(self, x: Tensor, g_prev: Tensor, batch_idx: Tensor) -> Tensor:
+        x = self.msg(x)
         g = self.aggr(x, batch_idx)
         return g_prev + self.linear(torch.concatenate([g, g_prev], dim=-1))
 
@@ -67,17 +139,31 @@ class GNN(nn.Module):
         embedding_dim: int,
         num_object_classes: int,
         num_predicate_classes: int,
+        activation: nn.Module,
+        aggregation: str,
     ):
         super().__init__()
         self.obj_embedding = nn.Embedding(num_object_classes, embedding_dim)
+        self.relation_embedding = EmbeddingLayer(
+            num_predicate_classes, embedding_dim, activation
+        )
+        # self.edge_transform = MLPLayer(embedding_dim, embedding_dim, activation)
         nn.init.orthogonal_(self.obj_embedding.weight)
         self.convs = nn.ModuleList(
             [
-                GNNConv(embedding_dim, embedding_dim, num_predicate_classes)
+                GNNConv(
+                    embedding_dim,
+                    embedding_dim,
+                    num_predicate_classes,
+                    activation,
+                    aggregation,
+                )
                 for _ in range(layers)
             ]
         )
-        self.aggrs = nn.ModuleList([GlobalNode(embedding_dim) for _ in range(layers)])
+        self.aggrs = nn.ModuleList(
+            [GlobalNode(embedding_dim, activation) for _ in range(layers)]
+        )
         self.hidden_size = embedding_dim
 
     def forward(
@@ -86,18 +172,23 @@ class GNN(nn.Module):
         num_graphs = batch_idx.max().item() + 1
         g = torch.zeros(num_graphs, self.hidden_size).to(x.device)
         h = self.obj_embedding(x)
+        h_r = self.relation_embedding(edge_attr)
         for i in range(len(self.convs)):
-            h = self.convs[i](h, edge_index, edge_attr)
+            h = self.convs[i](h, edge_index, h_r)
             g = self.aggrs[i](h, g, batch_idx)
 
         return h, g
 
 
 class GNNPolicy(nn.Module):
-    def __init__(self, num_actions: int, embedding_dim: int):
+    def __init__(self, num_actions: int, embedding_dim: int, activation: nn.Module):
         super().__init__()
-        self.node_prob = nn.Linear(embedding_dim, 1)
-        self.action_prob = nn.Linear(embedding_dim, num_actions)
+        self.node_prob = nn.Sequential(
+            LinearTransform(embedding_dim, 1, activation),
+        )
+        self.action_prob = nn.Sequential(
+            LinearTransform(embedding_dim, num_actions, activation),
+        )
         self.num_actions = num_actions
 
     def forward(self, h: Tensor, batch_idx: Tensor):
@@ -118,18 +209,28 @@ class GNNAgent(nn.Module):
         num_object_classes: int,
         num_predicate_classes: int,
         num_actions: int,
+        layers: int,
+        embedding_dim: int,
+        aggregation: str,
+        activation: nn.Module,
     ):
         super().__init__()
-        layers = 2
-        embedding_dim = 16
         self.p_gnn = GNN(
-            layers, embedding_dim, num_object_classes, num_predicate_classes
+            layers,
+            embedding_dim,
+            num_object_classes,
+            num_predicate_classes,
+            activation,
+            aggregation,
         )
-        self.vf_gnn = GNN(
-            layers, embedding_dim, num_object_classes, num_predicate_classes
+        # self.vf_gnn = GNN(
+        #     layers, embedding_dim, num_object_classes, num_predicate_classes
+        # )
+        self.policy = GNNPolicy(num_actions, embedding_dim, activation)
+        self.vf = nn.Sequential(
+            MLPLayer(embedding_dim, embedding_dim, activation),
+            LinearTransform(embedding_dim, 1, activation),
         )
-        self.policy = GNNPolicy(num_actions, embedding_dim)
-        self.vf = nn.Linear(embedding_dim, 1)
 
     def value(
         self,
@@ -150,9 +251,9 @@ class GNNAgent(nn.Module):
         edge_attr: Tensor,
         batch_idx: Batch,
     ):
-        h, _ = self.p_gnn(x, edge_index, edge_attr, batch_idx)
+        h, g = self.p_gnn(x, edge_index, edge_attr, batch_idx)
         actions, logprob, entropy = self.policy(h, batch_idx)
-        _, g = self.vf_gnn(x, edge_index, edge_attr, batch_idx)
+        # _, g = self.vf_gnn(x, edge_index, edge_attr, batch_idx)
         value = self.vf(g)
         return actions, logprob, entropy, value
 

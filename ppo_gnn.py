@@ -12,10 +12,30 @@ import torch.nn as nn
 import torch.optim as optim
 import tyro
 from torch.distributions.categorical import Categorical
-from torch.utils.tensorboard import SummaryWriter
+
 from torch import Tensor
 
 from tqdm import tqdm
+from typing import Any
+
+from torch_geometric.data import Data, Batch
+
+from kg_gnn import GNNAgent
+from wrappers import kg_wrapper
+from wrappers.kg_wrapper import KGRDDLGraphWrapper
+import mlflow
+import mlflow.pytorch
+
+
+def dict_to_data(obs: dict[str, tuple[Any]], num_envs: int) -> list[Data]:
+    return [
+        Data(
+            x=torch.as_tensor(obs["nodes"][n], dtype=torch.int64),
+            edge_index=torch.as_tensor(obs["edge_index"][n], dtype=torch.int64).T,
+            edge_attr=torch.as_tensor(obs["edge_attr"][n], dtype=torch.int64),
+        )
+        for n in range(num_envs)
+    ]
 
 
 @torch.inference_mode()
@@ -57,45 +77,45 @@ class Args:
     """if toggled, `torch.backends.cudnn.deterministic=False`"""
     cuda: bool = True
     """if toggled, cuda will be enabled by default"""
-    track: bool = False
+    track: bool = True
     """if toggled, this experiment will be tracked with Weights and Biases"""
     wandb_project_name: str = "cleanRL"
     """the wandb's project name"""
-    wandb_entity: str = None
+    wandb_entity: str | None = None
     """the entity (team) of wandb's project"""
     capture_video: bool = False
     """whether to capture videos of the agent performances (check out `videos` folder)"""
 
     # Algorithm specific arguments
-    env_id: str = "CartPole-v1"
+    env_id: str = "SysAdmin_MDP_ippc2011"  # "Elevators_MDP_ippc2011"
     """the id of the environment"""
-    total_timesteps: int = 500000
+    total_timesteps: int = 10000
     """total timesteps of the experiments"""
-    learning_rate: float = 2.5e-4
+    learning_rate: float = 2.5e-3
     """the learning rate of the optimizer"""
     num_envs: int = 4
     """the number of parallel game environments"""
-    num_steps: int = 128
+    num_steps: int = 80
     """the number of steps to run in each environment per policy rollout"""
     anneal_lr: bool = True
     """Toggle learning rate annealing for policy and value networks"""
     gamma: float = 0.99
     """the discount factor gamma"""
-    gae_lambda: float = 0.95
+    gae_lambda: float = 0.1
     """the lambda for the general advantage estimation"""
-    num_minibatches: int = 4
+    num_minibatches: int = 1
     """the number of mini-batches"""
-    update_epochs: int = 4
+    update_epochs: int = 2
     """the K epochs to update the policy"""
-    norm_adv: bool = True
+    norm_adv: bool = False
     """Toggles advantages normalization"""
     clip_coef: float = 0.2
     """the surrogate clipping coefficient"""
-    clip_vloss: bool = True
+    clip_vloss: bool = False
     """Toggles whether or not to use a clipped loss for the value function, as per the paper."""
     ent_coef: float = 0.01
     """coefficient of the entropy"""
-    vf_coef: float = 0.5
+    vf_coef: float = 0.1
     """coefficient of the value function"""
     max_grad_norm: float = 0.5
     """the maximum norm for the gradient clipping"""
@@ -111,13 +131,16 @@ class Args:
     """the number of iterations (computed in runtime)"""
 
 
-def make_env(env_id: str, idx: int, capture_video: bool, run_name: str):
+def make_env(domain: str, idx: int, capture_video: bool, run_name: str):
+    instance = 1
+
     def thunk():
-        if capture_video and idx == 0:
-            env = gym.make(env_id, render_mode="rgb_array")
-            env = gym.wrappers.RecordVideo(env, f"videos/{run_name}")
-        else:
-            env = gym.make(env_id)
+        env = gym.make(
+            "KGRDDLGraphWrapper-v0",
+            domain=domain,
+            instance=instance,
+            add_inverse_relations=False,
+        )
         env = gym.wrappers.RecordEpisodeStatistics(env)
         return env
 
@@ -131,47 +154,52 @@ def layer_init(layer: nn.Linear, std: float = np.sqrt(2), bias_const: float = 0.
 
 
 class Agent(nn.Module):
-    def __init__(self, envs: gym.vector.SyncVectorEnv):
+    def __init__(
+        self, envs: gym.vector.SyncVectorEnv, device: str | None = None, **kwargs
+    ):
         super().__init__()
-        self.critic = nn.Sequential(
-            layer_init(
-                nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64)
-            ),
-            nn.Tanh(),
-            layer_init(nn.Linear(64, 64)),
-            nn.Tanh(),
-            layer_init(nn.Linear(64, 1), std=1.0),
-        )
-        self.actor = nn.Sequential(
-            layer_init(
-                nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64)
-            ),
-            nn.Tanh(),
-            layer_init(nn.Linear(64, 64)),
-            nn.Tanh(),
-            layer_init(nn.Linear(64, envs.single_action_space.n), std=0.01),
-        )
+        n_types = envs.single_observation_space.spaces["nodes"].feature_space.n
+        n_relations = envs.single_observation_space.spaces["edge_attr"].feature_space.n
+        n_actions = envs.single_action_space.nvec[1]
+        self.gnn_agent = GNNAgent(n_types, n_relations, n_actions, **kwargs)
 
-    def get_value(self, x: Tensor):
-        return self.critic(x)
+    def get_value(
+        self,
+        x: Tensor,
+        edge_index: Tensor,
+        edge_attr: Tensor,
+        batch_idx: Tensor,
+    ):
+        _, _, _, value = self.gnn_agent(x, edge_index, edge_attr, batch_idx)
+        return value
 
     def get_action_and_value(
-        self, x: Tensor, action: Tensor | None = None
-    ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
-        logits = self.actor(x)
-        probs = Categorical(logits=logits)
-        if action is None:
-            action = probs.sample()
-        return action, probs.log_prob(action), probs.entropy(), self.critic(x)
+        self,
+        x: Tensor,
+        edge_index: Tensor,
+        edge_attr: Tensor,
+        batch_idx: Tensor,
+        action: Tensor | None = None,
+    ):
+        action, logprob, entropy, value = self.gnn_agent(
+            x, edge_index, edge_attr, batch_idx
+        )
+        entropy = entropy.unsqueeze(0)
+        return (
+            action,
+            logprob,
+            entropy,
+            value,
+        )
 
 
 @torch.inference_mode()
 def rollout(
     agent: Agent,
     envs: gym.vector.SyncVectorEnv,
-    next_obs: Tensor,
+    next_obs: list[Data],
     next_done: Tensor,
-    obs: Tensor,
+    obs: deque[Data],
     dones: Tensor,
     rewards: Tensor,
     actions: Tensor,
@@ -186,12 +214,16 @@ def rollout(
     lengths: deque[int] = deque()
     for step in range(0, num_steps):
         global_step += num_envs
-        obs[step] = next_obs
+        obs.extend(next_obs)
         dones[step] = next_done
 
         # ALGO LOGIC: action logic
-        action, logprob, _, value = agent.get_action_and_value(next_obs)
-        assert action.dim() == 1
+        batch = Batch.from_data_list(next_obs)
+        action, logprob, _, value = agent.get_action_and_value(
+            batch.x, batch.edge_index, batch.edge_attr, batch.batch
+        )
+        assert action.dim() == 2
+        assert action.shape[0] == num_envs
         assert logprob.dim() == 1
         assert value.dim() == 2
         values[step] = value.flatten()
@@ -205,7 +237,7 @@ def rollout(
         next_done = np.logical_or(terminations, truncations)
         rewards[step] = torch.tensor(reward).to(device).view(-1)
         next_obs, next_done = (
-            torch.Tensor(next_obs).to(device),
+            dict_to_data(next_obs, num_envs),
             torch.Tensor(next_done).to(device),
         )
 
@@ -222,7 +254,7 @@ def rollout(
 def update(
     agent: Agent,
     optimizer: optim.Optimizer,
-    obs: Tensor,
+    obs: Batch,
     actions: Tensor,
     logprobs: Tensor,
     advantages: Tensor,
@@ -235,7 +267,9 @@ def update(
     vf_coef: float,
     max_grad_norm: float,
 ):
-    _, newlogprob, entropy, newvalue = agent.get_action_and_value(obs, actions)
+    _, newlogprob, entropy, newvalue = agent.get_action_and_value(
+        obs.x, obs.edge_index, obs.edge_attr, obs.batch, actions
+    )
     assert newlogprob.dim() == 1
     assert entropy.dim() == 1
     assert newvalue.dim() == 2
@@ -281,7 +315,16 @@ def update(
     loss.backward()
     grad_norm = nn.utils.clip_grad_norm_(agent.parameters(), max_grad_norm)
     optimizer.step()
-    return pg_loss, v_loss, entropy_loss, old_approx_kl, approx_kl, grad_norm, clipfracs
+    return (
+        loss,
+        pg_loss,
+        v_loss,
+        entropy_loss,
+        old_approx_kl,
+        approx_kl,
+        grad_norm,
+        clipfracs,
+    )
 
 
 def main():
@@ -289,25 +332,33 @@ def main():
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.num_iterations = args.total_timesteps // args.batch_size
-    run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
+    run_name = f"{args.env_id}__{args.exp_name}__{args.seed}"
+
+    agent_config = {
+        "layers": 2,
+        "embedding_dim": 256,
+        "aggregation": "sum",
+        "activation": nn.Tanh(),
+    }
+
+    config = vars(args) | agent_config
+
     if args.track:
         import wandb
 
         wandb.init(
             project=args.wandb_project_name,
             entity=args.wandb_entity,
-            sync_tensorboard=True,
-            config=vars(args),
+            config=config,
             name=run_name,
-            monitor_gym=True,
             save_code=True,
         )
-    writer = SummaryWriter(f"runs/{run_name}")
-    writer.add_text(
-        "hyperparameters",
-        "|param|value|\n|-|-|\n%s"
-        % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
-    )
+
+    mlflow.set_experiment(run_name)
+    mlflow.log_params(config)
+
+    mlflow.log_artifact(__file__)
+    mlflow.log_artifact("kg_gnn.py")
 
     # TRY NOT TO MODIFY: seeding
     random.seed(args.seed)
@@ -318,23 +369,23 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
     # env setup
+    kg_wrapper.register_env()
     envs = gym.vector.SyncVectorEnv(
         [
             make_env(args.env_id, i, args.capture_video, run_name)
             for i in range(args.num_envs)
         ],
     )
-    assert isinstance(
-        envs.single_action_space, gym.spaces.Discrete
-    ), "only discrete action space is supported"
 
-    agent = Agent(envs).to(device)
+    agent = Agent(envs, **agent_config).to(device)
+
+    if args.track:
+        wandb.watch(agent, log_freq=10, log="all")
+
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # ALGO Logic: Storage setup
-    obs = torch.zeros(
-        (args.num_steps, args.num_envs) + envs.single_observation_space.shape
-    ).to(device)
+    obs = deque()
     actions = torch.zeros(
         (args.num_steps, args.num_envs) + envs.single_action_space.shape
     ).to(device)
@@ -347,7 +398,7 @@ def main():
     global_step = 0
     start_time = time.time()
     next_obs, _ = envs.reset(seed=args.seed)
-    next_obs = torch.Tensor(next_obs).to(device)
+    next_obs = dict_to_data(next_obs, args.num_envs)
     next_done = torch.zeros(args.num_envs).to(device)
 
     pbar = tqdm(total=args.total_timesteps)
@@ -381,7 +432,13 @@ def main():
 
         # bootstrap value if not done
         with torch.no_grad():
-            next_value = agent.get_value(next_obs).reshape(1, -1)
+            next_obs_batch = Batch.from_data_list(next_obs)
+            next_value = agent.get_value(
+                next_obs_batch.x,
+                next_obs_batch.edge_index,
+                next_obs_batch.edge_attr,
+                next_obs_batch.batch,
+            ).reshape(1, -1)
             advantages, returns = gae(
                 rewards,
                 dones,
@@ -395,7 +452,7 @@ def main():
             )
 
         # flatten the batch
-        b_obs = obs.reshape((-1,) + envs.single_observation_space.shape)
+        b_obs = Batch.from_data_list(obs)
         b_logprobs = logprobs.reshape(-1)
         b_actions = actions.reshape((-1,) + envs.single_action_space.shape)
         b_advantages = advantages.reshape(-1)
@@ -410,8 +467,9 @@ def main():
             for start in range(0, args.batch_size, args.minibatch_size):
                 end = start + args.minibatch_size
                 mb_inds = b_inds[start:end]
-
+                minibatch = Batch.from_data_list(b_obs.index_select(mb_inds))
                 (
+                    loss,
                     pg_loss,
                     v_loss,
                     entropy_loss,
@@ -422,7 +480,7 @@ def main():
                 ) = update(
                     agent,
                     optimizer,
-                    b_obs[mb_inds],
+                    minibatch,
                     b_actions.long()[mb_inds],
                     b_logprobs[mb_inds],
                     b_advantages[mb_inds],
@@ -445,30 +503,37 @@ def main():
         explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
         # TRY NOT TO MODIFY: record rewards for plotting purposes
-        writer.add_scalar(
+        mlflow.log_metric(
             "charts/learning_rate", optimizer.param_groups[0]["lr"], global_step
         )
         pbar.update(1)
         pbar.set_description(
             f"R:{r:.2f} | L:{l:.2f} | ENT:{entropy_loss:.2f} | EXPL_VARIANCE:{explained_var:.2f}"
         )
-        writer.add_scalar("rollout/mean_episodic_return", r, global_step)
-        writer.add_scalar("rollout/mean_episodic_length", l, global_step)
-        writer.add_scalar("grad_norm", grad_norm, global_step)
-        writer.add_scalar("losses/value_loss", v_loss.item(), global_step)
-        writer.add_scalar("losses/policy_loss", pg_loss.item(), global_step)
-        writer.add_scalar("losses/entropy", entropy_loss.item(), global_step)
-        writer.add_scalar("losses/old_approx_kl", old_approx_kl.item(), global_step)
-        writer.add_scalar("losses/approx_kl", approx_kl.item(), global_step)
-        writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
-        writer.add_scalar("losses/explained_variance", explained_var, global_step)
-        writer.add_scalar(
+
+        mlflow.log_metric("rollout/mean_reward", rewards.mean().item(), global_step)
+        mlflow.log_metric("rollout/mean_episodic_return", r, global_step)
+        mlflow.log_metric("rollout/mean_episodic_length", l, global_step)
+        mlflow.log_metric("rollout/advantages", b_advantages.mean().item(), global_step)
+        mlflow.log_metric("rollout/returns", b_returns.mean().item(), global_step)
+        mlflow.log_metric("rollout/values", b_values.mean().item(), global_step)
+        mlflow.log_metric("losses/total_loss", loss.item(), global_step)
+        mlflow.log_metric("losses/grad_norm", grad_norm, global_step)
+        mlflow.log_metric("losses/value_loss", v_loss.item(), global_step)
+        mlflow.log_metric("losses/policy_loss", pg_loss.item(), global_step)
+        mlflow.log_metric("losses/entropy", entropy_loss.item(), global_step)
+        mlflow.log_metric("losses/old_approx_kl", old_approx_kl.item(), global_step)
+        mlflow.log_metric("losses/approx_kl", approx_kl.item(), global_step)
+        mlflow.log_metric("losses/clipfrac", np.mean(clipfracs), global_step)
+        mlflow.log_metric("losses/explained_variance", explained_var, global_step)
+        mlflow.log_metric(
             "charts/SPS", int(global_step / (time.time() - start_time)), global_step
         )
 
     envs.close()
-    writer.close()
 
 
 if __name__ == "__main__":
-    main()
+    mlflow.set_tracking_uri(uri="http://127.0.0.1:5000")
+    with mlflow.start_run():
+        main()

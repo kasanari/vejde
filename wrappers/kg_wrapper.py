@@ -5,7 +5,7 @@ import pyRDDLGym
 import numpy as np
 import gymnasium as gym
 from enum import Enum
-from utils import objects, predicate
+from wrappers.utils import objects, predicate
 from gymnasium.spaces import MultiDiscrete, Sequence
 
 
@@ -27,10 +27,10 @@ Edge = NamedTuple(
 Graph = NamedTuple(
     "Graph",
     [
-        ("nodes", np.ndarray[np.int32, Any]),
-        ("node_classes", np.ndarray[np.int32, Any]),
-        ("edge_indices", np.ndarray[np.uint, Any]),
-        ("edge_attributes", np.ndarray[np.uint, Any]),
+        ("nodes", np.ndarray[np.int64, Any]),
+        ("node_classes", np.ndarray[np.int64, Any]),
+        ("edge_indices", np.ndarray[np.int64, Any]),
+        ("edge_attributes", np.ndarray[np.int64, Any]),
     ],
 )
 
@@ -73,16 +73,16 @@ def translate_edges(
 ):
     return np.array(
         [(source_symbols.index(key[0]), target_symbols.index(key[1])) for key in edges],
-        dtype=np.uint,
+        dtype=np.int64,
     )
 
 
 T = TypeVar("T")
 
 
-def edge_attr(edges: set[Edge], symbols: dict[str, int]) -> np.ndarray[np.uint, Any]:
+def edge_attr(edges: set[Edge], symbols: dict[str, int]) -> np.ndarray[np.int64, Any]:
     # TODO edge values?
-    return np.array([symbols[e[2]] for e in edges], dtype=np.uint)
+    return np.array([symbols[e[2]] for e in edges], dtype=np.int64)
 
 
 def create_inverse_predicate(predicate: str) -> str:
@@ -159,11 +159,11 @@ def generate_bipartite_obs(
     object_list: list[str] = sorted(obs_objects)
 
     object_nodes = np.array(
-        [obj_to_idx[object] for object in object_list], dtype=np.int32
+        [obj_to_idx[object] for object in object_list], dtype=np.int64
     )
 
     object_node_classes = np.array(
-        [obj_to_type_idx[object] for object in object_list], dtype=np.int32
+        [obj_to_type_idx[object] for object in object_list], dtype=np.int64
     )
 
     edge_indices = translate_edges(object_list, object_list, edges)
@@ -182,7 +182,7 @@ def generate_bipartite_obs(
 
 
 class KGRDDLGraphWrapper(gym.Env):
-    metadata = {"render.modes": ["human"]}
+    metadata = {"render_modes": ["human"]}
 
     def __init__(
         self,
@@ -243,7 +243,7 @@ class KGRDDLGraphWrapper(gym.Env):
         )
 
         object_terms: list[str] = list(model.object_to_index.keys())  # type: ignore
-        action_fluents: list[str] = [predicate(a) for a in action_groundings]
+        action_fluents: list[str] = sorted(set(predicate(a) for a in action_groundings))
         object_list = sorted(object_terms)
 
         action_mask = {
@@ -260,9 +260,9 @@ class KGRDDLGraphWrapper(gym.Env):
         variable_ranges: dict[str, str] = model._variable_ranges  # type: ignore
         num_types = len(type_list)
         num_relations = len(relation_list)
-        self.variable_ranges = variable_ranges  # type: ignore
         obj_to_idx = {symb: idx for idx, symb in enumerate(object_list)}
         rel_to_idx = {symb: idx for idx, symb in enumerate(relation_list)}
+        self.variable_ranges = variable_ranges  # type: ignore
         self.non_fluents_values = non_fluent_values
         self.type_to_fluent = type_to_fluent
         self.action_fluents = action_fluents
@@ -291,19 +291,21 @@ class KGRDDLGraphWrapper(gym.Env):
         self.iter = 0
         self.observation_space = gym.spaces.Dict(
             {
-                "nodes": Sequence(gym.spaces.Discrete(num_types)),
+                "nodes": Sequence(gym.spaces.Discrete(num_types), stack=True),
                 "edge_index": Sequence(
                     gym.spaces.Box(
                         low=0,
                         high=num_objects,
                         shape=(2,),
-                        dtype=np.uint,
-                    )
+                        dtype=np.int64,
+                    ),
+                    stack=True,
                 ),
                 "edge_attr": Sequence(
                     gym.spaces.Discrete(
                         num_relations,
-                    )
+                    ),
+                    stack=True,
                 ),
             }
         )
@@ -349,7 +351,11 @@ class KGRDDLGraphWrapper(gym.Env):
         self.iter = 0
         self.last_obs = graph
 
-        return graph_to_dict(graph), info
+        o = graph_to_dict(graph)
+
+        # in_space = {k: o[k] in s for k, s in self.observation_space.spaces.items()}
+
+        return o, info
 
     def render(self):
         obs = self.last_obs
@@ -364,7 +370,9 @@ class KGRDDLGraphWrapper(gym.Env):
         rddl_action = f"{action_fluent}___{object_id}"
 
         rddl_action_dict = (
-            {rddl_action: 1} if rddl_action in self.action_groundings else {}
+            {}
+            if rddl_action not in self.action_groundings or action_fluent == "noop"
+            else {rddl_action: 1}
         )
 
         obs, reward, terminated, truncated, info = self.env.step(rddl_action_dict)
@@ -432,6 +440,13 @@ def main():
         print(new_action)
         print(reward)
     print(sum_reward)
+
+
+def register_env():
+    gym.register(
+        id="KGRDDLGraphWrapper-v0",
+        entry_point="wrappers.kg_wrapper:KGRDDLGraphWrapper",
+    )
 
 
 if __name__ == "__main__":

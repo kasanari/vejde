@@ -1,11 +1,11 @@
 import random
 import numpy as np
-from parent_wrapper import RDDLGraphWrapper
-from utils import generate_bipartite_obs, to_graphviz
+from wrappers.parent_wrapper import RDDLGraphWrapper
+from wrappers.utils import generate_bipartite_obs, to_graphviz
 
 
 def is_fluent_to_skip(key: str, obs: dict[str, bool]) -> bool:
-    return isinstance(obs[key], np.bool_) and not obs[key]
+    return not isinstance(obs[key], np.bool_) and not obs[key]
 
 
 class TrueOnlyRDDLGraphWrapper(RDDLGraphWrapper):

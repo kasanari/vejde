@@ -71,15 +71,6 @@ def to_graphviz(obs: dict[tuple[str, str], Graph], idx_to_symb):
     return graph
 
 
-def predicate(key: str) -> str:
-    return key.split("___")[0]
-
-
-def objects(key: str) -> list[str]:
-    split = key.split("___")
-    return split[1].split("__") if len(split) > 1 else []
-
-
 def translate_edges(
     source_symbols: list[str], target_symbols: list[str], edges: set[Edge]
 ):

@@ -193,7 +193,7 @@ class Agent(nn.Module):
         edge_attr: Tensor,
         batch_idx: Tensor,
     ):
-        _, _, value = self.gnn_agent(None, x, edge_index, edge_attr, batch_idx)
+        value = self.gnn_agent.value(x, edge_index, edge_attr, batch_idx)
         return value
 
     def sample_action_and_value(

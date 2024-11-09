@@ -1,7 +1,12 @@
 from torch_geometric.data import Data, Batch
 from torch_geometric.nn import MessagePassing
 import torch
-from gnn_policy.functional import sample_node_then_action
+from gnn_policy.functional import (
+    sample_node_then_action,
+    eval_node_then_action,
+    eval_action_then_node,
+    sample_action_then_node,
+)
 from wrappers.kg_wrapper import KGRDDLGraphWrapper
 from torch import Tensor, LongTensor
 import torch.nn as nn
@@ -232,7 +237,7 @@ class GNNPolicy(nn.Module):
     def __init__(self, num_actions: int, embedding_dim: int, activation: nn.Module):
         super().__init__()
         self.node_prob = nn.Sequential(
-            LinearTransform(embedding_dim, 1, activation),
+            LinearTransform(embedding_dim, num_actions, activation),
         )
         self.action_prob = nn.Sequential(
             LinearTransform(embedding_dim, num_actions, activation),
@@ -240,30 +245,39 @@ class GNNPolicy(nn.Module):
         self.num_actions = num_actions
 
     def prep(
-        self, h: Tensor, batch_idx: Tensor
+        self, h: Tensor, g: Tensor, batch_idx: Tensor
     ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         node_logits = self.node_prob(h).squeeze()
-        action_logits = self.action_prob(h)
+        action_logits = self.action_prob(g)
         node_mask = torch.ones(node_logits.shape[0], dtype=torch.bool)
         num_graphs = batch_idx.max().item() + 1
         action_mask = torch.ones((num_graphs, self.num_actions), dtype=torch.bool)
         return node_logits, action_logits, node_mask, action_mask
 
     # differentiable action evaluation
-    def forward(self, a: Tensor, h: Tensor, batch_idx: Tensor) -> Tensor:
-        node_logits, action_logits, node_mask, action_mask = self.prep(h, batch_idx)
-        _, logprob, entropy, *_ = sample_node_then_action(
-            node_logits, action_logits, node_mask, action_mask, batch_idx, eval_action=a
+    def forward(
+        self, a: Tensor, h: Tensor, g: Tensor, batch_idx: Tensor
+    ) -> tuple[Tensor, Tensor]:
+        node_logits, action_logits, node_mask, action_mask = self.prep(h, g, batch_idx)
+        logprob, entropy = eval_action_then_node(
+            a,
+            action_logits,
+            node_logits,
+            action_mask,
+            node_mask,
+            batch_idx,
         )
         return logprob, entropy
 
-    def sample(self, h: Tensor, batch_idx: Tensor) -> Tensor:
-        node_logits, action_logits, node_mask, action_mask = self.prep(h, batch_idx)
-        actions, logprob, entropy, *_ = sample_node_then_action(
-            node_logits,
+    def sample(
+        self, h: Tensor, g: Tensor, batch_idx: Tensor
+    ) -> tuple[Tensor, Tensor, Tensor]:
+        node_logits, action_logits, node_mask, action_mask = self.prep(h, g, batch_idx)
+        actions, logprob, entropy, *_ = sample_action_then_node(
             action_logits,
-            node_mask,
+            node_logits,
             action_mask,
+            node_mask,
             batch_idx,
         )
         return actions, logprob, entropy
@@ -303,10 +317,9 @@ class KGGNNAgent(nn.Module):
         x: Tensor,
         edge_index: Tensor,
         edge_attr: Tensor,
-        batch_idx: Batch,
-        num_graphs: int,
+        batch_idx: Tensor,
     ):
-        _, g = self.vf_gnn(x, edge_index, edge_attr, batch_idx)
+        _, g = self.p_gnn.forward(x, edge_index, edge_attr, batch_idx)
         value = self.vf(g)
         return value
 
@@ -320,7 +333,7 @@ class KGGNNAgent(nn.Module):
         batch_idx: Tensor,
     ) -> tuple[Tensor, Tensor, Tensor]:
         h, g = self.p_gnn.forward(x, edge_index, edge_attr, batch_idx)
-        logprob, entropy = self.policy.forward(action, h, batch_idx)
+        logprob, entropy = self.policy.forward(action, h, g, batch_idx)
         # _, g = self.vf_gnn(x, edge_index, edge_attr, batch_idx)
         value = self.vf(g)
         return logprob, entropy, value
@@ -334,7 +347,7 @@ class KGGNNAgent(nn.Module):
         batch_idx: Tensor,
     ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         h, g = self.p_gnn.forward(x, edge_index, edge_attr, batch_idx)
-        actions, logprob, entropy = self.policy.sample(h, batch_idx)
+        actions, logprob, entropy = self.policy.sample(h, g, batch_idx)
         # _, g = self.vf_gnn(x, edge_index, edge_attr, batch_idx)
         value = self.vf(g)
         return actions, logprob, entropy, value

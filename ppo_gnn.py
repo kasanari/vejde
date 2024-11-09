@@ -20,9 +20,8 @@ from typing import Any
 
 from torch_geometric.data import Data, Batch
 
-from kg_gnn import GNNAgent
+from kg_gnn import KGGNNAgent
 from wrappers import kg_wrapper
-from wrappers.kg_wrapper import KGRDDLGraphWrapper
 import mlflow
 import mlflow.pytorch
 
@@ -161,7 +160,7 @@ class Agent(nn.Module):
         n_types = envs.single_observation_space.spaces["nodes"].feature_space.n
         n_relations = envs.single_observation_space.spaces["edge_attr"].feature_space.n
         n_actions = envs.single_action_space.nvec[1]
-        self.gnn_agent = GNNAgent(n_types, n_relations, n_actions, **kwargs)
+        self.gnn_agent = KGGNNAgent(n_types, n_relations, n_actions, **kwargs)
 
     def get_value(
         self,

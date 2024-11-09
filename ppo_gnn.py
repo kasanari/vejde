@@ -1,11 +1,13 @@
 # docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/ppo/#ppopy
 from collections import deque
 import os
+from pathlib import Path
 import random
 import time
 from dataclasses import dataclass
 
 import gymnasium as gym
+from gym import spaces
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,7 +16,7 @@ import tyro
 from torch.distributions.categorical import Categorical
 
 from torch import Tensor
-
+import wandb
 from tqdm import tqdm
 from typing import Any
 
@@ -35,6 +37,28 @@ def dict_to_data(obs: dict[str, tuple[Any]], num_envs: int) -> list[Data]:
         )
         for n in range(num_envs)
     ]
+
+
+def save_agent(
+    envs: gym.vector.SyncVectorEnv, agent: nn.Module, config: dict[str, Any], path: str
+):
+    state_dict = agent.state_dict()
+    to_save = {}
+    n_types = envs.single_observation_space.spaces["nodes"].feature_space.n
+    n_relations = envs.single_observation_space.spaces["edge_attr"].feature_space.n
+    n_actions = envs.single_action_space.nvec[1]
+    to_save["config"] = {
+        "n_types": n_types,
+        "n_relations": n_relations,
+        "n_actions": n_actions,
+        **config,
+    }
+    to_save["state_dict"] = state_dict
+    torch.save(to_save, path)
+
+
+def create_batch(data: list[Data]):
+    return Batch.from_data_list(data)
 
 
 @torch.inference_mode()
@@ -169,23 +193,44 @@ class Agent(nn.Module):
         edge_attr: Tensor,
         batch_idx: Tensor,
     ):
-        _, _, _, value = self.gnn_agent(x, edge_index, edge_attr, batch_idx)
+        _, _, value = self.gnn_agent(None, x, edge_index, edge_attr, batch_idx)
         return value
 
-    def get_action_and_value(
+    def sample_action_and_value(
+        self, x: Tensor, edge_index: Tensor, edge_attr: Tensor, batch_idx: Tensor
+    ):
+        action, logprob, entropy, value = self.gnn_agent.sample_action(
+            x,
+            edge_index,
+            edge_attr,
+            batch_idx,
+        )
+        return action, logprob, entropy, value
+
+    def evaluate_action_and_value(
         self,
+        action: Tensor,
         x: Tensor,
         edge_index: Tensor,
         edge_attr: Tensor,
         batch_idx: Tensor,
-        action: Tensor | None = None,
+        # action_mask: Tensor,
+        # node_mask: Tensor,
     ):
-        action, logprob, entropy, value = self.gnn_agent(
-            x, edge_index, edge_attr, batch_idx
+        # num_graphs = batch_idx.max() + 1
+        # action_mask = action_mask.reshape(num_graphs, -1)
+        logprob, entropy, value = self.gnn_agent.forward(
+            action,
+            x,
+            edge_index,
+            edge_attr,
+            batch_idx,
+            # num_graphs,
+            # action_mask,
+            # node_mask,
         )
         entropy = entropy.unsqueeze(0)
         return (
-            action,
             logprob,
             entropy,
             value,
@@ -217,9 +262,14 @@ def rollout(
         dones[step] = next_done
 
         # ALGO LOGIC: action logic
-        batch = Batch.from_data_list(next_obs)
-        action, logprob, _, value = agent.get_action_and_value(
-            batch.x, batch.edge_index, batch.edge_attr, batch.batch
+        batch = create_batch(next_obs)
+        action, logprob, _, value = agent.sample_action_and_value(
+            batch.x,
+            batch.edge_index,
+            batch.edge_attr,
+            batch.batch,
+            # batch.action_mask,
+            # batch.node_mask,
         )
         assert action.dim() == 2
         assert action.shape[0] == num_envs
@@ -266,9 +316,16 @@ def update(
     vf_coef: float,
     max_grad_norm: float,
 ):
-    _, newlogprob, entropy, newvalue = agent.get_action_and_value(
-        obs.x, obs.edge_index, obs.edge_attr, obs.batch, actions
+    newlogprob, entropy, newvalue = agent.evaluate_action_and_value(
+        actions,
+        obs.x,
+        obs.edge_index,
+        obs.edge_attr,
+        obs.batch,
+        # torch.ones_like(obs.action_mask),
+        # torch.ones_like(obs.node_mask),
     )
+    assert not newlogprob.isinf().any()
     assert newlogprob.dim() == 1
     assert entropy.dim() == 1
     assert newvalue.dim() == 2
@@ -310,9 +367,13 @@ def update(
     entropy_loss = entropy.mean()
     loss = pg_loss - ent_coef * entropy_loss + v_loss * vf_coef
 
+    assert not torch.isnan(loss).any(), loss
+
     optimizer.zero_grad()
     loss.backward()
-    grad_norm = nn.utils.clip_grad_norm_(agent.parameters(), max_grad_norm)
+    grad_norm = nn.utils.clip_grad_norm_(
+        agent.parameters(), max_grad_norm, error_if_nonfinite=True
+    )
     optimizer.step()
     return (
         loss,
@@ -326,38 +387,10 @@ def update(
     )
 
 
-def main():
-    args = tyro.cli(Args)
+def main(run_name: str, args: Args, agent_config: dict[str, Any]):
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.num_iterations = args.total_timesteps // args.batch_size
-    run_name = f"{args.env_id}__{args.exp_name}__{args.seed}"
-
-    agent_config = {
-        "layers": 2,
-        "embedding_dim": 256,
-        "aggregation": "sum",
-        "activation": nn.Tanh(),
-    }
-
-    config = vars(args) | agent_config
-
-    if args.track:
-        import wandb
-
-        wandb.init(
-            project=args.wandb_project_name,
-            entity=args.wandb_entity,
-            config=config,
-            name=run_name,
-            save_code=True,
-        )
-
-    mlflow.set_experiment(run_name)
-    mlflow.log_params(config)
-
-    mlflow.log_artifact(__file__)
-    mlflow.log_artifact("kg_gnn.py")
 
     # TRY NOT TO MODIFY: seeding
     random.seed(args.seed)
@@ -384,7 +417,7 @@ def main():
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # ALGO Logic: Storage setup
-    obs = deque()
+    obs: deque[Data] = deque()
     actions = torch.zeros(
         (args.num_steps, args.num_envs) + envs.single_action_space.shape
     ).to(device)
@@ -400,7 +433,7 @@ def main():
     next_obs = dict_to_data(next_obs, args.num_envs)
     next_done = torch.zeros(args.num_envs).to(device)
 
-    pbar = tqdm(total=args.total_timesteps)
+    pbar = tqdm(total=args.num_iterations)
 
     for iteration in range(1, args.num_iterations + 1):
         # Annealing the rate if instructed to do so.
@@ -431,12 +464,14 @@ def main():
 
         # bootstrap value if not done
         with torch.no_grad():
-            next_obs_batch = Batch.from_data_list(next_obs)
+            next_obs_batch = create_batch(next_obs)
             next_value = agent.get_value(
                 next_obs_batch.x,
                 next_obs_batch.edge_index,
                 next_obs_batch.edge_attr,
                 next_obs_batch.batch,
+                # next_obs_batch.action_mask,
+                # next_obs_batch.node_mask,
             ).reshape(1, -1)
             advantages, returns = gae(
                 rewards,
@@ -461,7 +496,7 @@ def main():
         # Optimizing the policy and value network
         b_inds = np.arange(args.batch_size)
         clipfracs = []
-        for epoch in range(args.update_epochs):
+        for _ in range(args.update_epochs):
             np.random.shuffle(b_inds)
             for start in range(0, args.batch_size, args.minibatch_size):
                 end = start + args.minibatch_size
@@ -505,6 +540,8 @@ def main():
         mlflow.log_metric(
             "charts/learning_rate", optimizer.param_groups[0]["lr"], global_step
         )
+        save_agent(envs, agent, agent_config, f"{run_name}.pth")
+        mlflow.log_artifact(f"{run_name}.pth")
         pbar.update(1)
         pbar.set_description(
             f"R:{r:.2f} | L:{l:.2f} | ENT:{entropy_loss:.2f} | EXPL_VARIANCE:{explained_var:.2f}"
@@ -532,7 +569,43 @@ def main():
     envs.close()
 
 
-if __name__ == "__main__":
+def setup():
     mlflow.set_tracking_uri(uri="http://127.0.0.1:5000")
+    args = tyro.cli(Args)
+
+    run_name = f"{args.env_id}__{args.exp_name}__{args.seed}"
+
+    agent_config = {
+        "layers": 2,
+        "embedding_dim": 256,
+        "aggregation": "sum",
+        "activation": nn.Tanh(),
+    }
+
+    config = vars(args) | agent_config
+
+    if args.track:
+        wandb.init(
+            project=args.wandb_project_name,
+            entity=args.wandb_entity,
+            config=config,
+            name=run_name,
+            save_code=True,
+        )
+
+    try:
+        mlflow.create_experiment(run_name)
+    except Exception:
+        pass
+
+    mlflow.set_experiment(run_name)
+
     with mlflow.start_run():
-        main()
+        mlflow.log_params(config)
+        mlflow.log_artifact(__file__)
+        mlflow.log_artifact("kg_gnn.py")
+        main(run_name, args, agent_config)
+
+
+if __name__ == "__main__":
+    setup()

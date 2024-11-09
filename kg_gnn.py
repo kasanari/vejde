@@ -8,6 +8,7 @@ import torch.nn as nn
 import random
 import numpy as np
 from numpy.typing import NDArray
+from torch_geometric.utils import softmax
 
 from torch_geometric.nn import AttentionalAggregation, SumAggregation
 
@@ -73,6 +74,53 @@ class LinearTransform(nn.Module):
         return self.linear(x)
 
 
+class GATConv(MessagePassing):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        num_relations: int,
+        activation: nn.Module,
+        aggregation="sum",
+    ):
+        super(GATConv, self).__init__(aggr=aggregation)
+
+        self.key = nn.Parameter(torch.randn(in_channels, out_channels))
+        self.query = nn.Parameter(torch.randn(in_channels, out_channels))
+        self.edge_transform = nn.Parameter(torch.randn(in_channels, out_channels))
+        self.attn = nn.Parameter(torch.randn(1, out_channels))
+        self.activation = activation
+
+        # init
+        nn.init.orthogonal_(self.key)
+        nn.init.orthogonal_(self.query)
+        nn.init.orthogonal_(self.edge_transform)
+        nn.init.orthogonal_(self.attn)
+
+    def forward(self, x: Tensor, edge_index: Tensor, edge_attr: Tensor):
+        k = self.key * x
+        q = self.query * x
+        e = self.edge_transform * edge_attr
+
+        alpha = self.edge_update(edge_index, x=(k, q), edge_attr=e)
+
+        return self.propagate(
+            edge_index,
+            x=x,
+            alpha=alpha,
+        )
+
+    def edge_update(self, x_j: Tensor, x_i: Tensor, index: Tensor, edge_attr: Tensor):
+        x = x_j + x_i + edge_attr
+        x = self.activation(x)
+        alpha = (x * self.attn).sum(dim=-1)
+        alpha = softmax(alpha, index)
+        return alpha
+
+    def message(self, x_j: Tensor, alpha: Tensor) -> Tensor:
+        return x_j * alpha.unsqueeze(-1)
+
+
 class GNNConv(MessagePassing):
     def __init__(
         self,
@@ -132,7 +180,7 @@ class SumGlobalNode(nn.Module):
         return g_prev + self.linear(torch.concatenate([g, g_prev], dim=-1))
 
 
-class GNN(nn.Module):
+class KGGNN(nn.Module):
     def __init__(
         self,
         layers: int,
@@ -191,19 +239,37 @@ class GNNPolicy(nn.Module):
         )
         self.num_actions = num_actions
 
-    def forward(self, h: Tensor, batch_idx: Tensor):
+    def prep(
+        self, h: Tensor, batch_idx: Tensor
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         node_logits = self.node_prob(h).squeeze()
         action_logits = self.action_prob(h)
         node_mask = torch.ones(node_logits.shape[0], dtype=torch.bool)
         num_graphs = batch_idx.max().item() + 1
         action_mask = torch.ones((num_graphs, self.num_actions), dtype=torch.bool)
+        return node_logits, action_logits, node_mask, action_mask
+
+    # differentiable action evaluation
+    def forward(self, a: Tensor, h: Tensor, batch_idx: Tensor) -> Tensor:
+        node_logits, action_logits, node_mask, action_mask = self.prep(h, batch_idx)
+        _, logprob, entropy, *_ = sample_node_then_action(
+            node_logits, action_logits, node_mask, action_mask, batch_idx, eval_action=a
+        )
+        return logprob, entropy
+
+    def sample(self, h: Tensor, batch_idx: Tensor) -> Tensor:
+        node_logits, action_logits, node_mask, action_mask = self.prep(h, batch_idx)
         actions, logprob, entropy, *_ = sample_node_then_action(
-            node_logits, action_logits, node_mask, action_mask, batch_idx
+            node_logits,
+            action_logits,
+            node_mask,
+            action_mask,
+            batch_idx,
         )
         return actions, logprob, entropy
 
 
-class GNNAgent(nn.Module):
+class KGGNNAgent(nn.Module):
     def __init__(
         self,
         num_object_classes: int,
@@ -215,7 +281,7 @@ class GNNAgent(nn.Module):
         activation: nn.Module,
     ):
         super().__init__()
-        self.p_gnn = GNN(
+        self.p_gnn = KGGNN(
             layers,
             embedding_dim,
             num_object_classes,
@@ -244,15 +310,31 @@ class GNNAgent(nn.Module):
         value = self.vf(g)
         return value
 
+    # differentiable action evaluation
     def forward(
+        self,
+        action: Tensor,
+        x: Tensor,
+        edge_index: Tensor,
+        edge_attr: Tensor,
+        batch_idx: Tensor,
+    ) -> tuple[Tensor, Tensor, Tensor]:
+        h, g = self.p_gnn.forward(x, edge_index, edge_attr, batch_idx)
+        logprob, entropy = self.policy.forward(action, h, batch_idx)
+        # _, g = self.vf_gnn(x, edge_index, edge_attr, batch_idx)
+        value = self.vf(g)
+        return logprob, entropy, value
+
+    # sample action from policy and evaluate value
+    def sample_action(
         self,
         x: Tensor,
         edge_index: Tensor,
         edge_attr: Tensor,
-        batch_idx: Batch,
-    ):
-        h, g = self.p_gnn(x, edge_index, edge_attr, batch_idx)
-        actions, logprob, entropy = self.policy(h, batch_idx)
+        batch_idx: Tensor,
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        h, g = self.p_gnn.forward(x, edge_index, edge_attr, batch_idx)
+        actions, logprob, entropy = self.policy.sample(h, batch_idx)
         # _, g = self.vf_gnn(x, edge_index, edge_attr, batch_idx)
         value = self.vf(g)
         return actions, logprob, entropy, value
@@ -274,7 +356,7 @@ def main():
     instance = 1
     domain = "Elevators_MDP_ippc2011"
     env = KGRDDLGraphWrapper(domain, instance)
-    gnn = GNNAgent(env.num_types, env.num_relations, len(env.action_values))
+    gnn = KGGNNAgent(env.num_types, env.num_relations, len(env.action_values))
     optimizer = torch.optim.Adam(gnn.policy.parameters(), lr=0.01)
     action_space = env.action_space
     action_space.seed(0)

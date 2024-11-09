@@ -4,3 +4,6 @@ typings
 wandb
 *.pdf
 *.dot
+mlruns
+runs
+mlartifacts

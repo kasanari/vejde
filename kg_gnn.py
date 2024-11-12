@@ -13,9 +13,11 @@ import torch.nn as nn
 import random
 import numpy as np
 from numpy.typing import NDArray
+
 from torch_geometric.utils import softmax
 
 from torch_geometric.nn import AttentionalAggregation, SumAggregation
+from torch.nn.functional import leaky_relu
 
 activation_to_str: dict[type[nn.Module], str] = {
     nn.ReLU: "relu",
@@ -86,7 +88,7 @@ class GATConv(MessagePassing):
         out_channels: int,
         num_relations: int,
         activation: nn.Module,
-        aggregation="sum",
+        aggregation: str,
     ):
         super(GATConv, self).__init__(aggr=aggregation)
 
@@ -94,32 +96,46 @@ class GATConv(MessagePassing):
         self.query = nn.Parameter(torch.randn(in_channels, out_channels))
         self.edge_transform = nn.Parameter(torch.randn(in_channels, out_channels))
         self.attn = nn.Parameter(torch.randn(1, out_channels))
-        self.activation = activation
+        self.residual = nn.Parameter(torch.randn(in_channels, out_channels))
+        # self.activation = LeakyReLU()
 
         # init
-        nn.init.orthogonal_(self.key)
-        nn.init.orthogonal_(self.query)
-        nn.init.orthogonal_(self.edge_transform)
-        nn.init.orthogonal_(self.attn)
+        nn.init.xavier_uniform_(self.key)
+        nn.init.xavier_uniform_(self.query)
+        nn.init.xavier_uniform_(self.edge_transform)
+        nn.init.xavier_uniform_(self.attn)
+        nn.init.xavier_uniform_(self.residual)
 
     def forward(self, x: Tensor, edge_index: Tensor, edge_attr: Tensor):
-        k = self.key * x
-        q = self.query * x
-        e = self.edge_transform * edge_attr
+        k = x @ self.key.T
+        q = x @ self.query.T
+        e = edge_attr @ self.edge_transform.T
 
-        alpha = self.edge_update(edge_index, x=(k, q), edge_attr=e)
+        alpha = self.edge_updater(edge_index, x=(k, q), edge_attr=e)
 
-        return self.propagate(
+        out = self.propagate(
             edge_index,
             x=x,
             alpha=alpha,
         )
 
-    def edge_update(self, x_j: Tensor, x_i: Tensor, index: Tensor, edge_attr: Tensor):
+        out = x @ self.residual.T + out
+
+        return out
+
+    def edge_update(
+        self,
+        x_j: Tensor,
+        x_i: Tensor,
+        edge_attr: Tensor,
+        index: Tensor,
+        ptr: Tensor,
+        dim_size: Tensor,
+    ):
         x = x_j + x_i + edge_attr
-        x = self.activation(x)
-        alpha = (x * self.attn).sum(dim=-1)
-        alpha = softmax(alpha, index)
+        x = leaky_relu(x)
+        alpha = (x @ self.attn.T).sum(dim=-1)
+        alpha = softmax(alpha, index, ptr, dim_size)
         return alpha
 
     def message(self, x_j: Tensor, alpha: Tensor) -> Tensor:
@@ -303,8 +319,13 @@ class KGGNNAgent(nn.Module):
             activation,
             aggregation,
         )
-        # self.vf_gnn = GNN(
-        #     layers, embedding_dim, num_object_classes, num_predicate_classes
+        # self.vf_gnn = KGGNN(
+        #     layers,
+        #     embedding_dim,
+        #     num_object_classes,
+        #     num_predicate_classes,
+        #     activation,
+        #     aggregation,
         # )
         self.policy = GNNPolicy(num_actions, embedding_dim, activation)
         self.vf = nn.Sequential(

@@ -253,7 +253,7 @@ def rollout(
     num_envs: int,
     device: torch.device | str,
     global_step: int,
-):
+) -> tuple[int, list[float], list[int]]:
     returns: deque[float] = deque()
     lengths: deque[int] = deque()
     for step in range(0, num_steps):
@@ -297,7 +297,7 @@ def rollout(
                 if is_final:
                     returns.append(r)
                     lengths.append(l)
-    return global_step, returns, lengths
+    return global_step, list(returns), list(lengths)
 
 
 def update(
@@ -338,15 +338,12 @@ def update(
         approx_kl = ((ratio - 1) - logratio).mean()
         clipfracs = [((ratio - 1.0).abs() > clip_coef).float().mean().item()]
 
-    mb_advantages = advantages
     if norm_adv:
-        mb_advantages = (mb_advantages - mb_advantages.mean()) / (
-            mb_advantages.std() + 1e-8
-        )
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
     # Policy loss
-    pg_loss1 = torch.mul(-mb_advantages, ratio)
-    pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
+    pg_loss1 = torch.mul(-advantages, ratio)
+    pg_loss2 = -advantages * torch.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
     pg_loss = torch.max(pg_loss1, pg_loss2).mean()
 
     # Value loss

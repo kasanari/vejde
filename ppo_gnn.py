@@ -170,17 +170,14 @@ def make_env(domain: str, idx: int, capture_video: bool, run_name: str):
     return thunk
 
 
-def layer_init(layer: nn.Linear, std: float = np.sqrt(2), bias_const: float = 0.0):
-    torch.nn.init.orthogonal_(layer.weight, std)
-    torch.nn.init.constant_(layer.bias, bias_const)
-    return layer
-
-
 class Agent(nn.Module):
     def __init__(
-        self, envs: gym.vector.SyncVectorEnv, device: str | None = None, **kwargs
+        self,
+        envs: gym.vector.SyncVectorEnv,
+        device: str | None = None,
+        **kwargs: dict[str, Any],
     ):
-        super().__init__()
+        super().__init__()  # type: ignore
         n_types = envs.single_observation_space.spaces["nodes"].feature_space.n
         n_relations = envs.single_observation_space.spaces["edge_attr"].feature_space.n
         n_actions = envs.single_action_space.nvec[1]
@@ -315,7 +312,7 @@ def update(
     ent_coef: float,
     vf_coef: float,
     max_grad_norm: float,
-):
+) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, list[float]]:
     newlogprob, entropy, newvalue = agent.evaluate_action_and_value(
         actions,
         obs.x,
@@ -367,11 +364,12 @@ def update(
     assert not torch.isnan(loss).any(), loss
 
     optimizer.zero_grad()
-    loss.backward()
+    loss.backward()  # type: ignore
     grad_norm = nn.utils.clip_grad_norm_(
         agent.parameters(), max_grad_norm, error_if_nonfinite=True
     )
     optimizer.step()
+
     return (
         loss,
         pg_loss,
@@ -405,18 +403,16 @@ def main(run_name: str, args: Args, agent_config: dict[str, Any]):
             for i in range(args.num_envs)
         ],
     )
-
     agent = Agent(envs, **agent_config).to(device)
 
     if args.track:
         wandb.watch(agent, log_freq=10, log="all")
-
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # ALGO Logic: Storage setup
     obs: deque[Data] = deque()
     actions = torch.zeros(
-        (args.num_steps, args.num_envs) + envs.single_action_space.shape
+        (args.num_steps, args.num_envs) + envs.single_action_space.shape  # type: ignore
     ).to(device)
     logprobs = torch.zeros((args.num_steps, args.num_envs)).to(device)
     rewards = torch.zeros((args.num_steps, args.num_envs)).to(device)
@@ -426,7 +422,7 @@ def main(run_name: str, args: Args, agent_config: dict[str, Any]):
     # TRY NOT TO MODIFY: start the game
     global_step = 0
     start_time = time.time()
-    next_obs, _ = envs.reset(seed=args.seed)
+    next_obs, _ = envs.reset(seed=args.seed)  # type: ignore
     next_obs = dict_to_data(next_obs, args.num_envs)
     next_done = torch.zeros(args.num_envs).to(device)
 
@@ -485,18 +481,21 @@ def main(run_name: str, args: Args, agent_config: dict[str, Any]):
         # flatten the batch
         b_obs = Batch.from_data_list(obs)
         b_logprobs = logprobs.reshape(-1)
-        b_actions = actions.reshape((-1,) + envs.single_action_space.shape)
+        b_actions = actions.reshape((-1,) + envs.single_action_space.shape)  # type: ignore
         b_advantages = advantages.reshape(-1)
         b_returns = returns.reshape(-1)
         b_values = values.reshape(-1)
 
         # Optimizing the policy and value network
-        b_inds = np.arange(args.batch_size)
-        clipfracs = []
-        for _ in range(args.update_epochs):
+        batch_size = args.batch_size
+        minibatch_size = args.minibatch_size
+        update_epochs = args.update_epochs
+        b_inds = np.arange(batch_size)
+        clipfracs: list[float] = []
+        for _ in range(update_epochs):
             np.random.shuffle(b_inds)
-            for start in range(0, args.batch_size, args.minibatch_size):
-                end = start + args.minibatch_size
+            for start in range(0, batch_size, minibatch_size):
+                end = start + minibatch_size
                 mb_inds = b_inds[start:end]
                 minibatch = Batch.from_data_list(b_obs.index_select(mb_inds))
                 (
@@ -507,7 +506,7 @@ def main(run_name: str, args: Args, agent_config: dict[str, Any]):
                     old_approx_kl,
                     approx_kl,
                     grad_norm,
-                    clipfracs,
+                    clipfrac,
                 ) = update(
                     agent,
                     optimizer,
@@ -524,12 +523,12 @@ def main(run_name: str, args: Args, agent_config: dict[str, Any]):
                     args.vf_coef,
                     args.max_grad_norm,
                 )
-                clipfracs += clipfracs
+                clipfracs += clipfrac
 
             if args.target_kl is not None and approx_kl > args.target_kl:
                 break
 
-        y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()
+        y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()  # type: ignore
         var_y = np.var(y_true)
         explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 

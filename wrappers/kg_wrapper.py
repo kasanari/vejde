@@ -44,7 +44,10 @@ def graph_to_dict(graph: Graph) -> dict[str, Any]:
 
 
 def to_graphviz(
-    obs: Graph, idx_to_obj: dict[int, str], idx_to_rel: dict[int, str]
+    obs: Graph,
+    idx_to_obj: dict[int, str],
+    idx_to_rel: dict[int, str],
+    object_to_type: dict[str, str],
 ) -> str:
     colors = ["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]
     graph = "digraph G {\n"
@@ -57,7 +60,11 @@ def to_graphviz(
     edge_attributes = obs.edge_attributes
 
     for idx, data in enumerate(individ_nodes):
-        graph += f'"{global_idx}" [label="{idx_to_obj[data]}", shape=circle]\n'
+        obj = idx_to_obj[data]
+        obj_type = object_to_type[obj]
+        graph += (
+            f'"{global_idx}" [label="{obj_type}({idx_to_obj[data]})", shape=circle]\n'
+        )
         individ_mapping[idx] = global_idx
         global_idx += 1
 
@@ -366,7 +373,9 @@ class KGRDDLGraphWrapper(gym.Env):
         obs = self.last_obs
 
         with open(f"{self.domain}_{self.instance}_{self.iter}.dot", "w") as f:
-            f.write(to_graphviz(obs, self.idx_to_obj, self.idx_to_rel))
+            f.write(
+                to_graphviz(obs, self.idx_to_obj, self.idx_to_rel, self.object_to_type)
+            )
 
     def step(self, action: tuple[int, int]):
         action_fluent = self.action_fluents[action[0]]

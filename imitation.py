@@ -132,7 +132,7 @@ def test_imitation():
     return_ = [evaluate(env, agent, 0) for i in range(10)]
     print(np.mean(return_))
 
-    th.save(agent.state_dict(), "gnn_agent.pth")
+    th.save(agent.state_dict(), "mlp_agent.pth")
 
 
 def iteration(i, env, agent, optimizer, seed: int):

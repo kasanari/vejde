@@ -309,7 +309,12 @@ class KGRDDLGraphWrapper(gym.Env):
                 ),
             }
         )
-        self.action_space = MultiDiscrete([num_objects, len(action_fluents)])
+        self.action_space = MultiDiscrete(
+            [
+                len(action_fluents),
+                num_objects,
+            ]
+        )
 
     def reset(
         self,

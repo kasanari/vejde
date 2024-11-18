@@ -5,8 +5,14 @@ import pyRDDLGym
 import numpy as np
 import gymnasium as gym
 from enum import Enum
+
+from pyRDDLGym.core.env import RDDLEnv
 from wrappers.utils import objects, predicate
 from gymnasium.spaces import MultiDiscrete, Sequence
+from pyRDDLGym.core.compiler.model import RDDLLiftedModel
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Arity(Enum):
@@ -24,8 +30,8 @@ Edge = NamedTuple(
     ],
 )
 
-Graph = NamedTuple(
-    "Graph",
+IdxGraph = NamedTuple(
+    "IdxGraph",
     [
         ("nodes", np.ndarray[np.int64, Any]),
         ("node_classes", np.ndarray[np.int64, Any]),
@@ -34,19 +40,29 @@ Graph = NamedTuple(
     ],
 )
 
+Graph = NamedTuple(
+    "Graph",
+    [
+        ("nodes", list[str]),
+        ("node_classes", list[str]),
+        ("edge_indices", np.ndarray[np.int64, Any]),
+        ("edge_attributes", list[str]),
+    ],
+)
 
-def graph_to_dict(graph: Graph) -> dict[str, Any]:
+
+def graph_to_dict(graph: IdxGraph, types_instead_of_objects: bool) -> dict[str, Any]:
     return {
-        "nodes": graph.node_classes,
+        "nodes": graph.node_classes if types_instead_of_objects else graph.nodes,
         "edge_index": graph.edge_indices,
         "edge_attr": graph.edge_attributes,
     }
 
 
 def to_graphviz(
-    obs: Graph,
-    idx_to_obj: dict[int, str],
-    idx_to_rel: dict[int, str],
+    obs: IdxGraph,
+    idx_to_obj: list[str],
+    idx_to_rel: list[str],
     object_to_type: dict[str, str],
 ) -> str:
     colors = ["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]
@@ -75,6 +91,29 @@ def to_graphviz(
     return graph
 
 
+def to_graphviz_dict(
+    obs: dict[str, list[int]],
+) -> str:
+    graph = "digraph G {\n"
+    individ_mapping = {}
+    global_idx = 0
+
+    individ_nodes = obs["nodes"]
+    edges = obs["edge_index"]
+    edge_attributes = obs["edge_attr"]
+
+    for idx, data in enumerate(individ_nodes):
+        graph += f'"{global_idx}" [label="{data}", shape=circle]\n'
+        individ_mapping[idx] = global_idx
+        global_idx += 1
+
+    for attribute, edge in zip(edge_attributes, edges):
+        graph += f'"{individ_mapping[edge[0]]}" -> "{individ_mapping[edge[1]]}" [label="{attribute}"]\n'
+
+    graph += "}"
+    return graph
+
+
 def translate_edges(
     source_symbols: list[str], target_symbols: list[str], edges: set[Edge]
 ):
@@ -87,9 +126,9 @@ def translate_edges(
 T = TypeVar("T")
 
 
-def edge_attr(edges: set[Edge], symbols: dict[str, int]) -> np.ndarray[np.int64, Any]:
+def edge_attr(edges: set[Edge]) -> list[str]:
     # TODO edge values?
-    return np.array([symbols[e[2]] for e in edges], dtype=np.int64)
+    return [e[2] for e in edges]
 
 
 def create_inverse_predicate(predicate: str) -> str:
@@ -103,22 +142,19 @@ def create_inverse_grounding(g: str) -> str:
 
 
 def create_edges(d: dict[str, Any]) -> set[Edge]:
-    edges: set[Edge] = set()
+    edges: list[Edge] = []
 
     for value_id in d.keys():
-        if is_fluent_to_skip(value_id, d):
-            continue
-
         o = objects(value_id)
         p = predicate(value_id)
         if len(o) == 0:
             continue
         elif len(o) == 1:
             object = o[0]
-            edges.add(Edge(object, object, p))
+            edges.append(Edge(object, object, p))
         elif len(o) == 2:
             o1, o2 = o
-            edges.add(Edge(o1, o2, p))
+            edges.append(Edge(o1, o2, p))
         else:
             raise ValueError("Only up to binary relations are supported")
 
@@ -137,8 +173,12 @@ def is_nullary_relation(key: str) -> bool:
     return len(objects(key)) == 0
 
 
-def is_fluent_to_skip(key: str, obs: dict[str, bool]) -> bool:
-    return is_numeric(key, obs) or not obs[key] or is_nullary_relation(key)
+def skip_grounding(key: str, variable_ranges: dict[str, str]) -> bool:
+    return skip_relation(predicate(key), variable_ranges)
+
+
+def skip_relation(key: str, variable_ranges: dict[str, str]) -> bool:
+    return variable_ranges[key] != "bool" or key == "noop"
 
 
 def inverse_relations(groundings: set[str]) -> set[str]:
@@ -149,11 +189,34 @@ def inverse_relations(groundings: set[str]) -> set[str]:
     return new_groundings
 
 
+def map_to_indices(
+    graph: Graph,
+    obj_to_idx: dict[str, int],
+    type_to_idx: dict[str, int],
+    rel_to_idx: dict[str, int],
+) -> IdxGraph:
+    object_list = graph.nodes
+    types = graph.node_classes
+    edge_attr = graph.edge_attributes
+    edge_indices = graph.edge_indices
+
+    object_nodes = np.array(
+        [obj_to_idx[object] for object in object_list], dtype=np.int64
+    )
+
+    object_node_classes = np.array([type_to_idx[t] for t in types], dtype=np.int64)
+
+    edge_attr_idx = np.array([rel_to_idx[e] for e in edge_attr], dtype=np.int64)
+
+    if edge_indices.size > 0:
+        assert max(edge_indices[:, 1]) < len(object_nodes)
+
+    return IdxGraph(object_nodes, object_node_classes, edge_indices, edge_attr_idx)
+
+
 def generate_bipartite_obs(
     obs: dict[str, bool],
-    obj_to_idx: dict[str, int],
-    obj_to_type_idx: dict[str, int],
-    rel_to_idx: dict[str, int],
+    obj_to_type: dict[str, str],
 ) -> Graph:
     edges = create_edges(obs)
 
@@ -165,25 +228,18 @@ def generate_bipartite_obs(
 
     object_list: list[str] = sorted(obs_objects)
 
-    object_nodes = np.array(
-        [obj_to_idx[object] for object in object_list], dtype=np.int64
-    )
+    object_class = [obj_to_type[object] for object in object_list]
 
-    object_node_classes = np.array(
-        [obj_to_type_idx[object] for object in object_list], dtype=np.int64
-    )
+    edge_attributes = edge_attr(edges)
 
     edge_indices = translate_edges(object_list, object_list, edges)
-    edge_attributes = edge_attr(edges, rel_to_idx)
+
     o = Graph(
-        object_nodes,
-        object_node_classes,
+        object_list,
+        object_class,
         edge_indices,
         edge_attributes,
     )
-
-    if edge_indices.size > 0:
-        assert max(edge_indices[:, 1]) < len(object_nodes)
 
     return o
 
@@ -198,18 +254,20 @@ class KGRDDLGraphWrapper(gym.Env):
         render_mode: str = "human",
         enforce_action_constraints: bool = True,
         add_inverse_relations: bool = True,
+        types_instead_of_objects: bool = False,
     ) -> None:
-        env = pyRDDLGym.make(
+        env: RDDLEnv = pyRDDLGym.make(
             domain, instance, enforce_action_constraints=enforce_action_constraints
-        )  # type: ignore
-        model = env.model  # type: ignore
-        object_to_type: dict[str, str] = copy(model.object_to_type)  # type: ignore
+        )
+        model: RDDLLiftedModel = env.model  # type: ignore
+        object_to_type: dict[str, str]
+        object_to_type = copy(model.object_to_type)  # type: ignore
         types = set(object_to_type.values())  # type: ignore
         type_list = sorted(types)
-        num_objects = sum(env.model.object_counts(types))  # type: ignore
-        state_fluents: list[str] = list(env.model.state_fluents.keys())  # type: ignore
+        num_objects = sum(model.object_counts(types))  # type: ignore
+        state_fluents: list[str] = list(model.state_fluents.keys())  # type: ignore
         action_groundings: set[str] = set(
-            dict(env.model.ground_vars_with_values(model.action_fluents)).keys()  # type: ignore
+            dict(model.ground_vars_with_values(model.action_fluents)).keys()  # type: ignore
         )
         action_groundings.add("noop")
         groundings: set[str] = (
@@ -223,10 +281,15 @@ class KGRDDLGraphWrapper(gym.Env):
             )
             - action_groundings
         )
+
+        groundings = {
+            g for g in groundings if not skip_grounding(g, model._variable_ranges)
+        }  # type: ignore
+
         if add_inverse_relations:
             groundings |= inverse_relations(groundings)
         groundings = sorted(groundings)
-        variable_params: dict[str, list[str]] = copy(env.model.variable_params)  # type: ignore
+        variable_params: dict[str, list[str]] = copy(model.variable_params)  # type: ignore
         variable_params["noop"] = []
         self.domain = domain
         self.instance = instance
@@ -243,10 +306,10 @@ class KGRDDLGraphWrapper(gym.Env):
             for _, value in arities.items()
         }
         assert max(arities.values()) <= 2, "Only up to binary predicates are supported"
-        non_fluents: list[str] = list(env.model.non_fluents.keys())  # type: ignore
+        non_fluents: list[str] = list(model.non_fluents.keys())
 
         non_fluent_values: dict[str, int] = dict(
-            env.model.ground_vars_with_values(model.non_fluents)  # type: ignore
+            model.ground_vars_with_values(model.non_fluents)  # type: ignore
         )
 
         object_terms: list[str] = list(model.object_to_index.keys())  # type: ignore
@@ -254,26 +317,33 @@ class KGRDDLGraphWrapper(gym.Env):
         object_list = sorted(object_terms)
 
         action_mask = {
-            a: {o: object_to_type[o] in variable_params[a] for o in object_terms}
+            a: {
+                str(o): str(object_to_type[o]) in variable_params[a]
+                for o in object_terms
+            }
             for a in action_fluents
         }
 
         relations = non_fluents + state_fluents
         if add_inverse_relations:
-            relations += [
+            relations |= set(
                 create_inverse_predicate(r) for r in relations if arities[r] == 2
-            ]
-        relation_list = sorted(relations)
+            )
+
         variable_ranges: dict[str, str] = model._variable_ranges  # type: ignore
+
+        relations = {str(r) for r in relations if not skip_relation(r, variable_ranges)}
+
+        relation_list = sorted(relations)
         num_types = len(type_list)
         num_relations = len(relation_list)
         obj_to_idx = {symb: idx for idx, symb in enumerate(object_list)}
         rel_to_idx = {symb: idx for idx, symb in enumerate(relation_list)}
-        self.variable_ranges = variable_ranges  # type: ignore
+        self.variable_ranges: dict[str, str] = variable_ranges
         self.non_fluents_values = non_fluent_values
         self.type_to_fluent = type_to_fluent
         self.action_fluents = action_fluents
-        self.model = model
+        self.model: RDDLLiftedModel = model
         self.num_objects = num_objects
         self.action_groundings = action_groundings
         self.num_relations = num_relations
@@ -283,7 +353,7 @@ class KGRDDLGraphWrapper(gym.Env):
         self.action_mask = action_mask
         self.arities_to_fluent = arities_to_fluent
         self.non_fluents = non_fluents
-        self.object_to_type = object_to_type
+        self.object_to_type: dict[str, str] = object_to_type
         self.groundings = groundings
         self.state_fluents = state_fluents
         self.idx_to_obj = object_list
@@ -291,14 +361,19 @@ class KGRDDLGraphWrapper(gym.Env):
         self.idx_to_rel = relation_list
         self.rel_to_idx = rel_to_idx
         self.add_inverse_relations = add_inverse_relations
-        self.obj_to_type_idx = {
-            o: type_list.index(object_to_type[o]) for o in object_list
-        }
-        self.env = env
+        self.types_instead_of_objects = types_instead_of_objects
+        self.type_to_idx = {t: idx for idx, t in enumerate(type_list)}
+        self.idx_to_type = type_list
+        self.env: RDDLEnv = env
         self.iter = 0
         self.observation_space = gym.spaces.Dict(
             {
-                "nodes": Sequence(gym.spaces.Discrete(num_types), stack=True),
+                "nodes": Sequence(
+                    gym.spaces.Discrete(
+                        num_types if types_instead_of_objects else num_objects
+                    ),
+                    stack=True,
+                ),
                 "edge_index": Sequence(
                     gym.spaces.Box(
                         low=0,
@@ -328,7 +403,7 @@ class KGRDDLGraphWrapper(gym.Env):
         *,
         seed: int | None = None,
         options: dict[str, Any] | None = None,
-    ) -> tuple[dict, dict[str, Any]]:
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         obs, info = self.env.reset(seed)
 
         # obs |= self.action_values
@@ -342,15 +417,21 @@ class KGRDDLGraphWrapper(gym.Env):
             }
 
         filtered_groundings = sorted(
-            [g for g in self.groundings if g in obs and not is_fluent_to_skip(g, obs)]
+            [
+                g
+                for g in self.groundings
+                if g in obs and obs[g] and not skip_grounding(g, self.variable_ranges)
+            ]
         )
 
         filtered_obs: dict[str, Any] = {k: obs[k] for k in filtered_groundings}
 
-        graph = generate_bipartite_obs(
-            filtered_obs,
+        graph = generate_bipartite_obs(filtered_obs, self.object_to_type)
+
+        idx_graph = map_to_indices(
+            graph,
             self.obj_to_idx,
-            self.obj_to_type_idx,
+            self.type_to_idx,
             self.rel_to_idx,
         )
 
@@ -359,11 +440,12 @@ class KGRDDLGraphWrapper(gym.Env):
         )
 
         info["action_mask"] = action_mask
+        info["state"] = graph
 
         self.iter = 0
         self.last_obs = graph
 
-        o = graph_to_dict(graph)
+        o = graph_to_dict(idx_graph, self.types_instead_of_objects)
 
         # in_space = {k: o[k] in s for k, s in self.observation_space.spaces.items()}
 
@@ -373,20 +455,34 @@ class KGRDDLGraphWrapper(gym.Env):
         obs = self.last_obs
 
         with open(f"{self.domain}_{self.instance}_{self.iter}.dot", "w") as f:
-            f.write(
-                to_graphviz(obs, self.idx_to_obj, self.idx_to_rel, self.object_to_type)
-            )
+            if self.render_mode == "human":
+                f.write(
+                    to_graphviz(
+                        obs, self.idx_to_obj, self.idx_to_rel, self.object_to_type
+                    )
+                )
+            else:
+                f.write(
+                    to_graphviz_dict(graph_to_dict(obs, self.types_instead_of_objects))
+                )
 
     def step(self, action: tuple[int, int]):
         action_fluent = self.action_fluents[action[0]]
         object_id = self.idx_to_obj[action[1]]
 
-        rddl_action = f"{action_fluent}___{object_id}"
+        rddl_action = (
+            f"{action_fluent}___{object_id}" if action_fluent != "noop" else "noop"
+        )
+
+        self.last_action = rddl_action
+
+        invalid_action = rddl_action not in self.action_groundings
+
+        if invalid_action:
+            logger.warning(f"Invalid action: {rddl_action}")
 
         rddl_action_dict = (
-            {}
-            if rddl_action not in self.action_groundings or action_fluent == "noop"
-            else {rddl_action: 1}
+            {} if invalid_action or action_fluent == "noop" else {rddl_action: 1}
         )
 
         obs, reward, terminated, truncated, info = self.env.step(rddl_action_dict)
@@ -400,7 +496,11 @@ class KGRDDLGraphWrapper(gym.Env):
             }
 
         filtered_groundings = sorted(
-            [g for g in self.groundings if g in obs and not is_fluent_to_skip(g, obs)]
+            [
+                g
+                for g in self.groundings
+                if g in obs and obs[g] and not skip_grounding(g, self.variable_ranges)
+            ]
         )
 
         filtered_obs: dict[str, Any] = {k: obs[k] for k in filtered_groundings}
@@ -411,17 +511,30 @@ class KGRDDLGraphWrapper(gym.Env):
 
         graph = generate_bipartite_obs(
             filtered_obs,
+            self.object_to_type,
+        )
+
+        idx_graph = map_to_indices(
+            graph,
             self.obj_to_idx,
-            self.obj_to_type_idx,
+            self.type_to_idx,
             self.rel_to_idx,
         )
 
         info["action_mask"] = action_mask
+        info["state"] = graph
 
         self.iter += 1
         self.last_obs = graph
+        self.last_rddl_obs = obs
 
-        return graph_to_dict(graph), reward, terminated, truncated, info
+        return (
+            graph_to_dict(idx_graph, self.types_instead_of_objects),
+            reward,
+            terminated,
+            truncated,
+            info,
+        )
 
 
 def main():
@@ -457,10 +570,12 @@ def main():
 
 
 def register_env():
+    env_id = "KGRDDLGraphWrapper-v0"
     gym.register(
-        id="KGRDDLGraphWrapper-v0",
+        id=env_id,
         entry_point="wrappers.kg_wrapper:KGRDDLGraphWrapper",
     )
+    return env_id
 
 
 if __name__ == "__main__":

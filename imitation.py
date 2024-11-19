@@ -92,8 +92,8 @@ def dict_to_data(obs: dict[str, tuple[Any]]) -> list[Data]:
 
 def test_imitation():
     env_id = register_env()
-    domain = "test_domain.rddl"
-    instance = "test_domain_instance_0.rddl"
+    domain = "rddl/conditional_bandit.rddl"
+    instance = "rddl/conditional_bandit_i0.rddl"
 
     th.manual_seed(0)
     np.random.seed(0)

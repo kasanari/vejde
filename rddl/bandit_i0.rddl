@@ -1,0 +1,21 @@
+non-fluents instance0 {
+	domain = bandit;
+	objects {
+		button : {red, green};
+		machine: {r_m, g_m};
+	};
+	non-fluents {
+		PAYOUT(r_m) = 1.0;
+		PAYOUT(g_m) = 0.0;
+		CONNECTED(red,r_m);
+		CONNECTED(green,g_m);
+	};
+}
+
+instance conditional_bandit_instance0 {
+	domain = bandit;
+	non-fluents = instance0;
+	max-nondef-actions = 1;
+	horizon  = 10;
+	discount = 1.0;
+}

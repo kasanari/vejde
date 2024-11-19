@@ -1,0 +1,37 @@
+
+domain conditional_bandit {
+  
+	requirements = { 
+		//reward-deterministic // this domain does not use a stochastic reward
+	};
+	
+	types {
+  		button : object;
+		machine : object;
+	};
+      
+	pvariables { 
+    		  		    		  		
+		CONNECTED(button, machine) : { non-fluent, bool, default = false };
+		PAYOUT(machine) : { non-fluent, real, default = 0.0 };
+
+		COLORED(button) : { non-fluent, bool, default = true};
+
+		press(button) : { action-fluent, bool, default = false}; 
+
+		light(machine) : { state-fluent, bool, default=false};
+	
+		active(machine) : { interm-fluent, bool};
+
+	};
+	
+	cpfs {
+  
+		active(?m) = exists_{?b : button} [press(?b) & CONNECTED(?b, ?m)];
+
+		light'(?m) = if (light(?m)) then false else Bernoulli(0.5);
+	
+	};
+  
+	reward = [sum_{?m : machine} [PAYOUT(?m) * active(?m) * light(?m)]];
+}

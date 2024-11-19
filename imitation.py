@@ -211,15 +211,15 @@ def test_imitation():
         n_relations,
         n_actions,
         layers=1,
-        embedding_dim=8,
+        embedding_dim=4,
         activation=th.nn.ReLU(),
     )
-    optimizer = th.optim.AdamW(agent.parameters(), lr=0.01, amsgrad=True)
+    optimizer = th.optim.AdamW(agent.parameters(), lr=0.1, amsgrad=True)
 
     # return_ = [evaluate(env, agent, 0) for i in range(10)]
     # print(np.mean(return_))
 
-    _ = [iteration(i, env, agent, optimizer, 0) for i in range(1000)]
+    _ = [iteration(i, env, agent, optimizer, 0) for i in range(400)]
 
     return_ = [evaluate(env, agent, 0) for i in range(100)]
     print(np.mean(return_))

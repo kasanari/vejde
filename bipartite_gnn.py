@@ -2,11 +2,6 @@ from torch_geometric.data import Data, Batch
 from torch_geometric.nn import MessagePassing
 import torch
 from gnn_policies import ActionMode, TwoActionGNNPolicy
-from gnn_policy.functional import (
-    data_splits_and_starts,
-    sample_node_then_action,
-    sample_node,
-)
 from wrappers.kg_wrapper import KGRDDLGraphWrapper
 from torch import Tensor, LongTensor
 import torch.nn as nn
@@ -16,13 +11,14 @@ from numpy.typing import NDArray
 
 import logging
 
-from torch_geometric.nn import AttentionalAggregation
+from torch_geometric.nn import AttentionalAggregation, GINConv, SumAggregation
+from torch_geometric.utils import to_undirected
 
 from wrappers.wrapper import GroundedRDDLGraphWrapper
 
 
 def layer_init(layer: nn.Linear, std: float = np.sqrt(2), bias_const: float = 0.0):
-    torch.nn.init.ones_(layer.weight)
+    torch.nn.init.orthogonal_(layer.weight)
     torch.nn.init.constant_(layer.bias, bias_const)
     return layer
 
@@ -35,13 +31,17 @@ class BipartiteData(Data):
 
 
 class EmbeddingLayer(nn.Module):
-    def __init__(self, num_embeddings: int, embedding_dim: int):
+    def __init__(self, num_embeddings: int, embedding_dim: int, activation: nn.Module):
         super(EmbeddingLayer, self).__init__()
         self.embedding = nn.Embedding(num_embeddings, embedding_dim)
-        nn.init.orthogonal_(self.embedding.weight)
+        # nn.init.orthogonal_(self.embedding.weight)
         # nn.init.ones_(self.embedding.weight)
 
+        # self.bias = nn.Parameter(torch.zeros(num_embeddings, embedding_dim))
+        self.activation = activation
+
     def forward(self, x: Tensor) -> Tensor:
+        # bias = self.bias[x]
         return self.embedding(x)
 
 
@@ -66,6 +66,7 @@ class BipartiteGNNConvVariableToFactor(MessagePassing):
         super().__init__(aggr=aggr, flow="source_to_target")
         self.root = MLPLayer(in_channels, out_channels, activation)
         self.combine = MLPLayer(out_channels * 2, out_channels, activation)
+        self.message_func = MLPLayer(in_channels * 2, out_channels, activation)
         # self.relation_embedding = nn.Embedding(num_relations, in_channels)
         # nn.init.orthogonal_(self.relation_embedding.weight)
 
@@ -82,18 +83,37 @@ class BipartiteGNNConvVariableToFactor(MessagePassing):
         edge_index: Tensor of shape (2, num_edges),
         edge_attr: Tensor of shape (num_edges,)
         """
+
+        # fac2var_edges = edge_index.flip(0)
+
+        # fac2var_messages = self.edge_updater(
+        #     x=(factor, var_val),
+        #     edge_index=fac2var_edges,
+        #     size=(
+        #         factor.size(0),
+        #         var_val.size(0),
+        #     ),
+        # )
+
         return self.propagate(
             edge_index,
             x=(var_val, factor),
             edge_attr=edge_attr,
+            # fac2var_messages=fac2var_messages,
             size=(var_val.size(0), factor.size(0)),
         )
+
+    def edge_update(self, x_j):
+        return x_j
 
     def message(
         self,
         x_j: Tensor,
+        x_i: Tensor,
+        # fac2var_messages: Tensor,
     ) -> Tensor:
-        return x_j
+        # x_j = x_j - fac2var_messages
+        return self.message_func(torch.concatenate([x_i, x_j], dim=-1))
 
     def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:
         _, x_o = x
@@ -106,10 +126,10 @@ class BipartiteGNNConvFactorToVariable(MessagePassing):
         self, aggr: str, in_channels: int, out_channels: int, activation: nn.Module
     ):
         super().__init__(aggr=aggr, flow="source_to_target")
-        self.root = MLPLayer(in_channels, out_channels, activation)
+        # self.root = MLPLayer(in_channels, out_channels, activation)
         self.combine = MLPLayer(out_channels * 2, out_channels, activation)
-        self.message_func = MLPLayer(in_channels, out_channels, activation)
-        self.messages = None
+        self.message_func = MLPLayer(in_channels * 2, out_channels, activation)
+        # self.messages = None
         # self.relation_embedding = nn.Embedding(num_relations, in_channels)
         # nn.init.orthogonal_(self.relation_embedding.weight)
 
@@ -142,14 +162,13 @@ class BipartiteGNNConvFactorToVariable(MessagePassing):
     def message(
         self,
         x_j: Tensor,
-        edge_index: Tensor,
+        x_i: Tensor,
     ) -> Tensor:  # type: ignore
-        transformed = self.message_func(x_j)
-        return transformed
+        return self.message_func(torch.concatenate([x_i, x_j], dim=-1))
 
     def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:  # type: ignore
         _, x_p = x
-        new = self.combine(torch.concatenate([x_p, aggr_out], dim=-1))
+        new = x_p + self.combine(torch.concatenate([x_p, aggr_out], dim=-1))
         return new
 
 
@@ -160,6 +179,7 @@ class GlobalNode(nn.Module):
             nn.Linear(emb_size, 1), nn.Linear(emb_size, emb_size)
         )
         self.linear = MLPLayer(emb_size * 2, emb_size, activation)
+        # self.aggr = SumAggregation()
 
     def forward(self, x: Tensor, g_prev: Tensor, batch_idx: Tensor) -> Tensor:
         g = self.aggr(x, batch_idx)
@@ -177,6 +197,14 @@ class FactorGraphLayer(nn.Module):
             aggregation, embedding_dim, embedding_dim, activation
         )
 
+        # self.factor2var = GINConv(
+        #     nn.Sequential(
+        #         nn.Linear(embedding_dim, embedding_dim),
+        #         nn.ReLU(),
+        #     ),
+        #     train_eps=True,
+        # )
+
     def forward(
         self,
         h_p: Tensor,
@@ -184,21 +212,21 @@ class FactorGraphLayer(nn.Module):
         edge_index: Tensor,  # edges are (var, factor)
         edge_attr: Tensor,
     ) -> tuple[Tensor, Tensor]:
-        h_o = self.var2factor(
+        n_h_o = self.var2factor(
             h_p,
             h_o,
             edge_index,
             edge_attr,
         )
 
-        h_p = self.factor2var(
+        n_h_p = self.factor2var(
             h_p,
             h_o,
             edge_index,
             edge_attr,
         )
 
-        return h_p, h_o
+        return n_h_p, n_h_o
 
 
 class BipartiteGNN(nn.Module):
@@ -212,8 +240,12 @@ class BipartiteGNN(nn.Module):
         activation: nn.Module,
     ):
         super().__init__()  # type: ignore
-        self.obj_embedding = EmbeddingLayer(num_object_classes, embedding_dim)
-        self.predicate_embedding = EmbeddingLayer(num_predicate_classes, embedding_dim)
+        self.obj_embedding = EmbeddingLayer(
+            num_object_classes, embedding_dim, activation
+        )
+        self.predicate_embedding = EmbeddingLayer(
+            num_predicate_classes, embedding_dim, activation
+        )
 
         self.convs = nn.ModuleList(
             [
@@ -222,7 +254,8 @@ class BipartiteGNN(nn.Module):
             ]
         )
 
-        self.aggrs = GlobalNode(embedding_dim, activation)
+        # self.aggrs = [GlobalNode(embedding_dim, activation) for _ in range(layers)]
+        self.aggr = GlobalNode(embedding_dim, activation)
         self.hidden_size = embedding_dim
 
     def forward(
@@ -243,8 +276,9 @@ class BipartiteGNN(nn.Module):
 
         for conv in self.convs:
             (h_p, h_o) = conv(h_p, h_o, edge_index, edge_attr)
+            h_p = h_p * grounding_value.unsqueeze(-1).float()
 
-        g = self.aggrs(h_o, g, batch_idx)
+        g = self.aggr(h_o, g, batch_idx)
 
         return h_o, g
 

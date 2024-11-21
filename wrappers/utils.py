@@ -8,6 +8,29 @@ T = TypeVar("T")
 
 Edge = NamedTuple("Edge", [("predicate", str), ("object", str), ("pos", int)])
 
+IdxFactorGraph = NamedTuple(
+    "IdxFactorGraph",
+    [
+        ("variables", np.ndarray[np.int64, Any]),
+        ("values", np.ndarray[np.bool_, Any]),
+        ("factors", np.ndarray[np.int64, Any]),
+        ("edge_indices", np.ndarray[np.int64, Any]),
+        ("edge_attributes", np.ndarray[np.int64, Any]),
+    ],
+)
+
+FactorGraph = NamedTuple(
+    "FactorGraph",
+    [
+        ("variables", list[str]),
+        ("values", list[bool]),
+        ("factors", list[str]),
+        ("factor_values", list[str]),
+        ("edge_indices", np.ndarray[np.int64, Any]),
+        ("edge_attributes", list[str]),
+    ],
+)
+
 
 def sample_action(action_space) -> dict[str, int]:
     action: dict[str, int] = action_space.sample()
@@ -24,6 +47,11 @@ def predicate(key: str) -> str:
 def objects(key: str) -> list[str]:
     split = key.split("___")
     return split[1].split("__") if len(split) > 1 else []
+
+
+def arity(grounding: str):
+    o = objects(grounding)
+    return len(o)
 
 
 def translate_edges(
@@ -48,47 +76,59 @@ def create_edges(d: dict[str, Any]) -> set[Edge]:
     return edges
 
 
-def generate_bipartite_obs(
-    obs: dict[str, bool],
-    groundings: list[str],
+def map_graph_to_idx(
+    factorgraph: FactorGraph,
     rel_to_idx: dict[str, int],
     type_to_idx: dict[str, int],
-    obj_to_type: dict[str, str],
-    variable_ranges: dict[str, str],
-) -> tuple[
-    np.ndarray[np.int_, Any],
-    np.ndarray[np.bool_, Any],
-    np.ndarray[np.int_, Any],
-    np.ndarray[np.uint, Any],
-    np.ndarray[np.uint, Any],
-    np.ndarray[np.bool_, Any],
-]:
-    edges: set[Edge] = create_edges(obs)
-    obs_objects: set[str] = set()
+) -> IdxFactorGraph:
+    edge_attributes = np.asarray(factorgraph.edge_attributes, dtype=np.int64)
 
+    return IdxFactorGraph(
+        np.array([rel_to_idx[key] for key in factorgraph.variables], dtype=np.int64),
+        np.array(factorgraph.values, dtype=np.bool_),
+        np.array(
+            [type_to_idx[object] for object in factorgraph.factor_values],
+            dtype=np.int64,
+        ),
+        factorgraph.edge_indices,
+        edge_attributes,
+    )
+
+
+def object_list(obs: dict[str, Any]) -> list[str]:
+    obs_objects: set[str] = set()
     for key in obs:
         for object in objects(key):
             obs_objects.add(object)
-
     object_list: list[str] = sorted(obs_objects)
+    return object_list
 
-    object_nodes = np.array(
-        [type_to_idx[obj_to_type[object]] for object in object_list], dtype=np.int64
-    )
 
-    fact_node_values = np.array([obs[key] for key in groundings], dtype=np.bool_)
+def generate_bipartite_obs(
+    obs: dict[str, bool],
+    groundings: list[str],
+    obj_to_type: dict[str, str],
+    variable_ranges: dict[str, str],
+) -> FactorGraph:
+    edges: set[Edge] = create_edges(obs)
 
-    fact_node_predicate = np.array(
-        [rel_to_idx[predicate(key)] for key in groundings], dtype=np.int64
-    )
+    obj_list = object_list(obs)
 
-    edge_indices = translate_edges(groundings, object_list, edges)
+    object_types = [obj_to_type[object] for object in obj_list]
 
-    edge_attributes = edge_attr(edges)
+    fact_node_values = [obs[key] for key in groundings]
+
+    fact_node_predicate = [predicate(key) for key in groundings]
+
+    edge_indices = translate_edges(
+        groundings, obj_list, edges
+    )  # edges are (var, factor)
+
+    edge_attributes = [key[2] for key in edges]
 
     assert max(edge_indices[:, 0]) < len(fact_node_values)
     assert max(edge_indices[:, 0]) < len(fact_node_predicate)
-    assert max(edge_indices[:, 1]) < len(object_nodes)
+    assert max(edge_indices[:, 1]) < len(object_types)
 
     numeric = np.array(
         [
@@ -98,13 +138,14 @@ def generate_bipartite_obs(
         dtype=np.bool_,
     )
 
-    return (
+    return FactorGraph(
         fact_node_predicate,
         fact_node_values,
-        object_nodes,
+        obj_list,
+        object_types,
         edge_indices,
         edge_attributes,
-        numeric,
+        # numeric,
     )
 
 

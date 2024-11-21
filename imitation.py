@@ -107,12 +107,16 @@ def test_imitation():
         n_types,
         n_relations,
         n_actions,
-        layers=2,
-        embedding_dim=2,
-        activation=th.nn.Tanh(),
+        layers=4,
+        embedding_dim=4,
+        activation=th.nn.LeakyReLU(),
         aggregation="sum",
-        action_mode=ActionMode.ACTION_AND_NODE,
+        action_mode=ActionMode.ACTION_THEN_NODE,
     )
+
+    # state_dict = th.load("bipart_gnn_agent.pth", weights_only=True)
+    # agent.load_state_dict(state_dict)
+
     # agent = MLPAgent(
     #     n_types,
     #     n_relations,
@@ -121,13 +125,15 @@ def test_imitation():
     #     embedding_dim=4,
     #     activation=th.nn.ReLU(),
     # )
-    optimizer = th.optim.AdamW(agent.parameters(), lr=0.1, amsgrad=True)
+    optimizer = th.optim.AdamW(agent.parameters(), lr=0.01, amsgrad=True)
 
     data = [evaluate(env, agent, 0) for i in range(10)]
     rewards, _, _ = zip(*data)
     print(np.mean(np.sum(rewards, axis=1)))
 
     _ = [iteration(i, env, agent, optimizer, 0) for i in range(100)]
+
+    pass
 
     data = [evaluate(env, agent, 0) for i in range(3)]
 
@@ -165,7 +171,7 @@ def iteration(i, env, agent, optimizer, seed: int):
 
 def per_sample_grad(agent: th.nn.Module, b: th.Tensor, actions: th.Tensor):
     def compute_loss(params, buffers, batch: th.Tensor, actions: th.Tensor):
-        l2_weight = 0.01
+        l2_weight = 0.0
 
         logprob = functional_call(
             agent, (params, buffers), (actions.unsqueeze(0), batch.unsqueeze(0))
@@ -220,8 +226,9 @@ def update(
     optimizer.zero_grad()
     loss.backward()
 
-    # d = dict(agent.named_parameters())
-    # grads = {k: th.nonzero((-d[k].grad).clamp(min=0)) for k in d}
+    d = dict(agent.named_parameters())
+    grads = {k: th.nonzero((-d[k].grad).clamp(min=0)) for k in d}
+    grads = {k: v for k, v in grads.items() if len(v) > 0}
 
     # if iteration % 100 == 0:
     #     per_sample_grads = per_sample_grad(agent, b, actions)

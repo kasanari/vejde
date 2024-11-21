@@ -4,14 +4,15 @@ import pyRDDLGym
 import numpy as np
 import gymnasium as gym
 from .utils import to_graphviz, to_graphviz_alt
+from pyRDDLGym.core.compiler.model import RDDLLiftedModel
 
 
-class RDDLGraphWrapper(gym.Wrapper):
+class RDDLGraphWrapper(gym.Env):
     metadata = {"render.modes": ["human"]}
 
     def __init__(self, domain: str, instance: int, render_mode: str = "human") -> None:
         env: gym.Env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
-        model = env.model  # type: ignore
+        model: RDDLLiftedModel = env.model  # type: ignore
         object_to_type: dict[str, str] = copy(model.object_to_type)  # type: ignore
         types = set(object_to_type.values())  # type: ignore
         type_list = sorted(types)
@@ -20,16 +21,22 @@ class RDDLGraphWrapper(gym.Wrapper):
         action_groundings: set[str] = set(
             dict(env.model.ground_vars_with_values(model.action_fluents)).keys()  # type: ignore
         )
-        action_groundings.add("noop")
-        groundings: list[str] = [
+        interm_fluents: set[str] = set(
+            model.ground_vars_with_values(model.interm_fluents)
+        )  # type: ignore
+
+        groundings: set[str] = set(
             g
             for _, v in env.model.variable_groundings.items()  # type: ignore
             for g in v  # type: ignore
             if g[-1] != env.model.NEXT_STATE_SYM  # type: ignore
-        ]
+        )
+        groundings = groundings - action_groundings - interm_fluents
 
-        groundings = sorted(set(groundings))
-        groundings = ["noop"] + groundings
+        groundings = sorted(groundings)
+        action_groundings = sorted(action_groundings)
+        action_groundings = ["noop"] + action_groundings
+        # groundings = ["noop"] + groundings
 
         variable_params: dict[str, list[str]] = copy(env.model.variable_params)  # type: ignore
         variable_params["noop"] = []
@@ -53,9 +60,9 @@ class RDDLGraphWrapper(gym.Wrapper):
         non_fluent_values: dict[str, int] = dict(
             env.model.ground_vars_with_values(model.non_fluents)  # type: ignore
         )
-        action_fluents: list[str] = list(model.action_fluents.keys())  # type: ignore
+        action_fluents: list[str] = ["noop"] + list(model.action_fluents.keys())  # type: ignore
 
-        relations = non_fluents + state_fluents + action_fluents + ["noop"]
+        relations = non_fluents + state_fluents + action_fluents
 
         relation_list = sorted(relations)
 
@@ -85,6 +92,7 @@ class RDDLGraphWrapper(gym.Wrapper):
         self.arities = arities
         self.arities_to_fluent = arities_to_fluent
         self.non_fluents = non_fluents
+        self.action_fluents = action_fluents
         self.action_values = action_values
         self.obj_to_type: dict[str, str] = object_to_type
         self.groundings = groundings
@@ -99,7 +107,13 @@ class RDDLGraphWrapper(gym.Wrapper):
         self.env: gym.Env[gym.spaces.Dict, gym.spaces.Discrete] = env
         self.iter = 0
 
-        self.action_space = gym.spaces.Discrete(num_groundings)
+        # self.action_space = gym.spaces.Discrete(num_groundings)
+        self.action_space = gym.spaces.MultiDiscrete(
+            [
+                len(action_fluents),
+                num_objects,
+            ]
+        )
 
     def render(self):
         obs = self.last_obs

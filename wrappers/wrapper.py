@@ -1,11 +1,11 @@
 import random
 from .parent_wrapper import RDDLGraphWrapper
-from .utils import generate_bipartite_obs, to_graphviz, predicate
+from .utils import generate_bipartite_obs, map_graph_to_idx, to_graphviz, predicate
 import numpy as np
 from typing import Any
 import logging
 from gymnasium import spaces
-
+import gymnasium as gym
 
 logger = logging.getLogger(__name__)
 
@@ -36,16 +36,16 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
         self.idx_to_rel = relation_list
         self.observation_space = spaces.Dict(
             {
-                "predicate_class": spaces.Box(
+                "var_type": spaces.Box(
                     low=0,
                     high=num_relations,
                     shape=(num_groundings,),
                     dtype=np.int64,
                 ),
-                "predicate_value": spaces.Box(
+                "var_value": spaces.Box(
                     low=0, high=1, shape=(num_groundings,), dtype=np.int64
                 ),
-                "object": spaces.Box(
+                "factor": spaces.Box(
                     low=0, high=num_types, shape=(num_objects,), dtype=np.int64
                 ),
                 "edge_index": spaces.Box(
@@ -67,101 +67,106 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[spaces.Dict, dict[str, Any]]:
-        obs, info = self.env.reset(seed=seed)
+        rddl_obs, info = self.env.reset(seed=seed)
 
-        obs |= self.action_values
-        obs |= self.non_fluents_values
+        # obs |= self.action_values
+        rddl_obs |= self.non_fluents_values
 
         filtered_groundings = sorted(
             [g for g in self.groundings if not skip_fluent(g, self.variable_ranges)]
         )
 
-        filtered_obs: dict[str, Any] = {k: obs[k] for k in filtered_groundings}
+        filtered_obs: dict[str, Any] = {k: rddl_obs[k] for k in filtered_groundings}
 
-        (
-            predicate_classes,
-            predicate_values,
-            object_nodes,
-            edge_indices,
-            edge_attributes,
-            _,
-        ) = generate_bipartite_obs(
+        g = generate_bipartite_obs(
             filtered_obs,
             filtered_groundings,
-            self.rel_to_idx,
-            self.type_to_idx,
             self.obj_to_type,
             self.variable_ranges,
         )
 
+        idx_g = map_graph_to_idx(g, self.rel_to_idx, self.type_to_idx)
+
         obs = {
-            "predicate_class": predicate_classes,
-            "predicate_value": predicate_values,
-            "object": object_nodes,
+            "var_type": idx_g.variables,
+            "var_value": idx_g.values,
+            "factor": idx_g.factors,
+            "edge_index": idx_g.edge_indices,
+            "edge_attr": idx_g.edge_attributes,
             # "numeric": numeric,
-            "edge_index": edge_indices,
-            "edge_attr": edge_attributes,
         }
 
         self.iter = 0
         self.last_obs = obs
+        self.last_rddl_obs = rddl_obs
 
-        info["idx_to_obj"] = self.obj_to_idx
-        info["idx_to_rel"] = self.rel_to_idx
+        info["state"] = g
 
         return obs, info
 
     def step(self, action: int | list[int]):
-        grounding = self.groundings[action[0]]
+        action_fluent = self.action_fluents[action[0]]
+        object_id = self.idx_to_obj[action[1]]
 
-        logger.debug(f"Action: {grounding}")
-
-        rddl_action_dict = (
-            {}
-            if grounding not in self.action_groundings or grounding == "noop"
-            else {grounding: 1}
+        rddl_action = (
+            f"{action_fluent}___{object_id}" if action_fluent != "noop" else "noop"
         )
 
-        obs, reward, terminated, truncated, info = self.env.step(rddl_action_dict)
+        self.last_action = rddl_action
 
-        obs |= self.action_values
-        obs |= self.non_fluents_values
+        invalid_action = rddl_action not in self.action_groundings
+
+        if invalid_action:
+            logger.warning(f"Invalid action: {rddl_action}")
+
+        rddl_action_dict = (
+            {} if invalid_action or action_fluent == "noop" else {rddl_action: 1}
+        )
+
+        self.last_action_values = rddl_action_dict
+
+        rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action_dict)
+
+        # obs |= self.action_values
+        rddl_obs |= self.non_fluents_values
 
         filtered_groundings = sorted(
             [g for g in self.groundings if not skip_fluent(g, self.variable_ranges)]
         )
 
-        filtered_obs: dict[str, Any] = {k: obs[k] for k in filtered_groundings}
+        filtered_obs: dict[str, Any] = {k: rddl_obs[k] for k in filtered_groundings}
 
-        (
-            predicate_classes,
-            predicate_values,
-            object_nodes,
-            edge_indices,
-            edge_attributes,
-            numeric,
-        ) = generate_bipartite_obs(
+        g = generate_bipartite_obs(
             filtered_obs,
             filtered_groundings,
-            self.rel_to_idx,
-            self.type_to_idx,
             self.obj_to_type,
             self.variable_ranges,
         )
 
+        idx_g = map_graph_to_idx(g, self.rel_to_idx, self.type_to_idx)
+
         obs = {
-            "predicate_class": predicate_classes,
-            "predicate_value": predicate_values,
-            "object": object_nodes,
-            "numeric": numeric,
-            "edge_index": edge_indices,
-            "edge_attr": edge_attributes,
+            "var_type": idx_g.variables,
+            "var_value": idx_g.values,
+            "factor": idx_g.factors,
+            "edge_index": idx_g.edge_indices,  # edges are (var, factor)
+            "edge_attr": idx_g.edge_attributes,
+            # "numeric": numeric,
         }
 
         self.iter += 1
         self.last_obs = obs
+        self.last_rddl_obs = rddl_obs
 
-        info["idx_to_obj"] = self.obj_to_idx
-        info["idx_to_rel"] = self.rel_to_idx
+        info["state"] = g
 
         return obs, reward, terminated, truncated, info
+
+
+def register_env():
+    env_id = "GroundedRDDLGraphWrapper-v0"
+    gym.register(
+        id=env_id,
+        entry_point="wrappers.wrapper:GroundedRDDLGraphWrapper",
+    )
+    return env_id

@@ -8,8 +8,13 @@ import numpy as np
 from gymnasium import spaces
 
 from .parent_wrapper import RDDLGraphWrapper
-from .utils import (generate_bipartite_obs, map_graph_to_idx, predicate,
-                    to_graphviz)
+from .utils import (
+    generate_bipartite_obs,
+    map_graph_to_idx,
+    predicate,
+    to_graphviz,
+    FactorGraph,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -66,12 +71,9 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
             }
         )
 
-    def reset(
-        self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[spaces.Dict, dict[str, Any]]:
-        rddl_obs, info = self.env.reset(seed=seed)
-
-        # obs |= self.action_values
+    def _create_obs(
+        self, rddl_obs: dict[str, Any]
+    ) -> tuple[dict[str, Any], FactorGraph]:
         rddl_obs |= self.non_fluent_values
 
         filtered_groundings = sorted(
@@ -97,6 +99,16 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
             "edge_attr": idx_g.edge_attributes,
             # "numeric": numeric,
         }
+        return obs, g
+
+    def reset(
+        self, *, seed: int | None = None, options: dict[str, Any] | None = None
+    ) -> tuple[spaces.Dict, dict[str, Any]]:
+        rddl_obs, info = self.env.reset(seed=seed)
+
+        # obs |= self.action_values
+
+        obs, g = self._create_obs(rddl_obs)
 
         self.iter = 0
         self.last_obs = obs
@@ -125,40 +137,14 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
             {} if invalid_action or action_fluent == "noop" else {rddl_action: 1}
         )
 
-        self.last_action_values = rddl_action_dict
-
         rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action_dict)
 
-        # obs |= self.action_values
-        rddl_obs |= self.non_fluent_values
-
-        filtered_groundings = sorted(
-            [g for g in self.groundings if not skip_fluent(g, self.variable_ranges)]
-        )
-
-        filtered_obs: dict[str, Any] = {k: rddl_obs[k] for k in filtered_groundings}
-
-        g = generate_bipartite_obs(
-            filtered_obs,
-            filtered_groundings,
-            self.obj_to_type,
-            self.variable_ranges,
-        )
-
-        idx_g = map_graph_to_idx(g, self.rel_to_idx, self.type_to_idx)
-
-        obs = {
-            "var_type": idx_g.variables,
-            "var_value": idx_g.values,
-            "factor": idx_g.factors,
-            "edge_index": idx_g.edge_indices,  # edges are (var, factor)
-            "edge_attr": idx_g.edge_attributes,
-            # "numeric": numeric,
-        }
+        obs, g = self._create_obs(rddl_obs)
 
         self.iter += 1
         self.last_obs = obs
         self.last_rddl_obs = rddl_obs
+        self.last_action_values = rddl_action_dict
 
         info["state"] = g
 

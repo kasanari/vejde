@@ -1,11 +1,15 @@
-import random
-from .parent_wrapper import RDDLGraphWrapper
-from .utils import generate_bipartite_obs, map_graph_to_idx, to_graphviz, predicate
-import numpy as np
-from typing import Any
 import logging
-from gymnasium import spaces
+import random
+from functools import cache
+from typing import Any
+
 import gymnasium as gym
+import numpy as np
+from gymnasium import spaces
+
+from .parent_wrapper import RDDLGraphWrapper
+from .utils import (generate_bipartite_obs, map_graph_to_idx, predicate,
+                    to_graphviz)
 
 logger = logging.getLogger(__name__)
 
@@ -15,26 +19,22 @@ def skip_fluent(key: str, variable_ranges: dict[str, str]) -> bool:
 
 
 class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
-    def __init__(self, domain: str, instance: int, render_mode: str = "human") -> None:
-        super().__init__(domain, instance, render_mode)
+    @property
+    @cache
+    def groundings(self):
+        return sorted(
+            [g for g in super().groundings if not skip_fluent(g, self.variable_ranges)]
+        )
 
-        filtered_groundings = [
-            g for g in self.groundings if not skip_fluent(g, self.variable_ranges)
-        ]
-        num_groundings = len(filtered_groundings)
+    @property
+    @cache
+    def observation_space(self) -> spaces.Dict:
+        num_groundings = len(self.groundings)
         num_objects = self.num_objects
         num_types = self.num_types
-        num_relations = len(set(predicate(g) for g in filtered_groundings))
-        num_edges = sum(self.arities[predicate(g)] for g in filtered_groundings)
-        relation_list = sorted(set(predicate(g) for g in filtered_groundings))
-        self.rel_to_idx = {
-            k: i
-            for i, k in enumerate(
-                sorted(set(predicate(g) for g in filtered_groundings))
-            )
-        }
-        self.idx_to_rel = relation_list
-        self.observation_space = spaces.Dict(
+        num_relations = len(self.rel_to_idx)
+        num_edges = self.num_edges
+        return spaces.Dict(
             {
                 "var_type": spaces.Box(
                     low=0,
@@ -43,7 +43,10 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
                     dtype=np.int64,
                 ),
                 "var_value": spaces.Box(
-                    low=0, high=1, shape=(num_groundings,), dtype=np.int64
+                    low=0,
+                    high=1,
+                    shape=(num_groundings,),
+                    dtype=np.bool_,
                 ),
                 "factor": spaces.Box(
                     low=0, high=num_types, shape=(num_objects,), dtype=np.int64
@@ -62,7 +65,6 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
                 ),
             }
         )
-        pass
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -70,7 +72,7 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
         rddl_obs, info = self.env.reset(seed=seed)
 
         # obs |= self.action_values
-        rddl_obs |= self.non_fluents_values
+        rddl_obs |= self.non_fluent_values
 
         filtered_groundings = sorted(
             [g for g in self.groundings if not skip_fluent(g, self.variable_ranges)]
@@ -128,7 +130,7 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
         rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action_dict)
 
         # obs |= self.action_values
-        rddl_obs |= self.non_fluents_values
+        rddl_obs |= self.non_fluent_values
 
         filtered_groundings = sorted(
             [g for g in self.groundings if not skip_fluent(g, self.variable_ranges)]

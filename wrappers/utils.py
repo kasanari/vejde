@@ -1,6 +1,7 @@
-from typing import NamedTuple, TypeVar, Any
-import numpy as np
 import random
+from typing import Any, NamedTuple, TypeVar
+
+import numpy as np
 from gymnasium import spaces
 
 T = TypeVar("T")

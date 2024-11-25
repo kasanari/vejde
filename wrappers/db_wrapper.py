@@ -1,16 +1,17 @@
-from copy import copy
+import logging
 import random
-from typing import Any, Callable, TypeVar, NamedTuple
-import pyRDDLGym
-import numpy as np
-import gymnasium as gym
+from copy import copy
 from enum import Enum
+from typing import Any, Callable, NamedTuple, TypeVar
 
-from pyRDDLGym.core.env import RDDLEnv
-from wrappers.utils import objects, predicate, arity
+import gymnasium as gym
+import numpy as np
+import pyRDDLGym
 from gymnasium.spaces import MultiDiscrete, Sequence
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel
-import logging
+from pyRDDLGym.core.env import RDDLEnv
+
+from wrappers.utils import arity, objects, predicate
 
 logger = logging.getLogger(__name__)
 

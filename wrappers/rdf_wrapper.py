@@ -1,10 +1,11 @@
-from copy import copy
 import random
-from typing import Any, TypeVar, NamedTuple
-import pyRDDLGym
-import numpy as np
-import gymnasium as gym
+from copy import copy
 from enum import Enum
+from typing import Any, NamedTuple, TypeVar
+
+import gymnasium as gym
+import numpy as np
+import pyRDDLGym
 
 
 class Arity(Enum):

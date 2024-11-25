@@ -7,3 +7,9 @@ wandb
 mlruns
 runs
 mlartifacts
+*.pth
+*.egg-info
+*.txt
+*.json
+*.md
+*.yml

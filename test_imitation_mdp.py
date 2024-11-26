@@ -1,7 +1,7 @@
 from collections import deque
 import random
 from typing import Any
-from bipartite_gnn import BipartiteGNNAgent
+from bipartite_gnn import Config, GraphAgent, StateData
 from gnn_policies import ActionMode
 from kg_gnn import KGGNNAgent
 
@@ -102,10 +102,11 @@ def test_imitation():
     )
     n_objects = env.observation_space.spaces["factor"].shape[0]
     n_vars = env.observation_space["var_value"].shape[0]
-    n_types = env.observation_space["factor"].high[0]
-    n_relations = env.observation_space["var_type"].high[0]
-    n_actions = env.action_space.nvec[0]
-    agent = BipartiteGNNAgent(
+    n_types = int(env.observation_space["factor"].high[0])
+    n_relations = int(env.observation_space["var_type"].high[0])
+    n_actions = int(env.action_space.nvec[0])
+
+    config = Config(
         n_types,
         n_relations,
         n_actions,
@@ -114,6 +115,10 @@ def test_imitation():
         activation=th.nn.LeakyReLU(),
         aggregation="sum",
         action_mode=ActionMode.ACTION_THEN_NODE,
+    )
+
+    agent = GraphAgent(
+        config,
     )
 
     # state_dict = th.load("bipart_gnn_agent.pth", weights_only=True)
@@ -201,7 +206,7 @@ def per_sample_grad(agent: th.nn.Module, b: th.Tensor, actions: th.Tensor):
 
 def update(
     iteration: int,
-    agent: th.nn.Module,
+    agent: GraphAgent,
     optimizer: th.optim.Optimizer,
     actions,
     obs: list[Data],
@@ -212,12 +217,9 @@ def update(
     actions = th.as_tensor(actions, dtype=th.int64)
     logprob, _, _ = agent.forward(
         actions,
-        b.var_value,
-        b.var_type,
-        b.factor,
-        b.edge_index,
-        b.edge_attr,
-        b.batch,
+        StateData(
+            b.var_value, b.var_type, b.factor, b.edge_index, b.edge_attr, b.batch
+        ),
     )
 
     l2_norms = [th.sum(th.square(w)) for w in agent.parameters()]
@@ -271,13 +273,13 @@ def rollout(env: gym.Env, seed: int):
 
         # print(f"Episode {seed}: {sum_reward}, {avg_loss}, {avg_l2_loss}")
 
-        assert sum_reward == 4.0, f"Expert policy failed: {sum_reward}"
+    assert sum_reward == 4.0, f"Expert policy failed: {sum_reward}"
 
     return list(obs_buf), list(actions_buf)
 
 
 @th.no_grad()
-def evaluate(env: gym.Env, agent: th.nn.Module, seed: int):
+def evaluate(env: gym.Env, agent: GraphAgent, seed: int):
     obs, info = env.reset(seed=seed)
     done = False
     time = 0
@@ -297,12 +299,9 @@ def evaluate(env: gym.Env, agent: th.nn.Module, seed: int):
         # b = th.as_tensor(obs["var_value"], dtype=th.float32)
 
         action, _, _ = agent.sample(
-            b.var_value,
-            b.var_type,
-            b.factor,
-            b.edge_index,
-            b.edge_attr,
-            b.batch,
+            StateData(
+                b.var_value, b.var_type, b.factor, b.edge_index, b.edge_attr, b.batch
+            ),
             deterministic=True,
         )
 

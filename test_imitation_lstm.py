@@ -1,7 +1,7 @@
 from collections import deque
 import random
 from typing import Any
-from bipartite_gnn import BipartiteGNNAgent
+from bipartite_gnn import Config, RecurrentGraphAgent, StackedStateData
 from gnn_policies import ActionMode
 from kg_gnn import KGGNNAgent
 
@@ -15,6 +15,23 @@ from gymnasium.spaces import Dict, MultiDiscrete
 
 from torch.func import functional_call, grad, vmap
 import json
+
+
+def statedata_from_single_obs(obs) -> StackedStateData:
+    return statedata_from_obs([dict_to_data(obs)])
+
+
+def statedata_from_obs(obs: list[Data]) -> StackedStateData:
+    b = Batch.from_data_list(obs)
+    return StackedStateData(
+        var_val=b.var_value,
+        var_type=b.var_type,
+        object_class=b.factor,
+        edge_index=b.edge_index,
+        edge_attr=b.edge_attr,
+        batch_idx=b.batch,
+        lengths=b.length,
+    )
 
 
 class Serializer(json.JSONEncoder):
@@ -114,10 +131,11 @@ def test_imitation():
     )
     n_objects = env.observation_space.spaces["factor"].shape[0]
     n_vars = env.observation_space["var_value"].shape[0]
-    n_types = env.observation_space["factor"].high[0]
-    n_relations = env.observation_space["var_type"].high[0]
-    n_actions = env.action_space.nvec[0]
-    agent = BipartiteGNNAgent(
+    n_types = int(env.observation_space["factor"].high[0])
+    n_relations = int(env.observation_space["var_type"].high[0])
+    n_actions = int(env.action_space.nvec[0])
+
+    config = Config(
         n_types,
         n_relations,
         n_actions,
@@ -127,6 +145,8 @@ def test_imitation():
         aggregation="sum",
         action_mode=ActionMode.ACTION_THEN_NODE,
     )
+
+    agent = RecurrentGraphAgent(config)
 
     # state_dict = th.load("bipart_gnn_agent.pth", weights_only=True)
     # agent.load_state_dict(state_dict)
@@ -215,22 +235,15 @@ def update(
     iteration: int,
     agent: th.nn.Module,
     optimizer: th.optim.Optimizer,
-    actions,
+    actions: th.Tensor,
     obs: list[Data],
 ):
     l2_weight = 0.0
-    b = Batch.from_data_list(obs)
+    s = statedata_from_obs(obs)
     # b = th.stack([d.var_value for d in obs])
-    actions = th.as_tensor(actions, dtype=th.int64)
     logprob, _, _ = agent.forward(
         actions,
-        b.var_value,
-        b.var_type,
-        b.factor,
-        b.edge_index,
-        b.edge_attr,
-        b.batch,
-        b.length,
+        s,
     )
 
     l2_norms = [th.sum(th.square(w)) for w in agent.parameters()]
@@ -286,11 +299,11 @@ def rollout(env: gym.Env, seed: int):
 
     assert sum_reward == 2.0, f"Expert policy failed: {sum_reward}"
 
-    return list(obs_buf), list(actions_buf)
+    return list(obs_buf), th.as_tensor(list(actions_buf), dtype=th.int64)
 
 
 @th.no_grad()
-def evaluate(env: gym.Env, agent: th.nn.Module, seed: int):
+def evaluate(env: gym.Env, agent: RecurrentGraphAgent, seed: int):
     obs, info = env.reset(seed=seed)
     done = False
     time = 0
@@ -305,18 +318,12 @@ def evaluate(env: gym.Env, agent: th.nn.Module, seed: int):
 
         obs_buf.append(env.unwrapped.last_rddl_obs)
 
-        b = Batch.from_data_list([dict_to_data(obs)])
+        s = statedata_from_single_obs(obs)
         # b = {k: th.as_tensor(v, dtype=th.float32) for k, v in obs["nodes"].items()}
         # b = th.as_tensor(obs["var_value"], dtype=th.float32)
 
         action, _, _ = agent.sample(
-            b.var_value,
-            b.var_type,
-            b.factor,
-            b.edge_index,
-            b.edge_attr,
-            b.batch,
-            b.length,
+            s,
             deterministic=True,
         )
 

@@ -47,7 +47,9 @@ class RDDLGraphWrapper(gym.Env):
         self.idx_to_obj = object_list
         self.idx_to_type = type_list
         self.obj_to_type: dict[str, str] = object_to_type
-        self.env: gym.Env[gym.spaces.Dict, gym.spaces.Discrete] = StackingWrapper(env)
+        self.env: gym.Env[gym.spaces.Dict, gym.spaces.Discrete] = (
+            StackingWrapper(env) if pomdp else env
+        )
 
     @property
     @cache

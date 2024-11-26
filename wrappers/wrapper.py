@@ -39,50 +39,55 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
         num_types = self.num_types
         num_relations = len(self.rel_to_idx)
         num_edges = self.num_edges
-        return spaces.Dict(
-            {
-                "var_type": spaces.Box(
-                    low=0,
-                    high=num_relations,
-                    shape=(num_groundings,),
-                    dtype=np.int64,
-                ),
-                "var_value": spaces.Box(
-                    low=0,
-                    high=1,
-                    shape=(num_groundings,),
-                    dtype=np.bool_,
-                ),
-                "factor": spaces.Box(
-                    low=0, high=num_types, shape=(num_objects,), dtype=np.int64
-                ),
-                "edge_index": spaces.Box(
-                    low=0,
-                    high=max(num_objects, num_groundings),
-                    shape=(num_edges, 2),
-                    dtype=np.int64,
-                ),
-                "edge_attr": spaces.Box(
-                    low=0,
-                    high=1,
-                    shape=(num_edges,),
-                    dtype=np.int64,
-                ),
-                "length": spaces.Box(
-                    low=0,
-                    high=40,
-                    shape=(num_groundings,),
-                    dtype=np.int64,
-                ),
-            }
-        )
+
+        s: dict[str, spaces.Space] = {
+            "var_type": spaces.Box(
+                low=0,
+                high=num_relations,
+                shape=(num_groundings,),
+                dtype=np.int64,
+            ),
+            "var_value": spaces.Box(
+                low=0,
+                high=1,
+                shape=(num_groundings,),
+                dtype=np.bool_,
+            ),
+            "factor": spaces.Box(
+                low=0, high=num_types, shape=(num_objects,), dtype=np.int64
+            ),
+            "edge_index": spaces.Box(
+                low=0,
+                high=max(num_objects, num_groundings),
+                shape=(num_edges, 2),
+                dtype=np.int64,
+            ),
+            "edge_attr": spaces.Box(
+                low=0,
+                high=1,
+                shape=(num_edges,),
+                dtype=np.int64,
+            ),
+        }
+
+        if self.pomdp:
+            s["length"] = spaces.Box(
+                low=0,
+                high=40,
+                shape=(num_groundings,),
+                dtype=np.int64,
+            )
+
+        return spaces.Dict(s)
 
     def _create_obs(
         self, rddl_obs: dict[str, Any]
     ) -> tuple[dict[str, Any], FactorGraph]:
-        non_fluent_values = {
-            k: [v] + [None] * 40 for k, v in self.non_fluent_values.items()
-        }
+        non_fluent_values = (
+            {k: [v] + [None] * 40 for k, v in self.non_fluent_values.items()}
+            if self.pomdp
+            else self.non_fluent_values
+        )
 
         rddl_obs |= non_fluent_values
 
@@ -118,7 +123,7 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
 
         # obs |= self.action_values
 
-        rddl_obs, lengths = rddl_obs
+        (rddl_obs, lengths) = rddl_obs if self.pomdp else (rddl_obs, None)
 
         obs, g = self._create_obs(rddl_obs)
 
@@ -127,12 +132,14 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
         self.last_rddl_obs = rddl_obs
 
         info["state"] = g
-        info["rddl_state"] = self.env.env.state
+        info["rddl_state"] = self.env.env.state if self.pomdp else self.env.state
 
-        non_fluent_lengths = {k: 1 for k in self.non_fluent_values}
-        lengths |= non_fluent_lengths
-        length = np.array([lengths[key] for key in self.groundings], dtype=np.int64)
-        obs["length"] = length
+        if self.pomdp:
+            non_fluent_lengths = {k: 1 for k in self.non_fluent_values}
+            lengths |= non_fluent_lengths
+            length = np.array([lengths[key] for key in self.groundings], dtype=np.int64)
+
+            obs["length"] = length
 
         return obs, info
 
@@ -156,7 +163,7 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
         )
 
         rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action_dict)
-        rddl_obs, lengths = rddl_obs
+        rddl_obs, lengths = rddl_obs if self.pomdp else (rddl_obs, None)
         obs, g = self._create_obs(rddl_obs)
 
         self.iter += 1
@@ -165,12 +172,13 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
         self.last_action_values = rddl_action_dict
 
         info["state"] = g
-        info["rddl_state"] = self.env.env.state
+        info["rddl_state"] = self.env.env.state if self.pomdp else self.env.state
 
-        non_fluent_lengths = {k: 1 for k in self.non_fluent_values}
-        lengths |= non_fluent_lengths
-        length = np.array([lengths[key] for key in self.groundings], dtype=np.int64)
-        obs["length"] = length
+        if self.pomdp:
+            non_fluent_lengths = {k: 1 for k in self.non_fluent_values}
+            lengths |= non_fluent_lengths
+            length = np.array([lengths[key] for key in self.groundings], dtype=np.int64)
+            obs["length"] = length
 
         return obs, reward, terminated, truncated, info
 

@@ -1,4 +1,4 @@
-from gnn_classes import EmbeddingLayer
+from .gnn_classes import EmbeddingLayer
 from torch import Tensor
 import torch.nn as nn
 import torch.nn.init as init

@@ -1,7 +1,7 @@
 from typing import NamedTuple
 from torch_geometric.nn import MessagePassing
 import torch
-from gnn_classes import MLPLayer
+from .gnn_classes import MLPLayer
 import torch.nn as nn
 from torch_geometric.nn import AttentionalAggregation
 from torch import Tensor

@@ -1,7 +1,7 @@
 from typing import NamedTuple
-from factorgraph_gnn import BipartiteGNN, FactorGraph, FactorGraphEmbedding
-from gnn_embedder import Embedder, RecurrentEmbedder
-from gnn_policies import ActionMode, TwoActionGNNPolicy
+from .factorgraph_gnn import BipartiteGNN, FactorGraph, FactorGraphEmbedding
+from .gnn_embedder import Embedder, RecurrentEmbedder
+from .gnn_policies import ActionMode, TwoActionGNNPolicy
 from torch import Tensor
 import torch.nn as nn
 from dataclasses import dataclass

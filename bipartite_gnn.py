@@ -276,8 +276,7 @@ class BipartiteGNN(nn.Module):
     def embed_nodes(
         self, grounding_value: Tensor, grounding_class: Tensor, object_class: Tensor
     ) -> tuple[Tensor, Tensor]:
-        h_c = self.predicate_embedding(grounding_class)
-        h_p = grounding_value.unsqueeze(-1).float() * h_c
+        h_p = self.predicate_embedding((grounding_value * grounding_class).int())
         h_o = self.obj_embedding(object_class)
 
         return h_p, h_o

@@ -55,20 +55,10 @@ def knowledge_graph_policy(obs):
 
 
 def policy(state):
-    if state["enough_light___r_m"]:
+    if state["light___r_m"]:
         return [1, 3]
 
-    if state["enough_light___g_m"]:
-        return [1, 1]
-
-    return [0, 0]
-
-
-def counting_policy(state):
-    if np.array(state["light_observed___r_m"], dtype=bool).sum() == 3:
-        return [1, 3]
-
-    if np.array(state["light_observed___g_m"], dtype=bool).sum() == 3:
+    if state["light___g_m"]:
         return [1, 1]
 
     return [0, 0]
@@ -89,14 +79,13 @@ def dict_to_data(obs: dict[str, tuple[Any]]) -> BipartiteData:
         factor=th.as_tensor(obs["factor"], dtype=th.int64),
         edge_index=th.as_tensor(obs["edge_index"], dtype=th.int64).T,
         edge_attr=th.as_tensor(obs["edge_attr"], dtype=th.int64),
-        length=th.as_tensor(obs["length"], dtype=th.int64),
         num_nodes=obs["factor"].shape[0],  # + obs["var_value"].shape[0]
     )
 
 
 def test_imitation():
-    domain = "rddl/counting_bandit.rddl"
-    instance = "rddl/counting_bandit_i1.rddl"
+    domain = "rddl/conditional_bandit.rddl"
+    instance = "rddl/conditional_bandit_i0.rddl"
 
     th.manual_seed(0)
     np.random.seed(0)
@@ -110,7 +99,6 @@ def test_imitation():
         # add_inverse_relations=False,
         # types_instead_of_objects=False,
         render_mode="idx",
-        pomdp=True,
     )
     n_objects = env.observation_space.spaces["factor"].shape[0]
     n_vars = env.observation_space["var_value"].shape[0]
@@ -122,7 +110,7 @@ def test_imitation():
         n_relations,
         n_actions,
         layers=4,
-        embedding_dim=16,
+        embedding_dim=4,
         activation=th.nn.LeakyReLU(),
         aggregation="sum",
         action_mode=ActionMode.ACTION_THEN_NODE,
@@ -145,7 +133,7 @@ def test_imitation():
     rewards, _, _ = zip(*data)
     print(np.mean(np.sum(rewards, axis=1)))
 
-    _ = [iteration(i, env, agent, optimizer, 0) for i in range(200)]
+    _ = [iteration(i, env, agent, optimizer, 0) for i in range(100)]
 
     pass
 
@@ -230,7 +218,6 @@ def update(
         b.edge_index,
         b.edge_attr,
         b.batch,
-        b.length,
     )
 
     l2_norms = [th.sum(th.square(w)) for w in agent.parameters()]
@@ -282,9 +269,9 @@ def rollout(env: gym.Env, seed: int):
         # print(action)
         # print(reward)
 
-    # print(f"Episode {seed}: {sum_reward}, {avg_loss}, {avg_l2_loss}")
+        # print(f"Episode {seed}: {sum_reward}, {avg_loss}, {avg_l2_loss}")
 
-    assert sum_reward == 2.0, f"Expert policy failed: {sum_reward}"
+        assert sum_reward == 4.0, f"Expert policy failed: {sum_reward}"
 
     return list(obs_buf), list(actions_buf)
 
@@ -316,7 +303,6 @@ def evaluate(env: gym.Env, agent: th.nn.Module, seed: int):
             b.edge_index,
             b.edge_attr,
             b.batch,
-            b.length,
             deterministic=True,
         )
 

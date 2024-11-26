@@ -145,7 +145,7 @@ def test_imitation():
     rewards, _, _ = zip(*data)
     print(np.mean(np.sum(rewards, axis=1)))
 
-    _ = [iteration(i, env, agent, optimizer, 0) for i in range(200)]
+    _ = [iteration(i, env, agent, optimizer, 0) for i in range(400)]
 
     pass
 

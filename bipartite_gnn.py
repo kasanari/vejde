@@ -276,7 +276,6 @@ class BipartiteGNN(nn.Module):
 
         for conv in self.convs:
             (h_p, h_o) = conv(h_p, h_o, edge_index, edge_attr)
-            h_p = h_p * grounding_value.unsqueeze(-1).float()
 
         g = self.aggr(h_o, g, batch_idx)
 

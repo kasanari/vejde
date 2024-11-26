@@ -165,17 +165,23 @@ class RDDLGraphWrapper(gym.Env):
     @property
     @cache
     def type_to_idx(self) -> dict[str, int]:
-        return {symb: idx for idx, symb in enumerate(self.idx_to_type)}
+        return {
+            symb: idx + 1 for idx, symb in enumerate(self.idx_to_type)
+        }  # 0 is reserved for padding
 
     @property
     @cache
     def rel_to_idx(self) -> dict[str, int]:
-        return {symb: idx for idx, symb in enumerate(self.relations)}
+        return {
+            symb: idx + 1 for idx, symb in enumerate(self.relations)
+        }  # 0 is reserved for padding
 
     @property
     @cache
     def obj_to_idx(self) -> dict[str, int]:
-        return {symb: idx for idx, symb in enumerate(self.idx_to_obj)}
+        return {
+            symb: idx + 1 for idx, symb in enumerate(self.idx_to_obj)
+        }  # 0 is reserved for padding
 
     @property
     @cache

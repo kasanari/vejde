@@ -33,12 +33,12 @@ class BipartiteData(Data):
 class EmbeddingLayer(nn.Module):
     def __init__(self, num_embeddings: int, embedding_dim: int, activation: nn.Module):
         super(EmbeddingLayer, self).__init__()
-        self.embedding = nn.Embedding(num_embeddings, embedding_dim)
+        self.embedding = nn.Embedding(num_embeddings + 1, embedding_dim, padding_idx=0)
         # nn.init.orthogonal_(self.embedding.weight)
         # nn.init.ones_(self.embedding.weight)
 
         # self.bias = nn.Parameter(torch.zeros(num_embeddings, embedding_dim))
-        self.activation = activation
+        # self.activation = activation
 
     def forward(self, x: Tensor) -> Tensor:
         # bias = self.bias[x]

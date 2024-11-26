@@ -4,28 +4,35 @@ import numpy as np
 import gymnasium as gym
 
 
-def policy(obs):
-    nonzero = np.flatnonzero(obs["edge_attr"])
-    if len(nonzero) == 0:
-        return [0, 0]
+def counting_policy(state):
+    if np.array(state["light___r_m"], dtype=bool).sum() > 3:
+        return [1, 3]
 
-    obj = next(iter(nonzero))
+    if np.array(state["light___g_m"], dtype=bool).sum() > 3:
+        return [1, 1]
 
-    obj = obs["edge_index"][obj][0]
+    return [0, 0]
 
-    button = next(
-        p for p, c in obs["edge_index"] if c == obj and not ((p, c) == (obj, obj))
-    )
 
-    return [1, button]
+def policy(state):
+    if state["enough_light___r_m"]:
+        return [1, 3]
+
+    if state["enough_light___g_m"]:
+        return [1, 1]
+
+    return [0, 0]
 
 
 def test_grounded(seed):
     # domain = "Elevators_MDP_ippc2011"
     # domain = "conditional_bandit.rddl"
     # instance = "conditional_bandit_i0.rddl"
-    domain = "Elevators_POMDP_ippc2011"
-    instance = 1
+    # domain = "Elevators_POMDP_ippc2011"
+    # instance = 1
+
+    domain = "rddl/counting_bandit.rddl"
+    instance = "rddl/counting_bandit_i1.rddl"
     env_id = register_env()
     env = gym.make(
         env_id,
@@ -47,9 +54,11 @@ def test_grounded(seed):
     sum_reward = 0
     while not done:
         time += 1
-        action = env.action_space.sample()
+        # action = env.action_space.sample()
         # action = [1, 3]
-        # action = policy(obs)
+        print(info["rddl_state"])
+
+        action = policy(info["rddl_state"])
         # print(info["state"].edge_attributes)
         # print(action)
         obs, reward, terminated, truncated, info = env.step(action)

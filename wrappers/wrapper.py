@@ -127,6 +127,7 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
         self.last_rddl_obs = rddl_obs
 
         info["state"] = g
+        info["rddl_state"] = self.env.env.state
 
         non_fluent_lengths = {k: 1 for k in self.non_fluent_values}
         lengths |= non_fluent_lengths
@@ -164,6 +165,7 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
         self.last_action_values = rddl_action_dict
 
         info["state"] = g
+        info["rddl_state"] = self.env.env.state
 
         non_fluent_lengths = {k: 1 for k in self.non_fluent_values}
         lengths |= non_fluent_lengths

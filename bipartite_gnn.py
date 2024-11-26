@@ -262,6 +262,12 @@ class BipartiteGNN(nn.Module):
 
         self.lstm = nn.LSTM(embedding_dim, embedding_dim, 1, batch_first=True)
 
+        for name, param in self.lstm.named_parameters():
+            if "weight" in name:
+                torch.nn.init.orthogonal_(param)
+            elif "bias" in name:
+                torch.nn.init.zeros_(param)
+
     def forward(
         self,
         grounding_value: Tensor,

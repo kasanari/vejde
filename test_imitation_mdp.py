@@ -23,6 +23,8 @@ class Serializer(json.JSONEncoder):
             return obj.tolist()
         if isinstance(obj, np.bool_):
             return bool(obj)
+        if isinstance(obj, np.int64):
+            return int(obj)
         return super().default(obj)
 
 
@@ -53,10 +55,20 @@ def knowledge_graph_policy(obs):
 
 
 def policy(state):
-    if state["light___r_m"]:
+    if state["enough_light___r_m"]:
         return [1, 3]
 
-    if state["light___g_m"]:
+    if state["enough_light___g_m"]:
+        return [1, 1]
+
+    return [0, 0]
+
+
+def counting_policy(state):
+    if np.array(state["light_observed___r_m"], dtype=bool).sum() == 3:
+        return [1, 3]
+
+    if np.array(state["light_observed___g_m"], dtype=bool).sum() == 3:
         return [1, 1]
 
     return [0, 0]
@@ -83,8 +95,8 @@ def dict_to_data(obs: dict[str, tuple[Any]]) -> BipartiteData:
 
 
 def test_imitation():
-    domain = "rddl/conditional_bandit.rddl"
-    instance = "rddl/conditional_bandit_i0.rddl"
+    domain = "rddl/counting_bandit.rddl"
+    instance = "rddl/counting_bandit_i1.rddl"
 
     th.manual_seed(0)
     np.random.seed(0)
@@ -98,6 +110,7 @@ def test_imitation():
         # add_inverse_relations=False,
         # types_instead_of_objects=False,
         render_mode="idx",
+        pomdp=True,
     )
     n_objects = env.observation_space.spaces["factor"].shape[0]
     n_vars = env.observation_space["var_value"].shape[0]
@@ -109,7 +122,7 @@ def test_imitation():
         n_relations,
         n_actions,
         layers=4,
-        embedding_dim=4,
+        embedding_dim=16,
         activation=th.nn.LeakyReLU(),
         aggregation="sum",
         action_mode=ActionMode.ACTION_THEN_NODE,
@@ -132,7 +145,7 @@ def test_imitation():
     rewards, _, _ = zip(*data)
     print(np.mean(np.sum(rewards, axis=1)))
 
-    _ = [iteration(i, env, agent, optimizer, 0) for i in range(500)]
+    _ = [iteration(i, env, agent, optimizer, 0) for i in range(1000)]
 
     pass
 
@@ -251,7 +264,7 @@ def rollout(env: gym.Env, seed: int):
     obs_buf = deque()
     while not done:
         # action = env.action_space.sample()
-        action = policy({k: v[time] for k, v in env.unwrapped.last_rddl_obs.items()})
+        action = policy(info["rddl_state"])
         next_obs, reward, terminated, truncated, info = env.step(action)
 
         # env.render()
@@ -271,8 +284,7 @@ def rollout(env: gym.Env, seed: int):
 
     # print(f"Episode {seed}: {sum_reward}, {avg_loss}, {avg_l2_loss}")
 
-    if sum_reward != 4.0:
-        print("Expert policy failed")
+    assert sum_reward == 2.0, f"Expert policy failed: {sum_reward}"
 
     return list(obs_buf), list(actions_buf)
 

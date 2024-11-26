@@ -282,7 +282,7 @@ class BipartiteGNN(nn.Module):
             grounding_value, grounding_class, object_class, length
         )
 
-        h_o, g = self.graph_embed(h_p, h_o, edge_index, edge_attr, batch_idx)
+        h_o, g = self.embed_graph(h_p, h_o, edge_index, edge_attr, batch_idx)
 
         return h_o, g
 
@@ -300,33 +300,6 @@ class BipartiteGNN(nn.Module):
         h_o = self.obj_embedding(object_class)
         return h_p, h_o
 
-    def graph_embed(
-        self,
-        variables: Tensor,
-        factors: Tensor,
-        edge_index: Tensor,
-        edge_attr: Tensor,
-        batch_idx: Tensor,
-    ):
-        num_graphs = int(batch_idx.max().item() + 1)
-        g = torch.zeros(num_graphs, self.hidden_size).to(factors.device)
-        for conv in self.convs:
-            (variables, factors) = conv(
-                variables.squeeze(), factors, edge_index, edge_attr
-            )
-
-        g = self.aggr(factors, g, batch_idx)
-
-        return factors, g
-
-    def embed_nodes(
-        self, grounding_value: Tensor, grounding_class: Tensor, object_class: Tensor
-    ) -> tuple[Tensor, Tensor]:
-        h_p = self.predicate_embedding((grounding_value * grounding_class).int())
-        h_o = self.obj_embedding(object_class)
-
-        return h_p, h_o
-
     def embed_graph(
         self,
         variables: Tensor,
@@ -337,9 +310,10 @@ class BipartiteGNN(nn.Module):
     ) -> tuple[Tensor, Tensor]:
         num_graphs = int(batch_idx.max().item() + 1)
         g = torch.zeros(num_graphs, self.hidden_size).to(factors.device)
-
         for conv in self.convs:
-            (variables, factors) = conv(variables, factors, edge_index, edge_attr)
+            (variables, factors) = conv(
+                variables.squeeze(), factors, edge_index, edge_attr
+            )
 
         g = self.aggr(factors, g, batch_idx)
 

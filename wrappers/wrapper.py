@@ -68,13 +68,23 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
                     shape=(num_edges,),
                     dtype=np.int64,
                 ),
+                "length": spaces.Box(
+                    low=0,
+                    high=40,
+                    shape=(num_groundings,),
+                    dtype=np.int64,
+                ),
             }
         )
 
     def _create_obs(
         self, rddl_obs: dict[str, Any]
     ) -> tuple[dict[str, Any], FactorGraph]:
-        rddl_obs |= self.non_fluent_values
+        non_fluent_values = {
+            k: [v] + [None] * 40 for k, v in self.non_fluent_values.items()
+        }
+
+        rddl_obs |= non_fluent_values
 
         filtered_groundings = sorted(
             [g for g in self.groundings if not skip_fluent(g, self.variable_ranges)]
@@ -108,6 +118,8 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
 
         # obs |= self.action_values
 
+        rddl_obs, lengths = rddl_obs
+
         obs, g = self._create_obs(rddl_obs)
 
         self.iter = 0
@@ -115,6 +127,11 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
         self.last_rddl_obs = rddl_obs
 
         info["state"] = g
+
+        non_fluent_lengths = {k: 1 for k in self.non_fluent_values}
+        lengths |= non_fluent_lengths
+        length = np.array([lengths[key] for key in self.groundings], dtype=np.int64)
+        obs["length"] = length
 
         return obs, info
 
@@ -138,7 +155,7 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
         )
 
         rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action_dict)
-
+        rddl_obs, lengths = rddl_obs
         obs, g = self._create_obs(rddl_obs)
 
         self.iter += 1
@@ -147,6 +164,11 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
         self.last_action_values = rddl_action_dict
 
         info["state"] = g
+
+        non_fluent_lengths = {k: 1 for k in self.non_fluent_values}
+        lengths |= non_fluent_lengths
+        length = np.array([lengths[key] for key in self.groundings], dtype=np.int64)
+        obs["length"] = length
 
         return obs, reward, terminated, truncated, info
 

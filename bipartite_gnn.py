@@ -16,6 +16,8 @@ from torch_geometric.utils import to_undirected
 
 from wrappers.wrapper import GroundedRDDLGraphWrapper
 
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+
 
 def layer_init(layer: nn.Linear, std: float = np.sqrt(2), bias_const: float = 0.0):
     torch.nn.init.orthogonal_(layer.weight)
@@ -258,6 +260,8 @@ class BipartiteGNN(nn.Module):
         self.aggr = GlobalNode(embedding_dim, activation)
         self.hidden_size = embedding_dim
 
+        self.lstm = nn.LSTM(embedding_dim, embedding_dim, 1, batch_first=True)
+
     def forward(
         self,
         grounding_value: Tensor,
@@ -266,10 +270,26 @@ class BipartiteGNN(nn.Module):
         edge_index: Tensor,
         edge_attr: Tensor,
         batch_idx: Tensor,
+        length: Tensor,
     ) -> tuple[Tensor, Tensor]:
-        h_p, h_o = self.embed_nodes(grounding_value, grounding_class, object_class)
+        num_graphs = int(batch_idx.max().item() + 1)
 
-        h_o, g = self.embed_graph(h_p, h_o, edge_index, edge_attr, batch_idx)
+        indices = (grounding_value * grounding_class.unsqueeze(1)).int()
+        h_c = self.predicate_embedding(indices)
+        h_c = pack_padded_sequence(h_c, length, batch_first=True, enforce_sorted=False)
+
+        g = torch.zeros(num_graphs, self.hidden_size).to(grounding_value.device)
+
+        output, (h_p, c_n) = self.lstm(h_c)
+
+        # h_p = grounding_value.unsqueeze(-1).float() * h_c
+        h_o = self.obj_embedding(object_class)
+
+        for conv in self.convs:
+            (h_p, h_o) = conv(h_p.squeeze(), h_o, edge_index, edge_attr)
+            # h_p = h_p * grounding_value.unsqueeze(-1).float()
+
+        g = self.aggr(h_o, g, batch_idx)
 
         return h_o, g
 
@@ -354,9 +374,10 @@ class BipartiteGNNAgent(nn.Module):
         edge_index: Tensor,  # edges are (var, factor)
         edge_attr: Tensor,
         batch_idx: Tensor,
+        length: Tensor,
     ) -> tuple[Tensor, Tensor, Tensor]:
         h, g = self.p_gnn(
-            var_val, var_type, factor_type, edge_index, edge_attr, batch_idx
+            var_val, var_type, factor_type, edge_index, edge_attr, batch_idx, length
         )
 
         # split_list, data_starts = data_splits_and_starts(batch_idx)
@@ -394,10 +415,11 @@ class BipartiteGNNAgent(nn.Module):
         edge_index: Tensor,  # edges are (var, factor)
         edge_attr: Tensor,
         batch_idx: Tensor,
+        length: Tensor,
         deterministic: bool = False,
     ):
         h, g = self.p_gnn(
-            var_val, var_type, factor_type, edge_index, edge_attr, batch_idx
+            var_val, var_type, factor_type, edge_index, edge_attr, batch_idx, length
         )
         action, logprob, entropy = self.policy.sample(h, g, batch_idx, deterministic)
         return action, logprob, entropy

@@ -8,6 +8,8 @@ import numpy as np
 import pyRDDLGym
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel
 
+from wrappers.stacking_wrapper import StackingWrapper
+
 from .utils import predicate, to_graphviz, to_graphviz_alt
 
 
@@ -20,7 +22,13 @@ def get_groundings(model: RDDLLiftedModel, fluents: dict[str, Any]) -> set[str]:
 class RDDLGraphWrapper(gym.Env):
     metadata = {"render_modes": ["human", "idx"]}
 
-    def __init__(self, domain: str, instance: int, render_mode: str = "human") -> None:
+    def __init__(
+        self,
+        domain: str,
+        instance: int,
+        render_mode: str = "human",
+        pomdp: bool = False,
+    ) -> None:
         env: gym.Env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
         model: RDDLLiftedModel = env.model  # type: ignore
         object_to_type: dict[str, str] = copy(model.object_to_type)  # type: ignore
@@ -30,7 +38,7 @@ class RDDLGraphWrapper(gym.Env):
         object_terms: list[str] = list(model.object_to_index.keys())  # type: ignore
         object_list = sorted(object_terms)
 
-        self.pomdp = False
+        self.pomdp = pomdp
 
         self.instance = instance
         self.domain = domain
@@ -39,7 +47,7 @@ class RDDLGraphWrapper(gym.Env):
         self.idx_to_obj = object_list
         self.idx_to_type = type_list
         self.obj_to_type: dict[str, str] = object_to_type
-        self.env: gym.Env[gym.spaces.Dict, gym.spaces.Discrete] = env
+        self.env: gym.Env[gym.spaces.Dict, gym.spaces.Discrete] = StackingWrapper(env)
 
     @property
     @cache

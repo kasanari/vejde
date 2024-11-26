@@ -77,12 +77,12 @@ def dict_to_data(obs: dict[str, tuple[Any]]) -> BipartiteData:
         factor=th.as_tensor(obs["factor"], dtype=th.int64),
         edge_index=th.as_tensor(obs["edge_index"], dtype=th.int64).T,
         edge_attr=th.as_tensor(obs["edge_attr"], dtype=th.int64),
+        length=th.as_tensor(obs["length"], dtype=th.int64),
         num_nodes=obs["factor"].shape[0],  # + obs["var_value"].shape[0]
     )
 
 
 def test_imitation():
-    env_id = register_env()
     domain = "rddl/conditional_bandit.rddl"
     instance = "rddl/conditional_bandit_i0.rddl"
 
@@ -90,6 +90,7 @@ def test_imitation():
     np.random.seed(0)
     random.seed(0)
 
+    env_id = register_env()
     env: gym.Env[Dict, MultiDiscrete] = gym.make(
         env_id,
         domain=domain,
@@ -131,7 +132,7 @@ def test_imitation():
     rewards, _, _ = zip(*data)
     print(np.mean(np.sum(rewards, axis=1)))
 
-    _ = [iteration(i, env, agent, optimizer, 0) for i in range(100)]
+    _ = [iteration(i, env, agent, optimizer, 0) for i in range(500)]
 
     pass
 
@@ -216,6 +217,7 @@ def update(
         b.edge_index,
         b.edge_attr,
         b.batch,
+        b.length,
     )
 
     l2_norms = [th.sum(th.square(w)) for w in agent.parameters()]
@@ -248,9 +250,8 @@ def rollout(env: gym.Env, seed: int):
     actions_buf = deque()
     obs_buf = deque()
     while not done:
-        time += 1
         # action = env.action_space.sample()
-        action = policy(env.unwrapped.last_rddl_obs)
+        action = policy({k: v[time] for k, v in env.unwrapped.last_rddl_obs.items()})
         next_obs, reward, terminated, truncated, info = env.step(action)
 
         # env.render()
@@ -262,6 +263,7 @@ def rollout(env: gym.Env, seed: int):
         obs_buf.append(obs)
 
         obs = next_obs
+        time += 1
 
         # print(obs)
         # print(action)
@@ -302,6 +304,7 @@ def evaluate(env: gym.Env, agent: th.nn.Module, seed: int):
             b.edge_index,
             b.edge_attr,
             b.batch,
+            b.length,
             deterministic=True,
         )
 

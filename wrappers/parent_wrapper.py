@@ -10,13 +10,7 @@ from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 
 from wrappers.stacking_wrapper import StackingWrapper
 
-from .utils import predicate, to_graphviz_alt
-
-
-def get_groundings(model: RDDLLiftedModel, fluents: dict[str, Any]) -> set[str]:
-    return set(
-        dict(model.ground_vars_with_values(fluents)).keys()  # type: ignore
-    )
+from .utils import predicate, to_graphviz_alt, get_groundings
 
 
 class RDDLGraphWrapper(gym.Env[Dict, MultiDiscrete]):
@@ -27,7 +21,6 @@ class RDDLGraphWrapper(gym.Env[Dict, MultiDiscrete]):
         domain: str,
         instance: int,
         render_mode: str = "human",
-        pomdp: bool = False,
     ) -> None:
         env: gym.Env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
         model: RDDLLiftedModel = env.model  # type: ignore
@@ -38,8 +31,6 @@ class RDDLGraphWrapper(gym.Env[Dict, MultiDiscrete]):
         object_terms: list[str] = list(model.object_to_index.keys())  # type: ignore
         object_list = sorted(object_terms)
 
-        self.pomdp = pomdp
-
         self.instance = instance
         self.domain = domain
         self.model = model
@@ -47,7 +38,7 @@ class RDDLGraphWrapper(gym.Env[Dict, MultiDiscrete]):
         self.idx_to_obj = object_list
         self.idx_to_type = type_list
         self.obj_to_type: dict[str, str] = object_to_type
-        self.env: gym.Env[Dict, MultiDiscrete] = StackingWrapper(env) if pomdp else env
+        self.env = env
 
     @property
     @cache
@@ -122,14 +113,10 @@ class RDDLGraphWrapper(gym.Env[Dict, MultiDiscrete]):
     def groundings(self) -> list[str]:
         model = self.model
 
-        state_fluents = model.state_fluents  # type: ignore
         action_fluents = model.action_fluents  # type: ignore
-        observ_fluents = model.observ_fluents  # type: ignore
         interm_fluents = model.interm_fluents  # type: ignore
 
         action_groundings: set[str] = get_groundings(model, action_fluents)  # type: ignore
-        observ_groundings = get_groundings(model, observ_fluents)  # type: ignore
-        state_groundings: set[str] = get_groundings(model, state_fluents)  # type: ignore
         interm_groundings: set[str] = get_groundings(model, interm_fluents)  # type: ignore
 
         g: set[str] = set(
@@ -141,9 +128,6 @@ class RDDLGraphWrapper(gym.Env[Dict, MultiDiscrete]):
 
         g -= action_groundings
         g -= interm_groundings
-        if self.pomdp:
-            g -= state_groundings
-            g |= observ_groundings
 
         return sorted(g)
 

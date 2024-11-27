@@ -10,7 +10,7 @@ class StackingWrapper:
         self.buffer: list[dict[str, Any]] = []
         self.observed_keys = set()
         self.iteration = 0
-        self.horizon = 40
+        self.horizon = env.horizon
 
     def create_obs(
         self, buffer: list[dict[str, Any]], observed_keys: list[str]

@@ -6,8 +6,10 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
+from wrappers.stacking_wrapper import StackingWrapper
+
 from .parent_wrapper import RDDLGraphWrapper
-from .utils import predicate, to_rddl_action, create_obs
+from .utils import predicate, to_rddl_action, create_obs, get_groundings
 
 logger = logging.getLogger(__name__)
 
@@ -16,13 +18,30 @@ def skip_fluent(key: str, variable_ranges: dict[str, str]) -> bool:
     return variable_ranges[predicate(key)] != "bool" or key == "noop"
 
 
-class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
+class StackingGroundedRDDLGraphWrapper(RDDLGraphWrapper):
+    def __init__(
+        self,
+        domain: str,
+        instance: int,
+        render_mode: str = "human",
+    ) -> None:
+        super().__init__(domain, instance, render_mode)
+        self.env = StackingWrapper(self.env)
+
     @property
     @cache
     def groundings(self):
-        return sorted(
-            [g for g in super().groundings if not skip_fluent(g, self.variable_ranges)]
-        )
+        ground = super().groundings
+        model = self.model
+        state_fluents = model.state_fluents  # type: ignore
+        observ_fluents = model.observ_fluents  # type: ignore
+        observ_groundings = get_groundings(model, observ_fluents)  # type: ignore
+        state_groundings: set[str] = get_groundings(model, state_fluents)  # type: ignore
+        ground = set(ground)
+        ground -= state_groundings
+        ground |= observ_groundings
+
+        return sorted([g for g in ground if not skip_fluent(g, self.variable_ranges)])
 
     @property
     @cache
@@ -33,6 +52,13 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
         num_relations = len(self.rel_to_idx)
         num_edges = self.num_edges
 
+        var_value_space = spaces.Box(
+            low=0,
+            high=1,
+            shape=(num_groundings,),
+            dtype=np.bool_,  # type: ignore
+        )
+
         s: dict[str, spaces.Space] = {  # type: ignore
             "var_type": spaces.Box(
                 low=0,
@@ -40,12 +66,7 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
                 shape=(num_groundings,),
                 dtype=np.int64,
             ),
-            "var_value": spaces.Box(
-                low=0,
-                high=1,
-                shape=(num_groundings,),
-                dtype=np.bool_,  # type: ignore
-            ),
+            "var_value": spaces.Sequence(var_value_space, stack=True),
             "factor": spaces.Box(
                 low=0, high=num_types, shape=(num_objects,), dtype=np.int64
             ),
@@ -61,24 +82,27 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
                 shape=(num_edges,),
                 dtype=np.int64,
             ),
-        }
-
-        if self.pomdp:
-            s["length"] = spaces.Box(
+            "length": spaces.Box(
                 low=0,
                 high=40,
                 shape=(num_groundings,),
                 dtype=np.int64,
-            )
+            ),
+        }
 
         return spaces.Dict(s)
 
     def create_obs(
-        self, rddl_obs: dict[str, list[int]]
-    ) -> tuple[spaces.Dict, dict[str, Any]]:
+        self,
+        rddl_obs: dict[str, list[int]],
+    ):
+        non_fluent_values = {
+            k: [v] + [None] * self.env.horizon
+            for k, v in self.non_fluent_values.items()
+        }
         return create_obs(
             rddl_obs,
-            self.non_fluent_values,
+            non_fluent_values,
             self.rel_to_idx,
             self.type_to_idx,
             self.groundings,
@@ -92,15 +116,30 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
     ) -> tuple[spaces.Dict, dict[str, Any]]:
         rddl_obs, info = self.env.reset(seed=seed)
 
-        obs, g = self.create_obs(rddl_obs)
+        # obs |= self.action_values
+
+        (rddl_obs, lengths) = rddl_obs
+
+        obs, g = self.create_obs(
+            rddl_obs,
+        )
+
+        obs = self._add_length(obs, lengths)
 
         info["state"] = g
-        info["rddl_state"] = self.env.state  # type: ignore
+        info["rddl_state"] = self.env.env.state  # type: ignore
 
         self.last_obs = obs
         self.last_rddl_obs = rddl_obs
 
         return obs, info
+
+    def _add_length(self, obs: spaces.Dict, lengths: dict[str, int]) -> spaces.Dict:
+        non_fluent_lengths = {k: 1 for k in self.non_fluent_values}
+        lengths |= non_fluent_lengths
+        length = np.array([lengths[key] for key in self.groundings], dtype=np.int64)
+        obs["length"] = length
+        return obs
 
     def step(
         self, action: spaces.MultiDiscrete
@@ -109,11 +148,16 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
             action, self.action_fluents, self.idx_to_obj, self.action_groundings
         )
         rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action_dict)
+        rddl_obs, lengths = rddl_obs
 
-        obs, g = self.create_obs(rddl_obs)
+        obs, g = self.create_obs(
+            rddl_obs,
+        )
+
+        obs = self._add_length(obs, lengths)
 
         info["state"] = g
-        info["rddl_state"] = self.env.state  # type: ignore
+        info["rddl_state"] = self.env.env.state
 
         self.last_obs = obs
         self.last_rddl_obs = rddl_obs
@@ -124,9 +168,9 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
 
 
 def register_env():
-    env_id = "GroundedRDDLGraphWrapper-v0"
+    env_id = "StackingGroundedRDDLGraphWrapper-v0"
     gym.register(
         id=env_id,
-        entry_point="wrappers.wrapper:GroundedRDDLGraphWrapper",
+        entry_point="wrappers.pomdp_wrapper:StackingGroundedRDDLGraphWrapper",
     )
     return env_id

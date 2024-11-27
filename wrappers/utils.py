@@ -1,7 +1,10 @@
 import random
-from typing import Any, NamedTuple, TypeVar
-
+from typing import Any, Callable, NamedTuple, TypeVar
+from pyRDDLGym.core.compiler.model import RDDLLiftedModel
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -30,6 +33,74 @@ FactorGraph = NamedTuple(
         ("edge_attributes", list[str]),
     ],
 )
+
+
+def get_groundings(model: RDDLLiftedModel, fluents: dict[str, Any]) -> set[str]:
+    return set(
+        dict(model.ground_vars_with_values(fluents)).keys()  # type: ignore
+    )
+
+
+def create_obs(
+    rddl_obs: dict[str, Any],
+    non_fluent_values: dict[str, Any],
+    rel_to_idx: dict[str, int],
+    type_to_idx: dict[str, int],
+    groundings: list[str],
+    obj_to_type: dict[str, str],
+    variable_ranges: dict[str, str],
+    skip_fluent: Callable[[str, dict[str, str]], bool],
+) -> tuple[dict[str, Any], FactorGraph]:
+    rddl_obs |= non_fluent_values
+
+    filtered_groundings = sorted(
+        [g for g in groundings if not skip_fluent(g, variable_ranges)]
+    )
+
+    filtered_obs: dict[str, Any] = {k: rddl_obs[k] for k in filtered_groundings}
+
+    g = generate_bipartite_obs(
+        filtered_obs,
+        filtered_groundings,
+        obj_to_type,
+        variable_ranges,
+    )
+
+    idx_g = map_graph_to_idx(g, rel_to_idx, type_to_idx)
+
+    obs = {
+        "var_type": idx_g.variables,
+        "var_value": idx_g.values,
+        "factor": idx_g.factors,
+        "edge_index": idx_g.edge_indices,
+        "edge_attr": idx_g.edge_attributes,
+        # "numeric": numeric,
+    }
+    return obs, g
+
+
+def to_rddl_action(
+    action: tuple[int, int],
+    idx_to_action: list[str],
+    idx_to_obj: list[str],
+    action_groundings: set[str],
+) -> tuple[dict[str, int], str]:
+    action_fluent = idx_to_action[action[0]]
+    object_id = idx_to_obj[action[1]]
+
+    rddl_action = (
+        f"{action_fluent}___{object_id}" if action_fluent != "noop" else "noop"
+    )
+
+    invalid_action = rddl_action not in action_groundings
+
+    if invalid_action:
+        logger.warning(f"Invalid action: {rddl_action}")
+
+    rddl_action_dict = (
+        {} if invalid_action or action_fluent == "noop" else {rddl_action: 1}
+    )
+    return rddl_action_dict, rddl_action
 
 
 def sample_action(action_space) -> dict[str, int]:

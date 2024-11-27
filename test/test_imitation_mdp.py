@@ -15,6 +15,22 @@ from torch.func import functional_call, grad, vmap
 import json
 
 
+def statedata_from_single_obs(obs) -> StateData:
+    return statedata_from_obs([dict_to_data(obs)])
+
+
+def statedata_from_obs(obs: list[Data]) -> StateData:
+    b = Batch.from_data_list(obs)
+    return StateData(
+        var_val=b.var_value,
+        var_type=b.var_type,
+        object_class=b.factor,
+        edge_index=b.edge_index,
+        edge_attr=b.edge_attr,
+        batch_idx=b.batch,
+    )
+
+
 class Serializer(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, th.Tensor):
@@ -142,6 +158,12 @@ def test_imitation():
 
     data = [evaluate(env, agent, 0) for i in range(3)]
 
+    save_eval_data(data)
+
+    th.save(agent.state_dict(), "bipart_gnn_agent.pth")
+
+
+def save_eval_data(data):
     rewards, _, _ = zip(*data)
 
     print(np.mean(np.sum(rewards, axis=1)))
@@ -162,8 +184,6 @@ def test_imitation():
         import json
 
         json.dump(to_write, f, cls=Serializer, indent=2)
-
-    th.save(agent.state_dict(), "bipart_gnn_agent.pth")
 
 
 def iteration(i, env, agent, optimizer, seed: int):
@@ -210,14 +230,12 @@ def update(
     obs: list[Data],
 ):
     l2_weight = 0.0
-    b = Batch.from_data_list(obs)
+    s = statedata_from_obs(obs)
     # b = th.stack([d.var_value for d in obs])
     actions = th.as_tensor(actions, dtype=th.int64)
     logprob, _, _ = agent.forward(
         actions,
-        StateData(
-            b.var_value, b.var_type, b.factor, b.edge_index, b.edge_attr, b.batch
-        ),
+        s,
     )
 
     l2_norms = [th.sum(th.square(w)) for w in agent.parameters()]
@@ -292,14 +310,12 @@ def evaluate(env: gym.Env, agent: GraphAgent, seed: int):
 
         obs_buf.append(env.unwrapped.last_rddl_obs)
 
-        b = Batch.from_data_list([dict_to_data(obs)])
+        s = statedata_from_single_obs(obs)
         # b = {k: th.as_tensor(v, dtype=th.float32) for k, v in obs["nodes"].items()}
         # b = th.as_tensor(obs["var_value"], dtype=th.float32)
 
-        action, _, _ = agent.sample(
-            StateData(
-                b.var_value, b.var_type, b.factor, b.edge_index, b.edge_attr, b.batch
-            ),
+        action, _, _, _ = agent.sample(
+            s,
             deterministic=True,
         )
 

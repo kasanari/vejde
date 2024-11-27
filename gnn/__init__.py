@@ -1,11 +1,10 @@
 from gnn.bipartite_gnn import (
     Config,
     RecurrentGraphAgent,
-    StackedStateData,
     GraphAgent,
-    StateData,
 )
 from gnn.gnn_policies import ActionMode
+from gnn.data import StackedStateData, StateData
 
 __all__ = [
     "Config",

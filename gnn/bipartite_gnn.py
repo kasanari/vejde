@@ -1,35 +1,10 @@
-from typing import NamedTuple
 from .factorgraph_gnn import BipartiteGNN, FactorGraph, FactorGraphEmbedding
 from .gnn_embedder import Embedder, RecurrentEmbedder
 from .gnn_policies import ActionMode, TwoActionGNNPolicy
+from .data import StackedStateData, StateData
 from torch import Tensor
 import torch.nn as nn
 from dataclasses import dataclass
-
-StateData = NamedTuple(
-    "StateData",
-    [
-        ("var_val", Tensor),
-        ("var_type", Tensor),
-        ("object_class", Tensor),
-        ("edge_index", Tensor),
-        ("edge_attr", Tensor),
-        ("batch_idx", Tensor),
-    ],
-)
-
-StackedStateData = NamedTuple(
-    "StateData",
-    [
-        ("var_val", Tensor),
-        ("var_type", Tensor),
-        ("object_class", Tensor),
-        ("edge_index", Tensor),
-        ("edge_attr", Tensor),
-        ("batch_idx", Tensor),
-        ("lengths", Tensor),
-    ],
-)
 
 
 @dataclass
@@ -146,7 +121,7 @@ class RecurrentGraphAgent(nn.Module):
         )
         return e_fg
 
-    def forward(self, actions: Tensor, data: StateData):
+    def forward(self, actions: Tensor, data: StackedStateData):
         e_fg = self.embed(data)
         return self.actorcritic(actions, e_fg.factors, e_fg.graph, data.batch_idx)
 

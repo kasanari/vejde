@@ -6,6 +6,7 @@ import torch.nn as nn
 from torch_geometric.nn import AttentionalAggregation
 from torch import Tensor
 
+
 FactorGraph = NamedTuple(
     "FactorGraph",
     [

@@ -1,35 +1,23 @@
 from collections import deque
 import random
 from typing import Any
-from gnn import Config, RecurrentGraphAgent, StackedStateData, ActionMode
+from gnn import Config, RecurrentGraphAgent, ActionMode
 
 # from wrappers.kg_wrapper import register_env
+from gnn.data import (
+    stacked_dict_to_data,
+    stackedstatedata_from_obs,
+    stackedstatedata_from_single_obs,
+)
 from wrappers.wrapper import register_env
 import numpy as np
 import torch as th
-from torch_geometric.data import Batch, Data
+from torch_geometric.data import Data
 import gymnasium as gym
 from gymnasium.spaces import Dict, MultiDiscrete
 
 from torch.func import functional_call, grad, vmap
 import json
-
-
-def statedata_from_single_obs(obs) -> StackedStateData:
-    return statedata_from_obs([dict_to_data(obs)])
-
-
-def statedata_from_obs(obs: list[Data]) -> StackedStateData:
-    b = Batch.from_data_list(obs)
-    return StackedStateData(
-        var_val=b.var_value,
-        var_type=b.var_type,
-        object_class=b.factor,
-        edge_index=b.edge_index,
-        edge_attr=b.edge_attr,
-        batch_idx=b.batch,
-        lengths=b.length,
-    )
 
 
 class Serializer(json.JSONEncoder):
@@ -41,16 +29,6 @@ class Serializer(json.JSONEncoder):
         if isinstance(obj, np.int64):
             return int(obj)
         return super().default(obj)
-
-
-class BipartiteData(Data):
-    var_type: th.Tensor
-    factor: th.Tensor
-
-    def __inc__(self, key: str, value, *args, **kwargs):
-        if key == "edge_index":
-            return th.tensor([[self.var_type.size(0)], [self.factor.size(0)]])
-        return super().__inc__(key, value, *args, **kwargs)
 
 
 def knowledge_graph_policy(obs):
@@ -95,18 +73,6 @@ def counting_policy(state):
 #         edge_index=th.as_tensor(obs["edge_index"], dtype=th.int64).T,
 #         edge_attr=th.as_tensor(obs["edge_attr"], dtype=th.int64),
 #     )
-
-
-def dict_to_data(obs: dict[str, tuple[Any]]) -> BipartiteData:
-    return BipartiteData(
-        var_value=th.as_tensor(obs["var_value"], dtype=th.float32),
-        var_type=th.as_tensor(obs["var_type"], dtype=th.int64),
-        factor=th.as_tensor(obs["factor"], dtype=th.int64),
-        edge_index=th.as_tensor(obs["edge_index"], dtype=th.int64).T,
-        edge_attr=th.as_tensor(obs["edge_attr"], dtype=th.int64),
-        length=th.as_tensor(obs["length"], dtype=th.int64),
-        num_nodes=obs["factor"].shape[0],  # + obs["var_value"].shape[0]
-    )
 
 
 def test_imitation():
@@ -195,7 +161,7 @@ def test_imitation():
 
 def iteration(i, env, agent, optimizer, seed: int):
     obs, actions = rollout(env, seed)
-    obs = [dict_to_data(o) for o in obs]
+    obs = [stacked_dict_to_data(o) for o in obs]
     loss, grad_norm = update(i, agent, optimizer, actions, obs)
     print(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}")
     return loss
@@ -237,7 +203,7 @@ def update(
     obs: list[Data],
 ):
     l2_weight = 0.0
-    s = statedata_from_obs(obs)
+    s = stackedstatedata_from_obs(obs)
     # b = th.stack([d.var_value for d in obs])
     logprob, _, _ = agent.forward(
         actions,
@@ -266,7 +232,7 @@ def update(
     return loss.item(), grad_norm.item()
 
 
-def rollout(env: gym.Env, seed: int):
+def rollout(env: gym.Env[Dict, MultiDiscrete], seed: int):
     obs, info = env.reset(seed=seed)
     done = False
     time = 0
@@ -301,7 +267,7 @@ def rollout(env: gym.Env, seed: int):
 
 
 @th.no_grad()
-def evaluate(env: gym.Env, agent: RecurrentGraphAgent, seed: int):
+def evaluate(env: gym.Env[Dict, MultiDiscrete], agent: RecurrentGraphAgent, seed: int):
     obs, info = env.reset(seed=seed)
     done = False
     time = 0
@@ -316,7 +282,7 @@ def evaluate(env: gym.Env, agent: RecurrentGraphAgent, seed: int):
 
         obs_buf.append(env.unwrapped.last_rddl_obs)
 
-        s = statedata_from_single_obs(obs)
+        s = stackedstatedata_from_single_obs(obs)
         # b = {k: th.as_tensor(v, dtype=th.float32) for k, v in obs["nodes"].items()}
         # b = th.as_tensor(obs["var_value"], dtype=th.float32)
 

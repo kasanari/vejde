@@ -13,6 +13,7 @@ def load_agent(path: str) -> tuple[GraphAgent, Config]:
     agent.load_state_dict(
         {k.replace("agent.", ""): v for k, v in data["state_dict"].items()}
     )
+
     return agent, config
 
 

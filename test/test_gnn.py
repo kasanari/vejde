@@ -1,5 +1,5 @@
 from wrappers.wrapper import GroundedRDDLGraphWrapper
-from bipartite_gnn import GraphActorCritic, obs_to_data
+from gnn.bipartite_gnn import GraphActorCritic, obs_to_data
 
 import torch.optim
 

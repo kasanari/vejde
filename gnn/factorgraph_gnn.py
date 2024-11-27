@@ -1,11 +1,11 @@
 from typing import NamedTuple
-from torch_geometric.nn import MessagePassing
-import torch
-from .gnn_classes import MLPLayer
-import torch.nn as nn
-from torch_geometric.nn import AttentionalAggregation
-from torch import Tensor
 
+import torch
+import torch.nn as nn
+from torch import Tensor
+from torch_geometric.nn import AttentionalAggregation, MessagePassing
+
+from .gnn_classes import MLPLayer
 
 FactorGraph = NamedTuple(
     "FactorGraph",

@@ -4,13 +4,12 @@ from functools import cache
 from typing import Any
 
 import gymnasium as gym
-import numpy as np
 import pyRDDLGym
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel
 
 from wrappers.stacking_wrapper import StackingWrapper
 
-from .utils import predicate, to_graphviz, to_graphviz_alt
+from .utils import predicate, to_graphviz_alt
 
 
 def get_groundings(model: RDDLLiftedModel, fluents: dict[str, Any]) -> set[str]:

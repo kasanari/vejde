@@ -1,18 +1,15 @@
-from wrappers.wrapper import GroundedRDDLGraphWrapper
-from gnn.bipartite_gnn import GraphActorCritic, obs_to_data
-
-import torch.optim
-
 import logging
-
-from torch_geometric.data import Batch, Data
+import random
+from collections import deque
 
 import numpy as np
 import torch
-import random
-
+import torch.optim
+from torch_geometric.data import Batch, Data
 from tqdm import tqdm
-from collections import deque
+
+from gnn.bipartite_gnn import GraphActorCritic, obs_to_data
+from wrappers.wrapper import GroundedRDDLGraphWrapper
 
 
 def test_biparite():

@@ -1,5 +1,4 @@
 import logging
-import random
 from functools import cache
 from typing import Any
 
@@ -8,13 +7,8 @@ import numpy as np
 from gymnasium import spaces
 
 from .parent_wrapper import RDDLGraphWrapper
-from .utils import (
-    generate_bipartite_obs,
-    map_graph_to_idx,
-    predicate,
-    to_graphviz,
-    FactorGraph,
-)
+from .utils import (FactorGraph, generate_bipartite_obs, map_graph_to_idx,
+                    predicate)
 
 logger = logging.getLogger(__name__)
 

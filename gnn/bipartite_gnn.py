@@ -1,10 +1,12 @@
+from dataclasses import dataclass
+
+import torch.nn as nn
+from torch import Tensor
+
+from .data import StackedStateData, StateData
 from .factorgraph_gnn import BipartiteGNN, FactorGraph, FactorGraphEmbedding
 from .gnn_embedder import Embedder, RecurrentEmbedder
 from .gnn_policies import ActionMode, TwoActionGNNPolicy
-from .data import StackedStateData, StateData
-from torch import Tensor
-import torch.nn as nn
-from dataclasses import dataclass
 
 
 @dataclass

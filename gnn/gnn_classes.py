@@ -1,8 +1,6 @@
-from torch.nn import Module, Embedding, Linear
-from torch import Tensor
-import torch.nn as nn
 import torch.nn.init as init
-import numpy as np
+from torch import Tensor
+from torch.nn import Embedding, Linear, Module
 
 
 class EmbeddingLayer(Module):

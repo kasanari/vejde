@@ -2,7 +2,6 @@ from pprint import pprint
 from typing import Any
 
 import pyRDDLGym
-from pyRDDLGym.core.compiler.model import RDDLLiftedModel
 
 
 class StackingWrapper:

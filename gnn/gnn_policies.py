@@ -1,19 +1,11 @@
 from enum import Enum
-from torch import nn, Tensor
+
 import torch as th
-from torch_geometric.data import Data, Batch
-from torch_geometric.nn import MessagePassing
-from gnn_policy.functional import (
-    eval_action_then_node,
-    sample_action_then_node,
-    eval_action_and_node,
-    sample_node_then_action,
-    eval_node_then_action,
-    sample_action_and_node,
-    sample_node,
-    node_probs,
-    masked_entropy,
-)
+from torch import Tensor, nn
+
+from gnn_policy.functional import (eval_action_then_node,
+                                   masked_entropy,
+                                   node_probs, sample_action_then_node, sample_node)
 
 
 class SingleActionGNNPolicy(nn.Module):

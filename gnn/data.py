@@ -1,7 +1,8 @@
-import torch as th
-from torch_geometric.data import Data, Batch
 from typing import NamedTuple
+
+import torch as th
 from torch import Tensor
+from torch_geometric.data import Batch, Data
 
 StateData = NamedTuple(
     "StateData",

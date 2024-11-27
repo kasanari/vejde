@@ -1,8 +1,9 @@
-from .gnn_classes import EmbeddingLayer
-from torch import Tensor
 import torch.nn as nn
 import torch.nn.init as init
+from torch import Tensor
 from torch.nn.utils.rnn import pack_padded_sequence
+
+from .gnn_classes import EmbeddingLayer
 
 
 class Embedder(nn.Module):

@@ -1,4 +1,3 @@
-import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import MultiDiscrete
 from kg_wrapper import KGRDDLGraphWrapper

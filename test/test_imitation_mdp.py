@@ -1,18 +1,18 @@
-from collections import deque
+import json
 import random
+from collections import deque
 from typing import Any
-from gnn import Config, GraphAgent, StateData, ActionMode
 
-# from wrappers.kg_wrapper import register_env
-from wrappers.wrapper import register_env
+import gymnasium as gym
 import numpy as np
 import torch as th
-from torch_geometric.data import Batch, Data
-import gymnasium as gym
 from gymnasium.spaces import Dict, MultiDiscrete
-
 from torch.func import functional_call, grad, vmap
-import json
+from torch_geometric.data import Batch, Data
+
+from gnn import ActionMode, Config, GraphAgent, StateData
+# from wrappers.kg_wrapper import register_env
+from wrappers.wrapper import register_env
 
 
 def statedata_from_single_obs(obs) -> StateData:

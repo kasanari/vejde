@@ -1,23 +1,19 @@
-from collections import deque
+import json
 import random
-from typing import Any
-from gnn import Config, RecurrentGraphAgent, ActionMode
+from collections import deque
 
-# from wrappers.kg_wrapper import register_env
-from gnn.data import (
-    stacked_dict_to_data,
-    stackedstatedata_from_obs,
-    stackedstatedata_from_single_obs,
-)
-from wrappers.wrapper import register_env
+import gymnasium as gym
 import numpy as np
 import torch as th
-from torch_geometric.data import Data
-import gymnasium as gym
 from gymnasium.spaces import Dict, MultiDiscrete
-
 from torch.func import functional_call, grad, vmap
-import json
+from torch_geometric.data import Data
+
+from gnn import ActionMode, Config, RecurrentGraphAgent
+# from wrappers.kg_wrapper import register_env
+from gnn.data import (stacked_dict_to_data, stackedstatedata_from_obs,
+                      stackedstatedata_from_single_obs)
+from wrappers.wrapper import register_env
 
 
 class Serializer(json.JSONEncoder):

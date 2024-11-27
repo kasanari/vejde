@@ -1,8 +1,8 @@
-from gnn import GraphAgent, Config, ActionMode, StateData
-import torch
-from torch.nn import Module
-from test_imitation_mdp import evaluate, save_eval_data
 import gymnasium as gym
+import torch
+from test_imitation_mdp import evaluate, save_eval_data
+
+from gnn import Config, GraphAgent
 from wrappers.wrapper import register_env
 
 

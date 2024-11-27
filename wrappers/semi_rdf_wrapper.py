@@ -3,7 +3,7 @@ import random
 import numpy as np
 
 from wrappers.parent_wrapper import RDDLGraphWrapper
-from wrappers.utils import generate_bipartite_obs, to_graphviz
+from wrappers.utils import generate_bipartite_obs
 
 
 def is_fluent_to_skip(key: str, obs: dict[str, bool]) -> bool:

@@ -10,10 +10,14 @@ from torch.func import functional_call, grad, vmap
 from torch_geometric.data import Data
 
 from gnn import ActionMode, Config, RecurrentGraphAgent
+
 # from wrappers.kg_wrapper import register_env
-from gnn.data import (stacked_dict_to_data, stackedstatedata_from_obs,
-                      stackedstatedata_from_single_obs)
-from wrappers.wrapper import register_env
+from gnn.data import (
+    stacked_dict_to_data,
+    stackedstatedata_from_obs,
+    stackedstatedata_from_single_obs,
+)
+from wrappers.pomdp_wrapper import register_env
 
 
 class Serializer(json.JSONEncoder):
@@ -87,10 +91,7 @@ def test_imitation():
         # add_inverse_relations=False,
         # types_instead_of_objects=False,
         render_mode="idx",
-        pomdp=True,
     )
-    n_objects = env.observation_space.spaces["factor"].shape[0]
-    n_vars = env.observation_space["var_value"].shape[0]
     n_types = int(env.observation_space["factor"].high[0])
     n_relations = int(env.observation_space["var_type"].high[0])
     n_actions = int(env.action_space.nvec[0])
@@ -99,7 +100,7 @@ def test_imitation():
         n_types,
         n_relations,
         n_actions,
-        layers=4,
+        layers=3,
         embedding_dim=16,
         activation=th.nn.LeakyReLU(),
         aggregation="sum",
@@ -125,7 +126,7 @@ def test_imitation():
     rewards, _, _ = zip(*data)
     print(np.mean(np.sum(rewards, axis=1)))
 
-    _ = [iteration(i, env, agent, optimizer, 0) for i in range(400)]
+    _ = [iteration(i, env, agent, optimizer, 0) for i in range(75)]
 
     pass
 
@@ -282,7 +283,7 @@ def evaluate(env: gym.Env[Dict, MultiDiscrete], agent: RecurrentGraphAgent, seed
         # b = {k: th.as_tensor(v, dtype=th.float32) for k, v in obs["nodes"].items()}
         # b = th.as_tensor(obs["var_value"], dtype=th.float32)
 
-        action, _, _ = agent.sample(
+        action, _, _, _ = agent.sample(
             s,
             deterministic=True,
         )

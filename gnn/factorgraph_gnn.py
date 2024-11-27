@@ -18,10 +18,6 @@ FactorGraph = NamedTuple(
     ],
 )
 
-FactorGraphEmbedding = NamedTuple(
-    "GraphEmbedding", [("variables", Tensor), ("factors", Tensor), ("graph", Tensor)]
-)
-
 
 class BipartiteGNNConvVariableToFactor(MessagePassing):
     def __init__(
@@ -121,7 +117,7 @@ class BipartiteGNNConvFactorToVariable(MessagePassing):
 
 class GlobalNode(nn.Module):
     def __init__(self, emb_size: int, activation: nn.Module):
-        super(nn.Module).__init__()  # type: ignore
+        super().__init__()  # type: ignore
         self.aggr = AttentionalAggregation(
             nn.Linear(emb_size, 1), nn.Linear(emb_size, emb_size)
         )
@@ -183,7 +179,7 @@ class BipartiteGNN(nn.Module):
     def forward(
         self,
         fg: FactorGraph,
-    ) -> FactorGraphEmbedding:
+    ) -> tuple[FactorGraph, Tensor]:
         variables, factors, edge_index, edge_attr, batch_idx = fg
         num_graphs = int(batch_idx.max().item() + 1)
         g = torch.zeros(num_graphs, self.hidden_size).to(factors.device)
@@ -193,4 +189,4 @@ class BipartiteGNN(nn.Module):
 
         g = self.aggr(factors, g, batch_idx)
 
-        return FactorGraphEmbedding(variables, factors, g)
+        return fg, g

@@ -83,6 +83,7 @@ def batched_dict_to_data(
             factor=th.as_tensor(obs["factor"][i], dtype=th.int64),
             edge_index=th.as_tensor(obs["edge_index"][i], dtype=th.int64).T,
             edge_attr=th.as_tensor(obs["edge_attr"][i], dtype=th.int64),
+            length=th.as_tensor(obs["length"][i], dtype=th.int64),
             num_nodes=obs["factor"][i].shape[0],  # + obs["var_value"].shape[0]
         )
         for i in range(num_envs)

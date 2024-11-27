@@ -4,7 +4,7 @@ import torch.nn as nn
 from torch import Tensor
 
 from .data import StackedStateData, StateData
-from .factorgraph_gnn import BipartiteGNN, FactorGraph, FactorGraphEmbedding
+from .factorgraph_gnn import BipartiteGNN, FactorGraph
 from .gnn_embedder import Embedder, RecurrentEmbedder
 from .gnn_policies import ActionMode, TwoActionGNNPolicy
 
@@ -48,7 +48,7 @@ class GraphAgent(nn.Module):
             config.action_mode,
         )
 
-    def embed(self, data: StateData) -> FactorGraphEmbedding:
+    def embed(self, data: StateData) -> tuple[FactorGraph, Tensor]:
         variables, factors = self.embedder(
             data.var_val, data.var_type, data.object_class
         )
@@ -63,23 +63,23 @@ class GraphAgent(nn.Module):
         return e_fg
 
     def forward(self, actions: Tensor, data: StateData):
-        e_fg = self.embed(data)
+        fg, g = self.embed(data)
         logprob, entropy, value = self.actorcritic(
-            actions, e_fg.factors, e_fg.graph, data.batch_idx
+            actions, fg.factors, g, data.batch_idx
         )
         return logprob, entropy, value
 
     def sample(self, data: StateData, deterministic: bool = False):
-        e_fg = self.embed(data)
+        fg, g = self.embed(data)
         action, logprob, entropy = self.actorcritic.sample(
-            e_fg.factors, e_fg.graph, data.batch_idx, deterministic
+            fg.factors, g, data.batch_idx, deterministic
         )
-        value = self.actorcritic.value(e_fg.graph)
+        value = self.actorcritic.value(g)
         return action, logprob, entropy, value
 
     def value(self, data: StateData):
-        e_fg = self.embed(data)
-        return self.actorcritic.value(e_fg.graph)
+        _, g = self.embed(data)
+        return self.actorcritic.value(g)
 
 
 class RecurrentGraphAgent(nn.Module):
@@ -108,11 +108,11 @@ class RecurrentGraphAgent(nn.Module):
             config.action_mode,
         )
 
-    def embed(self, data: StackedStateData) -> FactorGraphEmbedding:
+    def embed(self, data: StackedStateData) -> tuple[FactorGraph, Tensor]:
         variables, factors = self.embedder(
             data.var_val, data.var_type, data.object_class, data.lengths
         )
-        e_fg = self.p_gnn(
+        fg, g = self.p_gnn(
             FactorGraph(
                 variables,
                 factors,
@@ -121,17 +121,23 @@ class RecurrentGraphAgent(nn.Module):
                 data.batch_idx,
             )
         )
-        return e_fg
+        return fg, g
 
     def forward(self, actions: Tensor, data: StackedStateData):
-        e_fg = self.embed(data)
-        return self.actorcritic(actions, e_fg.factors, e_fg.graph, data.batch_idx)
+        fg, g = self.embed(data)
+        return self.actorcritic(actions, fg.factors, g, data.batch_idx)
 
     def sample(self, data: StackedStateData, deterministic: bool = False):
-        e_fg = self.embed(data)
-        return self.actorcritic.sample(
-            e_fg.factors, e_fg.graph, data.batch_idx, deterministic
+        fg, g = self.embed(data)
+        action, logprob, entropy = self.actorcritic.sample(
+            fg.factors, g, data.batch_idx, deterministic
         )
+        value = self.actorcritic.value(g)
+        return action, logprob, entropy, value
+
+    def value(self, data: StackedStateData):
+        _, g = self.embed(data)
+        return self.actorcritic.value(g)
 
 
 class GraphActorCritic(nn.Module):

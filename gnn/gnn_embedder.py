@@ -52,9 +52,11 @@ class RecurrentEmbedder(nn.Module):
             num_predicate_classes, embedding_dim, activation
         )
 
-        self.lstm = nn.LSTM(embedding_dim, embedding_dim, 1, batch_first=True)
+        self.activation = activation
 
-        for name, param in self.lstm.named_parameters():
+        self.recurrent = nn.GRU(embedding_dim, embedding_dim, batch_first=True)
+
+        for name, param in self.recurrent.named_parameters():
             if "weight" in name:
                 init.orthogonal_(param)  # type: ignore
             elif "bias" in name:
@@ -71,6 +73,6 @@ class RecurrentEmbedder(nn.Module):
         indices = (var_val * var_type.unsqueeze(1)).int()
         h_c = self.predicate_embedding(indices)
         h_c = pack_padded_sequence(h_c, length, batch_first=True, enforce_sorted=False)
-        _, (variables, _) = self.lstm(h_c)
+        _, variables = self.recurrent(h_c)
 
         return variables.squeeze(), factors

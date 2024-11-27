@@ -265,7 +265,7 @@ def rollout(
     num_envs: int,
     device: torch.device | str,
     global_step: int,
-) -> tuple[int, list[float], list[int]]:
+) -> tuple[list[Data], int, list[float], list[int]]:
     returns: deque[float] = deque()
     lengths: deque[int] = deque()
     obs: deque[Data] = deque()
@@ -307,7 +307,7 @@ def rollout(
                 if is_final:
                     returns.append(r)
                     lengths.append(l)
-    return obs, global_step, list(returns), list(lengths)
+    return list(obs), global_step, list(returns), list(lengths)
 
 
 def update(
@@ -476,7 +476,7 @@ def main(
             )
 
         # flatten the batch
-        b_obs = Batch.from_data_list(obs)
+        # b_obs = Batch.from_data_list(obs)
         b_logprobs = logprobs.reshape(-1)
         b_actions = actions.reshape((-1,) + envs.single_action_space.shape)  # type: ignore
         b_advantages = advantages.reshape(-1)

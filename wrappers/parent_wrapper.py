@@ -3,9 +3,10 @@ from copy import copy
 from functools import cache
 from typing import Any
 
+from gymnasium.spaces import MultiDiscrete, Dict
 import gymnasium as gym
-import pyRDDLGym
-from pyRDDLGym.core.compiler.model import RDDLLiftedModel
+import pyRDDLGym  # type: ignore
+from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 
 from wrappers.stacking_wrapper import StackingWrapper
 
@@ -18,7 +19,7 @@ def get_groundings(model: RDDLLiftedModel, fluents: dict[str, Any]) -> set[str]:
     )
 
 
-class RDDLGraphWrapper(gym.Env):
+class RDDLGraphWrapper(gym.Env[Dict, MultiDiscrete]):
     metadata = {"render_modes": ["human", "idx"]}
 
     def __init__(
@@ -46,17 +47,15 @@ class RDDLGraphWrapper(gym.Env):
         self.idx_to_obj = object_list
         self.idx_to_type = type_list
         self.obj_to_type: dict[str, str] = object_to_type
-        self.env: gym.Env[gym.spaces.Dict, gym.spaces.Discrete] = (
-            StackingWrapper(env) if pomdp else env
-        )
+        self.env: gym.Env[Dict, MultiDiscrete] = StackingWrapper(env) if pomdp else env
 
     @property
     @cache
-    def action_space(self) -> gym.spaces.MultiDiscrete:
+    def action_space(self) -> gym.spaces.MultiDiscrete:  # type: ignore
         action_fluents = self.model.action_fluents  # type: ignore
         return gym.spaces.MultiDiscrete(
             [
-                len(action_fluents) + 1,
+                len(action_fluents) + 1,  # type: ignore
                 self.num_objects,
             ]
         )
@@ -96,11 +95,11 @@ class RDDLGraphWrapper(gym.Env):
     @property
     @cache
     def type_to_arity(self) -> dict[str, int]:
-        vp = self.model.variable_params
+        vp = self.model.variable_params  # type: ignore
         return {
-            value[0]: [k for k, v in vp.items() if v == value]
-            for _, value in vp.items()
-            if len(value) == 1
+            value[0]: [k for k, v in vp.items() if v == value]  # type: ignore
+            for _, value in vp.items()  # type: ignore
+            if len(value) == 1  # type: ignore
         }
 
     @property
@@ -128,10 +127,10 @@ class RDDLGraphWrapper(gym.Env):
         observ_fluents = model.observ_fluents  # type: ignore
         interm_fluents = model.interm_fluents  # type: ignore
 
-        action_groundings: set[str] = get_groundings(model, action_fluents)
-        observ_groundings = get_groundings(model, observ_fluents)
-        state_groundings: set[str] = get_groundings(model, state_fluents)
-        interm_groundings: set[str] = get_groundings(model, interm_fluents)
+        action_groundings: set[str] = get_groundings(model, action_fluents)  # type: ignore
+        observ_groundings = get_groundings(model, observ_fluents)  # type: ignore
+        state_groundings: set[str] = get_groundings(model, state_fluents)  # type: ignore
+        interm_groundings: set[str] = get_groundings(model, interm_fluents)  # type: ignore
 
         g: set[str] = set(
             g
@@ -146,20 +145,19 @@ class RDDLGraphWrapper(gym.Env):
             g -= state_groundings
             g |= observ_groundings
 
-        g = sorted(g)
-        return g
+        return sorted(g)
 
     @property
     @cache
     def action_fluents(self) -> list[str]:
         model = self.model
-        action_fluents = model.action_fluents
-        return ["noop"] + sorted(action_fluents)
+        action_fluents = model.action_fluents  # type: ignore
+        return ["noop"] + sorted(action_fluents)  # type: ignore
 
     @property
     @cache
     def action_groundings(self) -> set[str]:
-        return get_groundings(self.model, self.model.action_fluents) | {"noop"}
+        return get_groundings(self.model, self.model.action_fluents) | {"noop"}  # type: ignore
 
     @property
     @cache
@@ -218,37 +216,3 @@ class RDDLGraphWrapper(gym.Env):
                     self.idx_to_rel,
                 )
             )
-
-
-def main():
-    instance = 1
-    domain = "Elevators_MDP_ippc2011"
-    # domain = "SysAdmin_MDP_ippc2011"
-    # domain = "RecSim_ippc2023"
-    # domain = "SkillTeaching_MDP_ippc2011"
-    env = RDDLGraphWrapper(domain, instance)
-    obs, info = env.reset()
-    env.render()
-    done = False
-    time = 0
-    sum_reward = 0
-    while not done:
-        time += 1
-        action = env.env.action_space.sample()
-
-        action = random.choice(list(action.items()))
-        action = {action[0]: action[1]}
-        obs, reward, terminated, truncated, info = env.step(action)
-        env.render()
-        exit()
-        done = terminated or truncated
-
-        sum_reward += reward
-        # print(obs)
-        print(action)
-        print(reward)
-    print(sum_reward)
-
-
-if __name__ == "__main__":
-    main()

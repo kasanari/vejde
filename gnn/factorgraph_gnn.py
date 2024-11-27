@@ -3,7 +3,7 @@ from typing import NamedTuple
 import torch
 import torch.nn as nn
 from torch import Tensor
-from torch_geometric.nn import AttentionalAggregation, MessagePassing
+from torch_geometric.nn import AttentionalAggregation, MessagePassing  # type: ignore
 
 from .gnn_classes import MLPLayer
 
@@ -46,17 +46,17 @@ class BipartiteGNNConvVariableToFactor(MessagePassing):
         edge_index: Tensor of shape (2, num_edges),
         edge_attr: Tensor of shape (num_edges,)
         """
-        return self.propagate(
+        return self.propagate(  # type: ignore
             fg.edge_index,
             x=(fg.variables, fg.factors),
             edge_attr=fg.edge_attr,
             size=(fg.variables.size(0), fg.factors.size(0)),
         )
 
-    def edge_update(self, x_j):
+    def edge_update(self, x_j: Tensor) -> Tensor:  # type: ignore
         return x_j
 
-    def message(
+    def message(  # type: ignore
         self,
         x_j: Tensor,
         x_i: Tensor,
@@ -65,7 +65,7 @@ class BipartiteGNNConvVariableToFactor(MessagePassing):
         # x_j = x_j - fac2var_messages
         return self.message_func(torch.concatenate([x_i, x_j], dim=-1))
 
-    def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:
+    def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:  # type: ignore
         _, x_o = x
         new = self.combine(torch.concatenate([x_o, aggr_out], dim=-1))
         return new
@@ -96,7 +96,7 @@ class BipartiteGNNConvFactorToVariable(MessagePassing):
 
         fac2var_edges = fg.edge_index.flip(0)
 
-        return self.propagate(
+        return self.propagate(  # type: ignore
             x=(fg.factors, fg.variables),
             edge_index=fac2var_edges,
             # edge_attr=edge_attr,
@@ -106,7 +106,7 @@ class BipartiteGNNConvFactorToVariable(MessagePassing):
             ),
         )
 
-    def message(
+    def message(  # type: ignore
         self,
         x_j: Tensor,
         x_i: Tensor,
@@ -121,7 +121,7 @@ class BipartiteGNNConvFactorToVariable(MessagePassing):
 
 class GlobalNode(nn.Module):
     def __init__(self, emb_size: int, activation: nn.Module):
-        super().__init__()  # type: ignore
+        super(nn.Module).__init__()  # type: ignore
         self.aggr = AttentionalAggregation(
             nn.Linear(emb_size, 1), nn.Linear(emb_size, emb_size)
         )
@@ -135,7 +135,7 @@ class GlobalNode(nn.Module):
 
 class FactorGraphLayer(nn.Module):
     def __init__(self, embedding_dim: int, aggregation: str, activation: nn.Module):
-        super().__init__()
+        super().__init__()  # type: ignore
         self.var2factor = BipartiteGNNConvVariableToFactor(
             aggregation, embedding_dim, embedding_dim, activation
         )

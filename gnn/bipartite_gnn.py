@@ -27,7 +27,7 @@ class GraphAgent(nn.Module):
         self,
         config: Config,
     ):
-        super().__init__()
+        super().__init__()  # type: ignore
         self.embedder = Embedder(
             config.num_object_classes,
             config.num_predicate_classes,
@@ -87,7 +87,7 @@ class RecurrentGraphAgent(nn.Module):
         self,
         config: Config,
     ):
-        super().__init__()
+        super().__init__()  # type: ignore
         self.embedder = RecurrentEmbedder(
             config.num_object_classes,
             config.num_predicate_classes,

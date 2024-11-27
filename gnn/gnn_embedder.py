@@ -14,7 +14,7 @@ class Embedder(nn.Module):
         embedding_dim: int,
         activation: nn.Module,
     ):
-        super().__init__()
+        super().__init__()  # type: ignore
 
         self.object_embedding = EmbeddingLayer(
             num_object_classes, embedding_dim, activation
@@ -43,7 +43,7 @@ class RecurrentEmbedder(nn.Module):
         embedding_dim: int,
         activation: nn.Module,
     ):
-        super().__init__()
+        super().__init__()  # type: ignore
 
         self.object_embedding = EmbeddingLayer(
             num_object_classes, embedding_dim, activation
@@ -56,7 +56,7 @@ class RecurrentEmbedder(nn.Module):
 
         for name, param in self.lstm.named_parameters():
             if "weight" in name:
-                init.orthogonal_(param)
+                init.orthogonal_(param)  # type: ignore
             elif "bias" in name:
                 init.zeros_(param)
 

@@ -2,7 +2,7 @@ from typing import NamedTuple
 
 import torch as th
 from torch import Tensor
-from torch_geometric.data import Batch, Data
+from torch_geometric.data import Batch, Data  # type: ignore
 
 StateData = NamedTuple(
     "StateData",
@@ -34,10 +34,10 @@ class BipartiteData(Data):
     var_type: Tensor
     factor: Tensor
 
-    def __inc__(self, key: str, value, *args, **kwargs):
+    def __inc__(self, key: str, value, *args, **kwargs):  # type: ignore
         if key == "edge_index":
             return th.tensor([[self.var_type.size(0)], [self.factor.size(0)]])
-        return super().__inc__(key, value, *args, **kwargs)
+        return super().__inc__(key, value, *args, **kwargs)  # type: ignore
 
 
 def statedata_from_single_obs(obs: dict[str, Tensor]) -> StateData:
@@ -45,14 +45,14 @@ def statedata_from_single_obs(obs: dict[str, Tensor]) -> StateData:
 
 
 def statedata_from_obs(obs: list[Data]) -> StateData:
-    b = Batch.from_data_list(obs)
+    b = Batch.from_data_list(obs)  # type: ignore
     return StateData(
-        var_val=b.var_value,
-        var_type=b.var_type,
-        object_class=b.factor,
-        edge_index=b.edge_index,
-        edge_attr=b.edge_attr,
-        batch_idx=b.batch,
+        var_val=b.var_value,  # type: ignore
+        var_type=b.var_type,  # type: ignore
+        object_class=b.factor,  # type: ignore
+        edge_index=b.edge_index,  # type: ignore
+        edge_attr=b.edge_attr,  # type: ignore
+        batch_idx=b.batch,  # type: ignore
     )
 
 
@@ -61,15 +61,15 @@ def stackedstatedata_from_single_obs(obs: dict[str, Tensor]) -> StackedStateData
 
 
 def stackedstatedata_from_obs(obs: list[Data]) -> StackedStateData:
-    b = Batch.from_data_list(obs)
+    b = Batch.from_data_list(obs)  # type: ignore
     return StackedStateData(
-        var_val=b.var_value,
-        var_type=b.var_type,
-        object_class=b.factor,
-        edge_index=b.edge_index,
-        edge_attr=b.edge_attr,
-        batch_idx=b.batch,
-        lengths=b.length,
+        var_val=b.var_value,  # type: ignore
+        var_type=b.var_type,  # type: ignore
+        object_class=b.factor,  # type: ignore
+        edge_index=b.edge_index,  # type: ignore
+        edge_attr=b.edge_attr,  # type: ignore
+        batch_idx=b.batch,  # type: ignore
+        lengths=b.length,  # type: ignore
     )
 
 

@@ -1,14 +1,13 @@
 import logging
 from functools import cache
-from typing import Any
+from typing import Any, SupportsFloat
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
 from .parent_wrapper import RDDLGraphWrapper
-from .utils import (FactorGraph, generate_bipartite_obs, map_graph_to_idx,
-                    predicate)
+from .utils import FactorGraph, generate_bipartite_obs, map_graph_to_idx, predicate
 
 logger = logging.getLogger(__name__)
 
@@ -27,14 +26,14 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
 
     @property
     @cache
-    def observation_space(self) -> spaces.Dict:
+    def observation_space(self) -> spaces.Dict:  # type: ignore
         num_groundings = len(self.groundings)
         num_objects = self.num_objects
         num_types = self.num_types
         num_relations = len(self.rel_to_idx)
         num_edges = self.num_edges
 
-        s: dict[str, spaces.Space] = {
+        s: dict[str, spaces.Space] = {  # type: ignore
             "var_type": spaces.Box(
                 low=0,
                 high=num_relations,
@@ -45,7 +44,7 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
                 low=0,
                 high=1,
                 shape=(num_groundings,),
-                dtype=np.bool_,
+                dtype=np.bool_,  # type: ignore
             ),
             "factor": spaces.Box(
                 low=0, high=num_types, shape=(num_objects,), dtype=np.int64
@@ -126,7 +125,7 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
         self.last_rddl_obs = rddl_obs
 
         info["state"] = g
-        info["rddl_state"] = self.env.env.state if self.pomdp else self.env.state
+        info["rddl_state"] = self.env.env.state if self.pomdp else self.env.state  # type: ignore
 
         if self.pomdp:
             non_fluent_lengths = {k: 1 for k in self.non_fluent_values}
@@ -137,7 +136,9 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
 
         return obs, info
 
-    def step(self, action: int | list[int]):
+    def step(
+        self, action: spaces.MultiDiscrete
+    ) -> tuple[spaces.Dict, SupportsFloat, bool, bool, dict[str, Any]]:
         action_fluent = self.action_fluents[action[0]]
         object_id = self.idx_to_obj[action[1]]
 
@@ -166,7 +167,7 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
         self.last_action_values = rddl_action_dict
 
         info["state"] = g
-        info["rddl_state"] = self.env.env.state if self.pomdp else self.env.state
+        info["rddl_state"] = self.env.env.state if self.pomdp else self.env.state  # type: ignore
 
         if self.pomdp:
             non_fluent_lengths = {k: 1 for k in self.non_fluent_values}

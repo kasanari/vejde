@@ -97,7 +97,12 @@ class GraphAgent(nn.Module):
         action, logprob, entropy = self.actorcritic.sample(
             e_fg.factors, e_fg.graph, data.batch_idx, deterministic
         )
-        return action, logprob, entropy
+        value = self.actorcritic.value(e_fg.graph)
+        return action, logprob, entropy, value
+
+    def value(self, data: StateData):
+        e_fg = self.embed(data)
+        return self.actorcritic.value(e_fg.graph)
 
 
 class RecurrentGraphAgent(nn.Module):

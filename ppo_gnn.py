@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import random
 import time
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
 import gymnasium as gym
 from gym import spaces
@@ -16,49 +16,74 @@ import tyro
 from torch.distributions.categorical import Categorical
 
 from torch import Tensor
+import torch as th
 import wandb
 from tqdm import tqdm
 from typing import Any
 
 from torch_geometric.data import Data, Batch
 
-from kg_gnn import KGGNNAgent
-from wrappers import kg_wrapper
+from wrappers.wrapper import register_env
+
+from gnn import GraphAgent, Config, ActionMode, StateData
 import mlflow
 import mlflow.pytorch
 
 
-def dict_to_data(obs: dict[str, tuple[Any]], num_envs: int) -> list[Data]:
+class BipartiteData(Data):
+    var_type: th.Tensor
+    factor: th.Tensor
+
+    def __inc__(self, key: str, value, *args, **kwargs):
+        if key == "edge_index":
+            return th.tensor([[self.var_type.size(0)], [self.factor.size(0)]])
+        return super().__inc__(key, value, *args, **kwargs)
+
+
+def statedata_from_single_obs(obs) -> StateData:
+    return statedata_from_obs([dict_to_data(obs)])
+
+
+def statedata_from_obs(obs: list[Data]) -> StateData:
+    b = Batch.from_data_list(obs)
+    return StateData(
+        var_val=b.var_value,
+        var_type=b.var_type,
+        object_class=b.factor,
+        edge_index=b.edge_index,
+        edge_attr=b.edge_attr,
+        batch_idx=b.batch,
+    )
+
+
+def dict_to_data(obs: dict[str, tuple[Any]], num_envs: int) -> BipartiteData:
     return [
-        Data(
-            x=torch.as_tensor(obs["nodes"][n], dtype=torch.int64),
-            edge_index=torch.as_tensor(obs["edge_index"][n], dtype=torch.int64).T,
-            edge_attr=torch.as_tensor(obs["edge_attr"][n], dtype=torch.int64),
+        BipartiteData(
+            var_value=th.as_tensor(obs["var_value"][i], dtype=th.float32),
+            var_type=th.as_tensor(obs["var_type"][i], dtype=th.int64),
+            factor=th.as_tensor(obs["factor"][i], dtype=th.int64),
+            edge_index=th.as_tensor(obs["edge_index"][i], dtype=th.int64).T,
+            edge_attr=th.as_tensor(obs["edge_attr"][i], dtype=th.int64),
+            num_nodes=obs["factor"][i].shape[0],  # + obs["var_value"].shape[0]
         )
-        for n in range(num_envs)
+        for i in range(num_envs)
     ]
 
 
-def save_agent(
-    envs: gym.vector.SyncVectorEnv, agent: nn.Module, config: dict[str, Any], path: str
-):
+def save_agent(agent: GraphAgent, config: Config, path: str):
     state_dict = agent.state_dict()
     to_save = {}
-    n_types = envs.single_observation_space.spaces["nodes"].feature_space.n
-    n_relations = envs.single_observation_space.spaces["edge_attr"].feature_space.n
-    n_actions = envs.single_action_space.nvec[1]
-    to_save["config"] = {
-        "n_types": n_types,
-        "n_relations": n_relations,
-        "n_actions": n_actions,
-        **config,
-    }
+    to_save["config"] = asdict(config)
     to_save["state_dict"] = state_dict
     torch.save(to_save, path)
 
 
-def create_batch(data: list[Data]):
-    return Batch.from_data_list(data)
+def load_agent(path: str) -> tuple[nn.Module, Config]:
+    data = torch.load(path)
+    config = Config(**data["config"])
+    agent = GraphAgent(config)
+    agent.load_state_dict(data["state_dict"])
+    return agent, config
 
 
 @torch.inference_mode()
@@ -110,8 +135,11 @@ class Args:
     """whether to capture videos of the agent performances (check out `videos` folder)"""
 
     # Algorithm specific arguments
-    env_id: str = "SysAdmin_MDP_ippc2011"  # "Elevators_MDP_ippc2011"
+    env_id: str = "rddl/conditional_bandit.rddl"  # "Elevators_MDP_ippc2011"
     """the id of the environment"""
+    instance: str | int = (
+        "rddl/conditional_bandit_i0.rddl"  # "rddl/elevators_mdp__ippc11.rddl"
+    )
     total_timesteps: int = 10000
     """total timesteps of the experiments"""
     learning_rate: float = 2.5e-3
@@ -124,11 +152,11 @@ class Args:
     """Toggle learning rate annealing for policy and value networks"""
     gamma: float = 0.99
     """the discount factor gamma"""
-    gae_lambda: float = 0.1
+    gae_lambda: float = 1.0
     """the lambda for the general advantage estimation"""
-    num_minibatches: int = 1
+    num_minibatches: int = 40
     """the number of mini-batches"""
-    update_epochs: int = 2
+    update_epochs: int = 4
     """the K epochs to update the policy"""
     norm_adv: bool = False
     """Toggles advantages normalization"""
@@ -136,7 +164,7 @@ class Args:
     """the surrogate clipping coefficient"""
     clip_vloss: bool = False
     """Toggles whether or not to use a clipped loss for the value function, as per the paper."""
-    ent_coef: float = 0.01
+    ent_coef: float = 0.0
     """coefficient of the entropy"""
     vf_coef: float = 0.1
     """coefficient of the value function"""
@@ -154,15 +182,20 @@ class Args:
     """the number of iterations (computed in runtime)"""
 
 
-def make_env(domain: str, idx: int, capture_video: bool, run_name: str):
-    instance = 1
-
+def make_env(
+    env_id: str,
+    domain: str,
+    instance: str,
+    idx: int,
+    capture_video: bool,
+    run_name: str,
+):
     def thunk():
         env = gym.make(
-            "KGRDDLGraphWrapper-v0",
+            env_id,
             domain=domain,
             instance=instance,
-            add_inverse_relations=False,
+            # add_inverse_relations=False,
         )
         env = gym.wrappers.RecordEpisodeStatistics(env)
         return env
@@ -173,55 +206,38 @@ def make_env(domain: str, idx: int, capture_video: bool, run_name: str):
 class Agent(nn.Module):
     def __init__(
         self,
-        envs: gym.vector.SyncVectorEnv,
-        device: str | None = None,
+        config: Config,
         **kwargs: dict[str, Any],
     ):
         super().__init__()  # type: ignore
-        n_types = envs.single_observation_space.spaces["nodes"].feature_space.n
-        n_relations = envs.single_observation_space.spaces["edge_attr"].feature_space.n
-        n_actions = envs.single_action_space.nvec[1]
-        self.gnn_agent = KGGNNAgent(n_types, n_relations, n_actions, **kwargs)
+
+        self.agent = GraphAgent(
+            config,
+        )
 
     def get_value(
         self,
-        x: Tensor,
-        edge_index: Tensor,
-        edge_attr: Tensor,
-        batch_idx: Tensor,
+        s: StateData,
     ):
-        value = self.gnn_agent.value(x, edge_index, edge_attr, batch_idx)
+        value = self.agent.value(s)
         return value
 
-    def sample_action_and_value(
-        self, x: Tensor, edge_index: Tensor, edge_attr: Tensor, batch_idx: Tensor
-    ):
-        action, logprob, entropy, value = self.gnn_agent.sample_action(
-            x,
-            edge_index,
-            edge_attr,
-            batch_idx,
+    def sample_action_and_value(self, s: StateData):
+        action, logprob, entropy, value = self.agent.sample(
+            s,
         )
         return action, logprob, entropy, value
 
     def evaluate_action_and_value(
         self,
         action: Tensor,
-        x: Tensor,
-        edge_index: Tensor,
-        edge_attr: Tensor,
-        batch_idx: Tensor,
-        # action_mask: Tensor,
-        # node_mask: Tensor,
+        s: StateData,
     ):
         # num_graphs = batch_idx.max() + 1
         # action_mask = action_mask.reshape(num_graphs, -1)
-        logprob, entropy, value = self.gnn_agent.forward(
+        logprob, entropy, value = self.agent.forward(
             action,
-            x,
-            edge_index,
-            edge_attr,
-            batch_idx,
+            s,
             # num_graphs,
             # action_mask,
             # node_mask,
@@ -240,7 +256,6 @@ def rollout(
     envs: gym.vector.SyncVectorEnv,
     next_obs: list[Data],
     next_done: Tensor,
-    obs: deque[Data],
     dones: Tensor,
     rewards: Tensor,
     actions: Tensor,
@@ -253,18 +268,16 @@ def rollout(
 ) -> tuple[int, list[float], list[int]]:
     returns: deque[float] = deque()
     lengths: deque[int] = deque()
+    obs: deque[Data] = deque()
     for step in range(0, num_steps):
         global_step += num_envs
         obs.extend(next_obs)
         dones[step] = next_done
 
         # ALGO LOGIC: action logic
-        batch = create_batch(next_obs)
+        s = statedata_from_obs(next_obs)
         action, logprob, _, value = agent.sample_action_and_value(
-            batch.x,
-            batch.edge_index,
-            batch.edge_attr,
-            batch.batch,
+            s
             # batch.action_mask,
             # batch.node_mask,
         )
@@ -294,13 +307,13 @@ def rollout(
                 if is_final:
                     returns.append(r)
                     lengths.append(l)
-    return global_step, list(returns), list(lengths)
+    return obs, global_step, list(returns), list(lengths)
 
 
 def update(
     agent: Agent,
     optimizer: optim.Optimizer,
-    obs: Batch,
+    s: StateData,
     actions: Tensor,
     logprobs: Tensor,
     advantages: Tensor,
@@ -315,10 +328,7 @@ def update(
 ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, list[float]]:
     newlogprob, entropy, newvalue = agent.evaluate_action_and_value(
         actions,
-        obs.x,
-        obs.edge_index,
-        obs.edge_attr,
-        obs.batch,
+        s,
         # torch.ones_like(obs.action_mask),
         # torch.ones_like(obs.node_mask),
     )
@@ -382,7 +392,9 @@ def update(
     )
 
 
-def main(run_name: str, args: Args, agent_config: dict[str, Any]):
+def main(
+    envs: gym.vector.SyncVectorEnv, run_name: str, args: Args, agent_config: Config
+):
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.num_iterations = args.total_timesteps // args.batch_size
@@ -396,21 +408,14 @@ def main(run_name: str, args: Args, agent_config: dict[str, Any]):
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
     # env setup
-    kg_wrapper.register_env()
-    envs = gym.vector.SyncVectorEnv(
-        [
-            make_env(args.env_id, i, args.capture_video, run_name)
-            for i in range(args.num_envs)
-        ],
-    )
-    agent = Agent(envs, **agent_config).to(device)
+
+    agent = Agent(agent_config).to(device)
 
     if args.track:
         wandb.watch(agent, log_freq=10, log="all")
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # ALGO Logic: Storage setup
-    obs: deque[Data] = deque()
     actions = torch.zeros(
         (args.num_steps, args.num_envs) + envs.single_action_space.shape  # type: ignore
     ).to(device)
@@ -435,12 +440,11 @@ def main(run_name: str, args: Args, agent_config: dict[str, Any]):
             lrnow = frac * args.learning_rate
             optimizer.param_groups[0]["lr"] = lrnow
 
-        global_step, rollout_returns, rollout_lengths = rollout(
+        obs, global_step, rollout_returns, rollout_lengths = rollout(
             agent,
             envs,
             next_obs,
             next_done,
-            obs,
             dones,
             rewards,
             actions,
@@ -457,15 +461,8 @@ def main(run_name: str, args: Args, agent_config: dict[str, Any]):
 
         # bootstrap value if not done
         with torch.no_grad():
-            next_obs_batch = create_batch(next_obs)
-            next_value = agent.get_value(
-                next_obs_batch.x,
-                next_obs_batch.edge_index,
-                next_obs_batch.edge_attr,
-                next_obs_batch.batch,
-                # next_obs_batch.action_mask,
-                # next_obs_batch.node_mask,
-            ).reshape(1, -1)
+            next_obs_batch = statedata_from_obs(next_obs)
+            next_value = agent.get_value(next_obs_batch).reshape(1, -1)
             advantages, returns = gae(
                 rewards,
                 dones,
@@ -497,7 +494,7 @@ def main(run_name: str, args: Args, agent_config: dict[str, Any]):
             for start in range(0, batch_size, minibatch_size):
                 end = start + minibatch_size
                 mb_inds = b_inds[start:end]
-                minibatch = Batch.from_data_list(b_obs.index_select(mb_inds))
+                minibatch = statedata_from_obs(b_obs.index_select(mb_inds))
                 (
                     loss,
                     pg_loss,
@@ -536,7 +533,7 @@ def main(run_name: str, args: Args, agent_config: dict[str, Any]):
         mlflow.log_metric(
             "charts/learning_rate", optimizer.param_groups[0]["lr"], global_step
         )
-        save_agent(envs, agent, agent_config, f"{run_name}.pth")
+        save_agent(agent.agent, agent_config, f"{run_name}.pth")
         mlflow.log_artifact(f"{run_name}.pth")
         pbar.update(1)
         pbar.set_description(
@@ -571,20 +568,37 @@ def setup():
 
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}"
 
-    agent_config = {
-        "layers": 2,
-        "embedding_dim": 256,
-        "aggregation": "sum",
-        "activation": nn.Tanh(),
-    }
+    env_id = register_env()
+    envs = gym.vector.SyncVectorEnv(
+        [
+            make_env(
+                env_id, args.env_id, args.instance, i, args.capture_video, run_name
+            )
+            for i in range(args.num_envs)
+        ],
+    )
 
-    config = vars(args) | agent_config
+    n_types = int(envs.single_observation_space["factor"].high[0])
+    n_relations = int(envs.single_observation_space["var_type"].high[0])
+    n_actions = int(envs.single_action_space.nvec[0])
 
+    agent_config = Config(
+        n_types,
+        n_relations,
+        n_actions,
+        layers=4,
+        embedding_dim=16,
+        activation=nn.LeakyReLU(),
+        aggregation="sum",
+        action_mode=ActionMode.ACTION_THEN_NODE,
+    )
+
+    logged_config = vars(args) | asdict(agent_config)
     if args.track:
         wandb.init(
             project=args.wandb_project_name,
             entity=args.wandb_entity,
-            config=config,
+            config=logged_config,
             name=run_name,
             save_code=True,
         )
@@ -597,10 +611,10 @@ def setup():
     mlflow.set_experiment(run_name)
 
     with mlflow.start_run():
-        mlflow.log_params(config)
+        mlflow.log_params(logged_config)
         mlflow.log_artifact(__file__)
         mlflow.log_artifact("kg_gnn.py")
-        main(run_name, args, agent_config)
+        main(envs, run_name, args, agent_config)
 
 
 if __name__ == "__main__":

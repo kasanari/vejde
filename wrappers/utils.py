@@ -15,7 +15,7 @@ IdxFactorGraph = NamedTuple(
     "IdxFactorGraph",
     [
         ("variables", np.ndarray[np.int64, Any]),
-        ("values", np.ndarray[np.bool_, Any]),
+        ("values", np.ndarray[np.int8, Any]),
         ("factors", np.ndarray[np.int64, Any]),
         ("edge_indices", np.ndarray[np.int64, Any]),
         ("edge_attributes", np.ndarray[np.int64, Any]),
@@ -154,9 +154,13 @@ def map_graph_to_idx(
 ) -> IdxFactorGraph:
     edge_attributes = np.asarray(factorgraph.edge_attributes, dtype=np.int64)
 
+    vals = np.array(
+        factorgraph.values, dtype=np.bool_
+    )  # TODO: handle None values in a better way
+
     return IdxFactorGraph(
         np.array([rel_to_idx[key] for key in factorgraph.variables], dtype=np.int64),
-        np.array(factorgraph.values, dtype=np.bool_),
+        np.array(vals, dtype=np.int8),
         np.array(
             [type_to_idx[object] for object in factorgraph.factor_values],
             dtype=np.int64,

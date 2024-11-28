@@ -35,11 +35,14 @@ class StackingGroundedRDDLGraphWrapper(RDDLGraphWrapper):
         model = self.model
         state_fluents = model.state_fluents  # type: ignore
         observ_fluents = model.observ_fluents  # type: ignore
+        # action_fluents = model.action_fluents  # type: ignore
+        # action_groundings = get_groundings(model, action_fluents)  # type: ignore
         observ_groundings = get_groundings(model, observ_fluents)  # type: ignore
         state_groundings: set[str] = get_groundings(model, state_fluents)  # type: ignore
         ground = set(ground)
         ground -= state_groundings
         ground |= observ_groundings
+        # ground |= action_groundings
 
         return sorted([g for g in ground if not skip_fluent(g, self.variable_ranges)])
 
@@ -52,12 +55,7 @@ class StackingGroundedRDDLGraphWrapper(RDDLGraphWrapper):
         num_relations = len(self.rel_to_idx)
         num_edges = self.num_edges
 
-        var_value_space = spaces.Box(
-            low=0,
-            high=1,
-            shape=(num_groundings,),
-            dtype=np.bool_,  # type: ignore
-        )
+        var_value_space = spaces.Sequence(spaces.Discrete(2), stack=True)
 
         s: dict[str, spaces.Space] = {  # type: ignore
             "var_type": spaces.Box(
@@ -97,10 +95,11 @@ class StackingGroundedRDDLGraphWrapper(RDDLGraphWrapper):
         rddl_obs: dict[str, list[int]],
     ):
         non_fluent_values = {
-            k: [v] + [None] * self.env.horizon
+            k: [v] + [None] * (self.env.horizon - 1)
             for k, v in self.non_fluent_values.items()
         }
-        return create_obs(
+
+        obs, g = create_obs(
             rddl_obs,
             non_fluent_values,
             self.rel_to_idx,
@@ -110,6 +109,8 @@ class StackingGroundedRDDLGraphWrapper(RDDLGraphWrapper):
             self.variable_ranges,
             skip_fluent,
         )
+
+        return obs, g
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -127,7 +128,8 @@ class StackingGroundedRDDLGraphWrapper(RDDLGraphWrapper):
         obs = self._add_length(obs, lengths)
 
         info["state"] = g
-        info["rddl_state"] = self.env.env.state  # type: ignore
+        info["rddl_state"] = self.env.unwrapped.state  # type: ignore
+        info["rddl_obs"] = rddl_obs
 
         self.last_obs = obs
         self.last_rddl_obs = rddl_obs
@@ -157,7 +159,8 @@ class StackingGroundedRDDLGraphWrapper(RDDLGraphWrapper):
         obs = self._add_length(obs, lengths)
 
         info["state"] = g
-        info["rddl_state"] = self.env.env.state
+        info["rddl_state"] = self.env.unwrapped.state
+        info["rddl_obs"] = rddl_obs
 
         self.last_obs = obs
         self.last_rddl_obs = rddl_obs

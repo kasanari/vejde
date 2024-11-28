@@ -11,7 +11,9 @@ from torch.func import functional_call, grad, vmap
 from torch_geometric.data import Batch, Data
 
 from gnn import ActionMode, Config, GraphAgent, StateData
+
 # from wrappers.kg_wrapper import register_env
+from test.util import save_eval_data
 from wrappers.wrapper import register_env
 
 
@@ -29,17 +31,6 @@ def statedata_from_obs(obs: list[Data]) -> StateData:
         edge_attr=b.edge_attr,
         batch_idx=b.batch,
     )
-
-
-class Serializer(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, th.Tensor):
-            return obj.tolist()
-        if isinstance(obj, np.bool_):
-            return bool(obj)
-        if isinstance(obj, np.int64):
-            return int(obj)
-        return super().default(obj)
 
 
 class BipartiteData(Data):
@@ -160,30 +151,7 @@ def test_imitation():
 
     save_eval_data(data)
 
-    th.save(agent.state_dict(), "bipart_gnn_agent.pth")
-
-
-def save_eval_data(data):
-    rewards, _, _ = zip(*data)
-
-    print(np.mean(np.sum(rewards, axis=1)))
-
-    to_write = {
-        f"ep_{i}": [
-            {
-                "reward": r,
-                "obs": s,
-                "action": a,
-            }
-            for r, s, a in zip(*episode)
-        ]
-        for i, episode in enumerate(data)
-    }
-
-    with open("evaluation.json", "w") as f:
-        import json
-
-        json.dump(to_write, f, cls=Serializer, indent=2)
+    agent.save_agent("conditional_bandit.pth")
 
 
 def iteration(i, env, agent, optimizer, seed: int):

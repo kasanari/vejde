@@ -1,6 +1,7 @@
 import json
 import random
 from collections import deque
+from typing import Any
 
 import gymnasium as gym
 import numpy as np
@@ -17,6 +18,7 @@ from gnn.data import (
     stackedstatedata_from_obs,
     stackedstatedata_from_single_obs,
 )
+from util import save_eval_data
 from wrappers.pomdp_wrapper import register_env
 
 
@@ -48,13 +50,21 @@ def knowledge_graph_policy(obs):
 
 
 def policy(state):
-    if state["enough_light___r_m"]:
-        return [1, 3]
+    if (
+        state["enough_light___r_m"]
+        and state["light___r_m"]
+        and not state["empty___r_m"]
+    ):
+        return (1, 3)
 
-    if state["enough_light___g_m"]:
-        return [1, 1]
+    if (
+        state["enough_light___g_m"]
+        and state["light___g_m"]
+        and not state["empty___g_m"]
+    ):
+        return (1, 1)
 
-    return [0, 0]
+    return (0, 0)
 
 
 def counting_policy(state):
@@ -62,6 +72,16 @@ def counting_policy(state):
         return [1, 3]
 
     if np.array(state["light_observed___g_m"], dtype=bool).sum() == 3:
+        return [1, 1]
+
+    return [0, 0]
+
+
+def count_above_policy(state):
+    if np.array(state["light_observed___r_m"], dtype=bool).sum() > 3:
+        return [1, 3]
+
+    if np.array(state["light_observed___g_m"], dtype=bool).sum() > 3:
         return [1, 1]
 
     return [0, 0]
@@ -76,8 +96,8 @@ def counting_policy(state):
 
 
 def test_imitation():
-    domain = "rddl/counting_bandit.rddl"
-    instance = "rddl/counting_bandit_i1.rddl"
+    domain = "rddl/blink_enough_bandit.rddl"
+    instance = "rddl/blink_enough_bandit_i0.rddl"
 
     th.manual_seed(0)
     np.random.seed(0)
@@ -120,51 +140,32 @@ def test_imitation():
     #     embedding_dim=4,
     #     activation=th.nn.ReLU(),
     # )
-    optimizer = th.optim.AdamW(agent.parameters(), lr=0.01, amsgrad=True)
+    optimizer = th.optim.AdamW(agent.parameters(), lr=0.02, amsgrad=True)
 
-    data = [evaluate(env, agent, 0) for i in range(10)]
+    data = [evaluate(env, agent, i) for i in range(10)]
     rewards, _, _ = zip(*data)
-    print(np.mean(np.sum(rewards, axis=1)))
+    print(np.mean([np.sum(r) for r in rewards]))
 
-    _ = [iteration(i, env, agent, optimizer, 0) for i in range(75)]
+    _ = [iteration(i, env, agent, optimizer, i) for i in range(300)]
 
     pass
 
-    data = [evaluate(env, agent, 0) for i in range(3)]
+    data = [evaluate(env, agent, i) for i in range(3)]
 
-    rewards, _, _ = zip(*data)
+    save_eval_data(data)
 
-    print(np.mean(np.sum(rewards, axis=1)))
-
-    to_write = {
-        f"ep_{i}": [
-            {
-                "reward": r,
-                "obs": s,
-                "action": a,
-            }
-            for r, s, a in zip(*episode)
-        ]
-        for i, episode in enumerate(data)
-    }
-
-    with open("evaluation.json", "w") as f:
-        import json
-
-        json.dump(to_write, f, cls=Serializer, indent=2)
-
-    th.save(agent.state_dict(), "bipart_gnn_agent.pth")
+    agent.save_agent("blink_enough_bandit.pth")
 
 
 def iteration(i, env, agent, optimizer, seed: int):
-    obs, actions = rollout(env, seed)
+    obs, actions, length = rollout(env, seed)
     obs = [stacked_dict_to_data(o) for o in obs]
     loss, grad_norm = update(i, agent, optimizer, actions, obs)
-    print(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}")
+    print(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}")
     return loss
 
 
-def per_sample_grad(agent: th.nn.Module, b: th.Tensor, actions: th.Tensor):
+def per_sample_grad(agent: th.nn.Module, s, actions: th.Tensor):
     def compute_loss(params, buffers, batch: th.Tensor, actions: th.Tensor):
         l2_weight = 0.0
 
@@ -186,7 +187,7 @@ def per_sample_grad(agent: th.nn.Module, b: th.Tensor, actions: th.Tensor):
     ft_compute_sample_grad = vmap(ft_compute_grad, in_dims=(None, None, 0, 0))
 
     ft_per_sample_grads = ft_compute_sample_grad(
-        params, buffers, b, th.as_tensor(actions)
+        params, buffers, s, th.as_tensor(actions)
     )
 
     return ft_per_sample_grads
@@ -222,32 +223,43 @@ def update(
     # if iteration % 100 == 0:
     #     per_sample_grads = per_sample_grad(agent, b, actions)
 
+    # grad_norm = {
+    #     k: round(th.nn.utils.clip_grad_norm_(param, 1.0).item(), 3)
+    #     for k, param in agent.named_parameters()
+    # }
+    # max_grad_norm = max(grad_norm.values())
+
     grad_norm = th.nn.utils.clip_grad_norm_(agent.parameters(), 1.0)
 
     optimizer.step()
 
-    return loss.item(), grad_norm.item()
+    return loss.item(), grad_norm
 
 
 def rollout(env: gym.Env[Dict, MultiDiscrete], seed: int):
     obs, info = env.reset(seed=seed)
     done = False
     time = 0
-    sum_reward = 0
-    actions_buf = deque()
-    obs_buf = deque()
+    sum_reward: float = 0.0
+    actions_buf: deque[tuple[int, int]] = deque()
+    obs_buf: deque[dict[str, Any]] = deque()
+    done_buf: deque[bool] = deque()
+    states = {k: [v] for k, v in info["rddl_state"].items()}
     while not done:
         # action = env.action_space.sample()
         action = policy(info["rddl_state"])
-        next_obs, reward, terminated, truncated, info = env.step(action)
+        next_obs, reward, terminated, truncated, info = env.step(action)  # type: ignore
 
         # env.render()
         # exit()
         done = terminated or truncated
+        if not done:
+            states = {k: v + [info["rddl_state"][k]] for k, v in states.items()}
 
-        sum_reward += reward
+        sum_reward += float(reward)
         actions_buf.append(action)
-        obs_buf.append(obs)
+        obs_buf.append(obs)  # type: ignore
+        done_buf.append(done)
 
         obs = next_obs
         time += 1
@@ -260,26 +272,26 @@ def rollout(env: gym.Env[Dict, MultiDiscrete], seed: int):
 
     assert sum_reward == 2.0, f"Expert policy failed: {sum_reward}"
 
-    return list(obs_buf), th.as_tensor(list(actions_buf), dtype=th.int64)
+    return list(obs_buf), th.as_tensor(list(actions_buf), dtype=th.int64), time
 
 
-@th.no_grad()
+@th.no_grad()  # type: ignore
 def evaluate(env: gym.Env[Dict, MultiDiscrete], agent: RecurrentGraphAgent, seed: int):
-    obs, info = env.reset(seed=seed)
+    obs, _ = env.reset(seed=seed)
     done = False
     time = 0
 
-    rewards = deque()
-    obs_buf = deque()
-    actions = deque()
+    rewards: deque[float] = deque()
+    actions: deque[tuple[int, int]] = deque()
+    obs_buf: deque[dict[str, Any]] = deque()
 
     while not done:
         time += 1
         # action = env.action_space.sample()
 
-        obs_buf.append(env.unwrapped.last_rddl_obs)
+        obs_buf.append(env.unwrapped.last_rddl_obs)  # type: ignore
 
-        s = stackedstatedata_from_single_obs(obs)
+        s = stackedstatedata_from_single_obs(obs)  # type: ignore
         # b = {k: th.as_tensor(v, dtype=th.float32) for k, v in obs["nodes"].items()}
         # b = th.as_tensor(obs["var_value"], dtype=th.float32)
 
@@ -288,13 +300,13 @@ def evaluate(env: gym.Env[Dict, MultiDiscrete], agent: RecurrentGraphAgent, seed
             deterministic=True,
         )
 
-        next_obs, reward, terminated, truncated, info = env.step(action.squeeze(0))
+        next_obs, reward, terminated, truncated, _ = env.step(action.squeeze(0))  # type: ignore
 
         # env.render()
         # exit()
         done = terminated or truncated
-        actions.append(env.unwrapped.last_action_values)
-        rewards.append(reward)
+        actions.append(env.unwrapped.last_action_values)  # type: ignore
+        rewards.append(float(reward))
         obs = next_obs
         # print(obs)
         # print(action)

@@ -44,7 +44,7 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
                 low=0,
                 high=1,
                 shape=(num_groundings,),
-                dtype=np.bool_,  # type: ignore
+                dtype=np.int8,
             ),
             "factor": spaces.Box(
                 low=0, high=num_types, shape=(num_objects,), dtype=np.int64
@@ -62,14 +62,6 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
                 dtype=np.int64,
             ),
         }
-
-        if self.pomdp:
-            s["length"] = spaces.Box(
-                low=0,
-                high=40,
-                shape=(num_groundings,),
-                dtype=np.int64,
-            )
 
         return spaces.Dict(s)
 

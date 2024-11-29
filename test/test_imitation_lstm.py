@@ -1,7 +1,7 @@
 import json
 import random
 from collections import deque
-from typing import Any
+from typing import Any, Iterable
 
 import gymnasium as gym
 import numpy as np
@@ -9,6 +9,10 @@ import torch as th
 from gymnasium.spaces import Dict, MultiDiscrete
 from torch.func import functional_call, grad, vmap
 from torch_geometric.data import Data
+
+from torch.utils._foreach_utils import (
+    _group_tensors_by_device_and_dtype,
+)
 
 from gnn import ActionMode, Config, RecurrentGraphAgent
 
@@ -31,6 +35,44 @@ class Serializer(json.JSONEncoder):
         if isinstance(obj, np.int64):
             return int(obj)
         return super().default(obj)
+
+
+@th.no_grad()  # type: ignore
+def grad_norm_(
+    parameters: th.Tensor | Iterable[th.Tensor],
+    max_norm: float,
+    norm_type: float = 2.0,
+    error_if_nonfinite: bool = False,
+) -> th.Tensor:
+    if isinstance(parameters, th.Tensor):
+        parameters = [parameters]
+    grads = [p.grad for p in parameters if p.grad is not None]
+    max_norm = float(max_norm)
+    norm_type = float(norm_type)
+    if len(grads) == 0:
+        return th.tensor(0.0)
+    first_device = grads[0].device
+    grouped_grads: dict[
+        tuple[th.device, th.dtype], tuple[list[list[th.Tensor]], list[int]]
+    ] = _group_tensors_by_device_and_dtype([grads])  # type: ignore[assignment]
+
+    norms: list[th.Tensor] = []
+    for (device, _), ([device_grads], _) in grouped_grads.items():  # type: ignore[assignment]
+        norms.extend([th.linalg.vector_norm(g, norm_type) for g in device_grads])
+
+    total_norm = th.linalg.vector_norm(
+        th.stack([norm.to(first_device) for norm in norms]), norm_type
+    )
+
+    if error_if_nonfinite and th.logical_or(total_norm.isnan(), total_norm.isinf()):
+        raise RuntimeError(
+            f"The total norm of order {norm_type} for gradients from "
+            "`parameters` is non-finite, so it cannot be clipped. To disable "
+            "this error and scale the gradients by the non-finite norm anyway, "
+            "set `error_if_nonfinite=False`"
+        )
+
+    return total_norm
 
 
 def knowledge_graph_policy(obs):
@@ -223,10 +265,10 @@ def update(
     # if iteration % 100 == 0:
     #     per_sample_grads = per_sample_grad(agent, b, actions)
 
-    # grad_norm = {
-    #     k: round(th.nn.utils.clip_grad_norm_(param, 1.0).item(), 3)
-    #     for k, param in agent.named_parameters()
-    # }
+    grad_norms = {
+        k: round(grad_norm_(param, 1.0).item(), 3)
+        for k, param in agent.named_parameters()
+    }
     # max_grad_norm = max(grad_norm.values())
 
     grad_norm = th.nn.utils.clip_grad_norm_(agent.parameters(), 1.0)

@@ -51,5 +51,5 @@ domain conditional_bandit {
 	};
 	
 	// give reward 
-	reward = [sum_{?m : machine} [if (activated(?m) * light(?m) * enough_light(?m) > 0) then PAYOUT(?m) else [if (activated(?m)) then -1 else 0]]];
+	reward = [sum_{?m : machine} [if ((activated(?m) * light(?m) * enough_light(?m)) > 0) then PAYOUT(?m) else [if (activated(?m)) then -1 else 0]]];
 }

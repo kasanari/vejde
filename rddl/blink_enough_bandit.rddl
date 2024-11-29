@@ -1,0 +1,71 @@
+
+domain blink_enough_bandit {
+  
+	requirements = { 
+		//reward-deterministic // this domain does not use a stochastic reward
+		partially-observed
+	};
+	
+	types {
+  		button : object;
+		machine : object;
+	};
+      
+	pvariables { 
+    		  		    		  		
+		CONNECTED(button, machine) : { non-fluent, bool, default = false };
+		CASH(machine) : { non-fluent, real, default = 0.0 };
+		BLINK_THRESHOLD : { non-fluent, int, default = 3 };
+		LIGHT_PROB(machine) : { non-fluent, real, default = 1.0 };
+
+		//COLORED(button) : { non-fluent, bool, default = true};
+
+		press(button) : { action-fluent, bool, default = false}; 
+
+		light(machine) : { state-fluent, bool, default=false};
+
+		light_observed(machine) : { observ-fluent, bool};
+	
+		activated(machine) : { interm-fluent, bool};
+		
+		payout(machine) : { state-fluent, bool, default=false};
+
+		empty(machine) : { state-fluent, bool, default=false};
+
+		payout_observed(machine) : { observ-fluent, bool};
+
+		enough_light(machine) : { state-fluent, bool, default=false};
+
+		blink_count(machine) : { state-fluent, int, default=0};
+
+	};
+	
+	cpfs {
+		
+		//intermediate fluents
+		activated(?m) = exists_{?b : button} [press(?b) & CONNECTED(?b, ?m)];
+
+		enough_light'(?m) = if (blink_count'(?m) >= BLINK_THRESHOLD) then true else false;
+
+		payout'(?m) = (activated(?m) ^ light(?m) ^ enough_light(?m));
+
+		empty'(?m) = if (payout'(?m)) then true else empty(?m);
+
+		payout_observed(?m) = payout'(?m);
+		
+		//state fluents
+		light'(?m) = Bernoulli(LIGHT_PROB(?m));
+		light_observed(?m) = light'(?m);
+		
+		blink_count'(?m) = if (light'(?m)) then blink_count(?m) + 1 else blink_count(?m);
+	
+	};
+	
+	// give reward 
+	reward = [sum_{?m : machine} [if (payout'(?m) ^ ~empty(?m)) then CASH(?m) else [if (activated(?m)) then -1 else 0]]];
+
+	termination {
+		//terminate if all machines are empty
+		forall_{?m : machine} [empty(?m)];
+	};
+}

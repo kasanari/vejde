@@ -1,6 +1,6 @@
-from rddlrepository.core.manager import RDDLRepoManager
 import pyRDDLGym
 import yaml
+from rddlrepository.core.manager import RDDLRepoManager
 
 manager = RDDLRepoManager(rebuild=True)
 

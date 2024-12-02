@@ -1,8 +1,8 @@
 # docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/ppo/#ppopy
-from collections import deque
 import os
 import random
 import time
+from collections import deque
 from dataclasses import dataclass
 
 import gymnasium as gym
@@ -11,10 +11,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import tyro
+from torch import Tensor
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
-from torch import Tensor
-
 from tqdm import tqdm
 
 

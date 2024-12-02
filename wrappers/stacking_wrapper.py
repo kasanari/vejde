@@ -1,20 +1,18 @@
 from pprint import pprint
 from typing import Any
 
-import pyRDDLGym
-
-from wrappers.utils import get_groundings
+import pyRDDLGym  # type: ignore
 
 
 def stack_obs(
     horizon: int,
     obs: dict[str, Any],
     buffer: list[dict[str, Any]],
-    observed_keys: list[str],
-) -> dict[str, list[Any]]:
+    observed_keys: set[str],
+) -> tuple[dict[str, list[Any]], dict[str, int]]:
     result: dict[str, list[bool | None]] = {key: [] for key in observed_keys}
 
-    lengths = {}
+    lengths: dict[str, int] = {}
 
     for step, o in enumerate(buffer):
         o = buffer[step]
@@ -70,7 +68,7 @@ class StackingWrapper:
         self.buffer = []
         self.iteration = 0
 
-        return (o, lengths), info
+        return (o, lengths), info  # type: ignore
 
     def step(
         self,
@@ -102,19 +100,19 @@ class StackingWrapper:
         self.observed_keys = observed_keys
         self.buffer = self.buffer + [next_obs]
 
-        return (o, lengths), reward, terminated, truncated, info
+        return (o, lengths), reward, terminated, truncated, info  # type: ignore
 
     @property
-    def unwrapped(self):
-        return self.env.unwrapped
+    def unwrapped(self):  # type: ignore
+        return self.env.unwrapped  # type: ignore
 
 
 if __name__ == "__main__":
-    env = pyRDDLGym.make("Tamarisk_POMDP_ippc2014", 1)
+    env = pyRDDLGym.make("Tamarisk_POMDP_ippc2014", 1)  # type: ignore
     env = StackingWrapper(env)
     done = False
     while not done:
-        obs, reward, terminated, truncated, info = env.step({})
+        obs, reward, terminated, truncated, info = env.step({})  # type: ignore
         done = terminated or truncated
     # print(obs, reward, terminated, truncated, info)
-    pprint(obs)
+    pprint(obs)  # type: ignore

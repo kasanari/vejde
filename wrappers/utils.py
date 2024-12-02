@@ -1,8 +1,11 @@
+from itertools import chain
 import random
-from typing import Any, Callable, NamedTuple, TypeVar
-from pyRDDLGym.core.compiler.model import RDDLLiftedModel
+from typing import Any, NamedTuple, TypeVar
+from collections.abc import Callable
+from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 import numpy as np
 import logging
+from gymnasium.spaces import Dict
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +33,7 @@ FactorGraph = NamedTuple(
         ("factors", list[str]),
         ("factor_values", list[str]),
         ("edge_indices", np.ndarray[np.int64, Any]),
-        ("edge_attributes", list[str]),
+        ("edge_attributes", list[int]),
     ],
 )
 
@@ -63,7 +66,7 @@ def create_obs(
         filtered_obs,
         filtered_groundings,
         obj_to_type,
-        variable_ranges,
+        # variable_ranges,
     )
 
     idx_g = map_graph_to_idx(g, rel_to_idx, type_to_idx)
@@ -103,12 +106,12 @@ def to_rddl_action(
     return rddl_action_dict, rddl_action
 
 
-def sample_action(action_space) -> dict[str, int]:
-    action: dict[str, int] = action_space.sample()
+def sample_action(action_space: Dict) -> dict[str, int]:
+    action = action_space.sample()  # type: ignore
 
-    action: tuple[str, int] = random.choice(list(action.items()))
-    action = {action[0]: action[1]}
-    return action
+    action: tuple[str, int] = random.choice(list(action.items()))  # type: ignore
+    a = {action[0]: action[1]}
+    return a
 
 
 def predicate(key: str) -> str:
@@ -179,6 +182,14 @@ def object_list(obs: dict[str, Any]) -> list[str]:
     return object_list
 
 
+def object_list_from_groundings(groundings: list[str]) -> list[str]:
+    return sorted(set(chain(*[objects(g) for g in groundings])))
+
+
+def predicate_list_from_groundings(groundings: list[str]) -> list[str]:
+    return sorted(set(chain(*[predicate(g) for g in groundings])))
+
+
 def generate_bipartite_obs(
     obs: dict[str, bool],
     groundings: list[str],
@@ -225,14 +236,14 @@ def generate_bipartite_obs(
 
 
 def to_graphviz(
-    predicate_node_classes,
-    predicate_node_values,
-    object_nodes,
-    edges,
-    edge_attributes,
-    obj_to_idx,
-    rel_to_idx,
-    numeric,
+    predicate_node_classes: list[str],
+    predicate_node_values: list[int],
+    object_nodes: list[str],
+    edges: list[tuple[int, int]],
+    edge_attributes: list[int],
+    obj_to_idx: dict[str, int],
+    rel_to_idx: dict[str, int],
+    # numeric,
 ):
     colors = ["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]
     graph = "graph G {\n"
@@ -241,9 +252,9 @@ def to_graphviz(
     global_idx = 0
     for idx, n_class in enumerate(predicate_node_classes):
         label = (
-            f'"{rel_to_idx[int(n_class)]}={predicate_node_values[idx]}"'
-            if numeric[idx]
-            else f'"{rel_to_idx[int(n_class)]}={bool(predicate_node_values[idx])}"'
+            # f'"{rel_to_idx[int(n_class)]}={predicate_node_values[idx]}"'
+            # if numeric[idx]
+            f'"{rel_to_idx[n_class]}={bool(predicate_node_values[idx])}"'
         )
         graph += f'"{global_idx}" [label={label}, shape=box]\n'
         first_mapping[idx] = global_idx
@@ -260,13 +271,13 @@ def to_graphviz(
 
 def to_graphviz_alt(
     predicate_node_classes: list[int],
-    predicate_node_values: list[bool],
+    predicate_node_values: list[int],
     object_nodes: list[int],
     edges: list[tuple[int, int]],
     edge_attributes: list[int],
-    idx_to_type: dict[int, str],
-    idx_to_rel: dict[int, str],
-):
+    idx_to_type: list[str],
+    idx_to_rel: list[str],
+) -> str:
     colors = ["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]
     graph = "graph G {\n"
     first_mapping = {}

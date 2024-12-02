@@ -26,7 +26,7 @@ class StackingGroundedRDDLGraphWrapper(RDDLGraphWrapper):
         render_mode: str = "human",
     ) -> None:
         super().__init__(domain, instance, render_mode)
-        self.env = StackingWrapper(self.env)
+        self.env = StackingWrapper(self.env)  # type: ignore
 
     @property
     @cache
@@ -95,7 +95,7 @@ class StackingGroundedRDDLGraphWrapper(RDDLGraphWrapper):
         rddl_obs: dict[str, list[int]],
     ):
         non_fluent_values = {
-            k: [v] + [None] * (self.env.horizon - 1)
+            k: [v] + [None] * (int(self.env.horizon) - 1)
             for k, v in self.non_fluent_values.items()
         }
 
@@ -134,20 +134,22 @@ class StackingGroundedRDDLGraphWrapper(RDDLGraphWrapper):
         self.last_obs = obs
         self.last_rddl_obs = rddl_obs
 
-        return obs, info
+        return obs, info  # type: ignore
 
-    def _add_length(self, obs: spaces.Dict, lengths: dict[str, int]) -> spaces.Dict:
+    def _add_length(
+        self, obs: dict[str, Any], lengths: dict[str, int]
+    ) -> dict[str, Any]:
         non_fluent_lengths = {k: 1 for k in self.non_fluent_values}
         lengths |= non_fluent_lengths
         length = np.array([lengths[key] for key in self.groundings], dtype=np.int64)
         obs["length"] = length
         return obs
 
-    def step(
-        self, action: spaces.MultiDiscrete
+    def step(  # type: ignore
+        self, action: tuple[int, int]
     ) -> tuple[spaces.Dict, SupportsFloat, bool, bool, dict[str, Any]]:
         rddl_action_dict, rddl_action = to_rddl_action(
-            action, self.action_fluents, self.idx_to_obj, self.action_groundings
+            action, self.action_fluents, self.idx_to_object, self.action_groundings
         )
         rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action_dict)
         rddl_obs, lengths = rddl_obs
@@ -159,7 +161,7 @@ class StackingGroundedRDDLGraphWrapper(RDDLGraphWrapper):
         obs = self._add_length(obs, lengths)
 
         info["state"] = g
-        info["rddl_state"] = self.env.unwrapped.state
+        info["rddl_state"] = self.env.unwrapped.state  # type: ignore
         info["rddl_obs"] = rddl_obs
 
         self.last_obs = obs
@@ -167,12 +169,12 @@ class StackingGroundedRDDLGraphWrapper(RDDLGraphWrapper):
         self.last_action_values = rddl_action_dict
         self.last_action = rddl_action
 
-        return obs, reward, terminated, truncated, info
+        return obs, reward, terminated, truncated, info  # type: ignore
 
 
 def register_env():
     env_id = "StackingGroundedRDDLGraphWrapper-v0"
-    gym.register(
+    gym.register(  # type: ignore
         id=env_id,
         entry_point="wrappers.pomdp_wrapper:StackingGroundedRDDLGraphWrapper",
     )

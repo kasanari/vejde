@@ -1,4 +1,3 @@
-import random
 from copy import copy
 from functools import cache
 from typing import Any
@@ -7,8 +6,7 @@ from gymnasium.spaces import MultiDiscrete, Dict
 import gymnasium as gym
 import pyRDDLGym  # type: ignore
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
-
-from wrappers.stacking_wrapper import StackingWrapper
+from pyRDDLGym import RDDLEnv  # type: ignore
 
 from .utils import predicate, to_graphviz_alt, get_groundings
 
@@ -24,21 +22,13 @@ class RDDLGraphWrapper(gym.Env[Dict, MultiDiscrete]):
     ) -> None:
         env: gym.Env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
         model: RDDLLiftedModel = env.model  # type: ignore
-        object_to_type: dict[str, str] = copy(model.object_to_type)  # type: ignore
-        types = set(object_to_type.values())  # type: ignore
-        type_list = sorted(types)
-
-        object_terms: list[str] = list(model.object_to_index.keys())  # type: ignore
-        object_list = sorted(object_terms)
 
         self.instance = instance
         self.domain = domain
         self.model = model
-        self.num_types = len(type_list)
-        self.idx_to_obj = object_list
-        self.idx_to_type = type_list
-        self.obj_to_type: dict[str, str] = object_to_type
-        self.env = env
+        self.env: RDDLEnv = env
+        self.last_obs: dict[str, Any] = {}
+        self.iter = 0
 
     @property
     @cache
@@ -50,6 +40,23 @@ class RDDLGraphWrapper(gym.Env[Dict, MultiDiscrete]):
                 self.num_objects,
             ]
         )
+
+    @property
+    @cache
+    def idx_to_type(self) -> list[str]:
+        return sorted(set(self.obj_to_type.values()))
+
+    @property
+    @cache
+    def obj_to_type(self) -> dict[str, str]:
+        model: RDDLLiftedModel = self.model  # type: ignore
+        object_to_type: dict[str, str] = copy(model.object_to_type)  # type: ignore
+        return object_to_type
+
+    @property
+    @cache
+    def num_types(self) -> int:
+        return len(self.idx_to_type)
 
     @property
     @cache
@@ -104,7 +111,14 @@ class RDDLGraphWrapper(gym.Env[Dict, MultiDiscrete]):
 
     @property
     @cache
-    def relations(self) -> list[str]:
+    def idx_to_object(self) -> list[str]:
+        object_terms: list[str] = list(self.model.object_to_index.keys())  # type: ignore
+        object_list = sorted(object_terms)
+        return object_list
+
+    @property
+    @cache
+    def idx_to_relation(self) -> list[str]:
         relation_list = sorted(set(predicate(g) for g in self.groundings))
         return relation_list
 
@@ -146,12 +160,12 @@ class RDDLGraphWrapper(gym.Env[Dict, MultiDiscrete]):
     @property
     @cache
     def num_relations(self) -> int:
-        return len(self.relations)
+        return len(self.idx_to_relation)
 
     @property
     @cache
     def num_objects(self) -> int:
-        return len(self.idx_to_obj)
+        return len(self.idx_to_object)
 
     @property
     @cache
@@ -164,14 +178,14 @@ class RDDLGraphWrapper(gym.Env[Dict, MultiDiscrete]):
     @cache
     def rel_to_idx(self) -> dict[str, int]:
         return {
-            symb: idx + 1 for idx, symb in enumerate(self.relations)
+            symb: idx + 1 for idx, symb in enumerate(self.idx_to_relation)
         }  # 0 is reserved for padding
 
     @property
     @cache
     def obj_to_idx(self) -> dict[str, int]:
         return {
-            symb: idx + 1 for idx, symb in enumerate(self.idx_to_obj)
+            symb: idx + 1 for idx, symb in enumerate(self.idx_to_object)
         }  # 0 is reserved for padding
 
     @property
@@ -194,9 +208,9 @@ class RDDLGraphWrapper(gym.Env[Dict, MultiDiscrete]):
                     nodes_classes,
                     node_values,
                     object_nodes,
-                    edge_indices,
+                    edge_indices,  # type: ignore
                     edge_attributes,
                     self.idx_to_type,
-                    self.idx_to_rel,
+                    self.idx_to_relation,
                 )
             )

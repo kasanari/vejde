@@ -36,7 +36,7 @@ class BipartiteData(Data):
 
     def __inc__(self, key: str, value, *args, **kwargs):  # type: ignore
         if key == "edge_index":
-            return th.tensor([[self.var_type.size(0)], [self.factor.size(0)]])
+            return th.tensor([[self.length.size(0)], [self.factor.size(0)]])
         return super().__inc__(key, value, *args, **kwargs)  # type: ignore
 
 
@@ -62,6 +62,7 @@ def stackedstatedata_from_single_obs(obs: dict[str, Tensor]) -> StackedStateData
 
 def stackedstatedata_from_obs(obs: list[Data]) -> StackedStateData:
     b = Batch.from_data_list(obs)  # type: ignore
+
     return StackedStateData(
         var_val=b.var_value,  # type: ignore
         var_type=b.var_type,  # type: ignore
@@ -97,6 +98,7 @@ def dict_to_data(obs: dict[str, Tensor]) -> BipartiteData:
         factor=th.as_tensor(obs["factor"], dtype=th.int64),
         edge_index=th.as_tensor(obs["edge_index"], dtype=th.int64).T,
         edge_attr=th.as_tensor(obs["edge_attr"], dtype=th.int64),
+        length=th.as_tensor(obs["length"], dtype=th.int64),
         num_nodes=obs["factor"].shape[0],  # + obs["var_value"].shape[0]
     )
 

@@ -9,38 +9,13 @@ import torch as th
 from gymnasium.spaces import Dict, MultiDiscrete
 from torch.func import functional_call, grad, vmap
 from torch_geometric.data import Batch, Data
+from gnn.data import statedata_from_single_obs, dict_to_data, statedata_from_obs
 
 from gnn import ActionMode, Config, GraphAgent, StateData
 
 # from wrappers.kg_wrapper import register_env
 from test.util import save_eval_data
 from wrappers.wrapper import register_env
-
-
-def statedata_from_single_obs(obs) -> StateData:
-    return statedata_from_obs([dict_to_data(obs)])
-
-
-def statedata_from_obs(obs: list[Data]) -> StateData:
-    b = Batch.from_data_list(obs)
-    return StateData(
-        var_val=b.var_value,
-        var_type=b.var_type,
-        object_class=b.factor,
-        edge_index=b.edge_index,
-        edge_attr=b.edge_attr,
-        batch_idx=b.batch,
-    )
-
-
-class BipartiteData(Data):
-    var_type: th.Tensor
-    factor: th.Tensor
-
-    def __inc__(self, key: str, value, *args, **kwargs):
-        if key == "edge_index":
-            return th.tensor([[self.var_type.size(0)], [self.factor.size(0)]])
-        return super().__inc__(key, value, *args, **kwargs)
 
 
 def knowledge_graph_policy(obs):
@@ -67,25 +42,6 @@ def policy(state):
         return [1, 1]
 
     return [0, 0]
-
-
-# def dict_to_data(obs: dict[str, tuple[Any]]) -> list[Data]:
-#     return Data(
-#         x=th.as_tensor(obs["nodes"], dtype=th.int64),
-#         edge_index=th.as_tensor(obs["edge_index"], dtype=th.int64).T,
-#         edge_attr=th.as_tensor(obs["edge_attr"], dtype=th.int64),
-#     )
-
-
-def dict_to_data(obs: dict[str, tuple[Any]]) -> BipartiteData:
-    return BipartiteData(
-        var_value=th.as_tensor(obs["var_value"], dtype=th.float32),
-        var_type=th.as_tensor(obs["var_type"], dtype=th.int64),
-        factor=th.as_tensor(obs["factor"], dtype=th.int64),
-        edge_index=th.as_tensor(obs["edge_index"], dtype=th.int64).T,
-        edge_attr=th.as_tensor(obs["edge_attr"], dtype=th.int64),
-        num_nodes=obs["factor"].shape[0],  # + obs["var_value"].shape[0]
-    )
 
 
 def test_imitation():

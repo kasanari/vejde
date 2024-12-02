@@ -9,7 +9,7 @@ from gymnasium import spaces
 from wrappers.stacking_wrapper import StackingWrapper
 
 from .parent_wrapper import RDDLGraphWrapper
-from .utils import predicate, to_rddl_action, create_obs, get_groundings
+from .utils import predicate, to_rddl_action, create_stacked_obs, get_groundings
 
 logger = logging.getLogger(__name__)
 
@@ -94,12 +94,9 @@ class StackingGroundedRDDLGraphWrapper(RDDLGraphWrapper):
         self,
         rddl_obs: dict[str, list[int]],
     ):
-        non_fluent_values = {
-            k: [v] + [None] * (int(self.env.horizon) - 1)
-            for k, v in self.non_fluent_values.items()
-        }
+        non_fluent_values = {k: [v] for k, v in self.non_fluent_values.items()}
 
-        obs, g = create_obs(
+        obs, g = create_stacked_obs(
             rddl_obs,
             non_fluent_values,
             self.rel_to_idx,
@@ -141,7 +138,9 @@ class StackingGroundedRDDLGraphWrapper(RDDLGraphWrapper):
     ) -> dict[str, Any]:
         non_fluent_lengths = {k: 1 for k in self.non_fluent_values}
         lengths |= non_fluent_lengths
-        length = np.array([lengths[key] for key in self.groundings], dtype=np.int64)
+        length = np.array(
+            [lengths[key] for key in self.groundings if key in lengths], dtype=np.int64
+        )
         obs["length"] = length
         return obs
 

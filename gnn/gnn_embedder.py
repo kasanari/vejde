@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.init as init
 from torch import Tensor
 from torch.nn.utils.rnn import pack_padded_sequence
-
+import torch as th
 from .gnn_classes import EmbeddingLayer
 
 
@@ -57,6 +57,8 @@ class RecurrentEmbedder(nn.Module):
             num_predicate_classes, embedding_dim, activation
         )
 
+        self.boolean_embedding = EmbeddingLayer(2, embedding_dim, activation)
+
         self.activation = activation
 
         self.recurrent = nn.GRU(embedding_dim, embedding_dim, batch_first=True)
@@ -75,9 +77,26 @@ class RecurrentEmbedder(nn.Module):
         length: Tensor,
     ):
         factors = self.object_embedding(factor_type)
-        indices = (var_val * var_type.unsqueeze(1)).int()
-        h_c = self.predicate_embedding(indices)
-        h_c = pack_padded_sequence(h_c, length, batch_first=True, enforce_sorted=False)
+        bools = self.boolean_embedding(var_val.int())
+        preds = self.predicate_embedding(var_type.int())
+
+        h = bools * preds
+
+        padded = th.zeros(
+            length.size(0),
+            length.max().item(),
+            h.size(-1),
+        )
+        offset = 0
+        for i, l in enumerate(length):
+            padded[i, : l.item()] = h[offset : offset + l.item()]
+            offset += l.item()
+
+        # indices = (var_val * var_type.unsqueeze(1)).int()
+        # e = self.predicate_embedding(padded)
+        h_c = pack_padded_sequence(
+            padded, length, batch_first=True, enforce_sorted=False
+        )
         _, variables = self.recurrent(h_c)
 
         return variables.squeeze(), factors

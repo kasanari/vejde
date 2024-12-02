@@ -61,6 +61,12 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
                 shape=(num_edges,),
                 dtype=np.int64,
             ),
+            "length": spaces.Box(
+                low=0,
+                high=1,
+                shape=(num_groundings,),
+                dtype=np.int64,
+            ),
         }
 
         return spaces.Dict(s)
@@ -68,7 +74,7 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
     def create_obs(
         self, rddl_obs: dict[str, list[int]]
     ) -> tuple[spaces.Dict, dict[str, Any]]:
-        return create_obs(
+        o, g = create_obs(
             rddl_obs,
             self.non_fluent_values,
             self.rel_to_idx,
@@ -78,6 +84,9 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
             self.variable_ranges,
             skip_fluent,
         )
+
+        o["length"] = np.ones(len(self.groundings))
+        return o, g
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None

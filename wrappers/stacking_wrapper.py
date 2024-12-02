@@ -1,5 +1,6 @@
 from pprint import pprint
 from typing import Any
+from copy import copy
 
 import pyRDDLGym  # type: ignore
 
@@ -40,14 +41,18 @@ def stack_obs(
 
 def create_obs(
     obs: dict[str, Any],
-    observed_keys: set[str],
-    buffer: list[dict[str, Any]],
-    horizon: int,
+    buffer: dict[str, list[Any]],
 ):
-    obs = {k: bool(v) for k, v in obs.items()}
-    observed_keys = set(obs.keys()) | observed_keys
-    stacked_obs, lengths = stack_obs(horizon, obs, buffer, observed_keys)
-    return stacked_obs, lengths, observed_keys
+    obs = {k: bool(v) for k, v in obs.items() if v is not None}
+    lengths = {}
+
+    for key in obs:
+        if key not in buffer:
+            buffer[key] = []
+        buffer[key].append(obs[key])
+        lengths[key] = len(buffer[key])
+
+    return buffer, lengths
 
 
 class StackingWrapper:
@@ -62,10 +67,10 @@ class StackingWrapper:
         self, seed: int | None = None
     ) -> tuple[dict[str, str], float, bool, bool, dict[str, Any]]:
         obs, info = self.env.reset(seed=seed)
-        o, lengths, observed_keys = create_obs(obs, set(), [], self.horizon)
+        o, lengths = create_obs(obs, {}, self.horizon)
 
-        self.observed_keys = observed_keys
-        self.buffer = []
+        # self.observed_keys = observed_keys
+        self.buffer = copy(o)
         self.iteration = 0
 
         return (o, lengths), info  # type: ignore
@@ -88,17 +93,10 @@ class StackingWrapper:
 
         next_obs, reward, terminated, truncated, info = self.env.step(actions)
 
-        observed_keys: set[str] = (
-            set(next_obs.keys())
-            | self.observed_keys  # | set(obs_with_actions.keys()) |
-        )
+        o, lengths = create_obs(next_obs, self.buffer, self.horizon)
 
-        o, lengths, observed_keys = create_obs(
-            next_obs, observed_keys, self.buffer, self.horizon
-        )
-
-        self.observed_keys = observed_keys
-        self.buffer = self.buffer + [next_obs]
+        # self.observed_keys = observed_keys
+        self.buffer = copy(o)
 
         return (o, lengths), reward, terminated, truncated, info  # type: ignore
 

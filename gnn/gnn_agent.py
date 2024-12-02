@@ -141,14 +141,12 @@ class RecurrentGraphAgent(nn.Module):
 
     def forward(self, actions: Tensor, data: StackedStateData):
         fg, g = self.embed(data)
-        o = (fg.factors, g)
-        return self.actorcritic(actions, *o, data.batch_idx)
+        return self.actorcritic(actions, fg.factors, g, data.batch_idx)
 
     def sample(self, data: StackedStateData, deterministic: bool = False):
         fg, g = self.embed(data)
-        o = (fg.factors, g)
         action, logprob, entropy = self.actorcritic.sample(
-            *o, data.batch_idx, deterministic
+            fg.factors, g, data.batch_idx, deterministic
         )
         value = self.actorcritic.value(g)
         return action, logprob, entropy, value

@@ -12,30 +12,27 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 
-Edge = NamedTuple("Edge", [("predicate", str), ("object", str), ("pos", int)])
+class Edge(NamedTuple):
+    predicate: str
+    object: str
+    pos: int
 
-IdxFactorGraph = NamedTuple(
-    "IdxFactorGraph",
-    [
-        ("variables", np.ndarray[np.int64, Any]),
-        ("values", np.ndarray[np.int8, Any]),
-        ("factors", np.ndarray[np.int64, Any]),
-        ("edge_indices", np.ndarray[np.int64, Any]),
-        ("edge_attributes", np.ndarray[np.int64, Any]),
-    ],
-)
 
-FactorGraph = NamedTuple(
-    "FactorGraph",
-    [
-        ("variables", list[str]),
-        ("values", list[bool]),
-        ("factors", list[str]),
-        ("factor_values", list[str]),
-        ("edge_indices", np.ndarray[np.int64, Any]),
-        ("edge_attributes", list[int]),
-    ],
-)
+class IdxFactorGraph(NamedTuple):
+    variables: np.ndarray[np.int64, Any]
+    values: np.ndarray[np.int64, Any]
+    factors: np.ndarray[np.int64, Any]
+    edge_indices: np.ndarray[np.int64, Any]
+    edge_attributes: np.ndarray[np.int64, Any]
+
+
+class FactorGraph(NamedTuple):
+    variables: list[str]
+    variable_values: list[bool]
+    factors: list[str]
+    factor_values: list[str]
+    edge_indices: np.ndarray[np.int64, Any]
+    edge_attributes: list[int]
 
 
 def get_groundings(model: RDDLLiftedModel, fluents: dict[str, Any]) -> set[str]:

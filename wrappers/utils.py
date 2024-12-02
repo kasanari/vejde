@@ -183,7 +183,7 @@ def generate_bipartite_obs(
     obs: dict[str, bool],
     groundings: list[str],
     obj_to_type: dict[str, str],
-    variable_ranges: dict[str, str],
+    # variable_ranges: dict[str, str],
 ) -> FactorGraph:
     edges: set[Edge] = create_edges(obs)
 
@@ -205,13 +205,13 @@ def generate_bipartite_obs(
     assert max(edge_indices[:, 0]) < len(fact_node_predicate)
     assert max(edge_indices[:, 1]) < len(object_types)
 
-    numeric = np.array(
-        [
-            1 if variable_ranges[predicate(g)] in ["real", "int"] else 0
-            for g in groundings
-        ],
-        dtype=np.bool_,
-    )
+    # numeric = np.array(
+    #     [
+    #         1 if variable_ranges[predicate(g)] in ["real", "int"] else 0
+    #         for g in groundings
+    #     ],
+    #     dtype=np.bool_,
+    # )
 
     return FactorGraph(
         fact_node_predicate,

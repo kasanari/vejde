@@ -5,7 +5,7 @@ from typing import Any
 from gymnasium.spaces import MultiDiscrete, Dict
 import gymnasium as gym
 import pyRDDLGym  # type: ignore
-from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
+from pyRDDLGym.core.compiler.model import RDDLLiftedModel, RDDLPlanningModel  # type: ignore
 from pyRDDLGym import RDDLEnv  # type: ignore
 
 from .utils import predicate, to_graphviz_alt, get_groundings
@@ -66,10 +66,19 @@ class RDDLGraphWrapper(gym.Env[Dict, MultiDiscrete]):
     @property
     @cache
     def non_fluent_values(self) -> dict[str, int]:
-        model = self.model
-        return dict(
-            model.ground_vars_with_values(model.non_fluents)  # type: ignore
-        )
+        # model = self.model
+        # return dict(
+        #     model.ground_vars_with_values(model.non_fluents)  # type: ignore
+        # )
+
+        nf_vals = {}
+
+        non_fluents = self.model.ast.non_fluents.init_non_fluent  # type: ignore
+        for (name, params), value in non_fluents:
+            gname = RDDLPlanningModel.ground_var(name, params)
+            nf_vals[gname] = value
+
+        return nf_vals
 
     @property
     @cache
@@ -127,21 +136,12 @@ class RDDLGraphWrapper(gym.Env[Dict, MultiDiscrete]):
     def groundings(self) -> list[str]:
         model = self.model
 
-        action_fluents = model.action_fluents  # type: ignore
-        interm_fluents = model.interm_fluents  # type: ignore
+        state_fluents = model.state_fluents  # type: ignore
 
-        action_groundings: set[str] = get_groundings(model, action_fluents)  # type: ignore
-        interm_groundings: set[str] = get_groundings(model, interm_fluents)  # type: ignore
+        non_fluent_groundings = set(self.non_fluent_values.keys())
+        state_groundings: set[str] = get_groundings(model, state_fluents)  # type: ignore
 
-        g: set[str] = set(
-            g
-            for _, v in model.variable_groundings.items()  # type: ignore
-            for g in v  # type: ignore
-            if g[-1] != model.NEXT_STATE_SYM  # type: ignore
-        )
-
-        g -= action_groundings
-        g -= interm_groundings
+        g = state_groundings | non_fluent_groundings
 
         return sorted(g)
 

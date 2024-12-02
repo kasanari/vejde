@@ -22,6 +22,7 @@ class Embedder(nn.Module):
         self.predicate_embedding = EmbeddingLayer(
             num_predicate_classes, embedding_dim, activation
         )
+        self.boolean_embedding = EmbeddingLayer(2, embedding_dim, activation)
 
     def forward(
         self,
@@ -29,8 +30,12 @@ class Embedder(nn.Module):
         var_type: Tensor,
         object_class: Tensor,
     ) -> tuple[Tensor, Tensor]:
-        indices = (var_val * var_type).int()
-        h_p = self.predicate_embedding(indices)
+        booleans = self.boolean_embedding(var_val.int())
+        preds = self.predicate_embedding(var_type.int())
+
+        # indices = (var_val * var_type).int()
+        # h_p = self.predicate_embedding(indices)
+        h_p = booleans * preds
         h_o = self.object_embedding(object_class)
         return h_p, h_o
 

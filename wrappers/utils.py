@@ -155,7 +155,7 @@ def map_graph_to_idx(
     edge_attributes = np.asarray(factorgraph.edge_attributes, dtype=np.int64)
 
     vals = np.array(
-        factorgraph.values, dtype=np.bool_
+        factorgraph.variable_values, dtype=np.bool_
     )  # TODO: handle None values in a better way
 
     return IdxFactorGraph(

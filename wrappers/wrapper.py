@@ -98,7 +98,7 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
         self, action: spaces.MultiDiscrete
     ) -> tuple[spaces.Dict, SupportsFloat, bool, bool, dict[str, Any]]:
         rddl_action_dict, rddl_action = to_rddl_action(
-            action, self.action_fluents, self.idx_to_obj, self.action_groundings
+            action, self.action_fluents, self.idx_to_object, self.action_groundings
         )
         rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action_dict)
 

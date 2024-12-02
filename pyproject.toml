@@ -4,4 +4,4 @@ name = "wrappers"
 version = "0.1.0"
 
 [tool.setuptools]
-packages = ["wrappers", "gnn"]
+packages = ["wrappers", "gnn", "test"]

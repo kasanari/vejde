@@ -1,23 +1,17 @@
-from torch_geometric.data import Data, Batch
-from torch_geometric.nn import MessagePassing
-import torch
-from gnn_policy.functional import (
-    sample_node_then_action,
-    eval_node_then_action,
-    eval_action_then_node,
-    sample_action_then_node,
-)
-from wrappers.kg_wrapper import KGRDDLGraphWrapper
-from torch import Tensor, LongTensor
-import torch.nn as nn
 import random
-import numpy as np
-from numpy.typing import NDArray
 
+import numpy as np
+import torch
+import torch.nn as nn
+from numpy.typing import NDArray
+from torch import LongTensor, Tensor
+from torch.nn.functional import leaky_relu
+from torch_geometric.data import Batch, Data
+from torch_geometric.nn import (AttentionalAggregation, MessagePassing,
+                                SumAggregation)
 from torch_geometric.utils import softmax
 
-from torch_geometric.nn import AttentionalAggregation, SumAggregation
-from torch.nn.functional import leaky_relu
+from wrappers.kg_wrapper import KGRDDLGraphWrapper
 
 activation_to_str: dict[type[nn.Module], str] = {
     nn.ReLU: "relu",
@@ -33,15 +27,18 @@ def layer_init(
     nonlinearity: str,
     bias_const: float = 0.0,
 ):
-    return layer
+    # return layer
     gain = torch.nn.init.calculate_gain(nonlinearity, param=None)
     if isinstance(layer, nn.Linear):
-        torch.nn.init.orthogonal_(layer.weight, gain)
+        # torch.nn.init.orthogonal_(layer.weight, gain)
+        torch.nn.init.constant_(layer.weight, 1.0)
         # torch.nn.init.xavier_normal_(layer.weight, gain)
-        torch.nn.init.constant_(layer.bias, bias_const)
+        torch.nn.init.constant_(layer.bias, 0.0)
     elif isinstance(layer, nn.Embedding):
         # torch.nn.init.xavier_normal_(layer.weight)
-        torch.nn.init.orthogonal_(layer.weight, gain)
+        # torch.nn.init.orthogonal_(layer.weight, gain)
+        torch.nn.init.constant_(layer.weight, 1.0)
+    return layer
 
 
 class MLPLayer(nn.Module):
@@ -64,6 +61,7 @@ class EmbeddingLayer(nn.Module):
             nn.Embedding(num_embeddings, embedding_dim),
             activation_to_str[activation.__class__],
         )
+        # torch.nn.init.constant_(self.embedding.weight, 1.0)
 
     def forward(self, x: Tensor) -> Tensor:
         return self.embedding(x)
@@ -153,7 +151,9 @@ class GNNConv(MessagePassing):
     ):
         super(GNNConv, self).__init__(aggr=aggregation)
         self.combine = MLPLayer(in_channels + out_channels, out_channels, activation)
-        self.msg_combine = MLPLayer(out_channels, out_channels, activation)
+        self.msg_combine = MLPLayer(
+            out_channels + out_channels, out_channels, activation
+        )
         #
 
     def forward(self, x: Tensor, edge_index: Tensor, edge_attr: Tensor):
@@ -164,11 +164,7 @@ class GNNConv(MessagePassing):
         )
 
     def message(self, x_j: Tensor, edge_attr: Tensor) -> Tensor:
-        return (
-            self.msg_combine(
-                edge_attr
-            )  # self.msg_combine(torch.concatenate([x_j, edge_attr], dim=-1))
-        )
+        return self.msg_combine(torch.concatenate([x_j, edge_attr], dim=-1))
 
     def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:
         return x + self.combine(torch.concatenate([x, aggr_out], dim=-1))
@@ -212,12 +208,13 @@ class KGGNN(nn.Module):
         aggregation: str,
     ):
         super().__init__()
-        self.obj_embedding = nn.Embedding(num_object_classes, embedding_dim)
+        self.obj_embedding = EmbeddingLayer(
+            num_object_classes, embedding_dim, activation
+        )
         self.relation_embedding = EmbeddingLayer(
             num_predicate_classes, embedding_dim, activation
         )
         # self.edge_transform = MLPLayer(embedding_dim, embedding_dim, activation)
-        nn.init.orthogonal_(self.obj_embedding.weight)
         self.convs = nn.ModuleList(
             [
                 GNNConv(
@@ -241,62 +238,13 @@ class KGGNN(nn.Module):
         num_graphs = batch_idx.max().item() + 1
         g = torch.zeros(num_graphs, self.hidden_size).to(x.device)
         h = self.obj_embedding(x)
+        h = torch.zeros_like(h)
         h_r = self.relation_embedding(edge_attr)
         for i in range(len(self.convs)):
             h = self.convs[i](h, edge_index, h_r)
             g = self.aggrs[i](h, g, batch_idx)
 
         return h, g
-
-
-class GNNPolicy(nn.Module):
-    def __init__(self, num_actions: int, embedding_dim: int, activation: nn.Module):
-        super().__init__()
-        self.node_prob = nn.Sequential(
-            LinearTransform(embedding_dim, num_actions, activation),
-        )
-        self.action_prob = nn.Sequential(
-            LinearTransform(embedding_dim, num_actions, activation),
-        )
-        self.num_actions = num_actions
-
-    def prep(
-        self, h: Tensor, g: Tensor, batch_idx: Tensor
-    ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
-        node_logits = self.node_prob(h).squeeze()
-        action_logits = self.action_prob(g)
-        node_mask = torch.ones(node_logits.shape[0], dtype=torch.bool)
-        num_graphs = batch_idx.max().item() + 1
-        action_mask = torch.ones((num_graphs, self.num_actions), dtype=torch.bool)
-        return node_logits, action_logits, node_mask, action_mask
-
-    # differentiable action evaluation
-    def forward(
-        self, a: Tensor, h: Tensor, g: Tensor, batch_idx: Tensor
-    ) -> tuple[Tensor, Tensor]:
-        node_logits, action_logits, node_mask, action_mask = self.prep(h, g, batch_idx)
-        logprob, entropy = eval_action_then_node(
-            a,
-            action_logits,
-            node_logits,
-            action_mask,
-            node_mask,
-            batch_idx,
-        )
-        return logprob, entropy
-
-    def sample(
-        self, h: Tensor, g: Tensor, batch_idx: Tensor
-    ) -> tuple[Tensor, Tensor, Tensor]:
-        node_logits, action_logits, node_mask, action_mask = self.prep(h, g, batch_idx)
-        actions, logprob, entropy, *_ = sample_action_then_node(
-            action_logits,
-            node_logits,
-            action_mask,
-            node_mask,
-            batch_idx,
-        )
-        return actions, logprob, entropy
 
 
 class KGGNNAgent(nn.Module):
@@ -340,7 +288,7 @@ class KGGNNAgent(nn.Module):
         edge_attr: Tensor,
         batch_idx: Tensor,
     ):
-        _, g = self.p_gnn.forward(x, edge_index, edge_attr, batch_idx)
+        _, g = self.vf_gnn.forward(x, edge_index, edge_attr, batch_idx)
         value = self.vf(g)
         return value
 

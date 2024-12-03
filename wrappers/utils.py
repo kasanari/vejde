@@ -79,15 +79,34 @@ def create_obs(
 
     filtered_obs: dict[str, Any] = {k: rddl_obs[k] for k in filtered_groundings}
 
-    g = generate_bipartite_obs(
+    boolean_groundings = [
+        g for g in filtered_groundings if model.variable_range(predicate(g)) is bool
+    ]
+
+    numeric_groundings = [
+        g
+        for g in filtered_groundings
+        if (
+            model.variable_range(predicate(g)) is float
+            or model.variable_range(predicate(g)) is int
+        )
+    ]
+
+    bool_g = generate_bipartite_obs(
         filtered_obs,
-        filtered_groundings,
+        boolean_groundings,
         model.obj_to_type,
     )
 
-    obs = graph_to_dict(map_graph_to_idx(g, model.rel_to_idx, model.type_to_idx))
+    _numeric_g = generate_bipartite_obs(  # TODO add this to obs
+        filtered_obs,
+        numeric_groundings,
+        model.obj_to_type,
+    )
 
-    return obs, g
+    obs = graph_to_dict(map_graph_to_idx(bool_g, model.rel_to_idx, model.type_to_idx))
+
+    return obs, bool_g
 
 
 def create_stacked_obs(
@@ -108,9 +127,18 @@ def create_stacked_obs(
 
     filtered_obs: dict[str, Any] = {k: rddl_obs[k] for k in filtered_groundings}
 
+    boolean_groundings = [
+        g for g in filtered_groundings if variable_ranges[predicate(g)] == "bool"
+    ]
+
+    numeric_groundings = [
+        g for g in filtered_groundings if variable_ranges[predicate(g)] == "real"
+    ]
+
     g = generate_bipartite_obs(
         filtered_obs,
-        filtered_groundings,
+        boolean_groundings,
+        numeric_groundings,
         obj_to_type,
     )
 
@@ -184,9 +212,9 @@ def edge_attr(edges: set[Edge]) -> np.ndarray[np.uint, Any]:
     return np.array([key[2] for key in edges], dtype=np.int64)
 
 
-def create_edges(d: dict[str, Any]) -> list[Edge]:
+def create_edges(d: list[str]) -> list[Edge]:
     edges: deque[Edge] = deque()
-    keys = sorted(d.keys())
+    keys = sorted(d)
     for key in keys:
         for pos, object in enumerate(objects(key)):
             new_key = Edge(key, object, pos)
@@ -266,12 +294,12 @@ def predicate_list_from_groundings(groundings: list[str]) -> list[str]:
 
 
 def generate_bipartite_obs(
-    obs: dict[str, bool],
+    obs: dict[str, bool | float],
     groundings: list[str],
     obj_to_type: Callable[[str], str],
     # variable_ranges: dict[str, str],
 ) -> FactorGraph | StackedFactorGraph:
-    edges: set[Edge] = create_edges(obs)
+    edges = create_edges(groundings)
 
     obj_list = object_list(obs)
 
@@ -291,14 +319,6 @@ def generate_bipartite_obs(
     assert max(edge_indices[:, 0]) < len(fact_node_predicate)
     assert max(edge_indices[:, 1]) < len(object_types)
 
-    # numeric = np.array(
-    #     [
-    #         1 if variable_ranges[predicate(g)] in ["real", "int"] else 0
-    #         for g in groundings
-    #     ],
-    #     dtype=np.bool_,
-    # )
-
     return FactorGraph(
         fact_node_predicate,
         fact_node_values,
@@ -306,7 +326,6 @@ def generate_bipartite_obs(
         object_types,
         edge_indices,
         edge_attributes,
-        # numeric,
     )
 
 

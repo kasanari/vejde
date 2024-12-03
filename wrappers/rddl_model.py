@@ -7,10 +7,6 @@ from wrappers.utils import predicate
 from wrappers.utils import get_groundings
 
 
-def skip_fluent(key: str, variable_ranges: Callable[[str], type]) -> bool:
-    return variable_ranges(predicate(key)) is not bool or key == "noop"
-
-
 class RDDLModel(BaseModel):
     def __init__(self, model: RDDLLiftedModel) -> None:
         self.model = model
@@ -145,16 +141,7 @@ class RDDLModel(BaseModel):
 
         all_groundings = state_groundings | non_fluent_groundings
 
-        return sorted(
-            [
-                g
-                for g in all_groundings
-                if not skip_fluent(
-                    g,
-                    self.variable_range,
-                )
-            ]
-        )
+        return sorted(all_groundings)
 
     @property
     @cache

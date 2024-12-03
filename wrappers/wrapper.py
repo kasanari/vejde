@@ -18,8 +18,8 @@ from .base_model import BaseModel
 logger = logging.getLogger(__name__)
 
 
-def skip_fluent(key: str, variable_ranges: Callable[[str], str]) -> bool:
-    return variable_ranges(predicate(key)) is not bool or key == "noop"
+def skip_fluent(key: str, variable_ranges: dict[str, str]) -> bool:
+    return key == "noop"
 
 
 class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):

@@ -42,7 +42,7 @@ def statedata_from_single_obs(obs: dict[str, Tensor]) -> StateData:
     return statedata_from_obs([dict_to_data(obs)])
 
 
-def statedata_from_obs(obs: list[Data]) -> StateData:
+def statedata_from_obs(obs: list[BipartiteData]) -> StateData:
     b = Batch.from_data_list(obs)  # type: ignore
     attrs = StateData._fields
     data = {attr: b[attr] for attr in attrs}
@@ -55,7 +55,7 @@ def stackedstatedata_from_single_obs(obs: dict[str, Tensor]) -> StackedStateData
     return stackedstatedata_from_obs([stacked_dict_to_data(obs)])
 
 
-def stackedstatedata_from_obs(obs: list[Data]) -> StackedStateData:
+def stackedstatedata_from_obs(obs: list[BipartiteData]) -> StackedStateData:
     b = Batch.from_data_list(obs)  # type: ignore
     attrs = StackedStateData._fields
     data = {attr: b[attr] for attr in attrs}

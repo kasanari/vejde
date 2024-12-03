@@ -68,9 +68,7 @@ class GraphAgent(nn.Module):
 
     def forward(self, actions: Tensor, data: StateData):
         fg, g = self.embed(data)
-        logprob, entropy, value = self.actorcritic(
-            actions, fg.factors, g, data.batch_idx
-        )
+        logprob, entropy, value = self.actorcritic(actions, fg.factors, g, data.batch)
         return logprob, entropy, value
 
     def sample(self, data: StateData, deterministic: bool = False):

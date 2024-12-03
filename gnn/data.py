@@ -4,30 +4,24 @@ import torch as th
 from torch import Tensor
 from torch_geometric.data import Batch, Data  # type: ignore
 
-StateData = NamedTuple(
-    "StateData",
-    [
-        ("var_val", Tensor),
-        ("var_type", Tensor),
-        ("object_class", Tensor),
-        ("edge_index", Tensor),
-        ("edge_attr", Tensor),
-        ("batch_idx", Tensor),
-    ],
-)
 
-StackedStateData = NamedTuple(
-    "StateData",
-    [
-        ("var_val", Tensor),
-        ("var_type", Tensor),
-        ("object_class", Tensor),
-        ("edge_index", Tensor),
-        ("edge_attr", Tensor),
-        ("batch_idx", Tensor),
-        ("lengths", Tensor),
-    ],
-)
+class StateData(NamedTuple):
+    var_val: Tensor
+    var_type: Tensor
+    object_class: Tensor
+    edge_index: Tensor
+    edge_attr: Tensor
+    batch_idx: Tensor
+
+
+class StackedStateData(NamedTuple):
+    var_val: Tensor
+    var_type: Tensor
+    object_class: Tensor
+    edge_index: Tensor
+    edge_attr: Tensor
+    batch_idx: Tensor
+    lengths: Tensor
 
 
 class BipartiteData(Data):

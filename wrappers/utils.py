@@ -63,7 +63,7 @@ def create_obs(
     rddl_obs |= non_fluent_values
 
     filtered_groundings = sorted(
-        [g for g in groundings if not skip_fluent(g, variable_ranges)]
+        [g for g in groundings if not skip_fluent(g, variable_ranges) and g in rddl_obs]
     )
 
     filtered_obs: dict[str, Any] = {k: rddl_obs[k] for k in filtered_groundings}

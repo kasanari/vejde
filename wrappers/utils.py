@@ -81,7 +81,7 @@ def create_obs(
         "var_type": idx_g.variables,
         "var_value": idx_g.values,
         "factor": idx_g.factors,
-        "edge_index": idx_g.edge_indices,
+        "edge_index": idx_g.edge_indices.T,
         "edge_attr": idx_g.edge_attributes,
         # "numeric": numeric,
     }

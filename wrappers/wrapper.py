@@ -52,7 +52,7 @@ class GroundedRDDLGraphWrapper(RDDLGraphWrapper):
             "edge_index": spaces.Box(
                 low=0,
                 high=max(num_objects, num_groundings),
-                shape=(num_edges, 2),
+                shape=(2, num_edges),
                 dtype=np.int64,
             ),
             "edge_attr": spaces.Box(

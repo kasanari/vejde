@@ -6,22 +6,26 @@ from torch_geometric.data import Batch, Data  # type: ignore
 
 
 class StateData(NamedTuple):
-    var_val: Tensor
+    var_value: Tensor
     var_type: Tensor
-    object_class: Tensor
+    factor: Tensor
     edge_index: Tensor
     edge_attr: Tensor
-    batch_idx: Tensor
+    batch: Tensor
+    length: Tensor
+    # source_targets: (
+    #     Tensor  # 2xN tensor of source and target nodes for next state prediction
+    # )
 
 
 class StackedStateData(NamedTuple):
-    var_val: Tensor
+    var_value: Tensor
     var_type: Tensor
-    object_class: Tensor
+    factor: Tensor
     edge_index: Tensor
     edge_attr: Tensor
-    batch_idx: Tensor
-    lengths: Tensor
+    batch: Tensor
+    length: Tensor
 
 
 class BipartiteData(Data):
@@ -40,13 +44,10 @@ def statedata_from_single_obs(obs: dict[str, Tensor]) -> StateData:
 
 def statedata_from_obs(obs: list[Data]) -> StateData:
     b = Batch.from_data_list(obs)  # type: ignore
+    attrs = StateData._fields
+    data = {attr: b[attr] for attr in attrs}
     return StateData(
-        var_val=b.var_value,  # type: ignore
-        var_type=b.var_type,  # type: ignore
-        object_class=b.factor,  # type: ignore
-        edge_index=b.edge_index,  # type: ignore
-        edge_attr=b.edge_attr,  # type: ignore
-        batch_idx=b.batch,  # type: ignore
+        **data,
     )
 
 
@@ -56,54 +57,41 @@ def stackedstatedata_from_single_obs(obs: dict[str, Tensor]) -> StackedStateData
 
 def stackedstatedata_from_obs(obs: list[Data]) -> StackedStateData:
     b = Batch.from_data_list(obs)  # type: ignore
-
+    attrs = StackedStateData._fields
+    data = {attr: b[attr] for attr in attrs}
     return StackedStateData(
-        var_val=b.var_value,  # type: ignore
-        var_type=b.var_type,  # type: ignore
-        object_class=b.factor,  # type: ignore
-        edge_index=b.edge_index,  # type: ignore
-        edge_attr=b.edge_attr,  # type: ignore
-        batch_idx=b.batch,  # type: ignore
-        lengths=b.length,  # type: ignore
+        **data,
     )
 
 
 def batched_dict_to_data(
     obs: dict[str, tuple[Tensor]], num_envs: int
 ) -> list[BipartiteData]:
-    return [
-        BipartiteData(
-            var_value=th.as_tensor(obs["var_value"][i], dtype=th.float32),
-            var_type=th.as_tensor(obs["var_type"][i], dtype=th.int64),
-            factor=th.as_tensor(obs["factor"][i], dtype=th.int64),
-            edge_index=th.as_tensor(obs["edge_index"][i], dtype=th.int64).T,
-            edge_attr=th.as_tensor(obs["edge_attr"][i], dtype=th.int64),
-            length=th.as_tensor(obs["length"][i], dtype=th.int64),
-            num_nodes=obs["factor"][i].shape[0],  # + obs["var_value"].shape[0]
+    attrs = StackedStateData._fields
+
+    def create_data(i: int) -> BipartiteData:
+        data = {attr: th.as_tensor(obs[attr][i]) for attr in attrs}
+        return BipartiteData(
+            **data,
+            num_nodes=obs["factor"][i].shape[0],  # + obs["var_value"][i].shape[0]
         )
-        for i in range(num_envs)
-    ]
+
+    return [create_data(i) for i in range(num_envs)]
 
 
 def dict_to_data(obs: dict[str, Tensor]) -> BipartiteData:
+    attrs = StateData._fields
+    data = {attr: th.as_tensor(obs[attr]) for attr in attrs if attr != "batch"}
     return BipartiteData(
-        var_value=th.as_tensor(obs["var_value"], dtype=th.float32),
-        var_type=th.as_tensor(obs["var_type"], dtype=th.int64),
-        factor=th.as_tensor(obs["factor"], dtype=th.int64),
-        edge_index=th.as_tensor(obs["edge_index"], dtype=th.int64).T,
-        edge_attr=th.as_tensor(obs["edge_attr"], dtype=th.int64),
-        length=th.as_tensor(obs["length"], dtype=th.int64),
+        **data,
         num_nodes=obs["factor"].shape[0],  # + obs["var_value"].shape[0]
     )
 
 
 def stacked_dict_to_data(obs: dict[str, Tensor]) -> BipartiteData:
+    attrs = StackedStateData._fields
+    data = {attr: th.as_tensor(obs[attr]) for attr in attrs if attr != "batch"}
     return BipartiteData(
-        var_value=th.as_tensor(obs["var_value"], dtype=th.float32),
-        var_type=th.as_tensor(obs["var_type"], dtype=th.int64),
-        factor=th.as_tensor(obs["factor"], dtype=th.int64),
-        edge_index=th.as_tensor(obs["edge_index"], dtype=th.int64).T,
-        edge_attr=th.as_tensor(obs["edge_attr"], dtype=th.int64),
-        length=th.as_tensor(obs["length"], dtype=th.int64),
+        **data,
         num_nodes=obs["factor"].shape[0],  # + obs["var_value"].shape[0]
     )

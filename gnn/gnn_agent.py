@@ -55,15 +55,13 @@ class GraphAgent(nn.Module):
         )
 
     def embed(self, data: StateData) -> tuple[FactorGraph, Tensor]:
-        variables, factors = self.embedder(
-            data.var_val, data.var_type, data.object_class
-        )
+        variables, factors = self.embedder(data.var_value, data.var_type, data.factor)
         fg = FactorGraph(
             variables,
             factors,
             data.edge_index,
             data.edge_attr,
-            data.batch_idx,
+            data.batch,
         )
         e_fg = self.p_gnn(fg)
         return e_fg
@@ -78,7 +76,7 @@ class GraphAgent(nn.Module):
     def sample(self, data: StateData, deterministic: bool = False):
         fg, g = self.embed(data)
         action, logprob, entropy = self.actorcritic.sample(
-            fg.factors, g, data.batch_idx, deterministic
+            fg.factors, g, data.batch, deterministic
         )
         value = self.actorcritic.value(g)
         return action, logprob, entropy, value
@@ -126,7 +124,7 @@ class RecurrentGraphAgent(nn.Module):
 
     def embed(self, data: StackedStateData) -> tuple[FactorGraph, Tensor]:
         variables, factors = self.embedder(
-            data.var_val, data.var_type, data.object_class, data.lengths
+            data.var_value, data.var_type, data.factor, data.length
         )
         fg, g = self.p_gnn(
             FactorGraph(
@@ -134,19 +132,19 @@ class RecurrentGraphAgent(nn.Module):
                 factors,
                 data.edge_index,
                 data.edge_attr,
-                data.batch_idx,
+                data.batch,
             )
         )
         return fg, g
 
     def forward(self, actions: Tensor, data: StackedStateData):
         fg, g = self.embed(data)
-        return self.actorcritic(actions, fg.factors, g, data.batch_idx)
+        return self.actorcritic(actions, fg.factors, g, data.batch)
 
     def sample(self, data: StackedStateData, deterministic: bool = False):
         fg, g = self.embed(data)
         action, logprob, entropy = self.actorcritic.sample(
-            fg.factors, g, data.batch_idx, deterministic
+            fg.factors, g, data.batch, deterministic
         )
         value = self.actorcritic.value(g)
         return action, logprob, entropy, value

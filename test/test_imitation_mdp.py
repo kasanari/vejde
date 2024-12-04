@@ -1,7 +1,7 @@
 import json
 import random
 from collections import deque
-from typing import Any
+from typing import Any, NamedTuple
 
 import gymnasium as gym
 import numpy as np
@@ -9,13 +9,23 @@ import torch as th
 from gymnasium.spaces import Dict, MultiDiscrete
 from torch.func import functional_call, grad, vmap
 from torch_geometric.data import Batch, Data
-from gnn.data import statedata_from_single_obs, dict_to_data, statedata_from_obs
-
+from gnn.data import (
+    statedata_from_single_obs,
+    dict_to_data,
+    statedata_from_obs,
+)
+from torch import Tensor
 from gnn import ActionMode, Config, GraphAgent, StateData
 
 # from wrappers.kg_wrapper import register_env
 from test.util import save_eval_data
 from wrappers.wrapper import register_env
+
+
+class Rollout(NamedTuple):
+    rewards: list[float]
+    obs: list[dict[str, Any]]
+    actions: list[tuple[int, int]]
 
 
 def knowledge_graph_policy(obs):
@@ -111,9 +121,8 @@ def test_imitation():
 
 
 def iteration(i, env, agent, optimizer, seed: int):
-    obs, actions = rollout(env, seed)
-    obs = [dict_to_data(o) for o in obs]
-    loss, grad_norm = update(i, agent, optimizer, actions, obs)
+    r = rollout(env, seed)
+    loss, grad_norm = update(i, agent, optimizer, r)
     print(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}")
     return loss
 
@@ -150,10 +159,10 @@ def update(
     iteration: int,
     agent: GraphAgent,
     optimizer: th.optim.Optimizer,
-    actions,
-    obs: list[Data],
+    rollout: Rollout,
 ):
-    l2_weight = 0.0
+    _, obs, actions = rollout
+    obs = [dict_to_data(o) for o in obs]
     s = statedata_from_obs(obs)
     # b = th.stack([d.var_value for d in obs])
     actions = th.as_tensor(actions, dtype=th.int64)
@@ -163,9 +172,7 @@ def update(
     )
 
     l2_norms = [th.sum(th.square(w)) for w in agent.parameters()]
-    l2_norm = sum(l2_norms) / 2  # divide by 2 to cancel with gradient of square
-    l2_loss = l2_weight * l2_norm
-    loss = -logprob.mean() + l2_loss
+    loss = calc_loss(l2_norms, logprob)
 
     optimizer.zero_grad()
     loss.backward()
@@ -177,20 +184,31 @@ def update(
     # if iteration % 100 == 0:
     #     per_sample_grads = per_sample_grad(agent, b, actions)
 
-    grad_norm = th.nn.utils.clip_grad_norm_(agent.parameters(), 1.0)
+    grad_norm = th.nn.utils.clip_grad_norm_(
+        agent.parameters(), 1.0, error_if_nonfinite=True
+    )
 
     optimizer.step()
 
     return loss.item(), grad_norm.item()
 
 
-def rollout(env: gym.Env, seed: int):
+def calc_loss(l2_norms: list[Tensor], logprob: Tensor) -> th.Tensor:
+    l2_weight = 0.0
+    l2_norm = sum(l2_norms) / 2  # divide by 2 to cancel with gradient of square
+    l2_loss = l2_weight * l2_norm
+    loss = -logprob.mean() + l2_loss
+    return loss
+
+
+def rollout(env: gym.Env, seed: int) -> Rollout:
     obs, info = env.reset(seed=seed)
     done = False
     time = 0
     sum_reward = 0
     actions_buf = deque()
     obs_buf = deque()
+    rewards_buf = deque()
     while not done:
         # action = env.action_space.sample()
         action = policy(info["rddl_state"])
@@ -203,6 +221,7 @@ def rollout(env: gym.Env, seed: int):
         sum_reward += reward
         actions_buf.append(action)
         obs_buf.append(obs)
+        rewards_buf.append(reward)
 
         obs = next_obs
         time += 1
@@ -215,7 +234,7 @@ def rollout(env: gym.Env, seed: int):
 
     assert sum_reward == 4.0, f"Expert policy failed: {sum_reward}"
 
-    return list(obs_buf), list(actions_buf)
+    return Rollout(list(rewards_buf), list(obs_buf), list(actions_buf))
 
 
 @th.no_grad()

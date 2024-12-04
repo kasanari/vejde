@@ -28,7 +28,6 @@ class BipartiteGNNConvVariableToFactor(MessagePassing):
         activation: nn.Module,
     ):
         super().__init__(aggr=aggr, flow="source_to_target")
-        self.root = MLPLayer(in_channels, out_channels, activation)
         self.combine = MLPLayer(out_channels * 2, out_channels, activation)
         self.message_func = MLPLayer(in_channels * 2, out_channels, activation)
 

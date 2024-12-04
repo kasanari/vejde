@@ -1,6 +1,11 @@
 import gymnasium as gym
 import numpy as np
 
+from wrappers.add_actions_wrapper import AddActionWrapper
+from wrappers.labelwrapper import LabelingWrapper
+from wrappers.last_obs_wrapper import LastObsWrapper
+from wrappers.stacking_last_obs_wrapper import LastObsStackingWrapper
+from wrappers.stacking_wrapper import StackingWrapper
 from wrappers.wrapper import register_env
 
 
@@ -76,6 +81,63 @@ def test_grounded(seed):
     return sum_reward
 
 
+def test_stacking_wrappers():
+    import pyRDDLGym
+
+    domain = "rddl/conditional_bandit.rddl"
+    instance = "rddl/conditional_bandit_i0.rddl"
+    # env_id = register_env()
+    # env = gym.make(
+    #     env_id,
+    #     domain=domain,
+    #     instance=instance,
+    #     render_mode="idx",
+    # )
+
+    env: gym.Env[gym.spaces.Dict, gym.spaces.Dict] = pyRDDLGym.make(
+        domain, instance, enforce_action_constraints=True
+    )  # type: ignore
+
+    env = LastObsStackingWrapper(AddActionWrapper(LastObsWrapper(env)))
+
+    obs, info = env.reset()
+
+    action1 = {"press___red": 1, "press___green": 0}
+    obs, reward, terminated, truncated, info = env.step(action1)
+
+    action2 = {"press___red": 0, "press___green": 1}
+    obs, reward, terminated, truncated, info = env.step(action2)
+    pass
+
+
+def test_wrappers():
+    import pyRDDLGym
+
+    domain = "rddl/conditional_bandit.rddl"
+    instance = "rddl/conditional_bandit_i0.rddl"
+    # env_id = register_env()
+    # env = gym.make(
+    #     env_id,
+    #     domain=domain,
+    #     instance=instance,
+    #     render_mode="idx",
+    # )
+
+    env: gym.Env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
+
+    env = LabelingWrapper(AddActionWrapper(LastObsWrapper(env)))
+
+    obs, info = env.reset()
+
+    action1 = {"press___red": 1, "press___green": 0}
+    obs, reward, terminated, truncated, info = env.step(action1)
+
+    action2 = {"press___red": 0, "press___green": 1}
+    obs, reward, terminated, truncated, info = env.step(action2)
+    pass
+
+
 if __name__ == "__main__":
-    return_ = [test_grounded(i) for i in range(1)]
-    print(np.mean(return_))
+    # return_ = [test_grounded(i) for i in range(1)]
+    # print(np.mean(return_))
+    test_wrappers()

@@ -50,9 +50,19 @@ def get_groundings(model: RDDLLiftedModel, fluents: dict[str, Any]) -> set[str]:
     )
 
 
+def graph_to_dict(idx_g: IdxFactorGraph) -> dict[str, Any]:
+    return {
+        "var_type": idx_g.variables,
+        "var_value": idx_g.values,
+        "factor": idx_g.factors,
+        "edge_index": idx_g.edge_indices.T,
+        "edge_attr": idx_g.edge_attributes,
+        # "numeric": numeric,
+    }
+
+
 def create_obs(
     rddl_obs: dict[str, Any],
-    non_fluent_values: dict[str, Any],
     rel_to_idx: dict[str, int],
     type_to_idx: dict[str, int],
     groundings: list[str],
@@ -60,8 +70,6 @@ def create_obs(
     variable_ranges: dict[str, str],
     skip_fluent: Callable[[str, dict[str, str]], bool],
 ) -> tuple[dict[str, Any], FactorGraph]:
-    rddl_obs |= non_fluent_values
-
     filtered_groundings = sorted(
         [g for g in groundings if not skip_fluent(g, variable_ranges) and g in rddl_obs]
     )
@@ -72,19 +80,10 @@ def create_obs(
         filtered_obs,
         filtered_groundings,
         obj_to_type,
-        # variable_ranges,
     )
 
-    idx_g = map_graph_to_idx(g, rel_to_idx, type_to_idx)
+    obs = graph_to_dict(map_graph_to_idx(g, rel_to_idx, type_to_idx))
 
-    obs = {
-        "var_type": idx_g.variables,
-        "var_value": idx_g.values,
-        "factor": idx_g.factors,
-        "edge_index": idx_g.edge_indices.T,
-        "edge_attr": idx_g.edge_attributes,
-        # "numeric": numeric,
-    }
     return obs, g
 
 
@@ -110,21 +109,12 @@ def create_stacked_obs(
         filtered_obs,
         filtered_groundings,
         obj_to_type,
-        # variable_ranges,
     )
 
     assert isinstance(g, StackedFactorGraph)
 
-    idx_g = map_stacked_graph_to_idx(g, rel_to_idx, type_to_idx)
+    obs = graph_to_dict(map_stacked_graph_to_idx(g, rel_to_idx, type_to_idx))
 
-    obs = {
-        "var_type": idx_g.variables,
-        "var_value": idx_g.values,
-        "factor": idx_g.factors,
-        "edge_index": idx_g.edge_indices,
-        "edge_attr": idx_g.edge_attributes,
-        # "numeric": numeric,
-    }
     return obs, g
 
 

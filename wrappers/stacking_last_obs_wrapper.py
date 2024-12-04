@@ -4,7 +4,6 @@ from typing import Any, TypeVar
 from copy import copy, deepcopy
 
 import pyRDDLGym  # type: ignore
-
 import gymnasium as gym
 
 ObsType = TypeVar("ObsType")
@@ -63,8 +62,9 @@ def create_obs(
     return buffer, lengths
 
 
-class StackingWrapper(gym.Wrapper):
+class LastObsStackingWrapper(gym.Wrapper):
     def __init__(self, env) -> None:
+        super().__init__(env)
         self.env = env  # ActionInObsWrapper(env)
         self.buffer: dict[str, deque[Any]] = {}
         self.observed_keys: set[str] = set()
@@ -74,14 +74,14 @@ class StackingWrapper(gym.Wrapper):
     def reset(
         self, seed: int | None = None
     ) -> tuple[dict[str, str], float, bool, bool, dict[str, Any]]:
-        obs, info = self.env.reset(seed=seed)
-        o, lengths = create_obs(obs, {})
+        (last_obs, obs), info = self.env.reset(seed=seed)
+        o, lengths = create_obs(obs, deepcopy(self.buffer))
 
         # self.observed_keys = observed_keys
-        self.buffer = deepcopy(o)
+        # self.buffer = deepcopy(o)
         self.iteration = 0
 
-        return (o, lengths), info  # type: ignore
+        return (last_obs, {}, o, lengths), info  # type: ignore
 
     def step(
         self,
@@ -99,19 +99,31 @@ class StackingWrapper(gym.Wrapper):
         #     self.env.step(actions)
         # )
 
-        next_obs, reward, terminated, truncated, info = self.env.step(actions)
+        (last_obs, next_obs), reward, terminated, truncated, info = self.env.step(
+            actions
+        )
 
-        o, lengths = create_obs(next_obs, self.buffer, self.horizon)
+        stacked_last_obs, last_lengths = create_obs(last_obs, deepcopy(self.buffer))
+
+        stacked_next_obs, next_lengths = create_obs(
+            next_obs, deepcopy(stacked_last_obs)
+        )
 
         # self.observed_keys = observed_keys
-        self.buffer = deepcopy(o)
+        self.buffer = deepcopy(stacked_last_obs)
 
-        return (o, lengths), reward, terminated, truncated, info  # type: ignore
+        return (
+            (stacked_last_obs, last_lengths, stacked_next_obs, next_lengths),
+            reward,
+            terminated,
+            truncated,
+            info,
+        )  # type: ignore
 
 
 if __name__ == "__main__":
     env = pyRDDLGym.make("Tamarisk_POMDP_ippc2014", 1)  # type: ignore
-    env = StackingWrapper(env)
+    env = LastObsStackingWrapper(env)
     done = False
     while not done:
         obs, reward, terminated, truncated, info = env.step({})  # type: ignore

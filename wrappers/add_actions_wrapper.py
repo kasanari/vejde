@@ -1,25 +1,35 @@
-from typing import Any
+from typing import Any, TypeVar
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 import pyRDDLGym  # type: ignore
 
+from wrappers.last_obs_wrapper import LastObsWrapper
 from wrappers.utils import get_groundings
+import gymnasium as gym
+import numpy as np
+
+ObsType = TypeVar("ObsType")
+ActType = TypeVar("ActType")
+WrapperObsType = TypeVar("WrapperObsType")
+WrapperActType = TypeVar("WrapperActType")
 
 
 def add_actions_to_obs(
     obs: dict[str, Any], actions: dict[str, bool | None]
 ) -> dict[str, Any]:
-    obs_with_actions = {a: bool(v) for a, v in actions.items()} | obs
+    obs_with_actions = {a: v for a, v in actions.items()} | obs
     return obs_with_actions
 
 
-class ActionInObsWrapper:
+class AddActionWrapper(
+    gym.Wrapper[gym.spaces.Tuple, gym.spaces.Dict, gym.spaces.Tuple, gym.spaces.Dict]
+):
     """
     Adds actions to the previous observation.
     """
 
-    def __init__(self, env: pyRDDLGym.RDDLEnv) -> None:
+    def __init__(self, env: gym.Env[gym.spaces.Tuple, gym.spaces.Dict]) -> None:
+        super().__init__(env)
         self.env = env
-        self.last_obs: dict[str, Any] = {}
 
     @staticmethod
     def _add_actions_to_obs(
@@ -27,7 +37,9 @@ class ActionInObsWrapper:
     ) -> dict[str, bool | None]:
         action_groundings = get_groundings(model, model.action_fluents)  # type: ignore
 
-        boolean_actions: dict[str, bool] = {k: bool(v) for k, v in actions.items()}
+        boolean_actions: dict[str, np.bool_] = {
+            k: np.bool_(v) for k, v in actions.items()
+        }
 
         new_actions: dict[str, bool | None] = {
             k: boolean_actions.get(k, None) for k in action_groundings if k not in obs
@@ -36,9 +48,17 @@ class ActionInObsWrapper:
         obs_with_actions = add_actions_to_obs(obs, new_actions)
         return obs_with_actions
 
+    @staticmethod
+    def _dynamic_add_actions_to_obs(
+        obs: dict[str, Any], actions: dict[str, int]
+    ) -> dict[str, bool]:
+        boolean_actions = {k: np.bool_(v) for k, v in actions.items()}
+        obs_with_actions = add_actions_to_obs(obs, boolean_actions)
+        return obs_with_actions
+
     def step(
         self,
-        actions: dict[str, int],
+        actions: gym.spaces.Dict,
     ) -> tuple[
         tuple[dict[str, bool | None], dict[str, bool | None]],
         float,
@@ -46,13 +66,11 @@ class ActionInObsWrapper:
         bool,
         dict[str, Any],
     ]:
-        next_obs, reward, terminated, truncated, info = self.env.step(actions)
-
-        obs_with_actions = self._add_actions_to_obs(
-            self.env.model, self.last_obs.copy(), actions
+        (last_obs, next_obs), reward, terminated, truncated, info = self.env.step(
+            actions
         )
 
-        self.last_obs = next_obs
+        obs_with_actions = self._dynamic_add_actions_to_obs(last_obs, actions)
 
         return (obs_with_actions, next_obs), reward, terminated, truncated, info
 
@@ -62,13 +80,10 @@ class ActionInObsWrapper:
         dict[str, bool | None],
         dict[str, Any],
     ]:
-        obs, info = self.env.reset(seed=seed)
+        (last_obs, obs), info = self.env.reset(seed=seed)
 
-        obs_with_actions = self._add_actions_to_obs(self.env.model, obs, {})
+        obs_with_actions = self._dynamic_add_actions_to_obs(last_obs, {})
 
-        self.last_obs = obs
-        return obs_with_actions, info
+        o = (obs_with_actions, obs)
 
-    @property
-    def unwrapped(self) -> pyRDDLGym.RDDLEnv:
-        return self.env.unwrapped  # type: ignore
+        return o, info

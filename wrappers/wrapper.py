@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import logging
 from functools import cache
 from typing import Any, SupportsFloat
@@ -10,8 +11,8 @@ from .utils import predicate, to_rddl_action, create_obs
 import pyRDDLGym  # type: ignore
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel, RDDLPlanningModel  # type: ignore
 from pyRDDLGym import RDDLEnv  # type: ignore
-from .utils import to_graphviz_alt, get_groundings
-from copy import copy
+from .utils import to_graphviz_alt, get_groundings, num_edges
+
 
 from .utils import to_graphviz_alt
 from .base_model import BaseModel
@@ -19,8 +20,8 @@ from .base_model import BaseModel
 logger = logging.getLogger(__name__)
 
 
-def skip_fluent(key: str, variable_ranges: dict[str, str]) -> bool:
-    return variable_ranges[predicate(key)] != "bool" or key == "noop"
+def skip_fluent(key: str, variable_ranges: Callable[[str], str]) -> bool:
+    return variable_ranges(predicate(key)) is not bool or key == "noop"
 
 
 class GroundedRDDLGraphWrapper(gym.Wrapper):
@@ -63,8 +64,8 @@ class GroundedRDDLGraphWrapper(gym.Wrapper):
             object_nodes,
             edge_indices,  # type: ignore
             edge_attributes,
-            self.wrapped_model.idx_to_type,
-            self.wrapped_model.idx_to_relation,
+            self.wrapped_model.idx_to_type,  # type: ignore
+            self.wrapped_model.idx_to_relation,  # type: ignore
         )
 
     @property
@@ -73,8 +74,8 @@ class GroundedRDDLGraphWrapper(gym.Wrapper):
         num_groundings = len(self.wrapped_model.groundings)
         num_objects = self.wrapped_model.num_objects
         num_types = self.wrapped_model.num_types
-        num_relations = len(self.wrapped_model.rel_to_idx)
-        num_edges = self.wrapped_model.num_edges
+        num_relations = self.wrapped_model.num_relations
+        edges = num_edges(self.wrapped_model.arity, self.wrapped_model.groundings)
 
         s: dict[str, spaces.Space] = {  # type: ignore
             "var_type": spaces.Box(
@@ -95,13 +96,13 @@ class GroundedRDDLGraphWrapper(gym.Wrapper):
             "edge_index": spaces.Box(
                 low=0,
                 high=max(num_objects, num_groundings),
-                shape=(2, num_edges),
+                shape=(2, edges),
                 dtype=np.int64,
             ),
             "edge_attr": spaces.Box(
                 low=0,
                 high=1,
-                shape=(num_edges,),
+                shape=(edges,),
                 dtype=np.int64,
             ),
             "length": spaces.Box(
@@ -146,7 +147,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper):
     ) -> tuple[dict[str, int], str]:
         return to_rddl_action(
             action,
-            self.wrapped_model.action_fluents,
+            self.wrapped_model.idx_to_action,
             self.wrapped_model.idx_to_object,
             self.wrapped_model.action_groundings,
         )

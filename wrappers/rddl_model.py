@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel, RDDLPlanningModel  # type: ignore
 from functools import cache
 from copy import copy
@@ -6,22 +7,66 @@ from wrappers.utils import predicate
 from wrappers.utils import get_groundings
 
 
-def skip_fluent(key: str, variable_ranges: dict[str, str]) -> bool:
-    return variable_ranges[predicate(key)] != "bool" or key == "noop"
+def skip_fluent(key: str, variable_ranges: Callable[[str], type]) -> bool:
+    return variable_ranges(predicate(key)) is not bool or key == "noop"
 
 
 class RDDLModel(BaseModel):
     def __init__(self, model: RDDLLiftedModel) -> None:
         self.model = model
 
-    @property
     @cache
-    def idx_to_type(self) -> list[str]:
-        return sorted(set(self.obj_to_type.values()))
+    def arity(self, fluent: str) -> int:
+        return self.arities[fluent]
+
+    @cache
+    def fluents_of_arity(self, arity: int) -> list[str]:
+        return self._fluents_of_arity[arity]
+
+    @cache
+    def idx_to_object(self, idx: int) -> str:
+        return self._idx_to_object[idx]
+
+    @cache
+    def idx_to_relation(self, idx: int) -> str:
+        return self._idx_to_relation[idx]
+
+    @cache
+    def idx_to_type(self, idx: int) -> str:
+        return self._idx_to_type[idx]
+
+    @cache
+    def obj_to_type(self, obj: str) -> str:
+        return self._obj_to_type[obj]
+
+    @cache
+    def rel_to_idx(self, relation: str) -> int:
+        return self._rel_to_idx[relation]
+
+    @cache
+    def type_attributes(self, type: str) -> list[str]:
+        return self._type_attributes[type]
+
+    @cache
+    def variable_params(self, variable: str) -> list[str]:
+        return self._variable_params[variable]
+
+    @cache
+    def variable_range(self, fluent: str) -> type:
+        return self.variable_ranges[fluent]
+
+    @cache
+    def idx_to_action(self, idx: int) -> str:
+        return self.action_fluents[idx]
 
     @property
     @cache
-    def obj_to_type(self) -> dict[str, str]:
+    def _idx_to_type(self) -> list[str]:
+        return sorted(set(self._obj_to_type.values()))
+
+    @property
+    @cache
+    def _obj_to_type(self) -> dict[str, str]:
         model: RDDLLiftedModel = self.model  # type: ignore
         object_to_type: dict[str, str] = copy(model.object_to_type)  # type: ignore
         return object_to_type
@@ -29,7 +74,7 @@ class RDDLModel(BaseModel):
     @property
     @cache
     def num_types(self) -> int:
-        return len(self.idx_to_type)
+        return len(self._idx_to_type)
 
     @property
     @cache
@@ -50,26 +95,31 @@ class RDDLModel(BaseModel):
 
     @property
     @cache
-    def num_edges(self) -> int:
-        return sum(self.arities[predicate(g)] for g in self.groundings)
+    def variable_ranges(self) -> dict[str, type]:
+        mapping = {
+            "bool": bool,
+            "int": int,
+            "real": float,
+        }
 
-    @property
-    @cache
-    def variable_ranges(self) -> dict[str, str]:
-        variable_ranges: dict[str, str] = self.model._variable_ranges  # type: ignore
-        variable_ranges["noop"] = "bool"
+        variable_ranges: dict[str, type] = {
+            key: mapping[value]
+            for key, value in self.model._variable_ranges.items()  # type: ignore
+        }
+        variable_ranges["noop"] = bool
+
         return variable_ranges
 
     @property
     @cache
-    def variable_params(self) -> dict[str, list[str]]:
+    def _variable_params(self) -> dict[str, list[str]]:
         variable_params: dict[str, list[str]] = copy(self.model.variable_params)  # type: ignore
         variable_params["noop"] = []
         return variable_params
 
     @property
     @cache
-    def type_to_arity(self) -> dict[str, int]:
+    def _type_attributes(self) -> dict[str, list[str]]:
         vp = self.model.variable_params  # type: ignore
         return {
             value[0]: [k for k, v in vp.items() if v == value]  # type: ignore
@@ -79,7 +129,7 @@ class RDDLModel(BaseModel):
 
     @property
     @cache
-    def arities_to_fluent(self) -> dict[int, list[str]]:
+    def _fluents_of_arity(self) -> dict[int, list[str]]:
         arities: dict[str, int] = self.arities
         return {
             value: [k for k, v in arities.items() if v == value]
@@ -88,14 +138,14 @@ class RDDLModel(BaseModel):
 
     @property
     @cache
-    def idx_to_object(self) -> list[str]:
+    def _idx_to_object(self) -> list[str]:
         object_terms: list[str] = list(self.model.object_to_index.keys())  # type: ignore
         object_list = sorted(object_terms)
         return object_list
 
     @property
     @cache
-    def idx_to_relation(self) -> list[str]:
+    def _idx_to_relation(self) -> list[str]:
         relation_list = sorted(set(predicate(g) for g in self.groundings))
         return relation_list
 
@@ -133,42 +183,50 @@ class RDDLModel(BaseModel):
     @property
     @cache
     def num_relations(self) -> int:
-        return len(self.idx_to_relation)
+        return len(self._idx_to_relation)
 
     @property
     @cache
     def num_objects(self) -> int:
-        return len(self.idx_to_object)
+        return len(self._idx_to_object)
+
+    @cache
+    def type_to_idx(self, type: str) -> int:
+        return self._type_to_idx[type]
 
     @property
     @cache
-    def type_to_idx(self) -> dict[str, int]:
+    def _type_to_idx(self) -> dict[str, int]:
         return {
-            symb: idx + 1 for idx, symb in enumerate(self.idx_to_type)
+            symb: idx + 1 for idx, symb in enumerate(self._idx_to_type)
         }  # 0 is reserved for padding
 
     @property
     @cache
-    def rel_to_idx(self) -> dict[str, int]:
+    def _rel_to_idx(self) -> dict[str, int]:
         return {
-            symb: idx + 1 for idx, symb in enumerate(self.idx_to_relation)
+            symb: idx + 1 for idx, symb in enumerate(self._idx_to_relation)
         }  # 0 is reserved for padding
+
+    @cache
+    def obj_to_idx(self, obj: str) -> int:
+        return self._obj_to_idx[obj]
 
     @property
     @cache
-    def obj_to_idx(self) -> dict[str, int]:
+    def _obj_to_idx(self) -> dict[str, int]:
         return {
-            symb: idx + 1 for idx, symb in enumerate(self.idx_to_object)
+            symb: idx + 1 for idx, symb in enumerate(self._idx_to_object)
         }  # 0 is reserved for padding
 
     @property
     @cache
     def arities(self) -> dict[str, int]:
-        return {key: len(value) for key, value in self.variable_params.items()}
+        return {key: len(value) for key, value in self._variable_params.items()}
 
     @property
     @cache
     def groundings(self):
         return sorted(
-            [g for g in self.all_groundings if not skip_fluent(g, self.variable_ranges)]
+            [g for g in self.all_groundings if not skip_fluent(g, self.variable_range)]
         )

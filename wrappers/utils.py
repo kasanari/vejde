@@ -75,7 +75,7 @@ def create_obs(
         [
             g
             for g in model.groundings
-            if not skip_fluent(g, model.variable_ranges) and g in rddl_obs
+            if not skip_fluent(g, model.variable_range) and g in rddl_obs  # type: ignore
         ]
     )
 
@@ -123,14 +123,18 @@ def create_stacked_obs(
     return obs, g
 
 
+def num_edges(arities: Callable[[str], int], groundings: list[str]) -> int:
+    return sum(arities(predicate(g)) for g in groundings)
+
+
 def to_rddl_action(
     action: tuple[int, int],
-    idx_to_action: list[str],
-    idx_to_obj: list[str],
+    idx_to_action: Callable[[int], str],
+    idx_to_obj: Callable[[int], str],
     action_groundings: set[str],
 ) -> tuple[dict[str, int], str]:
-    action_fluent = idx_to_action[action[0]]
-    object_id = idx_to_obj[action[1]]
+    action_fluent = idx_to_action(action[0])
+    object_id = idx_to_obj(action[1])
 
     rddl_action = (
         f"{action_fluent}___{object_id}" if action_fluent != "noop" else "noop"
@@ -194,8 +198,8 @@ def create_edges(d: dict[str, Any]) -> list[Edge]:
 
 def map_graph_to_idx(
     factorgraph: FactorGraph,
-    rel_to_idx: dict[str, int],
-    type_to_idx: dict[str, int],
+    rel_to_idx: Callable[[str], int],
+    type_to_idx: Callable[[str], int],
 ) -> IdxFactorGraph:
     edge_attributes = np.asarray(factorgraph.edge_attributes, dtype=np.int64)
 
@@ -204,10 +208,10 @@ def map_graph_to_idx(
     )  # TODO: handle None values in a better way
 
     return IdxFactorGraph(
-        np.array([rel_to_idx[key] for key in factorgraph.variables], dtype=np.int64),
+        np.array([rel_to_idx(key) for key in factorgraph.variables], dtype=np.int64),
         np.array(vals, dtype=np.int8),
         np.array(
-            [type_to_idx[object] for object in factorgraph.factor_values],
+            [type_to_idx(object) for object in factorgraph.factor_values],
             dtype=np.int64,
         ),
         factorgraph.edge_indices,
@@ -266,14 +270,14 @@ def predicate_list_from_groundings(groundings: list[str]) -> list[str]:
 def generate_bipartite_obs(
     obs: dict[str, bool],
     groundings: list[str],
-    obj_to_type: dict[str, str],
+    obj_to_type: Callable[[str], str],
     # variable_ranges: dict[str, str],
 ) -> FactorGraph | StackedFactorGraph:
     edges: set[Edge] = create_edges(obs)
 
     obj_list = object_list(obs)
 
-    object_types = [obj_to_type[object] for object in obj_list]
+    object_types = [obj_to_type(object) for object in obj_list]
 
     fact_node_values = [obs[key] for key in groundings]
 

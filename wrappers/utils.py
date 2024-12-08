@@ -69,13 +69,11 @@ def create_obs(
     model: BaseModel,
     skip_fluent: Callable[[str, dict[str, str]], bool],
 ) -> tuple[dict[str, Any], FactorGraph]:
-    rddl_obs |= model.non_fluent_values
-
     filtered_groundings = sorted(
         [
             g
-            for g in model.groundings
-            if not skip_fluent(g, model.variable_range) and g in rddl_obs  # type: ignore
+            for g in rddl_obs
+            if not skip_fluent(g, model.variable_range)  # type: ignore
         ]
     )
 

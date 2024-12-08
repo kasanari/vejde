@@ -124,7 +124,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper):
             skip_fluent,
         )
 
-        o["length"] = np.ones(len(self.wrapped_model.groundings))
+        o["length"] = np.ones_like(o["var_value"])
         return o, g
 
     def reset(
@@ -135,7 +135,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper):
         obs, g = self._create_obs(rddl_obs)
 
         info["state"] = g
-        info["rddl_state"] = self.env.state  # type: ignore
+        info["rddl_state"] = rddl_obs  # type: ignore
 
         self.last_obs = obs
         self.last_rddl_obs = rddl_obs
@@ -163,7 +163,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper):
         obs, g = self._create_obs(rddl_obs)
 
         info["state"] = g
-        info["rddl_state"] = self.env.state  # type: ignore
+        info["rddl_state"] = rddl_obs  # type: ignore
 
         self.last_obs = obs
         self.last_rddl_obs = rddl_obs

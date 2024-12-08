@@ -78,12 +78,7 @@ class RDDLModel(BaseModel):
 
     @property
     @cache
-    def non_fluent_values(self) -> dict[str, int]:
-        # model = self.model
-        # return dict(
-        #     model.ground_vars_with_values(model.non_fluents)  # type: ignore
-        # )
-
+    def _non_fluent_values(self) -> dict[str, int]:
         nf_vals = {}
 
         non_fluents = self.model.ast.non_fluents.init_non_fluent  # type: ignore
@@ -151,17 +146,26 @@ class RDDLModel(BaseModel):
 
     @property
     @cache
-    def all_groundings(self) -> list[str]:
+    def groundings(self) -> list[str]:
         model = self.model
 
         state_fluents = model.state_fluents  # type: ignore
 
-        non_fluent_groundings = set(self.non_fluent_values.keys())
+        non_fluent_groundings = set(self._non_fluent_values.keys())
         state_groundings: set[str] = get_groundings(model, state_fluents)  # type: ignore
 
-        g = state_groundings | non_fluent_groundings
+        all_groundings = state_groundings | non_fluent_groundings
 
-        return sorted(g)
+        return sorted(
+            [
+                g
+                for g in all_groundings
+                if not skip_fluent(
+                    g,
+                    self.variable_range,
+                )
+            ]
+        )
 
     @property
     @cache
@@ -223,10 +227,3 @@ class RDDLModel(BaseModel):
     @cache
     def arities(self) -> dict[str, int]:
         return {key: len(value) for key, value in self._variable_params.items()}
-
-    @property
-    @cache
-    def groundings(self):
-        return sorted(
-            [g for g in self.all_groundings if not skip_fluent(g, self.variable_range)]
-        )

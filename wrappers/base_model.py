@@ -72,15 +72,6 @@ class BaseModel(ABC):
     @property
     @abstractmethod
     @cache
-    def non_fluent_values(self) -> dict[str, int]:
-        """
-        A dictionary of grounded variables and their values in the instance model assumed to be constant over time.
-        """
-        ...
-
-    @property
-    @abstractmethod
-    @cache
     def num_objects(self) -> int:
         "The number of objects in the instance."
         ...

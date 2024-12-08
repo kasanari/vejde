@@ -20,6 +20,7 @@ from gnn import ActionMode, Config, GraphAgent, StateData
 # from wrappers.kg_wrapper import register_env
 from test.util import save_eval_data
 
+from wrappers.rddl_add_non_fluents_wrapper import RDDLAddNonFluents
 from wrappers.rddl_model import RDDLModel
 import pyRDDLGym
 
@@ -104,8 +105,9 @@ def test_imitation():
 
     env_id = register_env()
     env: gym.Env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
+    env = RDDLAddNonFluents(env)
     env: gym.Env[Dict, MultiDiscrete] = GroundedRDDLGraphWrapper(
-        env, model=RDDLModel(env.model)
+        env, model=RDDLModel(env.unwrapped.model)
     )
 
     n_objects = env.observation_space.spaces["factor"].shape[0]

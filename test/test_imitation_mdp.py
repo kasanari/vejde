@@ -19,7 +19,11 @@ from gnn import ActionMode, Config, GraphAgent, StateData
 
 # from wrappers.kg_wrapper import register_env
 from test.util import save_eval_data
-from wrappers.wrapper import register_env
+
+from wrappers.rddl_model import RDDLModel
+import pyRDDLGym
+
+from wrappers.wrapper import GroundedRDDLGraphWrapper, register_env
 
 
 class Serializer(json.JSONEncoder):
@@ -61,7 +65,7 @@ def compare_rollouts(r1: Rollout, r2: Rollout):
             else:
                 o = o1[k]
 
-            assert o == o2[k]
+            assert o == o2[k], f"{o} != {o2[k]} for {k}"
 
 
 def knowledge_graph_policy(obs):
@@ -99,14 +103,11 @@ def test_imitation():
     random.seed(0)
 
     env_id = register_env()
-    env: gym.Env[Dict, MultiDiscrete] = gym.make(
-        env_id,
-        domain=domain,
-        instance=instance,
-        # add_inverse_relations=False,
-        # types_instead_of_objects=False,
-        render_mode="idx",
+    env: gym.Env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
+    env: gym.Env[Dict, MultiDiscrete] = GroundedRDDLGraphWrapper(
+        env, model=RDDLModel(env.model)
     )
+
     n_objects = env.observation_space.spaces["factor"].shape[0]
     n_vars = env.observation_space["var_value"].shape[0]
     n_types = int(env.observation_space["factor"].high[0])
@@ -292,7 +293,7 @@ def evaluate(env: gym.Env, agent: GraphAgent, seed: int):
         time += 1
         # action = env.action_space.sample()
 
-        obs_buf.append(env.unwrapped.last_rddl_obs)
+        obs_buf.append(env.last_rddl_obs)
 
         s = statedata_from_single_obs(obs)
         # b = {k: th.as_tensor(v, dtype=th.float32) for k, v in obs["nodes"].items()}
@@ -308,7 +309,7 @@ def evaluate(env: gym.Env, agent: GraphAgent, seed: int):
         # env.render()
         # exit()
         done = terminated or truncated
-        actions.append(env.unwrapped.last_action_values)
+        actions.append(env.last_action_values)
         rewards.append(reward)
         obs = next_obs
         # print(obs)

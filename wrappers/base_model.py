@@ -8,10 +8,10 @@ class BaseModel(ABC):
     @cache
     def num_types(self) -> int: ...
 
-    # @property
-    # @abstractmethod
-    # @cache
-    # def num_actions(self) -> int: ...
+    @property
+    @abstractmethod
+    @cache
+    def num_actions(self) -> int: ...
 
     @property
     @abstractmethod

@@ -8,6 +8,8 @@ import numpy as np
 import logging
 from gymnasium.spaces import Dict
 
+from wrappers.base_model import BaseModel
+
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
@@ -64,18 +66,17 @@ def graph_to_dict(idx_g: IdxFactorGraph) -> dict[str, Any]:
 
 def create_obs(
     rddl_obs: dict[str, Any],
-    non_fluent_values: dict[str, Any],
-    rel_to_idx: dict[str, int],
-    type_to_idx: dict[str, int],
-    groundings: list[str],
-    obj_to_type: dict[str, str],
-    variable_ranges: dict[str, str],
+    model: BaseModel,
     skip_fluent: Callable[[str, dict[str, str]], bool],
 ) -> tuple[dict[str, Any], FactorGraph]:
-    rddl_obs |= non_fluent_values
+    rddl_obs |= model.non_fluent_values
 
     filtered_groundings = sorted(
-        [g for g in groundings if not skip_fluent(g, variable_ranges) and g in rddl_obs]
+        [
+            g
+            for g in model.groundings
+            if not skip_fluent(g, model.variable_ranges) and g in rddl_obs
+        ]
     )
 
     filtered_obs: dict[str, Any] = {k: rddl_obs[k] for k in filtered_groundings}
@@ -83,10 +84,10 @@ def create_obs(
     g = generate_bipartite_obs(
         filtered_obs,
         filtered_groundings,
-        obj_to_type,
+        model.obj_to_type,
     )
 
-    obs = graph_to_dict(map_graph_to_idx(g, rel_to_idx, type_to_idx))
+    obs = graph_to_dict(map_graph_to_idx(g, model.rel_to_idx, model.type_to_idx))
 
     return obs, g
 

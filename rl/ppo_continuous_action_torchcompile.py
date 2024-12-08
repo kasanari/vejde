@@ -3,18 +3,16 @@ import os
 from typing import Any
 
 from geometric import GNNAgent
+
 from wrappers.kg_wrapper import KGRDDLGraphWrapper
-from wrappers.wrapper import GroundedRDDLGraphWrapper
 
 os.environ["TORCHDYNAMO_INLINE_INBUILT_NN_MODULES"] = "1"
 
-import math
 import os
 import random
 import time
 from collections import deque
 from dataclasses import dataclass
-
 
 import gymnasium as gym
 import numpy as np
@@ -24,15 +22,12 @@ import torch.nn as nn
 import torch.optim as optim
 import tqdm
 import tyro
-import wandb
-from tensordict.nn import CudaGraphModule, TensorDictModule
 from tensordict import from_module
-from torch.distributions.normal import Normal
+from tensordict.nn import CudaGraphModule
 from torch import Tensor
+from torch_geometric.data import Batch, Data
 
-from torch_geometric.data import Data, Batch
-
-from gnn_policy.functional import sample_node_then_action
+import wandb
 
 
 def dict_to_data(data: dict[str, tuple[Any]], num_envs: int) -> list[Data]:

@@ -7,6 +7,8 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
+from gymnasium.spaces import Discrete, Sequence, Box
+
 from .utils import predicate, to_rddl_action, create_obs
 import pyRDDLGym  # type: ignore
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel, RDDLPlanningModel  # type: ignore
@@ -75,42 +77,32 @@ class GroundedRDDLGraphWrapper(gym.Wrapper):
         num_objects = self.wrapped_model.num_objects
         num_types = self.wrapped_model.num_types
         num_relations = self.wrapped_model.num_relations
-        edges = num_edges(self.wrapped_model.arity, self.wrapped_model.groundings)
 
         s: dict[str, spaces.Space] = {  # type: ignore
-            "var_type": spaces.Box(
-                low=0,
-                high=num_relations,
-                shape=(num_groundings,),
-                dtype=np.int64,
+            "var_type": Sequence(Discrete(num_relations), stack=True),
+            "var_value": Sequence(
+                Discrete(
+                    2,
+                ),
+                stack=True,
             ),
-            "var_value": spaces.Box(
-                low=0,
-                high=1,
-                shape=(num_groundings,),
-                dtype=np.int8,
+            "factor": Sequence(
+                Discrete(
+                    num_types,
+                ),
+                stack=True,
             ),
-            "factor": spaces.Box(
-                low=0, high=num_types, shape=(num_objects,), dtype=np.int64
+            "edge_index": Sequence(
+                spaces.Box(
+                    low=0,
+                    high=max(num_objects, num_groundings),
+                    shape=(2,),
+                    dtype=np.int64,
+                ),
+                stack=True,
             ),
-            "edge_index": spaces.Box(
-                low=0,
-                high=max(num_objects, num_groundings),
-                shape=(2, edges),
-                dtype=np.int64,
-            ),
-            "edge_attr": spaces.Box(
-                low=0,
-                high=1,
-                shape=(edges,),
-                dtype=np.int64,
-            ),
-            "length": spaces.Box(
-                low=0,
-                high=1,
-                shape=(num_groundings,),
-                dtype=np.int64,
-            ),
+            "edge_attr": Sequence(Discrete(2), stack=True),
+            "length": Sequence(Discrete(1), stack=True),
         }
 
         return spaces.Dict(s)

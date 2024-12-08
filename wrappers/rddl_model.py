@@ -78,18 +78,6 @@ class RDDLModel(BaseModel):
 
     @property
     @cache
-    def _non_fluent_values(self) -> dict[str, int]:
-        nf_vals = {}
-
-        non_fluents = self.model.ast.non_fluents.init_non_fluent  # type: ignore
-        for (name, params), value in non_fluents:
-            gname = RDDLPlanningModel.ground_var(name, params)
-            nf_vals[gname] = value
-
-        return nf_vals
-
-    @property
-    @cache
     def variable_ranges(self) -> dict[str, type]:
         mapping = {
             "bool": bool,
@@ -150,9 +138,10 @@ class RDDLModel(BaseModel):
         model = self.model
 
         state_fluents = model.state_fluents  # type: ignore
+        non_fluents = model.non_fluents  # type: ignore
 
-        non_fluent_groundings = set(self._non_fluent_values.keys())
-        state_groundings: set[str] = get_groundings(model, state_fluents)  # type: ignore
+        non_fluent_groundings = get_groundings(model, non_fluents)  # type: ignore
+        state_groundings = get_groundings(model, state_fluents)  # type: ignore
 
         all_groundings = state_groundings | non_fluent_groundings
 

@@ -110,10 +110,10 @@ def test_imitation():
         env, model=RDDLModel(env.unwrapped.model)
     )
 
-    n_objects = env.observation_space.spaces["factor"].shape[0]
-    n_vars = env.observation_space["var_value"].shape[0]
-    n_types = int(env.observation_space["factor"].high[0])
-    n_relations = int(env.observation_space["var_type"].high[0])
+    # n_objects = env.observation_space.spaces["factor"].shape[0]
+    # n_vars = env.observation_space["var_value"].shape[0]
+    n_types = int(env.observation_space["factor"].feature_space.n)
+    n_relations = int(env.observation_space["var_type"].feature_space.n)
     n_actions = int(env.action_space.nvec[0])
 
     config = Config(

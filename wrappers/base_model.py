@@ -43,6 +43,8 @@ class BaseModel(ABC):
     def groundings(self) -> list[str]:
         """
         A list of all possible grounded variables in the model.
+        Formally, this is the set of all possible groundings in the _language_,
+        but for efficiency reasons we only include groundings that are valid given the instance model.
         On the form:
         relation___object1__object2__...__objectN
         """
@@ -109,6 +111,7 @@ class BaseModel(ABC):
     def idx_to_object(self, idx: int) -> str: ...
 
     @abstractmethod
+    @cache
     def idx_to_action(self, idx: int) -> str: ...
 
     @abstractmethod

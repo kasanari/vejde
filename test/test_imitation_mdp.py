@@ -22,10 +22,46 @@ from test.util import save_eval_data
 from wrappers.wrapper import register_env
 
 
+class Serializer(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, th.Tensor):
+            return obj.tolist()
+        if isinstance(obj, np.bool_):
+            return bool(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super().default(obj)
+
+
 class Rollout(NamedTuple):
     rewards: list[float]
     obs: list[dict[str, Any]]
     actions: list[tuple[int, int]]
+
+
+def save_rollout(rollout: Rollout, path: str):
+    with open(path, "w") as f:
+        json.dump(rollout._asdict(), f, cls=Serializer)
+
+
+def load_rollout(path: str) -> Rollout:
+    with open(path, "r") as f:
+        data = json.load(f)
+    return Rollout(**data)
+
+
+def compare_rollouts(r1: Rollout, r2: Rollout):
+    assert r1.rewards == r2.rewards
+    assert r1.actions == r2.actions
+    for o1, o2 in zip(r1.obs, r2.obs):
+        assert o1.keys() == o2.keys()
+        for k in o1:
+            if isinstance(o1[k], np.ndarray):
+                o = o1[k].tolist()
+            else:
+                o = o1[k]
+
+            assert o == o2[k]
 
 
 def knowledge_graph_policy(obs):
@@ -122,6 +158,11 @@ def test_imitation():
 
 def iteration(i, env, agent, optimizer, seed: int):
     r = rollout(env, seed)
+
+    # save_rollout(r, f"rollout_{i}.json")
+    saved_r = load_rollout(f"rollouts/rollout_{i}.json")
+    compare_rollouts(r, saved_r)
+
     loss, grad_norm = update(i, agent, optimizer, r)
     print(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}")
     return loss

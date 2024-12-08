@@ -1,3 +1,4 @@
+from collections import deque
 from itertools import chain
 import random
 from typing import Any, NamedTuple, TypeVar
@@ -180,13 +181,14 @@ def edge_attr(edges: set[Edge]) -> np.ndarray[np.uint, Any]:
     return np.array([key[2] for key in edges], dtype=np.int64)
 
 
-def create_edges(d: dict[str, Any]) -> set[Edge]:
-    edges: set[Edge] = set()
-    for key in d:
+def create_edges(d: dict[str, Any]) -> list[Edge]:
+    edges: deque[Edge] = deque()
+    keys = sorted(d.keys())
+    for key in keys:
         for pos, object in enumerate(objects(key)):
             new_key = Edge(key, object, pos)
-            edges.add(new_key)
-    return edges
+            edges.append(new_key)
+    return list(edges)
 
 
 def map_graph_to_idx(

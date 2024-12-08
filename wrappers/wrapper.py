@@ -45,18 +45,12 @@ class GroundedRDDLGraphWrapper(gym.Env):
     @property
     @cache
     def action_space(self) -> gym.spaces.MultiDiscrete:  # type: ignore
-        action_fluents = self.wrapped_model.model.action_fluents  # type: ignore
         return gym.spaces.MultiDiscrete(
             [
-                len(action_fluents) + 1,  # type: ignore
+                self.wrapped_model.num_actions,  # type: ignore
                 self.wrapped_model.num_objects,
             ]
         )
-
-    @property
-    @cache
-    def num_actions(self) -> int:
-        return self.action_space.nvec[0]
 
     def render(self):
         obs = self.last_obs

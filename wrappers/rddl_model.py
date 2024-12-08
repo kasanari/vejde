@@ -122,6 +122,11 @@ class RDDLModel(BaseModel):
 
     @property
     @cache
+    def num_actions(self) -> int:
+        return len(self.action_fluents)
+
+    @property
+    @cache
     def action_groundings(self) -> set[str]:
         return get_groundings(self.model, self.model.action_fluents) | {"noop"}  # type: ignore
 

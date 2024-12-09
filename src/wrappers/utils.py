@@ -3,7 +3,6 @@ from itertools import chain
 import random
 from typing import Any, NamedTuple, TypeVar
 from collections.abc import Callable
-from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 import numpy as np
 import logging
 from gymnasium.spaces import Dict
@@ -45,12 +44,6 @@ class StackedFactorGraph(NamedTuple):
     factor_values: list[str]
     edge_indices: np.ndarray[np.int64, Any]
     edge_attributes: list[int]
-
-
-def get_groundings(model: RDDLLiftedModel, fluents: dict[str, Any]) -> set[str]:
-    return set(
-        dict(model.ground_vars_with_values(fluents)).keys()  # type: ignore
-    )
 
 
 def graph_to_dict(idx_g: IdxFactorGraph) -> dict[str, Any]:

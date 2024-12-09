@@ -4,7 +4,7 @@ from functools import cache
 from copy import copy
 from ..model.base_model import BaseModel
 from wrappers.utils import predicate
-from wrappers.utils import get_groundings
+from .utils import get_groundings
 
 
 class RDDLModel(BaseModel):

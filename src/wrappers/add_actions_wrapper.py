@@ -1,9 +1,6 @@
 from typing import Any, TypeVar
-from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
-import pyRDDLGym  # type: ignore
 
-from wrappers.last_obs_wrapper import LastObsWrapper
-from wrappers.utils import get_groundings
+from model.base_model import BaseModel
 import gymnasium as gym
 import numpy as np
 
@@ -33,9 +30,9 @@ class AddActionWrapper(
 
     @staticmethod
     def _add_actions_to_obs(
-        model: RDDLLiftedModel, obs: dict[str, Any], actions: dict[str, int]
+        model: BaseModel, obs: dict[str, Any], actions: dict[str, int]
     ) -> dict[str, bool | None]:
-        action_groundings = get_groundings(model, model.action_fluents)  # type: ignore
+        action_groundings = model.action_groundings  # type: ignore
 
         boolean_actions: dict[str, np.bool_] = {
             k: np.bool_(v) for k, v in actions.items()

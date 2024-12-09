@@ -5,4 +5,4 @@ version = "0.1.0"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = ["wrappers", "gnn", "rddl"]
+packages = ["wrappers", "gnn", "rddl", "model"]

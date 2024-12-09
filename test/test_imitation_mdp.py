@@ -162,9 +162,9 @@ def test_imitation():
 def iteration(i, env, agent, optimizer, seed: int):
     r = rollout(env, seed)
 
-    # save_rollout(r, f"rollout_{i}.json")
-    # saved_r = load_rollout(f"rollouts/rollout_{i}.json")
-    # compare_rollouts(r, saved_r)
+    # save_rollout(r, f"rollouts/rollout_{i}.json")
+    saved_r = load_rollout(f"rollouts/rollout_{i}.json")
+    compare_rollouts(r, saved_r)
 
     loss, grad_norm = update(i, agent, optimizer, r)
     print(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}")

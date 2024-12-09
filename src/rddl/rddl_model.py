@@ -32,10 +32,6 @@ class RDDLModel(BaseModel):
         return self._idx_to_type[idx]
 
     @cache
-    def obj_to_type(self, obj: str) -> str:
-        return self._obj_to_type[obj]
-
-    @cache
     def rel_to_idx(self, relation: str) -> int:
         return self._rel_to_idx[relation]
 

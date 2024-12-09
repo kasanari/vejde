@@ -92,12 +92,6 @@ class BaseModel(ABC):
 
     @abstractmethod
     @cache
-    def obj_to_type(self, obj: str) -> str:
-        "The type/class of an object instance/variable."
-        ...
-
-    @abstractmethod
-    @cache
     def type_to_idx(self, type: str) -> int:
         """
         A mapping from object type to an index.

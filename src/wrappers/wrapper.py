@@ -13,7 +13,7 @@ from .utils import predicate, to_dict_action, create_obs
 
 from .utils import to_graphviz_alt
 
-from ..model.base_model import BaseModel
+from model.base_model import BaseModel
 
 logger = logging.getLogger(__name__)
 

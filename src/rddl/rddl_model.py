@@ -44,8 +44,13 @@ class RDDLModel(BaseModel):
         return self._type_attributes[type]
 
     @cache
-    def variable_params(self, variable: str) -> list[str]:
+    def fluent_params(self, variable: str) -> list[str]:
         return self._variable_params[variable]
+
+    @cache
+    def fluent_param(self, fluent: str, position: int) -> str:
+        """Types/class of the variable/object the fluent/predicate takes as parameter in a given position. Can be seen as the column name in a database table."""
+        return self._variable_params[fluent][position]
 
     @cache
     def variable_range(self, fluent: str) -> type:

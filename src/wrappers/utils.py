@@ -14,6 +14,11 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 
+class Object(NamedTuple):
+    name: str
+    type: str
+
+
 class Edge(NamedTuple):
     predicate: str
     object: str
@@ -88,13 +93,13 @@ def create_obs(
     bool_g = generate_bipartite_obs(
         filtered_obs,
         boolean_groundings,
-        model.obj_to_type,
+        model.fluent_param,
     )
 
     _numeric_g = generate_bipartite_obs(  # TODO add this to obs
         filtered_obs,
         numeric_groundings,
-        model.obj_to_type,
+        model.fluent_param,
     )
 
     obs = graph_to_dict(map_graph_to_idx(bool_g, model.rel_to_idx, model.type_to_idx))
@@ -187,6 +192,14 @@ def objects(key: str) -> list[str]:
     return split[1].split("__") if len(split) > 1 else []
 
 
+def objects_with_type(
+    key: str, relation_to_types: Callable[[str, int], str]
+) -> list[Object]:
+    p = predicate(key)
+    os = objects(key)
+    return [Object(o, relation_to_types(p, i)) for i, o in enumerate(os)]
+
+
 def arity(grounding: str):
     o = objects(grounding)
     return len(o)
@@ -269,12 +282,14 @@ def map_stacked_graph_to_idx(
     )
 
 
-def object_list(obs: dict[str, Any]) -> list[str]:
-    obs_objects: set[str] = set()
+def object_list(
+    obs: dict[str, Any], relation_to_types: Callable[[str, int], str]
+) -> list[Object]:
+    obs_objects: set[Object] = set()
     for key in obs:
-        for object in objects(key):
+        for object in objects_with_type(key, relation_to_types):
             obs_objects.add(object)
-    object_list: list[str] = sorted(obs_objects)
+    object_list = sorted(obs_objects)
     return object_list
 
 
@@ -289,21 +304,23 @@ def predicate_list_from_groundings(groundings: list[str]) -> list[str]:
 def generate_bipartite_obs(
     obs: dict[str, bool | float],
     groundings: list[str],
-    obj_to_type: Callable[[str], str],
+    relation_to_types: Callable[[str, int], str],
     # variable_ranges: dict[str, str],
 ) -> FactorGraph | StackedFactorGraph:
     edges = create_edges(groundings)
 
-    obj_list = object_list(obs)
+    obj_list = object_list(obs, relation_to_types)
 
-    object_types = [obj_to_type(object) for object in obj_list]
+    object_types = [object.type for object in obj_list]
 
     fact_node_values = [obs[key] for key in groundings]
 
     fact_node_predicate = [predicate(key) for key in groundings]
 
+    obj_names = [object.name for object in obj_list]
+
     edge_indices = translate_edges(
-        groundings, obj_list, edges
+        groundings, obj_names, edges
     )  # edges are (var, factor)
 
     edge_attributes = [key[2] for key in edges]

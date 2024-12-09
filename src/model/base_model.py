@@ -25,8 +25,14 @@ class BaseModel(ABC):
 
     @abstractmethod
     @cache
-    def variable_params(self, fluent: str) -> list[str]:
-        """Types/classes of the variables/objects the fluent/predicate takes as parameters."""
+    def fluent_params(self, fluent: str) -> list[str]:
+        """Types/classes of the variables/objects the fluent/predicate takes as parameters. Can be seen as the column names in a database table."""
+        ...
+
+    @abstractmethod
+    @cache
+    def fluent_param(self, fluent: str, position: int) -> str:
+        """Types/class of the variable/object the fluent/predicate takes as parameter in a given position. Can be seen as the column name in a database table."""
         ...
 
     @abstractmethod

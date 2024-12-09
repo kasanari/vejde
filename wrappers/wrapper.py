@@ -7,16 +7,12 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from gymnasium.spaces import Discrete, Sequence, Box
+from gymnasium.spaces import Discrete, Sequence, Dict, MultiDiscrete
 
-from .utils import predicate, to_rddl_action, create_obs
-import pyRDDLGym  # type: ignore
-from pyRDDLGym.core.compiler.model import RDDLLiftedModel, RDDLPlanningModel  # type: ignore
-from pyRDDLGym import RDDLEnv  # type: ignore
-from .utils import to_graphviz_alt, get_groundings, num_edges
-
+from .utils import predicate, to_dict_action, create_obs
 
 from .utils import to_graphviz_alt
+
 from .base_model import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -26,18 +22,24 @@ def skip_fluent(key: str, variable_ranges: Callable[[str], str]) -> bool:
     return variable_ranges(predicate(key)) is not bool or key == "noop"
 
 
-class GroundedRDDLGraphWrapper(gym.Wrapper):
-    metadata = {"render_modes": ["human", "idx"]}
+class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
+    @property
+    def metadata(self) -> dict[str, Any]:
+        return {"render_modes": ["human", "idx"]}
+
+    @metadata.setter
+    def metadata(self, value: dict[str, Any]):
+        self._metadata = value
 
     def __init__(
         self,
-        env: gym.Env,
+        env: gym.Env[Dict, Dict],
         model: BaseModel,
         render_mode: str = "human",
     ) -> None:
         super().__init__(env)
         self.wrapped_model = model
-        self.env: RDDLEnv = env
+        self.env = env
         self.last_obs: dict[str, Any] = {}
         self.iter = 0
 
@@ -137,7 +139,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper):
     def _to_rddl_action(
         self, action: spaces.MultiDiscrete
     ) -> tuple[dict[str, int], str]:
-        return to_rddl_action(
+        return to_dict_action(
             action,
             self.wrapped_model.idx_to_action,
             self.wrapped_model.idx_to_object,

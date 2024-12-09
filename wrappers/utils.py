@@ -125,7 +125,7 @@ def num_edges(arities: Callable[[str], int], groundings: list[str]) -> int:
     return sum(arities(predicate(g)) for g in groundings)
 
 
-def to_rddl_action(
+def to_dict_action(
     action: tuple[int, int],
     idx_to_action: Callable[[int], str],
     idx_to_obj: Callable[[int], str],

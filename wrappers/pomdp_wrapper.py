@@ -9,7 +9,7 @@ from gymnasium import spaces
 from wrappers.stacking_wrapper import StackingWrapper
 
 from .parent_wrapper import RDDLGraphWrapper
-from .utils import predicate, to_rddl_action, create_stacked_obs, get_groundings
+from .utils import predicate, to_dict_action, create_stacked_obs, get_groundings
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +147,7 @@ class StackingGroundedRDDLGraphWrapper(RDDLGraphWrapper):
     def step(  # type: ignore
         self, action: tuple[int, int]
     ) -> tuple[spaces.Dict, SupportsFloat, bool, bool, dict[str, Any]]:
-        rddl_action_dict, rddl_action = to_rddl_action(
+        rddl_action_dict, rddl_action = to_dict_action(
             action, self.action_fluents, self.idx_to_object, self.action_groundings
         )
         rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action_dict)

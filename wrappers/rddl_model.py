@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from pyRDDLGym.core.compiler.model import RDDLLiftedModel, RDDLPlanningModel  # type: ignore
+from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 from functools import cache
 from copy import copy
 from .base_model import BaseModel

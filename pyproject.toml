@@ -1,7 +1,8 @@
 
 [project]
-name = "wrappers"
+name = "relationalwrapper"
 version = "0.1.0"
 
 [tool.setuptools]
-packages = ["wrappers", "gnn", "test"]
+package-dir = {"" = "src"}
+packages = ["wrappers", "gnn", "rddl"]

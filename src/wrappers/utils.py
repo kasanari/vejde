@@ -8,7 +8,7 @@ import numpy as np
 import logging
 from gymnasium.spaces import Dict
 
-from wrappers.base_model import BaseModel
+from model.base_model import BaseModel
 
 logger = logging.getLogger(__name__)
 

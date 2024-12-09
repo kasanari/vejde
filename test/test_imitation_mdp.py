@@ -20,8 +20,8 @@ from gnn import ActionMode, Config, GraphAgent, StateData
 # from wrappers.kg_wrapper import register_env
 from test.util import save_eval_data
 
-from wrappers.rddl_add_non_fluents_wrapper import RDDLAddNonFluents
-from wrappers.rddl_model import RDDLModel
+from rddl.rddl_add_non_fluents_wrapper import RDDLAddNonFluents
+from rddl.rddl_model import RDDLModel
 import pyRDDLGym
 
 from wrappers.wrapper import GroundedRDDLGraphWrapper, register_env

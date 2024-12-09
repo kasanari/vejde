@@ -42,6 +42,10 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
         self.env = env
         self.last_obs: dict[str, Any] = {}
         self.iter = 0
+        self._idx_to_object: list[str] = []
+
+    def idx_to_object(self, idx: int) -> str:
+        return self._idx_to_object[idx]
 
     @property
     @cache
@@ -49,7 +53,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
         return gym.spaces.MultiDiscrete(
             [
                 self.wrapped_model.num_actions,  # type: ignore
-                self.wrapped_model.num_objects,
+                2000,
             ]
         )
 
@@ -75,8 +79,8 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
     @property
     @cache
     def observation_space(self) -> spaces.Dict:  # type: ignore
-        num_groundings = len(self.wrapped_model.groundings)
-        num_objects = self.wrapped_model.num_objects
+        # num_groundings = len(self.wrapped_model.groundings)
+        # num_objects = self.wrapped_model.num_objects
         num_types = self.wrapped_model.num_types
         num_relations = self.wrapped_model.num_relations
 
@@ -97,7 +101,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
             "edge_index": Sequence(
                 spaces.Box(
                     low=0,
-                    high=max(num_objects, num_groundings),
+                    high=2000,
                     shape=(2,),
                     dtype=np.int64,
                 ),
@@ -133,6 +137,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
 
         self.last_obs = obs
         self.last_rddl_obs = rddl_obs
+        self._idx_to_object = g.factors
 
         return obs, info
 
@@ -142,7 +147,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
         return to_dict_action(
             action,
             self.wrapped_model.idx_to_action,
-            self.wrapped_model.idx_to_object,
+            self.idx_to_object,
             self.wrapped_model.action_groundings,
         )
 
@@ -163,6 +168,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
         self.last_rddl_obs = rddl_obs
         self.last_action_values = rddl_action_dict
         self.last_action = rddl_action
+        self._idx_to_object = g.factors
 
         return obs, reward, terminated, truncated, info
 

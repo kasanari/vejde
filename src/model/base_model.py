@@ -80,16 +80,6 @@ class BaseModel(ABC):
         """The number of relations/predicates in the model. This includes nullary and unary relations, which may also be called constants and attributes."""
         ...
 
-    @property
-    @abstractmethod
-    @cache
-    def num_objects(self) -> int:
-        """
-        The number of objects in the instance.
-        This may or may not be relevant to an agent, which may be invariant to the number of objects, but it is useful for formally delimiting the action space of a given problem instance.
-        """
-        ...
-
     @abstractmethod
     @cache
     def type_to_idx(self, type: str) -> int:
@@ -130,28 +120,6 @@ class BaseModel(ABC):
         """
 
     ...
-
-    @abstractmethod
-    @cache
-    def obj_to_idx(self, obj: str) -> int:
-        """
-        A mapping from an object instance to an index.
-        Since this is inherently instance-specific, i.e. transductive, it does not need to be consistent across different instances of the same domain.
-        For debugging purposes, it may be useful to have a consistent mapping within a single instance.
-        Note that 0 is reserved for padding.
-        """
-        ...
-
-    @abstractmethod
-    @cache
-    def idx_to_object(self, idx: int) -> str:
-        """
-        A mapping from an index to an object instance.
-        Since this is inherently instance-specific, i.e. transductive, it does not need to be consistent across different instances of the same domain.
-        For debugging purposes, it may be useful to have a consistent mapping within a single instance.
-        Note that 0 is reserved for padding.
-        """
-        ...
 
     @abstractmethod
     @cache

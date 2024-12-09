@@ -20,10 +20,6 @@ class RDDLModel(BaseModel):
         return self._fluents_of_arity[arity]
 
     @cache
-    def idx_to_object(self, idx: int) -> str:
-        return self._idx_to_object[idx]
-
-    @cache
     def idx_to_relation(self, idx: int) -> str:
         return self._idx_to_relation[idx]
 
@@ -118,13 +114,6 @@ class RDDLModel(BaseModel):
 
     @property
     @cache
-    def _idx_to_object(self) -> list[str]:
-        object_terms: list[str] = list(self.model.object_to_index.keys())  # type: ignore
-        object_list = sorted(object_terms)
-        return object_list
-
-    @property
-    @cache
     def _idx_to_relation(self) -> list[str]:
         relation_list = sorted(set(predicate(g) for g in self.groundings))
         return relation_list
@@ -166,11 +155,6 @@ class RDDLModel(BaseModel):
     def num_relations(self) -> int:
         return len(self._idx_to_relation)
 
-    @property
-    @cache
-    def num_objects(self) -> int:
-        return len(self._idx_to_object)
-
     @cache
     def type_to_idx(self, type: str) -> int:
         return self._type_to_idx[type]
@@ -187,17 +171,6 @@ class RDDLModel(BaseModel):
     def _rel_to_idx(self) -> dict[str, int]:
         return {
             symb: idx + 1 for idx, symb in enumerate(self._idx_to_relation)
-        }  # 0 is reserved for padding
-
-    @cache
-    def obj_to_idx(self, obj: str) -> int:
-        return self._obj_to_idx[obj]
-
-    @property
-    @cache
-    def _obj_to_idx(self) -> dict[str, int]:
-        return {
-            symb: idx + 1 for idx, symb in enumerate(self._idx_to_object)
         }  # 0 is reserved for padding
 
     @property

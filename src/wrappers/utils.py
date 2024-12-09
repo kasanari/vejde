@@ -35,7 +35,7 @@ class IdxFactorGraph(NamedTuple):
 
 class FactorGraph(NamedTuple):
     variables: list[str]
-    variable_values: list[bool]
+    variable_values: list[bool | float]
     factors: list[str]
     factor_values: list[str]
     edge_indices: np.ndarray[np.int64, Any]
@@ -332,7 +332,7 @@ def generate_bipartite_obs(
     return FactorGraph(
         fact_node_predicate,
         fact_node_values,
-        obj_list,
+        obj_names,
         object_types,
         edge_indices,
         edge_attributes,

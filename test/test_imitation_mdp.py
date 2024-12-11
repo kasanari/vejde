@@ -20,11 +20,9 @@ from gnn import ActionMode, Config, GraphAgent, StateData
 # from wrappers.kg_wrapper import register_env
 from test.util import save_eval_data
 
-from rddl.rddl_add_non_fluents_wrapper import RDDLAddNonFluents
-from rddl.rddl_model import RDDLModel
-import pyRDDLGym
+from rddl import register_env
 
-from wrappers.wrapper import GroundedRDDLGraphWrapper, register_env
+from wrappers.wrapper import GroundedRDDLGraphWrapper
 
 
 class Serializer(json.JSONEncoder):
@@ -104,11 +102,7 @@ def test_imitation():
     random.seed(0)
 
     env_id = register_env()
-    env: gym.Env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
-    env = RDDLAddNonFluents(env)
-    env: gym.Env[Dict, MultiDiscrete] = GroundedRDDLGraphWrapper(
-        env, model=RDDLModel(env.unwrapped.model)
-    )
+    env: gym.Env = gym.make(env_id, domain=domain, instance=instance)
 
     # n_objects = env.observation_space.spaces["factor"].shape[0]
     # n_vars = env.observation_space["var_value"].shape[0]
@@ -130,6 +124,8 @@ def test_imitation():
     agent = GraphAgent(
         config,
     )
+
+    # agent, config = agent.load_agent("conditional_bandit.pth")
 
     # state_dict = th.load("bipart_gnn_agent.pth", weights_only=True)
     # agent.load_state_dict(state_dict)
@@ -156,15 +152,15 @@ def test_imitation():
 
     save_eval_data(data)
 
-    agent.save_agent("conditional_bandit.pth")
+    # agent.save_agent("conditional_bandit.pth")
 
 
 def iteration(i, env, agent, optimizer, seed: int):
     r = rollout(env, seed)
 
     # save_rollout(r, f"rollouts/rollout_{i}.json")
-    saved_r = load_rollout(f"rollouts/rollout_{i}.json")
-    compare_rollouts(r, saved_r)
+    # saved_r = load_rollout(f"rollouts/rollout_{i}.json")
+    # compare_rollouts(r, saved_r)
 
     loss, grad_norm = update(i, agent, optimizer, r)
     print(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}")
@@ -295,7 +291,7 @@ def evaluate(env: gym.Env, agent: GraphAgent, seed: int):
         time += 1
         # action = env.action_space.sample()
 
-        obs_buf.append(env.last_rddl_obs)
+        obs_buf.append(info["rddl_state"])
 
         s = statedata_from_single_obs(obs)
         # b = {k: th.as_tensor(v, dtype=th.float32) for k, v in obs["nodes"].items()}
@@ -311,7 +307,7 @@ def evaluate(env: gym.Env, agent: GraphAgent, seed: int):
         # env.render()
         # exit()
         done = terminated or truncated
-        actions.append(env.last_action_values)
+        actions.append(info["rddl_state"])
         rewards.append(reward)
         obs = next_obs
         # print(obs)

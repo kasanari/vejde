@@ -38,7 +38,7 @@ class FactorGraph(NamedTuple):
     variable_values: list[bool | float]
     factors: list[str]
     factor_values: list[str]
-    edge_indices: np.ndarray[np.int64, Any]
+    edge_indices: np.ndarray[np.int64, Any]  # variable to factor
     edge_attributes: list[int]
 
 
@@ -81,6 +81,12 @@ def create_obs(
         g for g in filtered_groundings if model.variable_range(predicate(g)) is bool
     ]
 
+    bool_g = generate_bipartite_obs(
+        filtered_obs,
+        boolean_groundings,
+        model.fluent_param,
+    )
+
     numeric_groundings = [
         g
         for g in filtered_groundings
@@ -90,17 +96,12 @@ def create_obs(
         )
     ]
 
-    bool_g = generate_bipartite_obs(
-        filtered_obs,
-        boolean_groundings,
-        model.fluent_param,
-    )
-
-    _numeric_g = generate_bipartite_obs(  # TODO add this to obs
-        filtered_obs,
-        numeric_groundings,
-        model.fluent_param,
-    )
+    if numeric_groundings:
+        _numeric_g = generate_bipartite_obs(  # TODO add this to obs
+            filtered_obs,
+            numeric_groundings,
+            model.fluent_param,
+        )
 
     obs = graph_to_dict(map_graph_to_idx(bool_g, model.rel_to_idx, model.type_to_idx))
 
@@ -154,25 +155,35 @@ def num_edges(arities: Callable[[str], int], groundings: list[str]) -> int:
 def to_dict_action(
     action: tuple[int, int],
     idx_to_action: Callable[[int], str],
+    idx_to_type: Callable[[int], str],
     idx_to_obj: Callable[[int], str],
-    action_groundings: set[str],
+    fluent_params: Callable[[str], list[str]],
 ) -> tuple[dict[str, int], str]:
     action_fluent = idx_to_action(action[0])
-    object_id = idx_to_obj(action[1])
 
-    rddl_action = (
-        f"{action_fluent}___{object_id}" if action_fluent != "noop" else "noop"
+    param_types = fluent_params(action_fluent)
+
+    grounded_action = f"{action_fluent}"
+
+    params: list[str] = [
+        f"{idx_to_obj(action[i + 1])}" for i, _ in enumerate(param_types)
+    ]
+    for i, intended_param in enumerate(param_types):
+        actual_param = idx_to_type(action[i + 1])
+        if intended_param != actual_param:
+            logger.warning(
+                f"Invalid parameter type for fluent {action_fluent} in position {i}. Expected {intended_param} but got {actual_param}."
+            )
+            action_fluent = "None"
+            break
+
+    grounded_action = (
+        f"{grounded_action}___{'__'.join(params)}" if params else grounded_action
     )
 
-    invalid_action = rddl_action not in action_groundings
+    action_dict = {} if action_fluent == "None" else {grounded_action: 1}
 
-    if invalid_action:
-        logger.warning(f"Invalid action: {rddl_action}")
-
-    rddl_action_dict = (
-        {} if invalid_action or action_fluent == "noop" else {rddl_action: 1}
-    )
-    return rddl_action_dict, rddl_action
+    return action_dict, grounded_action
 
 
 def sample_action(action_space: Dict) -> dict[str, int]:
@@ -290,6 +301,7 @@ def object_list(
         for object in objects_with_type(key, relation_to_types):
             obs_objects.add(object)
     object_list = sorted(obs_objects)
+    object_list = [Object("None", "None")] + object_list
     return object_list
 
 

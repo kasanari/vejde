@@ -56,7 +56,9 @@ class TwoActionGNNPolicy(nn.Module):
             ActionMode.ACTION_AND_NODE: 1,
         }
 
-        self.node_prob = nn.Linear(embedding_dim, node_prob_out[action_mode])
+        self.node_prob = nn.Linear(
+            embedding_dim, node_prob_out[action_mode], bias=False
+        )
 
         self.action_prob = nn.Linear(embedding_dim, num_actions)
 

@@ -85,10 +85,10 @@ def knowledge_graph_policy(obs):
 
 def policy(state):
     if state["light___r_m"]:
-        return [1, 3]
+        return [1, 4]
 
     if state["light___g_m"]:
-        return [1, 1]
+        return [1, 2]
 
     return [0, 0]
 

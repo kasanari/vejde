@@ -11,7 +11,7 @@ from gymnasium.spaces import Discrete, Sequence, Dict, MultiDiscrete
 
 from .utils import predicate, to_dict_action, create_obs
 
-from .utils import to_graphviz_alt
+from .utils import to_graphviz_alt, to_graphviz
 
 from model.base_model import BaseModel
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def skip_fluent(key: str, variable_ranges: dict[str, str]) -> bool:
-    return key == "noop"
+    return False
 
 
 class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
@@ -43,9 +43,13 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
         self.last_obs: dict[str, Any] = {}
         self.iter = 0
         self._idx_to_object: list[str] = []
+        self._idx_to_object_type: list[str] = []
 
     def idx_to_object(self, idx: int) -> str:
         return self._idx_to_object[idx]
+
+    def idx_to_object_type(self, idx: int) -> str:
+        return self._idx_to_object_type[idx]
 
     @property
     @cache
@@ -58,23 +62,26 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
         )
 
     def render(self):
-        obs = self.last_obs
-        nodes_classes = obs["predicate_class"]
-        node_values = obs["predicate_value"]
-        object_nodes = obs["object"]
-        edge_indices = obs["edge_index"]
-        edge_attributes = obs["edge_attr"]
-        # numeric = obs["numeric"]
+        return to_graphviz(self.last_g)
 
-        return to_graphviz_alt(
-            nodes_classes,
-            node_values,
-            object_nodes,
-            edge_indices,  # type: ignore
-            edge_attributes,
-            self.wrapped_model.idx_to_type,  # type: ignore
-            self.wrapped_model.idx_to_relation,  # type: ignore
-        )
+        if self.metadata["render_modes"] == "idx":
+            obs = self.last_obs
+            nodes_classes = obs["var_type"]
+            node_values = obs["var_value"]
+            object_nodes = obs["factor"]
+            edge_indices = obs["edge_index"].T
+            edge_attributes = obs["edge_attr"]
+            # numeric = obs["numeric"]
+
+            return to_graphviz_alt(
+                nodes_classes,
+                node_values,
+                object_nodes,
+                edge_indices,  # type: ignore
+                edge_attributes,
+                self.wrapped_model.idx_to_type,  # type: ignore
+                self.wrapped_model.idx_to_relation,  # type: ignore
+            )
 
     @property
     @cache
@@ -136,7 +143,9 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
         info["rddl_state"] = rddl_obs  # type: ignore
 
         self.last_obs = obs
+        self.last_g = g
         self.last_rddl_obs = rddl_obs
+        self._idx_to_object_type = g.factor_values
         self._idx_to_object = g.factors
 
         return obs, info
@@ -147,17 +156,18 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
         return to_dict_action(
             action,
             self.wrapped_model.idx_to_action,
+            self.idx_to_object_type,
             self.idx_to_object,
-            self.wrapped_model.action_groundings,
+            self.wrapped_model.fluent_params,
         )
 
     def step(
         self, action: spaces.MultiDiscrete
     ) -> tuple[spaces.Dict, SupportsFloat, bool, bool, dict[str, Any]]:
-        rddl_action_dict, rddl_action = self._to_rddl_action(
+        rddl_action, grounded_action = self._to_rddl_action(
             action,
         )
-        rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action_dict)
+        rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action)
 
         obs, g = self._create_obs(rddl_obs)
 
@@ -165,9 +175,10 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
         info["rddl_state"] = rddl_obs  # type: ignore
 
         self.last_obs = obs
+        self.last_g = g
         self.last_rddl_obs = rddl_obs
-        self.last_action_values = rddl_action_dict
-        self.last_action = rddl_action
+        self.last_action = grounded_action
+        self._idx_to_object_type = g.factor_values
         self._idx_to_object = g.factors
 
         return obs, reward, terminated, truncated, info

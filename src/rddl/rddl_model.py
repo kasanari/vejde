@@ -55,7 +55,7 @@ class RDDLModel(BaseModel):
     @property
     @cache
     def _idx_to_type(self) -> list[str]:
-        return sorted(set(self._obj_to_type.values()))
+        return ["None"] + sorted(set(self._obj_to_type.values()))
 
     @property
     @cache
@@ -82,7 +82,8 @@ class RDDLModel(BaseModel):
             key: mapping[value]
             for key, value in self.model._variable_ranges.items()  # type: ignore
         }
-        variable_ranges["noop"] = bool
+
+        variable_ranges["None"] = bool
 
         return variable_ranges
 
@@ -90,7 +91,7 @@ class RDDLModel(BaseModel):
     @cache
     def _variable_params(self) -> dict[str, list[str]]:
         variable_params: dict[str, list[str]] = copy(self.model.variable_params)  # type: ignore
-        variable_params["noop"] = []
+        variable_params["None"] = []
         return variable_params
 
     @property
@@ -115,7 +116,7 @@ class RDDLModel(BaseModel):
     @property
     @cache
     def _idx_to_relation(self) -> list[str]:
-        relation_list = sorted(set(predicate(g) for g in self.groundings))
+        relation_list = ["None"] + sorted(set(predicate(g) for g in self.groundings))
         return relation_list
 
     @property
@@ -138,7 +139,7 @@ class RDDLModel(BaseModel):
     def action_fluents(self) -> list[str]:
         model = self.model
         action_fluents = model.action_fluents  # type: ignore
-        return ["noop"] + sorted(action_fluents)  # type: ignore
+        return ["None"] + sorted(action_fluents.keys())  # type: ignore
 
     @property
     @cache
@@ -148,7 +149,7 @@ class RDDLModel(BaseModel):
     @property
     @cache
     def action_groundings(self) -> set[str]:
-        return get_groundings(self.model, self.model.action_fluents) | {"noop"}  # type: ignore
+        return get_groundings(self.model, self.model.action_fluents) | {"None"}  # type: ignore
 
     @property
     @cache
@@ -163,14 +164,14 @@ class RDDLModel(BaseModel):
     @cache
     def _type_to_idx(self) -> dict[str, int]:
         return {
-            symb: idx + 1 for idx, symb in enumerate(self._idx_to_type)
+            symb: idx for idx, symb in enumerate(self._idx_to_type)
         }  # 0 is reserved for padding
 
     @property
     @cache
     def _rel_to_idx(self) -> dict[str, int]:
         return {
-            symb: idx + 1 for idx, symb in enumerate(self._idx_to_relation)
+            symb: idx for idx, symb in enumerate(self._idx_to_relation)
         }  # 0 is reserved for padding
 
     @property

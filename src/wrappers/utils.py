@@ -340,34 +340,29 @@ def generate_bipartite_obs(
 
 
 def to_graphviz(
-    predicate_node_classes: list[str],
-    predicate_node_values: list[int],
-    object_nodes: list[str],
-    edges: list[tuple[int, int]],
-    edge_attributes: list[int],
-    obj_to_idx: dict[str, int],
-    rel_to_idx: dict[str, int],
+    fg: FactorGraph,
     # numeric,
 ):
     colors = ["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]
     graph = "graph G {\n"
+    graph += "overlap_scaling=-20\n"
     first_mapping = {}
     second_mapping = {}
     global_idx = 0
-    for idx, n_class in enumerate(predicate_node_classes):
+    for idx, n_class in enumerate(fg.variables):
         label = (
             # f'"{rel_to_idx[int(n_class)]}={predicate_node_values[idx]}"'
             # if numeric[idx]
-            f'"{rel_to_idx[n_class]}={bool(predicate_node_values[idx])}"'
+            f'"{n_class}={bool(fg.variable_values[idx])}"'
         )
-        graph += f'"{global_idx}" [label={label}, shape=box]\n'
+        graph += f'"{global_idx}" [label={label}]\n'
         first_mapping[idx] = global_idx
         global_idx += 1
-    for idx, data in enumerate(object_nodes):
-        graph += f'"{global_idx}" [label="{obj_to_idx[data]}", shape=circle]\n'
+    for idx, data in enumerate(fg.factors):
+        graph += f'"{global_idx}" [label="{data}", shape=box]\n'
         second_mapping[idx] = global_idx
         global_idx += 1
-    for attribute, edge in zip(edge_attributes, edges):
+    for attribute, edge in zip(fg.edge_attributes, fg.edge_indices):
         graph += f'"{first_mapping[edge[0]]}" -- "{second_mapping[edge[1]]}" [color="{colors[attribute]}"]\n'
     graph += "}"
     return graph
@@ -384,16 +379,17 @@ def to_graphviz_alt(
 ) -> str:
     colors = ["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]
     graph = "graph G {\n"
+    graph += "overlap_scaling=-20\n"
     first_mapping = {}
     second_mapping = {}
     global_idx = 0
     for idx, n_class in enumerate(predicate_node_classes):
-        label = f'"{idx_to_rel[int(n_class)]}={bool(predicate_node_values[idx])}"'
-        graph += f'"{global_idx}" [label={label}, shape=box]\n'
+        label = f'"{idx_to_rel(int(n_class))}={bool(predicate_node_values[idx])}"'
+        graph += f'"{global_idx}" [label={label}]\n'
         first_mapping[idx] = global_idx
         global_idx += 1
     for idx, data in enumerate(object_nodes):
-        graph += f'"{global_idx}" [label="{idx_to_type[data]}", shape=circle]\n'
+        graph += f'"{global_idx}" [label="{idx_to_type(data)}", shape=box]\n'
         second_mapping[idx] = global_idx
         global_idx += 1
     for attribute, edge in zip(edge_attributes, edges):

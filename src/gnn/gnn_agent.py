@@ -213,8 +213,6 @@ def load_agent(cls: T, path: str) -> tuple[T, Config]:
     data = th.load(path, weights_only=False)  # type: ignore
     config = Config(**data["config"])
     agent = cls(config)
-    agent.load_state_dict(
-        {k.replace("agent.", ""): v for k, v in data["state_dict"].items()}
-    )
+    agent.load_state_dict(data["state_dict"])
 
     return agent, config

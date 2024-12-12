@@ -1,7 +1,6 @@
 # docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/ppo/#ppopy
 from collections import deque
 import os
-from pathlib import Path
 import random
 import time
 from dataclasses import asdict, dataclass
@@ -12,77 +11,26 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import tyro
-from torch.distributions.categorical import Categorical
 
+
+from gymnasium.spaces import Dict, MultiDiscrete
 from torch import Tensor
-import torch as th
 import wandb
 from tqdm import tqdm
 from typing import Any
 
-from torch_geometric.data import Data, Batch
+from torch_geometric.data import Data
 
-from wrappers.wrapper import register_env
+from gnn.data import (
+    BipartiteData,
+    batched_dict_to_data,
+    statedata_from_obs,
+)
+from rddl import register_env
 
 from gnn import GraphAgent, Config, ActionMode, StateData
 import mlflow
 import mlflow.pytorch
-
-
-class BipartiteData(Data):
-    var_type: th.Tensor
-    factor: th.Tensor
-
-    def __inc__(self, key: str, value, *args, **kwargs):
-        if key == "edge_index":
-            return th.tensor([[self.var_type.size(0)], [self.factor.size(0)]])
-        return super().__inc__(key, value, *args, **kwargs)
-
-
-def statedata_from_single_obs(obs) -> StateData:
-    return statedata_from_obs([dict_to_data(obs)])
-
-
-def statedata_from_obs(obs: list[Data]) -> StateData:
-    b = Batch.from_data_list(obs)
-    return StateData(
-        var_val=b.var_value,
-        var_type=b.var_type,
-        object_class=b.factor,
-        edge_index=b.edge_index,
-        edge_attr=b.edge_attr,
-        batch_idx=b.batch,
-    )
-
-
-def dict_to_data(obs: dict[str, tuple[Any]], num_envs: int) -> BipartiteData:
-    return [
-        BipartiteData(
-            var_value=th.as_tensor(obs["var_value"][i], dtype=th.float32),
-            var_type=th.as_tensor(obs["var_type"][i], dtype=th.int64),
-            factor=th.as_tensor(obs["factor"][i], dtype=th.int64),
-            edge_index=th.as_tensor(obs["edge_index"][i], dtype=th.int64).T,
-            edge_attr=th.as_tensor(obs["edge_attr"][i], dtype=th.int64),
-            num_nodes=obs["factor"][i].shape[0],  # + obs["var_value"].shape[0]
-        )
-        for i in range(num_envs)
-    ]
-
-
-def save_agent(agent: GraphAgent, config: Config, path: str):
-    state_dict = agent.state_dict()
-    to_save = {}
-    to_save["config"] = asdict(config)
-    to_save["state_dict"] = state_dict
-    torch.save(to_save, path)
-
-
-def load_agent(path: str) -> tuple[nn.Module, Config]:
-    data = torch.load(path)
-    config = Config(**data["config"])
-    agent = GraphAgent(config)
-    agent.load_state_dict(data["state_dict"])
-    return agent, config
 
 
 @torch.inference_mode()
@@ -184,13 +132,13 @@ class Args:
 def make_env(
     env_id: str,
     domain: str,
-    instance: str,
+    instance: str | int,
     idx: int,
     capture_video: bool,
     run_name: str,
 ):
-    def thunk():
-        env = gym.make(
+    def thunk() -> gym.Env[Dict, MultiDiscrete]:
+        env: gym.Env[Dict, MultiDiscrete] = gym.make(
             env_id,
             domain=domain,
             instance=instance,
@@ -253,7 +201,7 @@ class Agent(nn.Module):
 def rollout(
     agent: Agent,
     envs: gym.vector.SyncVectorEnv,
-    next_obs: list[Data],
+    next_obs: list[BipartiteData],
     next_done: Tensor,
     dones: Tensor,
     rewards: Tensor,
@@ -267,7 +215,7 @@ def rollout(
 ) -> tuple[list[Data], int, list[float], list[int]]:
     returns: deque[float] = deque()
     lengths: deque[int] = deque()
-    obs: deque[Data] = deque()
+    obs: deque[BipartiteData] = deque()
     for step in range(0, num_steps):
         global_step += num_envs
         obs.extend(next_obs)
@@ -289,13 +237,13 @@ def rollout(
         logprobs[step] = logprob
 
         # TRY NOT TO MODIFY: execute the game and log data.
-        next_obs, reward, terminations, truncations, infos = envs.step(
-            action.cpu().numpy()
+        next_obs_dict, reward, terminations, truncations, infos = envs.step(  # type: ignore
+            action.cpu().numpy()  # type: ignore
         )
         next_done = np.logical_or(terminations, truncations)
         rewards[step] = torch.tensor(reward).to(device).view(-1)
         next_obs, next_done = (
-            dict_to_data(next_obs, num_envs),
+            batched_dict_to_data(next_obs_dict, num_envs),  # type: ignore
             torch.Tensor(next_done).to(device),
         )
 
@@ -392,7 +340,10 @@ def update(
 
 
 def main(
-    envs: gym.vector.SyncVectorEnv, run_name: str, args: Args, agent_config: Config
+    envs: gym.vector.SyncVectorEnv,
+    run_name: str,
+    args: Args,
+    agent_config: Config,
 ):
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
@@ -401,7 +352,7 @@ def main(
     # TRY NOT TO MODIFY: seeding
     random.seed(args.seed)
     np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
+    torch.manual_seed(args.seed)  # type: ignore
     torch.backends.cudnn.deterministic = args.torch_deterministic
 
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
@@ -411,7 +362,7 @@ def main(
     agent = Agent(agent_config).to(device)
 
     if args.track:
-        wandb.watch(agent, log_freq=10, log="all")
+        wandb.watch(agent, log_freq=10, log="all")  # type: ignore
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # ALGO Logic: Storage setup
@@ -427,8 +378,10 @@ def main(
     global_step = 0
     start_time = time.time()
     next_obs, _ = envs.reset(seed=args.seed)  # type: ignore
-    next_obs = dict_to_data(next_obs, args.num_envs)
+    next_obs = batched_dict_to_data(next_obs, args.num_envs)  # type: ignore
     next_done = torch.zeros(args.num_envs).to(device)
+    approx_kl = 0.0
+    entropy_loss = 0.0
 
     pbar = tqdm(total=args.num_iterations)
 
@@ -455,8 +408,8 @@ def main(
             global_step,
         )
 
-        r = np.mean(rollout_returns) if rollout_returns else 0
-        l = np.mean(rollout_lengths) if rollout_lengths else 0
+        r = np.mean(rollout_returns) if rollout_returns else 0.0
+        length = np.mean(rollout_lengths) if rollout_lengths else 0.0
 
         # bootstrap value if not done
         with torch.no_grad():
@@ -493,7 +446,7 @@ def main(
             for start in range(0, batch_size, minibatch_size):
                 end = start + minibatch_size
                 mb_inds = b_inds[start:end]
-                minibatch = statedata_from_obs(b_obs.index_select(mb_inds))
+                minibatch = statedata_from_obs([obs[i] for i in mb_inds])
                 (
                     loss,
                     pg_loss,
@@ -525,35 +478,35 @@ def main(
                 break
 
         y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()  # type: ignore
-        var_y = np.var(y_true)
+        var_y = np.var(y_true)  # type: ignore
         explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
         # TRY NOT TO MODIFY: record rewards for plotting purposes
         mlflow.log_metric(
             "charts/learning_rate", optimizer.param_groups[0]["lr"], global_step
         )
-        save_agent(agent.agent, agent_config, f"{run_name}.pth")
+        agent.agent.save_agent(f"{run_name}.pth")
         mlflow.log_artifact(f"{run_name}.pth")
         pbar.update(1)
         pbar.set_description(
-            f"R:{r:.2f} | L:{l:.2f} | ENT:{entropy_loss:.2f} | EXPL_VARIANCE:{explained_var:.2f}"
+            f"R:{r:.2f} | L:{length:.2f} | ENT:{entropy_loss:.2f} | EXPL_VARIANCE:{explained_var:.2f}"
         )
 
         mlflow.log_metric("rollout/mean_reward", rewards.mean().item(), global_step)
-        mlflow.log_metric("rollout/mean_episodic_return", r, global_step)
-        mlflow.log_metric("rollout/mean_episodic_length", l, global_step)
+        mlflow.log_metric("rollout/mean_episodic_return", r, global_step)  # type: ignore
+        mlflow.log_metric("rollout/mean_episodic_length", length, global_step)  # type: ignore
         mlflow.log_metric("rollout/advantages", b_advantages.mean().item(), global_step)
         mlflow.log_metric("rollout/returns", b_returns.mean().item(), global_step)
         mlflow.log_metric("rollout/values", b_values.mean().item(), global_step)
-        mlflow.log_metric("losses/total_loss", loss.item(), global_step)
-        mlflow.log_metric("losses/grad_norm", grad_norm, global_step)
-        mlflow.log_metric("losses/value_loss", v_loss.item(), global_step)
-        mlflow.log_metric("losses/policy_loss", pg_loss.item(), global_step)
-        mlflow.log_metric("losses/entropy", entropy_loss.item(), global_step)
-        mlflow.log_metric("losses/old_approx_kl", old_approx_kl.item(), global_step)
-        mlflow.log_metric("losses/approx_kl", approx_kl.item(), global_step)
-        mlflow.log_metric("losses/clipfrac", np.mean(clipfracs), global_step)
-        mlflow.log_metric("losses/explained_variance", explained_var, global_step)
+        mlflow.log_metric("losses/total_loss", loss.item(), global_step)  # type: ignore
+        mlflow.log_metric("losses/grad_norm", grad_norm, global_step)  # type: ignore
+        mlflow.log_metric("losses/value_loss", v_loss.item(), global_step)  # type: ignore
+        mlflow.log_metric("losses/policy_loss", pg_loss.item(), global_step)  # type: ignore
+        mlflow.log_metric("losses/entropy", entropy_loss.item(), global_step)  # type: ignore
+        mlflow.log_metric("losses/old_approx_kl", old_approx_kl.item(), global_step)  # type: ignore
+        mlflow.log_metric("losses/approx_kl", approx_kl.item(), global_step)  # type: ignore
+        mlflow.log_metric("losses/clipfrac", np.mean(clipfracs), global_step)  # type: ignore
+        mlflow.log_metric("losses/explained_variance", explained_var, global_step)  # type: ignore
         mlflow.log_metric(
             "charts/SPS", int(global_step / (time.time() - start_time)), global_step
         )
@@ -562,7 +515,9 @@ def main(
 
 
 def setup():
+    print("Attempting to connect to mlflow...")
     mlflow.set_tracking_uri(uri="http://127.0.0.1:5000")
+    print("Connected to mlflow.")
     args = tyro.cli(Args)
 
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}"
@@ -577,9 +532,9 @@ def setup():
         ],
     )
 
-    n_types = int(envs.single_observation_space["factor"].high[0])
-    n_relations = int(envs.single_observation_space["var_type"].high[0])
-    n_actions = int(envs.single_action_space.nvec[0])
+    n_types = int(envs.single_observation_space["factor"].feature_space.n)  # type: ignore
+    n_relations = int(envs.single_observation_space["var_type"].feature_space.n)  # type: ignore
+    n_actions = int(envs.single_action_space.nvec[0])  # type: ignore
 
     agent_config = Config(
         n_types,
@@ -594,7 +549,7 @@ def setup():
 
     logged_config = vars(args) | asdict(agent_config)
     if args.track:
-        wandb.init(
+        wandb.init(  # type: ignore
             project=args.wandb_project_name,
             entity=args.wandb_entity,
             config=logged_config,

@@ -66,7 +66,7 @@ def gae(
 class Args:
     exp_name: str = os.path.basename(__file__)[: -len(".py")]
     """the name of this experiment"""
-    seed: int = 1
+    seed: int = 0
     """seed of the experiment"""
     torch_deterministic: bool = True
     """if toggled, `torch.backends.cudnn.deterministic=False`"""
@@ -91,9 +91,9 @@ class Args:
     """total timesteps of the experiments"""
     learning_rate: float = 2.5e-3
     """the learning rate of the optimizer"""
-    num_envs: int = 4
+    num_envs: int = 1
     """the number of parallel game environments"""
-    num_steps: int = 80
+    num_steps: int = 20
     """the number of steps to run in each environment per policy rollout"""
     anneal_lr: bool = True
     """Toggle learning rate annealing for policy and value networks"""
@@ -101,7 +101,7 @@ class Args:
     """the discount factor gamma"""
     gae_lambda: float = 1.0
     """the lambda for the general advantage estimation"""
-    num_minibatches: int = 40
+    num_minibatches: int = 20
     """the number of mini-batches"""
     update_epochs: int = 4
     """the K epochs to update the policy"""
@@ -111,7 +111,7 @@ class Args:
     """the surrogate clipping coefficient"""
     clip_vloss: bool = False
     """Toggles whether or not to use a clipped loss for the value function, as per the paper."""
-    ent_coef: float = 0.0
+    ent_coef: float = 0.01
     """coefficient of the entropy"""
     vf_coef: float = 0.1
     """coefficient of the value function"""
@@ -541,7 +541,7 @@ def setup():
         n_relations,
         n_actions,
         layers=4,
-        embedding_dim=16,
+        embedding_dim=4,
         activation=nn.LeakyReLU(),
         aggregation="sum",
         action_mode=ActionMode.ACTION_THEN_NODE,

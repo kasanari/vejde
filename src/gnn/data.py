@@ -70,7 +70,7 @@ def batched_dict_to_data(
     attrs = StackedStateData._fields
 
     def create_data(i: int) -> BipartiteData:
-        data = {attr: th.as_tensor(obs[attr][i]) for attr in attrs}
+        data = {attr: th.as_tensor(obs[attr][i]) for attr in attrs if attr != "batch"}
         return BipartiteData(
             **data,
             num_nodes=obs["factor"][i].shape[0],  # + obs["var_value"][i].shape[0]

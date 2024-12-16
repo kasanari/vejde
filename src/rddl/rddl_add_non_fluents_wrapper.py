@@ -16,8 +16,9 @@ class RDDLAddNonFluents(gym.Wrapper[spaces.Tuple, spaces.Dict, ObsType, ActType]
     A wrapper that adds the last observation to the current observation.
     """
 
-    def __init__(self, env: RDDLEnv) -> None:
+    def __init__(self, env: RDDLEnv, only_add_on_reset: bool = False) -> None:
         super().__init__(env)
+        self.only_add_on_reset = only_add_on_reset
 
     @property
     @cache
@@ -48,7 +49,8 @@ class RDDLAddNonFluents(gym.Wrapper[spaces.Tuple, spaces.Dict, ObsType, ActType]
     ]:
         obs, reward, terminated, truncated, info = self.env.step(actions)
 
-        obs |= self._non_fluent_values
+        if not self.only_add_on_reset:
+            obs |= self._non_fluent_values
 
         return obs, reward, terminated, truncated, info
 

@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import logging
 from functools import cache
 from typing import Any, SupportsFloat
@@ -6,175 +7,188 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from wrappers.stacking_wrapper import StackingWrapper
+from gymnasium.spaces import Discrete, Sequence, Dict, MultiDiscrete
 
-from .parent_wrapper import RDDLGraphWrapper
-from .utils import predicate, to_dict_action, create_stacked_obs, get_groundings
+from .utils import create_stacked_obs, predicate, to_dict_action, create_obs
+
+from .utils import to_graphviz_alt, to_graphviz
+
+from model.base_model import BaseModel
 
 logger = logging.getLogger(__name__)
 
 
 def skip_fluent(key: str, variable_ranges: dict[str, str]) -> bool:
-    return variable_ranges[predicate(key)] != "bool" or key == "noop"
+    return False
 
 
-class StackingGroundedRDDLGraphWrapper(RDDLGraphWrapper):
+class StackingGroundedRDDLGraphWrapper(
+    gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict]
+):
+    @property
+    def metadata(self) -> dict[str, Any]:
+        return {"render_modes": ["human", "idx"]}
+
+    @metadata.setter
+    def metadata(self, value: dict[str, Any]):
+        self._metadata = value
+
     def __init__(
         self,
-        domain: str,
-        instance: int,
+        env: gym.Env[tuple[dict[str, Any], dict[str, int]], dict[str, int]],
+        model: BaseModel,
         render_mode: str = "human",
     ) -> None:
-        super().__init__(domain, instance, render_mode)
-        self.env = StackingWrapper(self.env)  # type: ignore
+        super().__init__(env)
+        self.wrapped_model = model
+        self.env = env
+        self.last_obs: dict[str, Any] = {}
+        self.iter = 0
+        self._idx_to_object: list[str] = []
+        self._idx_to_object_type: list[str] = []
+
+    def idx_to_object(self, idx: int) -> str:
+        return self._idx_to_object[idx]
+
+    def idx_to_object_type(self, idx: int) -> str:
+        return self._idx_to_object_type[idx]
 
     @property
     @cache
-    def groundings(self):
-        ground = super().groundings
-        model = self.model
-        state_fluents = model.state_fluents  # type: ignore
-        observ_fluents = model.observ_fluents  # type: ignore
-        # action_fluents = model.action_fluents  # type: ignore
-        # action_groundings = get_groundings(model, action_fluents)  # type: ignore
-        observ_groundings = get_groundings(model, observ_fluents)  # type: ignore
-        state_groundings: set[str] = get_groundings(model, state_fluents)  # type: ignore
-        ground = set(ground)
-        ground -= state_groundings
-        ground |= observ_groundings
-        # ground |= action_groundings
+    def action_space(self) -> gym.spaces.MultiDiscrete:  # type: ignore
+        return gym.spaces.MultiDiscrete(
+            [
+                self.wrapped_model.num_actions,  # type: ignore
+                2000,
+            ]
+        )
 
-        return sorted([g for g in ground if not skip_fluent(g, self.variable_ranges)])
+    def render(self):
+        return to_graphviz(self.last_g)
+
+        if self.metadata["render_modes"] == "idx":
+            obs = self.last_obs
+            nodes_classes = obs["var_type"]
+            node_values = obs["var_value"]
+            object_nodes = obs["factor"]
+            edge_indices = obs["edge_index"].T
+            edge_attributes = obs["edge_attr"]
+            # numeric = obs["numeric"]
+
+            return to_graphviz_alt(
+                nodes_classes,
+                node_values,
+                object_nodes,
+                edge_indices,  # type: ignore
+                edge_attributes,
+                self.wrapped_model.idx_to_type,  # type: ignore
+                self.wrapped_model.idx_to_relation,  # type: ignore
+            )
 
     @property
     @cache
     def observation_space(self) -> spaces.Dict:  # type: ignore
-        num_groundings = len(self.groundings)
-        num_objects = self.num_objects
-        num_types = self.num_types
-        num_relations = len(self.rel_to_idx)
-        num_edges = self.num_edges
+        # num_groundings = len(self.wrapped_model.groundings)
+        # num_objects = self.wrapped_model.num_objects
+        num_types = self.wrapped_model.num_types
+        num_relations = self.wrapped_model.num_relations
 
-        var_value_space = spaces.Sequence(spaces.Discrete(2), stack=True)
+        var_value_space = Sequence(spaces.Discrete(2), stack=True)
 
         s: dict[str, spaces.Space] = {  # type: ignore
-            "var_type": spaces.Box(
-                low=0,
-                high=num_relations,
-                shape=(num_groundings,),
-                dtype=np.int64,
+            "var_type": Sequence(Discrete(num_relations), stack=True),
+            "var_value": Sequence(var_value_space, stack=True),
+            "factor": Sequence(
+                Discrete(
+                    num_types,
+                ),
+                stack=True,
             ),
-            "var_value": spaces.Sequence(var_value_space, stack=True),
-            "factor": spaces.Box(
-                low=0, high=num_types, shape=(num_objects,), dtype=np.int64
+            "edge_index": Sequence(
+                spaces.Box(
+                    low=0,
+                    high=2000,
+                    shape=(2,),
+                    dtype=np.int64,
+                ),
+                stack=True,
             ),
-            "edge_index": spaces.Box(
-                low=0,
-                high=max(num_objects, num_groundings),
-                shape=(num_edges, 2),
-                dtype=np.int64,
-            ),
-            "edge_attr": spaces.Box(
-                low=0,
-                high=1,
-                shape=(num_edges,),
-                dtype=np.int64,
-            ),
-            "length": spaces.Box(
-                low=0,
-                high=40,
-                shape=(num_groundings,),
-                dtype=np.int64,
-            ),
+            "edge_attr": Sequence(Discrete(2), stack=True),
+            "length": Sequence(Discrete(1), stack=True),
         }
 
         return spaces.Dict(s)
 
-    def create_obs(
-        self,
-        rddl_obs: dict[str, list[int]],
-    ):
-        non_fluent_values = {k: [v] for k, v in self.non_fluent_values.items()}
-
-        obs, g = create_stacked_obs(
+    def _create_obs(
+        self, rddl_obs_with_lengths: tuple[dict[str, list[int]], dict[str, int]]
+    ) -> tuple[spaces.Dict, dict[str, Any]]:
+        (rddl_obs, lengths) = rddl_obs_with_lengths
+        o, g, groundings = create_stacked_obs(
             rddl_obs,
-            non_fluent_values,
-            self.rel_to_idx,
-            self.type_to_idx,
-            self.groundings,
-            self.obj_to_type,
-            self.variable_ranges,
+            self.wrapped_model,
             skip_fluent,
         )
 
-        return obs, g
+        length = np.array(
+            [lengths[key] for key in groundings if key in lengths],
+            dtype=np.int64,
+        )
+
+        assert length.sum() == len(o["var_value"])
+
+        o["length"] = length
+        return o, g
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[spaces.Dict, dict[str, Any]]:
         rddl_obs, info = self.env.reset(seed=seed)
 
-        # obs |= self.action_values
-
-        (rddl_obs, lengths) = rddl_obs
-
-        obs, g = self.create_obs(
-            rddl_obs,
-        )
-
-        obs = self._add_length(obs, lengths)
+        obs, g = self._create_obs(rddl_obs)
 
         info["state"] = g
         info["rddl_state"] = self.env.unwrapped.state  # type: ignore
         info["rddl_obs"] = rddl_obs
 
         self.last_obs = obs
+        self.last_g = g
         self.last_rddl_obs = rddl_obs
+        self._idx_to_object_type = g.factor_values
+        self._idx_to_object = g.factors
 
-        return obs, info  # type: ignore
+        return obs, info
 
-    def _add_length(
-        self, obs: dict[str, Any], lengths: dict[str, int]
-    ) -> dict[str, Any]:
-        non_fluent_lengths = {k: 1 for k in self.non_fluent_values}
-        lengths |= non_fluent_lengths
-        length = np.array(
-            [lengths[key] for key in self.groundings if key in lengths], dtype=np.int64
+    def _to_rddl_action(
+        self, action: spaces.MultiDiscrete
+    ) -> tuple[dict[str, int], str]:
+        return to_dict_action(
+            action,
+            self.wrapped_model.idx_to_action,
+            self.idx_to_object_type,
+            self.idx_to_object,
+            self.wrapped_model.fluent_params,
         )
-        obs["length"] = length
-        return obs
 
-    def step(  # type: ignore
-        self, action: tuple[int, int]
+    def step(
+        self, action: spaces.MultiDiscrete
     ) -> tuple[spaces.Dict, SupportsFloat, bool, bool, dict[str, Any]]:
-        rddl_action_dict, rddl_action = to_dict_action(
-            action, self.action_fluents, self.idx_to_object, self.action_groundings
+        rddl_action, grounded_action = self._to_rddl_action(
+            action,
         )
-        rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action_dict)
-        rddl_obs, lengths = rddl_obs
+        rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action)
 
-        obs, g = self.create_obs(
-            rddl_obs,
-        )
-
-        obs = self._add_length(obs, lengths)
+        obs, g = self._create_obs(rddl_obs)
 
         info["state"] = g
         info["rddl_state"] = self.env.unwrapped.state  # type: ignore
         info["rddl_obs"] = rddl_obs
+        info["rddl_action"] = rddl_action
 
         self.last_obs = obs
+        self.last_g = g
         self.last_rddl_obs = rddl_obs
-        self.last_action_values = rddl_action_dict
-        self.last_action = rddl_action
+        self.last_action = grounded_action
+        self._idx_to_object_type = g.factor_values  # type: ignore
+        self._idx_to_object = g.factors  # type: ignore
 
-        return obs, reward, terminated, truncated, info  # type: ignore
-
-
-def register_env():
-    env_id = "StackingGroundedRDDLGraphWrapper-v0"
-    gym.register(  # type: ignore
-        id=env_id,
-        entry_point="wrappers.pomdp_wrapper:StackingGroundedRDDLGraphWrapper",
-    )
-    return env_id
+        return obs, reward, terminated, truncated, info

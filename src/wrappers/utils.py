@@ -11,8 +11,6 @@ from model.base_model import BaseModel
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T")
-
 
 class Object(NamedTuple):
     name: str
@@ -66,7 +64,7 @@ def create_obs(
     rddl_obs: dict[str, Any],
     model: BaseModel,
     skip_fluent: Callable[[str, dict[str, str]], bool],
-) -> tuple[dict[str, Any], FactorGraph]:
+) -> tuple[dict[str, Any], FactorGraph, list[str]]:
     filtered_groundings = sorted(
         [
             g
@@ -82,6 +80,7 @@ def create_obs(
     ]
 
     bool_g = generate_bipartite_obs(
+        FactorGraph,
         filtered_obs,
         boolean_groundings,
         model.fluent_param,
@@ -98,54 +97,69 @@ def create_obs(
 
     if numeric_groundings:
         _numeric_g = generate_bipartite_obs(  # TODO add this to obs
+            FactorGraph,
             filtered_obs,
             numeric_groundings,
             model.fluent_param,
         )
 
+    assert isinstance(bool_g, FactorGraph)
+
     obs = graph_to_dict(map_graph_to_idx(bool_g, model.rel_to_idx, model.type_to_idx))
 
-    return obs, bool_g
+    return obs, bool_g, filtered_groundings
 
 
 def create_stacked_obs(
     rddl_obs: dict[str, Any],
-    non_fluent_values: dict[str, Any],
-    rel_to_idx: dict[str, int],
-    type_to_idx: dict[str, int],
-    groundings: list[str],
-    obj_to_type: dict[str, str],
-    variable_ranges: dict[str, str],
+    model: BaseModel,
     skip_fluent: Callable[[str, dict[str, str]], bool],
-) -> tuple[dict[str, Any], StackedFactorGraph]:
-    rddl_obs |= non_fluent_values
-
+) -> tuple[dict[str, Any], StackedFactorGraph, list[str]]:
     filtered_groundings = sorted(
-        [g for g in groundings if not skip_fluent(g, variable_ranges) and g in rddl_obs]
+        [
+            g
+            for g in rddl_obs
+            if not skip_fluent(g, model.variable_range)  # type: ignore
+        ]
     )
 
     filtered_obs: dict[str, Any] = {k: rddl_obs[k] for k in filtered_groundings}
 
     boolean_groundings = [
-        g for g in filtered_groundings if variable_ranges[predicate(g)] == "bool"
+        g for g in filtered_groundings if model.variable_range(predicate(g)) is bool
     ]
 
-    numeric_groundings = [
-        g for g in filtered_groundings if variable_ranges[predicate(g)] == "real"
-    ]
-
-    g = generate_bipartite_obs(
+    bool_g = generate_bipartite_obs(
+        StackedFactorGraph,
         filtered_obs,
         boolean_groundings,
-        numeric_groundings,
-        obj_to_type,
+        model.fluent_param,
     )
 
-    assert isinstance(g, StackedFactorGraph)
+    numeric_groundings = [
+        g
+        for g in filtered_groundings
+        if (
+            model.variable_range(predicate(g)) is float
+            or model.variable_range(predicate(g)) is int
+        )
+    ]
 
-    obs = graph_to_dict(map_stacked_graph_to_idx(g, rel_to_idx, type_to_idx))
+    if numeric_groundings:
+        _numeric_g = generate_bipartite_obs(  # TODO add this to obs
+            StackedFactorGraph,
+            filtered_obs,
+            numeric_groundings,
+            model.fluent_param,
+        )
 
-    return obs, g
+    assert isinstance(bool_g, StackedFactorGraph)
+
+    obs = graph_to_dict(
+        map_stacked_graph_to_idx(bool_g, model.rel_to_idx, model.type_to_idx)
+    )
+
+    return obs, bool_g, boolean_groundings
 
 
 def num_edges(arities: Callable[[str], int], groundings: list[str]) -> int:
@@ -217,7 +231,7 @@ def arity(grounding: str):
 
 
 def translate_edges(
-    source_symbols: list[str], target_symbols: list[str], edges: set[Edge]
+    source_symbols: list[str], target_symbols: list[str], edges: list[Edge]
 ):
     return np.array(
         [(source_symbols.index(key[0]), target_symbols.index(key[1])) for key in edges],
@@ -264,11 +278,12 @@ def map_graph_to_idx(
 
 def map_stacked_graph_to_idx(
     factorgraph: StackedFactorGraph,
-    rel_to_idx: dict[str, int],
-    type_to_idx: dict[str, int],
+    rel_to_idx: Callable[[str], int],
+    type_to_idx: Callable[[str], int],
 ) -> IdxFactorGraph:
     edge_attributes = np.asarray(factorgraph.edge_attributes, dtype=np.int64)
 
+    # Flatten the list of node history lists to account for different node history lengths
     vals = list(chain(*factorgraph.variable_values))
 
     vars = [
@@ -277,9 +292,9 @@ def map_stacked_graph_to_idx(
     ]
     vars = list(chain(*vars))
 
-    vars = [rel_to_idx[p] for p in vars]
+    vars = [rel_to_idx(p) for p in vars]
 
-    factors = [type_to_idx[object] for object in factorgraph.factor_values]
+    factors = [type_to_idx(object) for object in factorgraph.factor_values]
 
     return IdxFactorGraph(
         np.array(vars, dtype=np.int64),
@@ -313,12 +328,16 @@ def predicate_list_from_groundings(groundings: list[str]) -> list[str]:
     return sorted(set(chain(*[predicate(g) for g in groundings])))
 
 
+T = TypeVar("T", type[FactorGraph], type[StackedFactorGraph])
+
+
 def generate_bipartite_obs(
+    cls: T,
     obs: dict[str, bool | float],
     groundings: list[str],
     relation_to_types: Callable[[str, int], str],
     # variable_ranges: dict[str, str],
-) -> FactorGraph | StackedFactorGraph:
+) -> T:
     edges = create_edges(groundings)
 
     obj_list = object_list(obs, relation_to_types)
@@ -341,7 +360,7 @@ def generate_bipartite_obs(
     assert max(edge_indices[:, 0]) < len(fact_node_predicate)
     assert max(edge_indices[:, 1]) < len(object_types)
 
-    return FactorGraph(
+    return cls(
         fact_node_predicate,
         fact_node_values,
         obj_names,

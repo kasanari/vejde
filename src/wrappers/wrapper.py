@@ -22,7 +22,7 @@ def skip_fluent(key: str, variable_ranges: dict[str, str]) -> bool:
     return False
 
 
-class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
+class GroundedRDDLGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict]):
     @property
     def metadata(self) -> dict[str, Any]:
         return {"render_modes": ["human", "idx"]}
@@ -33,7 +33,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
 
     def __init__(
         self,
-        env: gym.Env[Dict, Dict],
+        env: gym.Env[dict[str, Any], dict[str, int]],
         model: BaseModel,
         render_mode: str = "human",
     ) -> None:
@@ -123,7 +123,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
     def _create_obs(
         self, rddl_obs: dict[str, list[int]]
     ) -> tuple[spaces.Dict, dict[str, Any]]:
-        o, g = create_obs(
+        o, g, _ = create_obs(
             rddl_obs,
             self.wrapped_model,
             skip_fluent,
@@ -173,21 +173,13 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[Dict, MultiDiscrete, Dict, Dict]):
 
         info["state"] = g
         info["rddl_state"] = rddl_obs  # type: ignore
+        info["rddl_action"] = rddl_action
 
         self.last_obs = obs
         self.last_g = g
         self.last_rddl_obs = rddl_obs
         self.last_action = grounded_action
-        self._idx_to_object_type = g.factor_values
-        self._idx_to_object = g.factors
+        self._idx_to_object_type = g.factor_values  # type: ignore
+        self._idx_to_object = g.factors  # type: ignore
 
         return obs, reward, terminated, truncated, info
-
-
-def register_env():
-    env_id = "GroundedRDDLGraphWrapper-v0"
-    gym.register(
-        id=env_id,
-        entry_point="wrappers.wrapper:GroundedRDDLGraphWrapper",
-    )
-    return env_id

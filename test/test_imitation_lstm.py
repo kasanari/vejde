@@ -23,7 +23,7 @@ from gnn.data import (
     stackedstatedata_from_single_obs,
 )
 from util import save_eval_data
-from wrappers.pomdp_wrapper import register_env
+from rddl import register_pomdp_env as register_env
 
 
 class Serializer(json.JSONEncoder):
@@ -97,14 +97,14 @@ def policy(state):
         and state["light___r_m"]
         and not state["empty___r_m"]
     ):
-        return (1, 3)
+        return (1, 4)
 
     if (
         state["enough_light___g_m"]
         and state["light___g_m"]
         and not state["empty___g_m"]
     ):
-        return (1, 1)
+        return (1, 2)
 
     return (0, 0)
 
@@ -152,10 +152,9 @@ def test_imitation():
         instance=instance,
         # add_inverse_relations=False,
         # types_instead_of_objects=False,
-        render_mode="idx",
     )
-    n_types = int(env.observation_space["factor"].high[0])
-    n_relations = int(env.observation_space["var_type"].high[0])
+    n_types = int(env.observation_space["factor"].feature_space.n)
+    n_relations = int(env.observation_space["var_type"].feature_space.n)
     n_actions = int(env.action_space.nvec[0])
 
     config = Config(
@@ -188,7 +187,9 @@ def test_imitation():
     rewards, _, _ = zip(*data)
     print(np.mean([np.sum(r) for r in rewards]))
 
-    _ = [iteration(i, env, agent, optimizer, i) for i in range(300)]
+    _ = [
+        iteration(i, env, agent, optimizer, 0) for i in range(300)
+    ]  # TODO different seeds
 
     pass
 
@@ -319,7 +320,7 @@ def rollout(env: gym.Env[Dict, MultiDiscrete], seed: int):
 
 @th.no_grad()  # type: ignore
 def evaluate(env: gym.Env[Dict, MultiDiscrete], agent: RecurrentGraphAgent, seed: int):
-    obs, _ = env.reset(seed=seed)
+    obs, info = env.reset(seed=seed)
     done = False
     time = 0
 
@@ -331,7 +332,7 @@ def evaluate(env: gym.Env[Dict, MultiDiscrete], agent: RecurrentGraphAgent, seed
         time += 1
         # action = env.action_space.sample()
 
-        obs_buf.append(env.unwrapped.last_rddl_obs)  # type: ignore
+        obs_buf.append(info["rddl_state"])  # type: ignore
 
         s = stackedstatedata_from_single_obs(obs)  # type: ignore
         # b = {k: th.as_tensor(v, dtype=th.float32) for k, v in obs["nodes"].items()}
@@ -342,12 +343,12 @@ def evaluate(env: gym.Env[Dict, MultiDiscrete], agent: RecurrentGraphAgent, seed
             deterministic=True,
         )
 
-        next_obs, reward, terminated, truncated, _ = env.step(action.squeeze(0))  # type: ignore
+        next_obs, reward, terminated, truncated, info = env.step(action.squeeze(0))  # type: ignore
 
         # env.render()
         # exit()
         done = terminated or truncated
-        actions.append(env.unwrapped.last_action_values)  # type: ignore
+        actions.append(actions.append(info["rddl_action"]))  # type: ignore
         rewards.append(float(reward))
         obs = next_obs
         # print(obs)

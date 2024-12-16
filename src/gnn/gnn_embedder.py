@@ -61,7 +61,11 @@ class RecurrentEmbedder(nn.Module):
 
         self.activation = activation
 
-        self.recurrent = nn.GRU(embedding_dim, embedding_dim, batch_first=True)
+        self.recurrent = nn.GRU(
+            embedding_dim,
+            embedding_dim,
+            batch_first=True,
+        )
 
         for name, param in self.recurrent.named_parameters():
             if "weight" in name:
@@ -87,10 +91,9 @@ class RecurrentEmbedder(nn.Module):
             length.max().item(),
             h.size(-1),
         )
-        offset = 0
-        for i, l in enumerate(length):
-            padded[i, : l.item()] = h[offset : offset + l.item()]
-            offset += l.item()
+        offsets = th.cat((th.zeros(1, dtype=th.int64), th.cumsum(length, dim=0)))
+        for i, node_l in enumerate(length):
+            padded[i, : node_l.item()] = h[offsets[i] : offsets[i] + node_l.item()]
 
         # indices = (var_val * var_type.unsqueeze(1)).int()
         # e = self.predicate_embedding(padded)

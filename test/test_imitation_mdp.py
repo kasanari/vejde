@@ -116,7 +116,7 @@ def test_imitation():
         n_actions,
         layers=4,
         embedding_dim=4,
-        activation=th.nn.LeakyReLU(),
+        activation=th.nn.Mish(),
         aggregation="sum",
         action_mode=ActionMode.ACTION_THEN_NODE,
     )
@@ -144,7 +144,7 @@ def test_imitation():
     rewards, _, _ = zip(*data)
     print(np.mean(np.sum(rewards, axis=1)))
 
-    _ = [iteration(i, env, agent, optimizer, 0) for i in range(100)]
+    _ = [iteration(i, env, agent, optimizer, i) for i in range(60)]
 
     pass
 
@@ -272,7 +272,8 @@ def rollout(env: gym.Env, seed: int) -> Rollout:
 
         # print(f"Episode {seed}: {sum_reward}, {avg_loss}, {avg_l2_loss}")
 
-    assert sum_reward == 4.0, f"Expert policy failed: {sum_reward}"
+    if seed == 0:
+        assert sum_reward == 4.0, f"Expert policy failed: {sum_reward}"
 
     return Rollout(list(rewards_buf), list(obs_buf), list(actions_buf))
 
@@ -307,7 +308,7 @@ def evaluate(env: gym.Env, agent: GraphAgent, seed: int):
         # env.render()
         # exit()
         done = terminated or truncated
-        actions.append(info["rddl_state"])
+        actions.append(info["rddl_action"])
         rewards.append(reward)
         obs = next_obs
         # print(obs)

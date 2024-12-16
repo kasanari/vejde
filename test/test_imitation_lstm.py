@@ -162,8 +162,8 @@ def test_imitation():
         n_relations,
         n_actions,
         layers=3,
-        embedding_dim=16,
-        activation=th.nn.LeakyReLU(),
+        embedding_dim=8,
+        activation=th.nn.Mish(),
         aggregation="sum",
         action_mode=ActionMode.ACTION_THEN_NODE,
     )
@@ -181,15 +181,15 @@ def test_imitation():
     #     embedding_dim=4,
     #     activation=th.nn.ReLU(),
     # )
-    optimizer = th.optim.AdamW(agent.parameters(), lr=0.02, amsgrad=True)
+    optimizer = th.optim.AdamW(agent.parameters(), lr=0.01, amsgrad=True)
 
     data = [evaluate(env, agent, i) for i in range(10)]
     rewards, _, _ = zip(*data)
     print(np.mean([np.sum(r) for r in rewards]))
 
-    _ = [
-        iteration(i, env, agent, optimizer, 0) for i in range(300)
-    ]  # TODO different seeds
+    num_seeds = 10
+
+    _ = [iteration(i, env, agent, optimizer, i % num_seeds) for i in range(100)]
 
     pass
 
@@ -270,7 +270,7 @@ def update(
         k: round(grad_norm_(param, 1.0).item(), 3)
         for k, param in agent.named_parameters()
     }
-    # max_grad_norm = max(grad_norm.values())
+    max_grad_norm = max(grad_norms.values())
 
     grad_norm = th.nn.utils.clip_grad_norm_(agent.parameters(), 1.0)
 

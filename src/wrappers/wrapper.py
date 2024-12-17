@@ -52,12 +52,11 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, 
         return self._idx_to_object_type[idx]
 
     @property
-    @cache
     def action_space(self) -> gym.spaces.MultiDiscrete:  # type: ignore
         return gym.spaces.MultiDiscrete(
             [
                 self.wrapped_model.num_actions,  # type: ignore
-                2000,
+                len(self._idx_to_object) or 1,
             ]
         )
 

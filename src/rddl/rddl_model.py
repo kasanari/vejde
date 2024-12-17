@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 from functools import cache
 from copy import copy
@@ -16,7 +15,7 @@ class RDDLModel(BaseModel):
         return self.arities[fluent]
 
     @cache
-    def fluents_of_arity(self, arity: int) -> list[str]:
+    def fluents_of_arity(self, arity: int) -> tuple[str, ...]:
         return self._fluents_of_arity[arity]
 
     @cache
@@ -32,11 +31,11 @@ class RDDLModel(BaseModel):
         return self._rel_to_idx[relation]
 
     @cache
-    def type_attributes(self, type: str) -> list[str]:
+    def type_attributes(self, type: str) -> tuple[str, ...]:
         return self._type_attributes[type]
 
     @cache
-    def fluent_params(self, variable: str) -> list[str]:
+    def fluent_params(self, variable: str) -> tuple[str, ...]:
         return self._variable_params[variable]
 
     @cache
@@ -89,27 +88,27 @@ class RDDLModel(BaseModel):
 
     @property
     @cache
-    def _variable_params(self) -> dict[str, list[str]]:
+    def _variable_params(self) -> dict[str, tuple[str, ...]]:
         variable_params: dict[str, list[str]] = copy(self.model.variable_params)  # type: ignore
         variable_params["None"] = []
-        return variable_params
+        return {k: tuple(v) for k, v in variable_params.items()}
 
     @property
     @cache
-    def _type_attributes(self) -> dict[str, list[str]]:
+    def _type_attributes(self) -> dict[str, tuple[str, ...]]:
         vp = self.model.variable_params  # type: ignore
         return {
-            value[0]: [k for k, v in vp.items() if v == value]  # type: ignore
+            value[0]: tuple([k for k, v in vp.items() if v == value])  # type: ignore
             for _, value in vp.items()  # type: ignore
             if len(value) == 1  # type: ignore
         }
 
     @property
     @cache
-    def _fluents_of_arity(self) -> dict[int, list[str]]:
+    def _fluents_of_arity(self) -> dict[int, tuple[str, ...]]:
         arities: dict[str, int] = self.arities
         return {
-            value: [k for k, v in arities.items() if v == value]
+            value: tuple([k for k, v in arities.items() if v == value])
             for _, value in arities.items()
         }
 

@@ -25,7 +25,7 @@ class BaseModel(ABC):
 
     @abstractmethod
     @cache
-    def fluent_params(self, fluent: str) -> list[str]:
+    def fluent_params(self, fluent: str) -> tuple[str, ...]:
         """Types/classes of the variables/objects the fluent/predicate takes as parameters. Can be seen as the column names in a database table."""
         ...
 
@@ -37,13 +37,13 @@ class BaseModel(ABC):
 
     @abstractmethod
     @cache
-    def type_attributes(self, type: str) -> list[str]:
+    def type_attributes(self, type: str) -> tuple[str, ...]:
         """unary attributes/predicates/fluents for object type."""
         ...
 
     @abstractmethod
     @cache
-    def fluents_of_arity(self, arity: int) -> list[str]:
+    def fluents_of_arity(self, arity: int) -> tuple[str, ...]:
         """fluents/predicates of a given arity (number of parameters/variables/objects)."""
         ...
 

@@ -6,7 +6,7 @@ from wrappers.labelwrapper import LabelingWrapper
 from wrappers.last_obs_wrapper import LastObsWrapper
 from wrappers.stacking_last_obs_wrapper import LastObsStackingWrapper
 from wrappers.stacking_wrapper import StackingWrapper
-from wrappers.wrapper import register_env
+from rddl import register_env
 
 
 def counting_policy(state):
@@ -27,6 +27,46 @@ def policy(state):
         return [1, 1]
 
     return [0, 0]
+
+
+def save_dot(dot, path):
+    with open(path, "w") as f:
+        f.write(dot)
+
+
+def test_render(seed):
+    domain = "rddl/conditional_bandit.rddl"
+    instance = "rddl/conditional_bandit_i0.rddl"
+    # domain = "Elevators_MDP_ippc2011"
+    # instance = 1
+
+    env_id = register_env()
+    env = gym.make(
+        env_id,
+        domain=domain,
+        instance=instance,
+    )
+
+    # domain = "RecSim_ippc2023"
+    # domain = "SkillTeaching_MDP_ippc2011"
+    # env = GroundedRDDLGraphWrapper(domain, instance)
+    obs, info = env.reset(seed=seed)
+    dot = env.render()
+    save_dot(dot, "render/0.dot")
+    done = False
+    time = 0
+    sum_reward = 0
+    while not done:
+        time += 1
+
+        action = env.action_space.sample()
+        obs, reward, terminated, truncated, info = env.step(action)
+        dot = env.render()
+        save_dot(dot, f"render/{time}.dot")
+        done = terminated or truncated
+        sum_reward += reward
+
+    return sum_reward
 
 
 def test_grounded(seed):
@@ -140,4 +180,5 @@ def test_wrappers():
 if __name__ == "__main__":
     # return_ = [test_grounded(i) for i in range(1)]
     # print(np.mean(return_))
-    test_wrappers()
+    # test_wrappers()
+    test_render(1)

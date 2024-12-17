@@ -34,6 +34,9 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
     ) -> tuple[Dict, dict[str, Any]]:
         return self.env.reset(seed=seed, options=options)
 
+    def render(self) -> str:
+        return self.env.render()
+
 
 class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
     def __init__(self, domain: str, instance: str) -> None:
@@ -58,6 +61,9 @@ class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Dict, dict[str, Any]]:
         return self.env.reset(seed=seed, options=options)
+
+    def render(self) -> str:
+        return self.env.render()
 
 
 def register_env():

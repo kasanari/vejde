@@ -58,7 +58,7 @@ def gae(
         advantages[t] = lastgaelam = (
             delta + gamma * gae_lambda * nextnonterminal * lastgaelam
         )
-    returns = advantages + values
+    returns = advantages + values  # negates the -values[t] to get td targets
     return advantages, returns
 
 
@@ -408,8 +408,8 @@ def main(
             global_step,
         )
 
-        r = np.mean(rollout_returns) if rollout_returns else 0.0
-        length = np.mean(rollout_lengths) if rollout_lengths else 0.0
+        r = np.mean(rollout_returns) if rollout_returns else None
+        length = np.mean(rollout_lengths) if rollout_lengths else None
 
         # bootstrap value if not done
         with torch.no_grad():
@@ -488,13 +488,15 @@ def main(
         agent.agent.save_agent(f"{run_name}.pth")
         mlflow.log_artifact(f"{run_name}.pth")
         pbar.update(1)
-        pbar.set_description(
-            f"R:{r:.2f} | L:{length:.2f} | ENT:{entropy_loss:.2f} | EXPL_VARIANCE:{explained_var:.2f}"
-        )
+        # pbar.set_description(
+        #     f"R:{r:.2f} | L:{length:.2f} | ENT:{entropy_loss:.2f} | EXPL_VARIANCE:{explained_var:.2f}"
+        # )
 
         mlflow.log_metric("rollout/mean_reward", rewards.mean().item(), global_step)
-        mlflow.log_metric("rollout/mean_episodic_return", r, global_step)  # type: ignore
-        mlflow.log_metric("rollout/mean_episodic_length", length, global_step)  # type: ignore
+        if r is not None:
+            mlflow.log_metric("rollout/mean_episodic_return", r, global_step)  # type: ignore
+        if length is not None:
+            mlflow.log_metric("rollout/mean_episodic_length", length, global_step)  # type: ignore
         mlflow.log_metric("rollout/advantages", b_advantages.mean().item(), global_step)
         mlflow.log_metric("rollout/returns", b_returns.mean().item(), global_step)
         mlflow.log_metric("rollout/values", b_values.mean().item(), global_step)

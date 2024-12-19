@@ -143,15 +143,23 @@ class FactorGraphLayer(nn.Module):
         self,
         fg: FactorGraph,
     ) -> tuple[Tensor, Tensor]:
-        n_h_o = self.var2factor(
+        n_h_f = self.var2factor(
             fg,
         )
 
-        n_h_p = self.factor2var(
-            fg,
+        new_fg = FactorGraph(
+            fg.variables,
+            n_h_f,
+            fg.edge_index,
+            fg.edge_attr,
+            fg.batch_idx,
         )
 
-        return n_h_p, n_h_o
+        n_h_v = self.factor2var(
+            new_fg,
+        )
+
+        return n_h_v, n_h_f
 
 
 class BipartiteGNN(nn.Module):

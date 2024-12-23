@@ -89,9 +89,9 @@ class Args:
     )
     total_timesteps: int = 10000
     """total timesteps of the experiments"""
-    learning_rate: float = 2.5e-3
+    learning_rate: float = 1.0e-2
     """the learning rate of the optimizer"""
-    num_envs: int = 1
+    num_envs: int = 5
     """the number of parallel game environments"""
     num_steps: int = 20
     """the number of steps to run in each environment per policy rollout"""
@@ -99,11 +99,11 @@ class Args:
     """Toggle learning rate annealing for policy and value networks"""
     gamma: float = 0.99
     """the discount factor gamma"""
-    gae_lambda: float = 1.0
+    gae_lambda: float = 0.0
     """the lambda for the general advantage estimation"""
-    num_minibatches: int = 20
+    num_minibatches: int = 10
     """the number of mini-batches"""
-    update_epochs: int = 4
+    update_epochs: int = 8
     """the K epochs to update the policy"""
     norm_adv: bool = False
     """Toggles advantages normalization"""
@@ -115,7 +115,7 @@ class Args:
     """coefficient of the entropy"""
     vf_coef: float = 0.1
     """coefficient of the value function"""
-    max_grad_norm: float = 0.5
+    max_grad_norm: float = 1.0
     """the maximum norm for the gradient clipping"""
     target_kl: float | None = None
     """the target KL divergence threshold"""
@@ -542,9 +542,9 @@ def setup():
         n_types,
         n_relations,
         n_actions,
-        layers=4,
-        embedding_dim=4,
-        activation=nn.LeakyReLU(),
+        layers=3,
+        embedding_dim=8,
+        activation=nn.Mish(),
         aggregation="sum",
         action_mode=ActionMode.ACTION_THEN_NODE,
     )

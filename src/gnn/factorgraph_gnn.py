@@ -7,16 +7,13 @@ from torch_geometric.nn import AttentionalAggregation, MessagePassing  # type: i
 
 from .gnn_classes import MLPLayer
 
-FactorGraph = NamedTuple(
-    "FactorGraph",
-    [
-        ("variables", Tensor),
-        ("factors", Tensor),
-        ("edge_index", Tensor),  # edges are (var, factor)
-        ("edge_attr", Tensor),
-        ("batch_idx", Tensor),
-    ],
-)
+
+class FactorGraph(NamedTuple):
+    variables: Tensor
+    factors: Tensor
+    edge_index: Tensor  # edges are (var, factor)
+    edge_attr: Tensor
+    batch_idx: Tensor
 
 
 class BipartiteGNNConvVariableToFactor(MessagePassing):

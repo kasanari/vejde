@@ -57,7 +57,9 @@ class BipartiteGNNConvVariableToFactor(MessagePassing):
         # fac2var_messages: Tensor,
     ) -> Tensor:
         # x_j = x_j - fac2var_messages
-        return self.message_func(torch.concatenate([x_i, x_j], dim=-1))
+        messages = self.message_func(torch.concatenate([x_i, x_j], dim=-1))
+        logger.debug("V2F Messages\n%s", messages)
+        return messages
 
     def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:  # type: ignore
         _, x_o = x
@@ -106,7 +108,9 @@ class BipartiteGNNConvFactorToVariable(MessagePassing):
         x_j: Tensor,
         x_i: Tensor,
     ) -> Tensor:  # type: ignore
-        return self.message_func(torch.concatenate([x_i, x_j], dim=-1))
+        messages = self.message_func(torch.concatenate([x_i, x_j], dim=-1))
+        logger.debug("F2V Messages\n%s", messages)
+        return messages
 
     def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:  # type: ignore
         _, x_p = x

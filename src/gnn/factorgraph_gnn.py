@@ -4,8 +4,10 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch_geometric.nn import AttentionalAggregation, MessagePassing  # type: ignore
-
+import logging
 from .gnn_classes import MLPLayer
+
+logger = logging.getLogger(__name__)
 
 
 class FactorGraph(NamedTuple):
@@ -59,6 +61,7 @@ class BipartiteGNNConvVariableToFactor(MessagePassing):
 
     def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:  # type: ignore
         _, x_o = x
+        logger.debug("V2F Aggr out:\n%s", aggr_out)
         new = self.combine(torch.concatenate([x_o, aggr_out], dim=-1))
         return new
 
@@ -107,6 +110,7 @@ class BipartiteGNNConvFactorToVariable(MessagePassing):
 
     def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:  # type: ignore
         _, x_p = x
+        logger.debug("F2V Aggr out\n%s", aggr_out)
         new = x_p + self.combine(torch.concatenate([x_p, aggr_out], dim=-1))
         return new
 
@@ -144,6 +148,8 @@ class FactorGraphLayer(nn.Module):
             fg,
         )
 
+        logger.debug("New Factor\n%s", n_h_f)
+
         new_fg = FactorGraph(
             fg.variables,
             n_h_f,
@@ -155,6 +161,8 @@ class FactorGraphLayer(nn.Module):
         n_h_v = self.factor2var(
             new_fg,
         )
+
+        logger.debug("New Variable\n%s", n_h_v)
 
         return n_h_v, n_h_f
 
@@ -187,10 +195,24 @@ class BipartiteGNN(nn.Module):
         variables, factors, edge_index, edge_attr, batch_idx = fg
         num_graphs = int(batch_idx.max().item() + 1)
         g = torch.zeros(num_graphs, self.hidden_size).to(factors.device)
+        i = 0
+        logger.debug("Factor Graph")
+        logger.debug("Factors:\n%s", factors)
+        logger.debug("Variables:\n%s", variables)
+        logger.debug("Edge Index:\n%s", edge_index)
+        logger.debug("----\n")
+
         for conv in self.convs:
+            logger.debug("Layer %d", i)
+            logger.debug("Combine Function\n%s", conv.var2factor.combine)
+            logger.debug("Message Function\n%s", conv.var2factor.message_func)
             (variables, factors) = conv(fg)
             fg = FactorGraph(variables, factors, edge_index, edge_attr, batch_idx)
+            i += 1
 
         g = self.aggr(factors, g, batch_idx)
+        logger.debug("Global Node\n%s", g)
+        logger.debug("Message Passing Done\n")
+        logger.debug("----\n")
 
         return fg, g

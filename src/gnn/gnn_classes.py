@@ -30,3 +30,6 @@ class MLPLayer(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         return self.activation(self.linear(x))
+
+    def __str__(self) -> str:
+        return f"Weight:\n{self.linear.weight}\nBias:\n{self.linear.bias}"

@@ -3,11 +3,24 @@ from typing import NamedTuple
 import torch
 import torch.nn as nn
 from torch import Tensor
-from torch_geometric.nn import AttentionalAggregation, MessagePassing  # type: ignore
 import logging
+from torch import max
+from torch_scatter import scatter
+
+# from torch import scatter
 from .gnn_classes import MLPLayer
 
 logger = logging.getLogger(__name__)
+
+
+def segmented_softmax(src: Tensor, index: Tensor, dim: int = 0) -> Tensor:
+    n_nodes = max(index).int() + 1
+    src_max = scatter(src.detach(), index, dim, dim_size=n_nodes, reduce="max")
+    out = src - src_max.index_select(dim, index)
+    out = out.exp()
+    out_sum = scatter(out, index, dim, dim_size=n_nodes, reduce="sum") + 1e-16
+    out_sum = out_sum.index_select(dim, index)
+    return out / out_sum
 
 
 class FactorGraph(NamedTuple):
@@ -18,7 +31,7 @@ class FactorGraph(NamedTuple):
     batch_idx: Tensor
 
 
-class BipartiteGNNConvVariableToFactor(MessagePassing):
+class BipartiteGNNConvVariableToFactor(nn.Module):
     def __init__(
         self,
         aggr: str,
@@ -26,7 +39,7 @@ class BipartiteGNNConvVariableToFactor(MessagePassing):
         out_channels: int,
         activation: nn.Module,
     ):
-        super().__init__(aggr=aggr, flow="source_to_target")
+        super().__init__()
         self.combine = MLPLayer(out_channels * 2, out_channels, activation)
         self.message_func = MLPLayer(in_channels * 2, out_channels, activation)
 
@@ -40,41 +53,33 @@ class BipartiteGNNConvVariableToFactor(MessagePassing):
         edge_index: Tensor of shape (2, num_edges),
         edge_attr: Tensor of shape (num_edges,)
         """
-        return self.propagate(  # type: ignore
-            fg.edge_index,
-            x=(fg.variables, fg.factors),
-            edge_attr=fg.edge_attr,
-            size=(fg.variables.size(0), fg.factors.size(0)),
-        )
 
-    def edge_update(self, x_j: Tensor) -> Tensor:  # type: ignore
-        return x_j
+        senders = fg.edge_index[0]
+        receivers = fg.edge_index[1]
+        variables = fg.variables
+        factors = fg.factors
 
-    def message(  # type: ignore
-        self,
-        x_j: Tensor,
-        x_i: Tensor,
-        # fac2var_messages: Tensor,
-    ) -> Tensor:
-        # x_j = x_j - fac2var_messages
+        x_i = factors[receivers]
+        x_j = variables[senders]
+        x = (x_i, x_j)
         logger.debug("V2F X_j\n%s", x_j)
         logger.debug("V2F X_i\n%s", x_i)
-        messages = self.message_func(torch.concatenate([x_i, x_j], dim=-1))
-        logger.debug("V2F Messages\n%s", messages)
-        return messages
+        x = torch.concatenate(x, dim=-1)
+        x = self.message_func(x)
+        logger.debug("V2F Messages\n%s", x)
+        x = scatter(x, receivers, dim=0, reduce="sum")
+        logger.debug("V2F Aggr out:\n%s", x)
+        x = (factors, x)
+        x = torch.concatenate(x, dim=-1)
+        x = self.combine(x)
+        return x
 
-    def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:  # type: ignore
-        _, x_o = x
-        logger.debug("V2F Aggr out:\n%s", aggr_out)
-        new = self.combine(torch.concatenate([x_o, aggr_out], dim=-1))
-        return new
 
-
-class BipartiteGNNConvFactorToVariable(MessagePassing):
+class BipartiteGNNConvFactorToVariable(nn.Module):
     def __init__(
         self, aggr: str, in_channels: int, out_channels: int, activation: nn.Module
     ):
-        super().__init__(aggr=aggr, flow="source_to_target")
+        super().__init__()
         # self.root = MLPLayer(in_channels, out_channels, activation)
         self.combine = MLPLayer(out_channels * 2, out_channels, activation)
         self.message_func = MLPLayer(in_channels * 2, out_channels, activation)
@@ -93,48 +98,47 @@ class BipartiteGNNConvFactorToVariable(MessagePassing):
         edge_attr: Tensor of shape (num_edges,)
         """
 
-        fac2var_edges = fg.edge_index.flip(0)
+        senders = fg.edge_index[0]
+        receivers = fg.edge_index[1]
+        variables = fg.variables
+        factors = fg.factors
 
-        return self.propagate(  # type: ignore
-            x=(fg.factors, fg.variables),
-            edge_index=fac2var_edges,
-            # edge_attr=edge_attr,
-            size=(
-                fg.factors.size(0),
-                fg.variables.size(0),
-            ),
-        )
-
-    def message(  # type: ignore
-        self,
-        x_j: Tensor,
-        x_i: Tensor,
-    ) -> Tensor:  # type: ignore
+        x_i = variables[senders]
+        x_j = factors[receivers]
         logger.debug("V2F X_j\n%s", x_j)
         logger.debug("V2F X_i\n%s", x_i)
-        messages = self.message_func(torch.concatenate([x_i, x_j], dim=-1))
-        logger.debug("F2V Messages\n%s", messages)
-        return messages
-
-    def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:  # type: ignore
-        _, x_p = x
-        logger.debug("F2V Aggr out\n%s", aggr_out)
-        new = x_p + self.combine(torch.concatenate([x_p, aggr_out], dim=-1))
-        return new
+        x = (x_i, x_j)
+        x = torch.concatenate(x, dim=-1)
+        x = self.message_func(x)
+        logger.debug("F2V Messages\n%s", x)
+        x = scatter(x, senders, dim=0, reduce="sum")
+        logger.debug("F2V Aggr out\n%s", x)
+        x = (variables, x)
+        x = torch.concatenate(x, dim=-1)
+        x = self.combine(x)
+        x = variables + x
+        return x
 
 
 class GlobalNode(nn.Module):
     def __init__(self, emb_size: int, activation: nn.Module):
         super().__init__()  # type: ignore
-        self.aggr = AttentionalAggregation(
-            nn.Linear(emb_size, 1), nn.Linear(emb_size, emb_size)
-        )
+
+        self.gate = nn.Linear(emb_size, 1)
+        self.attn = nn.Linear(emb_size, emb_size)
+
         self.linear = MLPLayer(emb_size * 2, emb_size, activation)
         # self.aggr = SumAggregation()
 
-    def forward(self, x: Tensor, g_prev: Tensor, batch_idx: Tensor) -> Tensor:
-        g = self.aggr(x, batch_idx)
-        return g_prev + self.linear(torch.concatenate([g, g_prev], dim=-1))
+    def forward(self, nodes: Tensor, g_prev: Tensor, batch_idx: Tensor) -> Tensor:
+        x = self.gate(nodes)
+        x = segmented_softmax(x, batch_idx)
+        x = x * self.attn(nodes)
+        x = scatter(x, batch_idx, dim=0, reduce="sum")
+        x = (x, g_prev)
+        x = torch.concatenate(x, dim=-1)
+        x = g_prev + self.linear(x)
+        return x
 
 
 class FactorGraphLayer(nn.Module):

@@ -125,7 +125,7 @@ def test_imitation():
         config,
     )
 
-    # agent, config = agent.load_agent("conditional_bandit.pth")
+    agent, config = agent.load_agent("conditional_bandit.pth")
 
     # state_dict = th.load("bipart_gnn_agent.pth", weights_only=True)
     # agent.load_state_dict(state_dict)
@@ -144,7 +144,7 @@ def test_imitation():
     rewards, _, _ = zip(*data)
     print(np.mean(np.sum(rewards, axis=1)))
 
-    _ = [iteration(i, env, agent, optimizer, i) for i in range(60)]
+    _ = [iteration(i, env, agent, optimizer, 0) for i in range(200)]
 
     pass
 

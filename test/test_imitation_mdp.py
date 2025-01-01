@@ -125,7 +125,7 @@ def test_imitation():
         config,
     )
 
-    agent, config = agent.load_agent("conditional_bandit.pth")
+    # agent, config = agent.load_agent("conditional_bandit.pth")
 
     # state_dict = th.load("bipart_gnn_agent.pth", weights_only=True)
     # agent.load_state_dict(state_dict)

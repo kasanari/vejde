@@ -115,6 +115,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, 
             ),
             "edge_attr": Sequence(Discrete(2), stack=True),
             "length": Sequence(Discrete(1), stack=True),
+            "n_nodes": Discrete(2000),
         }
 
         return spaces.Dict(s)
@@ -129,6 +130,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, 
         )
 
         o["length"] = np.ones_like(o["var_value"])
+        o["n_nodes"] = len(g.factors)
         return o, g
 
     def reset(

@@ -13,6 +13,7 @@ class StateData(NamedTuple):
     edge_attr: Tensor
     batch: Tensor
     length: Tensor
+    n_nodes: Tensor
     # source_targets: (
     #     Tensor  # 2xN tensor of source and target nodes for next state prediction
     # )
@@ -26,6 +27,7 @@ class StackedStateData(NamedTuple):
     edge_attr: Tensor
     batch: Tensor
     length: Tensor
+    n_nodes: Tensor
 
 
 class BipartiteData(Data):

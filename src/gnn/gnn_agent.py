@@ -68,13 +68,15 @@ class GraphAgent(nn.Module):
 
     def forward(self, actions: Tensor, data: StateData):
         fg, g = self.embed(data)
-        logprob, entropy, value = self.actorcritic(actions, fg.factors, g, data.batch)
+        logprob, entropy, value = self.actorcritic(
+            actions, fg.factors, g, data.batch, data.n_nodes
+        )
         return logprob, entropy, value
 
     def sample(self, data: StateData, deterministic: bool = False):
         fg, g = self.embed(data)
         action, logprob, entropy = self.actorcritic.sample(
-            fg.factors, g, data.batch, deterministic
+            fg.factors, g, data.batch, data.n_nodes, deterministic
         )
         value = self.actorcritic.value(g)
         return action, logprob, entropy, value
@@ -137,12 +139,12 @@ class RecurrentGraphAgent(nn.Module):
 
     def forward(self, actions: Tensor, data: StackedStateData):
         fg, g = self.embed(data)
-        return self.actorcritic(actions, fg.factors, g, data.batch)
+        return self.actorcritic(actions, fg.factors, g, data.batch, data.n_nodes)
 
     def sample(self, data: StackedStateData, deterministic: bool = False):
         fg, g = self.embed(data)
         action, logprob, entropy = self.actorcritic.sample(
-            fg.factors, g, data.batch, deterministic
+            fg.factors, g, data.batch, data.n_nodes, deterministic
         )
         value = self.actorcritic.value(g)
         return action, logprob, entropy, value
@@ -182,9 +184,10 @@ class GraphActorCritic(nn.Module):
         h: Tensor,
         g: Tensor,
         batch_idx: Tensor,
+        n_nodes: Tensor,
     ) -> tuple[Tensor, Tensor, Tensor]:
         return (
-            *self.policy.forward(actions, h, g, batch_idx),
+            *self.policy.forward(actions, h, g, batch_idx, n_nodes),
             self.vf(g),
         )
 
@@ -193,9 +196,10 @@ class GraphActorCritic(nn.Module):
         h: Tensor,
         g: Tensor,
         batch_idx: Tensor,
+        n_nodes: Tensor,
         deterministic: bool = False,
     ):
-        return self.policy.sample(h, g, batch_idx, deterministic)
+        return self.policy.sample(h, g, batch_idx, n_nodes, deterministic)
 
 
 def save_agent(agent: GraphAgent | RecurrentGraphAgent, config: Config, path: str):

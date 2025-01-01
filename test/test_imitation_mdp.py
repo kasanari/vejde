@@ -18,7 +18,7 @@ from torch import Tensor
 from gnn import ActionMode, Config, GraphAgent, StateData
 
 # from wrappers.kg_wrapper import register_env
-from test.util import save_eval_data
+from util import save_eval_data
 
 from rddl import register_env
 

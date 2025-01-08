@@ -36,6 +36,7 @@ def test_variable_range(model: BaseModel):
     assert f_r("PAYOUT") is float
     assert f_r("CONNECTED") is bool
     assert f_r("active") is bool
+    assert f_r("None") is bool
 
 
 def test_fluent_params(model: BaseModel):
@@ -47,6 +48,7 @@ def test_fluent_params(model: BaseModel):
     assert f_p("light") == ("machine",)
     assert f_p("PAYOUT") == ("machine",)
     assert f_p("CONNECTED") == ("button", "machine")
+    assert f_p("None") == ()
 
 
 def test_fluent_param(model: BaseModel):

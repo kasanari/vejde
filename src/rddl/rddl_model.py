@@ -20,7 +20,7 @@ class RDDLModel(BaseModel):
 
     @cache
     def idx_to_fluent(self, idx: int) -> str:
-        return self._idx_to_relation[idx]
+        return self.fluents[idx]
 
     @cache
     def idx_to_type(self, idx: int) -> str:
@@ -29,10 +29,6 @@ class RDDLModel(BaseModel):
     @cache
     def fluent_to_idx(self, relation: str) -> int:
         return self._rel_to_idx[relation]
-
-    @cache
-    def type_attributes(self, type: str) -> tuple[str, ...]:
-        return self._type_attributes[type]
 
     @cache
     def fluent_params(self, variable: str) -> tuple[str, ...]:
@@ -57,7 +53,13 @@ class RDDLModel(BaseModel):
 
     @cached_property
     def fluents(self) -> tuple[str, ...]:
-        return tuple(self._idx_to_relation)
+        x = ["None"]
+        x = x + list(self.model.state_fluents.keys())
+        x = x + list(self.model.non_fluents.keys())
+        x = x + list(self.model.observ_fluents.keys())
+        x = x + list(self.model.action_fluents.keys())
+
+        return tuple(sorted(self._idx_to_relation))
 
     @cached_property
     def types(self) -> tuple[str, ...]:
@@ -109,17 +111,6 @@ class RDDLModel(BaseModel):
         }
 
     @cached_property
-    def _idx_to_relation(self) -> list[str]:
-        # relation_list = ["None"] + sorted(set(predicate(g) for g in self.groundings))
-        x = ["None"]
-        x = x + sorted(self.model.action_fluents.keys())
-        x = x + sorted(self.model.state_fluents.keys())
-        x = x + sorted(self.model.non_fluents.keys())
-        x = x + sorted(self.model.observ_fluents.keys())
-
-        return x
-
-    @cached_property
     def groundings(self) -> list[str]:
         model = self.model
 
@@ -149,7 +140,7 @@ class RDDLModel(BaseModel):
 
     @cached_property
     def num_fluents(self) -> int:
-        return len(self._idx_to_relation)
+        return len(self.fluents)
 
     @cache
     def type_to_idx(self, type: str) -> int:
@@ -164,7 +155,7 @@ class RDDLModel(BaseModel):
     @cached_property
     def _rel_to_idx(self) -> dict[str, int]:
         return {
-            symb: idx for idx, symb in enumerate(self._idx_to_relation)
+            symb: idx for idx, symb in enumerate(self.fluents)
         }  # 0 is reserved for padding
 
     @cached_property

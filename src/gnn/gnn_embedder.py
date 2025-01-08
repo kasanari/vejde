@@ -87,8 +87,8 @@ class RecurrentEmbedder(nn.Module):
         bools = self.boolean_embedding(var_val.int())
         preds = self.predicate_embedding(var_type.int())
 
-        logger.debug(f"bools:\n{bools}")
-        logger.debug(f"preds:\n{preds}")
+        logger.debug("bools:\n%s", bools)
+        logger.debug("preds:\n%s", preds)
 
         h = bools * preds
 
@@ -110,6 +110,6 @@ class RecurrentEmbedder(nn.Module):
         )
         _, variables = self.recurrent(h_c)
 
-        logger.debug(f"variables:\n{variables}")
+        logger.debug("variables:\n%s", variables)
 
         return variables.squeeze(), factors

@@ -183,17 +183,17 @@ def test_imitation():
     # )
     optimizer = th.optim.AdamW(agent.parameters(), lr=0.01, amsgrad=True)
 
-    data = [evaluate(env, agent, i) for i in range(10)]
+    data = [evaluate(env, agent, 0) for i in range(10)]
     rewards, _, _ = zip(*data)
     print(np.mean([np.sum(r) for r in rewards]))
 
     num_seeds = 10
 
-    _ = [iteration(i, env, agent, optimizer, i % num_seeds) for i in range(100)]
+    _ = [iteration(i, env, agent, optimizer, 0) for i in range(400)]
 
     pass
 
-    data = [evaluate(env, agent, i) for i in range(3)]
+    data = [evaluate(env, agent, 0) for i in range(3)]
 
     save_eval_data(data)
 

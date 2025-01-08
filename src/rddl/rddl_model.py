@@ -53,13 +53,12 @@ class RDDLModel(BaseModel):
 
     @cached_property
     def fluents(self) -> tuple[str, ...]:
-        x = ["None"]
-        x = x + list(self.model.state_fluents.keys())
+        x = list(self.model.state_fluents.keys())
         x = x + list(self.model.non_fluents.keys())
         x = x + list(self.model.observ_fluents.keys())
         x = x + list(self.model.action_fluents.keys())
 
-        return tuple(sorted(self._idx_to_relation))
+        return tuple(["None"] + sorted(x))
 
     @cached_property
     def types(self) -> tuple[str, ...]:

@@ -63,9 +63,9 @@ def test_fluents_of_arity(model: BaseModel):
     fluents_of_arity = utils.fluents_of_arity(model)
 
     assert fluents_of_arity(1) == (
-        "press",
-        "light",
         "PAYOUT",
+        "light",
+        "press",
     )
 
     assert fluents_of_arity(2) == ("CONNECTED",)

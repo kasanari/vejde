@@ -21,9 +21,8 @@ class RDDLPOMDPModel(RDDLModel):
 
     @cached_property
     def fluents(self) -> tuple[str, ...]:
-        x = ["None"]
-        x = x + list(self.model.non_fluents.keys())
+        x = list(self.model.non_fluents.keys())
         x = x + list(self.model.observ_fluents.keys())
         x = x + list(self.model.action_fluents.keys())
 
-        return tuple(sorted(x))
+        return tuple(["None"] + sorted(x))

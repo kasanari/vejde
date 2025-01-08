@@ -115,6 +115,7 @@ class StackingGroundedRDDLGraphWrapper(
             ),
             "edge_attr": Sequence(Discrete(2), stack=True),
             "length": Sequence(Discrete(1), stack=True),
+            "n_nodes": Discrete(1),
         }
 
         return spaces.Dict(s)
@@ -137,6 +138,7 @@ class StackingGroundedRDDLGraphWrapper(
         assert length.sum() == len(o["var_value"])
 
         o["length"] = length
+        o["n_nodes"] = o["factor"].shape[0]
         return o, g
 
     def reset(

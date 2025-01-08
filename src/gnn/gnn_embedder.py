@@ -4,6 +4,9 @@ from torch import Tensor
 from torch.nn.utils.rnn import pack_padded_sequence
 import torch as th
 from .gnn_classes import EmbeddingLayer
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Embedder(nn.Module):
@@ -84,7 +87,12 @@ class RecurrentEmbedder(nn.Module):
         bools = self.boolean_embedding(var_val.int())
         preds = self.predicate_embedding(var_type.int())
 
+        logger.debug(f"bools:\n{bools}")
+        logger.debug(f"preds:\n{preds}")
+
         h = bools * preds
+
+        logger.debug(f"h:\n{h}")
 
         padded = th.zeros(
             length.size(0),
@@ -101,5 +109,7 @@ class RecurrentEmbedder(nn.Module):
             padded, length, batch_first=True, enforce_sorted=False
         )
         _, variables = self.recurrent(h_c)
+
+        logger.debug(f"variables:\n{variables}")
 
         return variables.squeeze(), factors

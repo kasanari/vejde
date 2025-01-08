@@ -79,7 +79,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, 
                 edge_indices,  # type: ignore
                 edge_attributes,
                 self.wrapped_model.idx_to_type,  # type: ignore
-                self.wrapped_model.idx_to_relation,  # type: ignore
+                self.wrapped_model.idx_to_fluent,  # type: ignore
             )
 
     @property
@@ -88,7 +88,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, 
         # num_groundings = len(self.wrapped_model.groundings)
         # num_objects = self.wrapped_model.num_objects
         num_types = self.wrapped_model.num_types
-        num_relations = self.wrapped_model.num_relations
+        num_relations = self.wrapped_model.num_fluents
 
         s: dict[str, spaces.Space] = {  # type: ignore
             "var_type": Sequence(Discrete(num_relations), stack=True),

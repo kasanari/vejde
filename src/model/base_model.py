@@ -1,25 +1,23 @@
-from functools import cache
+from functools import cache, cached_property
 from abc import ABC, abstractmethod
 
 
 class BaseModel(ABC):
-    @property
+    @cached_property
     @abstractmethod
-    @cache
     def num_types(self) -> int:
         """The number of object types/classes in the model."""
         ...
 
-    @property
+    @cached_property
     @abstractmethod
-    @cache
     def num_actions(self) -> int:
         """The number of action predicates/fluents in the model."""
         ...
 
     @abstractmethod
     @cache
-    def variable_range(self, fluent: str) -> type:
+    def fluent_range(self, fluent: str) -> type:
         """The type of the fluent/predicate."""
         ...
 
@@ -37,19 +35,12 @@ class BaseModel(ABC):
 
     @abstractmethod
     @cache
-    def type_attributes(self, type: str) -> tuple[str, ...]:
-        """unary attributes/predicates/fluents for object type."""
-        ...
-
-    @abstractmethod
-    @cache
     def fluents_of_arity(self, arity: int) -> tuple[str, ...]:
         """fluents/predicates of a given arity (number of parameters/variables/objects)."""
         ...
 
-    @property
+    @cached_property
     @abstractmethod
-    @cache
     def groundings(self) -> list[str]:
         """
         A list of all possible grounded variables in the language.
@@ -57,26 +48,23 @@ class BaseModel(ABC):
         """
         ...
 
-    @property
+    @cached_property
     @abstractmethod
-    @cache
     def action_fluents(self) -> list[str]:
         """relations/fluents/predicates that can be used as actions in the model."""
         ...
 
-    @property
+    @cached_property
     @abstractmethod
-    @cache
     def action_groundings(self) -> set[str]:
         """groundings of action fluents/variables.
         one the form: relation___object1__object2__...__objectN
         """
         ...
 
-    @property
+    @cached_property
     @abstractmethod
-    @cache
-    def num_relations(self) -> int:
+    def num_fluents(self) -> int:
         """The number of relations/predicates in the model. This includes nullary and unary relations, which may also be called constants and attributes."""
         ...
 
@@ -102,7 +90,7 @@ class BaseModel(ABC):
 
     @abstractmethod
     @cache
-    def rel_to_idx(self, relation: str) -> int:
+    def fluent_to_idx(self, relation: str) -> int:
         """
         A mapping from a relation/predicate to an index.
         This should be consistent across all instances of the same domain.
@@ -110,9 +98,21 @@ class BaseModel(ABC):
         """
         ...
 
+    @cached_property
+    @abstractmethod
+    def fluents(self) -> tuple[str, ...]:
+        """A list of all relations/predicates in the model."""
+        ...
+
+    @cached_property
+    @abstractmethod
+    def types(self) -> tuple[str, ...]:
+        """A list of all object types/classes in the model."""
+        ...
+
     @abstractmethod
     @cache
-    def idx_to_relation(self, idx: int) -> str:
+    def idx_to_fluent(self, idx: int) -> str:
         """
         A mapping from an index to a relation/predicate.
         This should be consistent across all instances of the same domain.
@@ -126,6 +126,16 @@ class BaseModel(ABC):
     def idx_to_action(self, idx: int) -> str:
         """
         A mapping from an index to an action fluent.
+        This should be consistent across all instances of the same domain.
+        Note that 0 is reserved for padding/default actions.
+        """
+        ...
+
+    @abstractmethod
+    @cache
+    def action_to_idx(self, action: str) -> int:
+        """
+        A mapping from an action fluent to an index.
         This should be consistent across all instances of the same domain.
         Note that 0 is reserved for padding/default actions.
         """

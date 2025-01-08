@@ -82,7 +82,7 @@ class StackingGroundedRDDLGraphWrapper(
                 edge_indices,  # type: ignore
                 edge_attributes,
                 self.wrapped_model.idx_to_type,  # type: ignore
-                self.wrapped_model.idx_to_relation,  # type: ignore
+                self.wrapped_model.idx_to_fluent,  # type: ignore
             )
 
     @property
@@ -91,7 +91,7 @@ class StackingGroundedRDDLGraphWrapper(
         # num_groundings = len(self.wrapped_model.groundings)
         # num_objects = self.wrapped_model.num_objects
         num_types = self.wrapped_model.num_types
-        num_relations = self.wrapped_model.num_relations
+        num_relations = self.wrapped_model.num_fluents
 
         var_value_space = Sequence(spaces.Discrete(2), stack=True)
 

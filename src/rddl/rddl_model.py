@@ -1,5 +1,5 @@
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
-from functools import cache
+from functools import cache, cached_property
 from copy import copy
 from model.base_model import BaseModel
 from wrappers.utils import predicate
@@ -19,7 +19,7 @@ class RDDLModel(BaseModel):
         return self._fluents_of_arity[arity]
 
     @cache
-    def idx_to_relation(self, idx: int) -> str:
+    def idx_to_fluent(self, idx: int) -> str:
         return self._idx_to_relation[idx]
 
     @cache
@@ -27,7 +27,7 @@ class RDDLModel(BaseModel):
         return self._idx_to_type[idx]
 
     @cache
-    def rel_to_idx(self, relation: str) -> int:
+    def fluent_to_idx(self, relation: str) -> int:
         return self._rel_to_idx[relation]
 
     @cache
@@ -44,32 +44,40 @@ class RDDLModel(BaseModel):
         return self._variable_params[fluent][position]
 
     @cache
-    def variable_range(self, fluent: str) -> type:
+    def fluent_range(self, fluent: str) -> type:
         return self.variable_ranges[fluent]
 
     @cache
     def idx_to_action(self, idx: int) -> str:
         return self.action_fluents[idx]
 
-    @property
     @cache
+    def action_to_idx(self, action: str) -> int:
+        return self.action_fluents.index(action)
+
+    @cached_property
+    def fluents(self) -> tuple[str, ...]:
+        return tuple(self._idx_to_relation)
+
+    @cached_property
+    def types(self) -> tuple[str, ...]:
+        return tuple(self._idx_to_type)
+
+    @cached_property
     def _idx_to_type(self) -> list[str]:
         return ["None"] + sorted(set(self._obj_to_type.values()))
 
-    @property
-    @cache
+    @cached_property
     def _obj_to_type(self) -> dict[str, str]:
         model: RDDLLiftedModel = self.model  # type: ignore
         object_to_type: dict[str, str] = copy(model.object_to_type)  # type: ignore
         return object_to_type
 
-    @property
-    @cache
+    @cached_property
     def num_types(self) -> int:
         return len(self._idx_to_type)
 
-    @property
-    @cache
+    @cached_property
     def variable_ranges(self) -> dict[str, type]:
         mapping = {
             "bool": bool,
@@ -86,25 +94,13 @@ class RDDLModel(BaseModel):
 
         return variable_ranges
 
-    @property
-    @cache
+    @cached_property
     def _variable_params(self) -> dict[str, tuple[str, ...]]:
         variable_params: dict[str, list[str]] = copy(self.model.variable_params)  # type: ignore
         variable_params["None"] = []
         return {k: tuple(v) for k, v in variable_params.items()}
 
-    @property
-    @cache
-    def _type_attributes(self) -> dict[str, tuple[str, ...]]:
-        vp = self.model.variable_params  # type: ignore
-        return {
-            value[0]: tuple([k for k, v in vp.items() if v == value])  # type: ignore
-            for _, value in vp.items()  # type: ignore
-            if len(value) == 1  # type: ignore
-        }
-
-    @property
-    @cache
+    @cached_property
     def _fluents_of_arity(self) -> dict[int, tuple[str, ...]]:
         arities: dict[str, int] = self.arities
         return {
@@ -112,14 +108,18 @@ class RDDLModel(BaseModel):
             for _, value in arities.items()
         }
 
-    @property
-    @cache
+    @cached_property
     def _idx_to_relation(self) -> list[str]:
-        relation_list = ["None"] + sorted(set(predicate(g) for g in self.groundings))
-        return relation_list
+        # relation_list = ["None"] + sorted(set(predicate(g) for g in self.groundings))
+        x = ["None"]
+        x = x + sorted(self.model.action_fluents.keys())
+        x = x + sorted(self.model.state_fluents.keys())
+        x = x + sorted(self.model.non_fluents.keys())
+        x = x + sorted(self.model.observ_fluents.keys())
 
-    @property
-    @cache
+        return x
+
+    @cached_property
     def groundings(self) -> list[str]:
         model = self.model
 
@@ -133,47 +133,40 @@ class RDDLModel(BaseModel):
 
         return sorted(all_groundings)
 
-    @property
-    @cache
+    @cached_property
     def action_fluents(self) -> list[str]:
         model = self.model
         action_fluents = model.action_fluents  # type: ignore
         return ["None"] + sorted(action_fluents.keys())  # type: ignore
 
-    @property
-    @cache
+    @cached_property
     def num_actions(self) -> int:
         return len(self.action_fluents)
 
-    @property
-    @cache
+    @cached_property
     def action_groundings(self) -> set[str]:
         return get_groundings(self.model, self.model.action_fluents) | {"None"}  # type: ignore
 
-    @property
-    @cache
-    def num_relations(self) -> int:
+    @cached_property
+    def num_fluents(self) -> int:
         return len(self._idx_to_relation)
 
     @cache
     def type_to_idx(self, type: str) -> int:
         return self._type_to_idx[type]
 
-    @property
-    @cache
+    @cached_property
     def _type_to_idx(self) -> dict[str, int]:
         return {
             symb: idx for idx, symb in enumerate(self._idx_to_type)
         }  # 0 is reserved for padding
 
-    @property
-    @cache
+    @cached_property
     def _rel_to_idx(self) -> dict[str, int]:
         return {
             symb: idx for idx, symb in enumerate(self._idx_to_relation)
         }  # 0 is reserved for padding
 
-    @property
-    @cache
+    @cached_property
     def arities(self) -> dict[str, int]:
         return {key: len(value) for key, value in self._variable_params.items()}

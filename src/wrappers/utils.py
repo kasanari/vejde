@@ -69,14 +69,14 @@ def create_obs(
         [
             g
             for g in rddl_obs
-            if not skip_fluent(g, model.variable_range)  # type: ignore
+            if not skip_fluent(g, model.fluent_range)  # type: ignore
         ]
     )
 
     filtered_obs: dict[str, Any] = {k: rddl_obs[k] for k in filtered_groundings}
 
     boolean_groundings = [
-        g for g in filtered_groundings if model.variable_range(predicate(g)) is bool
+        g for g in filtered_groundings if model.fluent_range(predicate(g)) is bool
     ]
 
     bool_g = generate_bipartite_obs(
@@ -90,8 +90,8 @@ def create_obs(
         g
         for g in filtered_groundings
         if (
-            model.variable_range(predicate(g)) is float
-            or model.variable_range(predicate(g)) is int
+            model.fluent_range(predicate(g)) is float
+            or model.fluent_range(predicate(g)) is int
         )
     ]
 
@@ -105,7 +105,9 @@ def create_obs(
 
     assert isinstance(bool_g, FactorGraph)
 
-    obs = graph_to_dict(map_graph_to_idx(bool_g, model.rel_to_idx, model.type_to_idx))
+    obs = graph_to_dict(
+        map_graph_to_idx(bool_g, model.fluent_to_idx, model.type_to_idx)
+    )
 
     return obs, bool_g, filtered_groundings
 
@@ -119,14 +121,14 @@ def create_stacked_obs(
         [
             g
             for g in rddl_obs
-            if not skip_fluent(g, model.variable_range)  # type: ignore
+            if not skip_fluent(g, model.fluent_range)  # type: ignore
         ]
     )
 
     filtered_obs: dict[str, Any] = {k: rddl_obs[k] for k in filtered_groundings}
 
     boolean_groundings = [
-        g for g in filtered_groundings if model.variable_range(predicate(g)) is bool
+        g for g in filtered_groundings if model.fluent_range(predicate(g)) is bool
     ]
 
     bool_g = generate_bipartite_obs(
@@ -140,8 +142,8 @@ def create_stacked_obs(
         g
         for g in filtered_groundings
         if (
-            model.variable_range(predicate(g)) is float
-            or model.variable_range(predicate(g)) is int
+            model.fluent_range(predicate(g)) is float
+            or model.fluent_range(predicate(g)) is int
         )
     ]
 
@@ -156,7 +158,7 @@ def create_stacked_obs(
     assert isinstance(bool_g, StackedFactorGraph)
 
     obs = graph_to_dict(
-        map_stacked_graph_to_idx(bool_g, model.rel_to_idx, model.type_to_idx)
+        map_stacked_graph_to_idx(bool_g, model.fluent_to_idx, model.type_to_idx)
     )
 
     return obs, bool_g, boolean_groundings

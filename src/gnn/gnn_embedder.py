@@ -92,7 +92,7 @@ class RecurrentEmbedder(nn.Module):
 
         h = bools * preds
 
-        logger.debug(f"h:\n%s", h)
+        logger.debug("h:\n%s", h)
 
         padded = th.zeros(
             length.size(0),

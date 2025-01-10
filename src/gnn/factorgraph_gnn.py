@@ -26,7 +26,8 @@ def segmented_softmax(src: Tensor, index: Tensor, dim: int = 0) -> Tensor:
 class FactorGraph(NamedTuple):
     variables: Tensor
     factors: Tensor
-    edge_index: Tensor  # edges are (var, factor)
+    senders: Tensor
+    receivers: Tensor
     edge_attr: Tensor
     batch_idx: Tensor
 
@@ -54,8 +55,8 @@ class BipartiteGNNConvVariableToFactor(nn.Module):
         edge_attr: Tensor of shape (num_edges,)
         """
 
-        senders = fg.edge_index[0]
-        receivers = fg.edge_index[1]
+        senders = fg.senders
+        receivers = fg.receivers
         variables = fg.variables
         factors = fg.factors
 
@@ -98,8 +99,8 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
         edge_attr: Tensor of shape (num_edges,)
         """
 
-        senders = fg.edge_index[0]
-        receivers = fg.edge_index[1]
+        senders = fg.senders
+        receivers = fg.receivers
         variables = fg.variables
         factors = fg.factors
 
@@ -165,7 +166,8 @@ class FactorGraphLayer(nn.Module):
         new_fg = FactorGraph(
             fg.variables,
             n_h_f,
-            fg.edge_index,
+            fg.senders,
+            fg.receivers,
             fg.edge_attr,
             fg.batch_idx,
         )
@@ -204,14 +206,14 @@ class BipartiteGNN(nn.Module):
         self,
         fg: FactorGraph,
     ) -> tuple[FactorGraph, Tensor]:
-        variables, factors, edge_index, edge_attr, batch_idx = fg
+        variables, factors, senders, receivers, edge_attr, batch_idx = fg
         num_graphs = int(batch_idx.max().item() + 1)
         g = torch.zeros(num_graphs, self.hidden_size).to(factors.device)
         i = 0
         logger.debug("Factor Graph")
         logger.debug("Factors:\n%s", factors)
         logger.debug("Variables:\n%s", variables)
-        logger.debug("Edge Index:\n%s", edge_index)
+        logger.debug("Edge Index:\n%s", (senders, receivers))
         logger.debug("----\n")
 
         for conv in self.convs:
@@ -219,7 +221,9 @@ class BipartiteGNN(nn.Module):
             logger.debug("Combine Function\n%s", conv.var2factor.combine)
             logger.debug("Message Function\n%s", conv.var2factor.message_func)
             (variables, factors) = conv(fg)
-            fg = FactorGraph(variables, factors, edge_index, edge_attr, batch_idx)
+            fg = FactorGraph(
+                variables, factors, senders, receivers, edge_attr, batch_idx
+            )
             i += 1
 
         g = self.aggr(factors, g, batch_idx)

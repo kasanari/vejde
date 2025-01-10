@@ -59,7 +59,8 @@ class GraphAgent(nn.Module):
         fg = FactorGraph(
             variables,
             factors,
-            data.edge_index,
+            data.senders,
+            data.receivers,
             data.edge_attr,
             data.batch,
         )
@@ -69,14 +70,14 @@ class GraphAgent(nn.Module):
     def forward(self, actions: Tensor, data: StateData):
         fg, g = self.embed(data)
         logprob, entropy, value = self.actorcritic(
-            actions, fg.factors, g, data.batch, data.n_nodes
+            actions, fg.factors, g, data.batch, data.n_factor
         )
         return logprob, entropy, value
 
     def sample(self, data: StateData, deterministic: bool = False):
         fg, g = self.embed(data)
         action, logprob, entropy = self.actorcritic.sample(
-            fg.factors, g, data.batch, data.n_nodes, deterministic
+            fg.factors, g, data.batch, data.n_factor, deterministic
         )
         value = self.actorcritic.value(g)
         return action, logprob, entropy, value
@@ -130,7 +131,8 @@ class RecurrentGraphAgent(nn.Module):
             FactorGraph(
                 variables,
                 factors,
-                data.edge_index,
+                data.senders,
+                data.receivers,
                 data.edge_attr,
                 data.batch,
             )
@@ -139,12 +141,12 @@ class RecurrentGraphAgent(nn.Module):
 
     def forward(self, actions: Tensor, data: StackedStateData):
         fg, g = self.embed(data)
-        return self.actorcritic(actions, fg.factors, g, data.batch, data.n_nodes)
+        return self.actorcritic(actions, fg.factors, g, data.batch, data.n_factor)
 
     def sample(self, data: StackedStateData, deterministic: bool = False):
         fg, g = self.embed(data)
         action, logprob, entropy = self.actorcritic.sample(
-            fg.factors, g, data.batch, data.n_nodes, deterministic
+            fg.factors, g, data.batch, data.n_factor, deterministic
         )
         value = self.actorcritic.value(g)
         return action, logprob, entropy, value

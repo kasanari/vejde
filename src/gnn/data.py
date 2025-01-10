@@ -66,9 +66,7 @@ def stackedstatedata_from_obs(obs: list[BipartiteData]) -> StackedStateData:
     )
 
 
-def batched_dict_to_data(
-    obs: dict[str, tuple[Tensor]], num_envs: int
-) -> list[BipartiteData]:
+def batched_dict_to_data(obs: dict[str, tuple[Tensor]]) -> list[BipartiteData]:
     attrs = StackedStateData._fields
 
     def create_data(i: int) -> BipartiteData:
@@ -78,7 +76,7 @@ def batched_dict_to_data(
             num_nodes=obs["factor"][i].shape[0],  # + obs["var_value"][i].shape[0]
         )
 
-    return [create_data(i) for i in range(num_envs)]
+    return [create_data(i) for i in range(len(obs["factor"]))]
 
 
 def dict_to_data(obs: dict[str, Tensor]) -> BipartiteData:

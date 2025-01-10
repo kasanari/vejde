@@ -358,9 +358,10 @@ def generate_bipartite_obs(
 
     edge_attributes = [key[2] for key in edges]
 
-    assert max(edge_indices[:, 0]) < len(fact_node_values)
-    assert max(edge_indices[:, 0]) < len(fact_node_predicate)
-    assert max(edge_indices[:, 1]) < len(object_types)
+    if edges:
+        assert max(edge_indices[:, 0]) < len(fact_node_values)
+        assert max(edge_indices[:, 0]) < len(fact_node_predicate)
+        assert max(edge_indices[:, 1]) < len(object_types)
 
     return cls(
         fact_node_predicate,
@@ -374,11 +375,12 @@ def generate_bipartite_obs(
 
 def to_graphviz(
     fg: FactorGraph,
+    scaling: int = -20,
     # numeric,
 ):
     colors = ["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]
     graph = "graph G {\n"
-    graph += "overlap_scaling=-20\n"
+    graph += f"overlap_scaling={scaling}\n"
     first_mapping = {}
     second_mapping = {}
     global_idx = 0

@@ -61,7 +61,7 @@ class GroundedRDDLGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, 
         )
 
     def render(self):
-        return to_graphviz(self.last_g)
+        return to_graphviz(self.last_g, scaling=10)
 
         if self.metadata["render_modes"] == "idx":
             obs = self.last_obs

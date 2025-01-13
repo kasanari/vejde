@@ -12,9 +12,7 @@ WrapperActType = TypeVar("WrapperActType")
 
 
 class RDDLAddNonFluents(gym.Wrapper[spaces.Tuple, spaces.Dict, ObsType, ActType]):
-    """
-    A wrapper that adds the last observation to the current observation.
-    """
+
 
     def __init__(self, env: RDDLEnv, only_add_on_reset: bool = False) -> None:
         super().__init__(env)

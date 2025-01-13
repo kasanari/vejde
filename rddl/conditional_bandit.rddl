@@ -14,6 +14,8 @@ domain conditional_bandit {
     		  		    		  		
 		CONNECTED(button, machine) : { non-fluent, bool, default = false };
 		PAYOUT(machine) : { non-fluent, real, default = 0.0 };
+		
+		LIGHT_PROB : { non-fluent, real, default = 0.0 };
 
 		//COLORED(button) : { non-fluent, bool, default = true};
 
@@ -29,7 +31,7 @@ domain conditional_bandit {
   
 		active(?m) = exists_{?b : button} [press(?b) & CONNECTED(?b, ?m)];
 
-		light'(?m) = if (light(?m)) then false else Bernoulli(0.5);
+		light'(?m) = if (light(?m)) then false else Bernoulli(LIGHT_PROB);
 	
 	};
   

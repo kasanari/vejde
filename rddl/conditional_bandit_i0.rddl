@@ -9,6 +9,7 @@ non-fluents instance0 {
 		PAYOUT(g_m) = 1.0;
 		CONNECTED(red,r_m);
 		CONNECTED(green,g_m);
+		LIGHT_PROB = 0.5;
 	};
 }
 

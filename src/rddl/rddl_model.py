@@ -1,3 +1,4 @@
+from itertools import chain
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 from functools import cache, cached_property
 from copy import copy
@@ -53,12 +54,18 @@ class RDDLModel(BaseModel):
 
     @cached_property
     def fluents(self) -> tuple[str, ...]:
-        x = list(self.model.state_fluents.keys())
-        x = x + list(self.model.non_fluents.keys())
-        x = x + list(self.model.observ_fluents.keys())
-        x = x + list(self.model.action_fluents.keys())
+        x = sorted(
+            list(
+                chain(
+                    self.model.state_fluents.keys(),
+                    self.model.non_fluents.keys(),
+                    self.model.observ_fluents.keys(),
+                    self.model.action_fluents.keys(),
+                )
+            )
+        )
 
-        return tuple(["None"] + sorted(x))
+        return tuple(["None"] + x)
 
     @cached_property
     def types(self) -> tuple[str, ...]:

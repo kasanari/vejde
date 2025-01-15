@@ -1,6 +1,6 @@
 import gymnasium as gym
 import torch
-from test_imitation_mdp import evaluate, save_eval_data
+
 
 from gnn import Config, GraphAgent, RecurrentGraphAgent
 
@@ -9,6 +9,7 @@ import logging
 
 def test_rnn_agent():
     from rddl import register_pomdp_env as register_env
+    from test_imitation_lstm import evaluate, save_eval_data
 
     path = "blink_enough_bandit.pth"
     agent, config = RecurrentGraphAgent.load_agent(path)
@@ -31,6 +32,7 @@ def test_rnn_agent():
 
 def test_agent():
     from rddl import register_env
+    from test_imitation_mdp import evaluate, save_eval_data
 
     path = "conditional_bandit.pth"
     agent, config = GraphAgent.load_agent(path)

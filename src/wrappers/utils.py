@@ -53,6 +53,8 @@ class StackedFactorGraph(NamedTuple):
     factor_values: list[str]
     edge_indices: np.ndarray[np.int64, Any]
     edge_attributes: list[int]
+    global_variables: list[str]
+    global_variable_values: list[list[V]]
 
 
 def graph_to_dict(idx_g: IdxFactorGraph) -> dict[str, Any]:
@@ -275,6 +277,13 @@ def map_graph_to_idx(
         factorgraph.variable_values, dtype=np.bool_
     )  # TODO: handle None values in a better way
 
+    global_vars_values = np.array(
+        factorgraph.global_variable_values, dtype=var_val_dtype
+    )
+    global_vars = np.array(
+        [rel_to_idx(key) for key in factorgraph.global_variables], dtype=np.int64
+    )
+
     return IdxFactorGraph(
         np.array([rel_to_idx(key) for key in factorgraph.variables], dtype=np.int64),
         np.array(vals, dtype=np.int8),
@@ -284,6 +293,11 @@ def map_graph_to_idx(
         ),
         factorgraph.edge_indices,
         edge_attributes,
+        Variables(
+            global_vars,
+            global_vars_values,
+            lengths=np.ones_like(global_vars_values, dtype=np.int64),
+        ),
     )
 
 
@@ -315,6 +329,7 @@ def map_stacked_graph_to_idx(
     ]
 
     global_vars = list(chain(*global_vars))
+    global_vars = [rel_to_idx(p) for p in global_vars]
 
     global_lengths = np.array(
         [len(v) for v in factorgraph.global_variables], dtype=np.int64

@@ -22,13 +22,17 @@ class Edge(NamedTuple):
     object: str
     pos: int
 
+V = TypeVar("V")
 
-class IdxFactorGraph(NamedTuple):
-    variables: np.ndarray[np.int64, Any]
-    values: np.ndarray[np.int64, Any]
+
+class Variables[V](NamedTuple):
+    types: np.ndarray[np.int64, Any]
+    values: np.ndarray[V, Any]
+    lengths: np.ndarray[np.int64, Any]
     factors: np.ndarray[np.int64, Any]
     edge_indices: np.ndarray[np.int64, Any]
     edge_attributes: np.ndarray[np.int64, Any]
+    global_vars: Variables[V]
 
 
 class FactorGraph(NamedTuple):
@@ -38,6 +42,8 @@ class FactorGraph(NamedTuple):
     factor_values: list[str]
     edge_indices: np.ndarray[np.int64, Any]  # variable to factor
     edge_attributes: list[int]
+    global_variables: list[str]
+    global_variable_values: list[V]
 
 
 class StackedFactorGraph(NamedTuple):
@@ -56,6 +62,9 @@ def graph_to_dict(idx_g: IdxFactorGraph) -> dict[str, Any]:
         "factor": idx_g.factors,
         "edge_index": idx_g.edge_indices.T,
         "edge_attr": idx_g.edge_attributes,
+        "global_vars": idx_g.global_vars.types,
+        "global_vals": idx_g.global_vars.values,
+        "global_length": idx_g.global_vars.lengths,
         # "numeric": numeric,
     }
 
@@ -298,6 +307,19 @@ def map_stacked_graph_to_idx(
 
     factors = [type_to_idx(object) for object in factorgraph.factor_values]
 
+    global_vars_values = list(chain(*factorgraph.global_variable_values))
+
+    global_vars = [
+        [factorgraph.global_variables[i] for _ in v]
+        for i, v in enumerate(factorgraph.global_variable_values)
+    ]
+
+    global_vars = list(chain(*global_vars))
+
+    global_lengths = np.array(
+        [len(v) for v in factorgraph.global_variables], dtype=np.int64
+    )
+
     return IdxFactorGraph(
         np.array(vars, dtype=np.int64),
         np.array(vals, dtype=np.int8),
@@ -307,6 +329,13 @@ def map_stacked_graph_to_idx(
         ),
         factorgraph.edge_indices,
         edge_attributes,
+        Variables(
+            np.array(
+                global_vars,
+            ),
+            np.array(global_vars_values, dtype=val_dtype),
+            global_lengths,
+        ),
     )
 
 
@@ -358,6 +387,9 @@ def generate_bipartite_obs(
 
     edge_attributes = [key[2] for key in edges]
 
+    global_variables = [predicate(key) for key in nullary_groundings]
+    global_variable_values = [obs[key] for key in nullary_groundings]
+
     if edges:
         assert max(edge_indices[:, 0]) < len(fact_node_values)
         assert max(edge_indices[:, 0]) < len(fact_node_predicate)
@@ -370,6 +402,8 @@ def generate_bipartite_obs(
         object_types,
         edge_indices,
         edge_attributes,
+        global_variables,
+        global_variable_values,
     )
 
 
@@ -397,8 +431,9 @@ def to_graphviz(
         graph += f'"{global_idx}" [label="{data}", shape=box]\n'
         second_mapping[idx] = global_idx
         global_idx += 1
-    for attribute, edge in zip(fg.edge_attributes, fg.edge_indices):
-        graph += f'"{first_mapping[edge[0]]}" -- "{second_mapping[edge[1]]}" [color="{colors[attribute]}"]\n'
+    for idx, label in enumerate(fg.global_variables):
+        graph += f'"{global_idx}" [label="{label}", shape=diamond]\n'
+        global_idx += 1
     graph += "}"
     return graph
 

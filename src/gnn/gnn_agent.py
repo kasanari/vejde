@@ -12,6 +12,33 @@ from .gnn_embedder import Embedder, RecurrentEmbedder
 from .gnn_policies import ActionMode, TwoActionGNNPolicy
 
 
+class EmbeddedTuple(NamedTuple):
+    variables: Tensor
+    factors: Tensor
+    globals: Tensor
+
+
+def _embed(
+    data: StateData,
+    var_embedder: nn.Module,
+    factor_embedding: nn.Module,
+    global_var_embedder: nn.Module,
+) -> EmbeddedTuple:
+    factors = factor_embedding(data.factor)
+    variables = var_embedder(
+        data.var_value,
+        data.var_type,
+    )
+    globals_ = (
+        global_var_embedder(
+            data.global_vals,
+            data.global_vars,
+        )
+        if data.global_vals.shape[0] > 0
+        else th.tensor([])
+    )
+    return EmbeddedTuple(variables, factors, globals_)
+
 @dataclass
 class Config:
     num_object_classes: int

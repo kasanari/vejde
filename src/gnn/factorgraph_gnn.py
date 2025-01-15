@@ -23,13 +23,21 @@ def segmented_softmax(src: Tensor, index: Tensor, dim: int = 0) -> Tensor:
     return out / out_sum
 
 
+class BatchIdx(NamedTuple):
+    global_: Tensor
+    factor: Tensor
+    variable: Tensor
+
+
 class FactorGraph(NamedTuple):
     variables: Tensor
     factors: Tensor
     senders: Tensor
     receivers: Tensor
     edge_attr: Tensor
-    batch_idx: Tensor
+    n_factor: Tensor
+    globals_: Tensor
+    batch: BatchIdx
 
 
 class BipartiteGNNConvVariableToFactor(nn.Module):
@@ -169,7 +177,9 @@ class FactorGraphLayer(nn.Module):
             fg.senders,
             fg.receivers,
             fg.edge_attr,
-            fg.batch_idx,
+            fg.n_factor,
+            fg.globals_,
+            fg.batch,
         )
 
         n_h_v = self.factor2var(
@@ -206,14 +216,21 @@ class BipartiteGNN(nn.Module):
         self,
         fg: FactorGraph,
     ) -> tuple[FactorGraph, Tensor]:
-        variables, factors, senders, receivers, edge_attr, batch_idx = fg
-        num_graphs = int(batch_idx.max().item() + 1)
-        g = torch.zeros(num_graphs, self.hidden_size).to(factors.device)
+        num_graphs = int(fg.batch.factor.max().item() + 1)
+        g = torch.zeros(num_graphs, self.hidden_size).to(fg.factors.device)
+        g = (
+            self.aggr(g, fg.globals_, fg.batch.global_)
+            if fg.globals_.shape[0] > 0
+            else g
+        )
+
+        variables = fg.variables + g[fg.batch.variable]
+
         i = 0
         logger.debug("Factor Graph")
-        logger.debug("Factors:\n%s", factors)
+        logger.debug("Factors:\n%s", fg.factors)
         logger.debug("Variables:\n%s", variables)
-        logger.debug("Edge Index:\n%s", (senders, receivers))
+        logger.debug("Edge Index:\n%s", (fg.senders, fg.receivers))
         logger.debug("----\n")
 
         for conv in self.convs:
@@ -222,11 +239,18 @@ class BipartiteGNN(nn.Module):
             logger.debug("Message Function\n%s", conv.var2factor.message_func)
             (variables, factors) = conv(fg)
             fg = FactorGraph(
-                variables, factors, senders, receivers, edge_attr, batch_idx
+                variables,
+                factors,
+                fg.senders,
+                fg.receivers,
+                fg.edge_attr,
+                fg.n_factor,
+                fg.globals_,
+                fg.batch,
             )
             i += 1
 
-        g = self.aggr(factors, g, batch_idx)
+        g = self.aggr(fg.factors, g, fg.batch.factor)
         logger.debug("Global Node\n%s", g)
         logger.debug("Message Passing Done\n")
         logger.debug("----\n")

@@ -16,6 +16,9 @@ class ObsData(NamedTuple):
     # globals: Tensor
     n_factor: int
     n_variable: int
+    global_vars: Tensor
+    global_vals: Tensor
+    global_length: Tensor
 
 
 class StateData(NamedTuple):
@@ -30,20 +33,10 @@ class StateData(NamedTuple):
     n_variable: Tensor
     n_graphs: int
     length: Tensor
-
-
-class StackedStateData(NamedTuple):
-    var_value: Tensor
-    var_type: Tensor
-    factor: Tensor
-    senders: Tensor
-    receivers: Tensor
-    edge_attr: Tensor
-    batch: Tensor
-    n_factor: Tensor
-    n_variable: Tensor
-    n_graphs: int
-    length: Tensor
+    global_vars: Tensor
+    global_vals: Tensor
+    global_batch: Tensor
+    global_length: Tensor
 
 
 def batch(graphs: list[ObsData]) -> StateData:
@@ -56,8 +49,11 @@ def batch(graphs: list[ObsData]) -> StateData:
     variable_offsets = cumsum(
         torch.as_tensor([0] + [g.n_variable for g in graphs[:-1]]), dim=0
     )
-
-    batch = concatenate([ones_like(g.factor) * i for i, g in enumerate(graphs)])
+    global_vars = torch.cat([g.global_vars for g in graphs])
+    global_vals = torch.cat([g.global_vals for g in graphs])
+    global_batch = torch.cat(
+        [ones_like(g.global_vars) * i for i, g in enumerate(graphs)]
+    )
 
     return StateData(
         # n_node=stack([g.n_node for g in graphs]),
@@ -77,6 +73,10 @@ def batch(graphs: list[ObsData]) -> StateData:
         n_variable=torch.as_tensor([g.n_variable for g in graphs]),
         n_graphs=len(graphs),
         length=concatenate([g.length for g in graphs]),
+        global_vars=global_vars,
+        global_vals=global_vals,
+        global_batch=global_batch,
+        global_length=concatenate([g.global_length for g in graphs]),
     )
 
 

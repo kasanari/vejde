@@ -51,16 +51,15 @@ def create_obs(
     obs: dict[str, Any],
     buffer: dict[str, deque[Any]],
 ):
-    obs = {k: bool(v) for k, v in obs.items() if v is not None and v}
+    obs.update({k: bool(v) for k, v in obs.items() if isinstance(v, bool)})
+    obs = {k: v for k, v in obs.items() if v is not None}
 
     for key in obs:
         if key not in buffer:
             buffer[key] = deque()
         buffer[key].append(obs[key])
 
-    lengths = {key: len(buffer[key]) for key in buffer}
-
-    return buffer, lengths
+    return buffer
 
 
 class StackingWrapper(gym.Wrapper):
@@ -72,10 +71,11 @@ class StackingWrapper(gym.Wrapper):
         # self.horizon = int(env.horizon)
 
     def reset(
-        self, seed: int | None = None
+        self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, str], float, bool, bool, dict[str, Any]]:
+        super().reset(seed=seed, options=options)
         obs, info = self.env.reset(seed=seed)
-        o, lengths = create_obs(obs, {})
+        o = create_obs(obs, {})
 
         # self.observed_keys = observed_keys
         self.buffer = deepcopy(o)
@@ -83,7 +83,7 @@ class StackingWrapper(gym.Wrapper):
 
         new_obs = {k: list(v) for k, v in o.items()}
 
-        return (new_obs, lengths), info  # type: ignore
+        return new_obs, info  # type: ignore
 
     def step(
         self,
@@ -103,14 +103,14 @@ class StackingWrapper(gym.Wrapper):
 
         next_obs, reward, terminated, truncated, info = self.env.step(actions)
 
-        o, lengths = create_obs(next_obs, self.buffer)
+        o = create_obs(next_obs, self.buffer)
 
         # self.observed_keys = observed_keys
         self.buffer = deepcopy(o)
 
         new_obs = {k: list(v) for k, v in o.items()}
 
-        return (new_obs, lengths), reward, terminated, truncated, info  # type: ignore
+        return new_obs, reward, terminated, truncated, info  # type: ignore
 
 
 if __name__ == "__main__":

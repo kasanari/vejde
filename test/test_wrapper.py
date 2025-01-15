@@ -232,8 +232,8 @@ def test_rddl_domains(env_id):
 
 def test_wrapper():
     seed = 1
-    domain = "EarthObservation_ippc2018"  # "rddl/conditional_bandit.rddl"
-    instance = 1
+    domain = "rddl/conditional_bandit.rddl"
+    instance = "rddl/conditional_bandit_i0.rddl"
     env_id = register_env()
     env = gym.make(
         env_id,

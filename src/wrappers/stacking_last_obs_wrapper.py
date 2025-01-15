@@ -1,7 +1,7 @@
 from collections import deque
 from pprint import pprint
 from typing import Any, TypeVar
-from copy import copy, deepcopy
+from copy import deepcopy
 
 import pyRDDLGym  # type: ignore
 import gymnasium as gym

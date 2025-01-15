@@ -3,7 +3,6 @@ from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 from functools import cache, cached_property
 from copy import copy
 from model.base_model import BaseModel
-from wrappers.utils import predicate
 from .utils import get_groundings
 
 
@@ -92,6 +91,8 @@ class RDDLModel(BaseModel):
             "int": int,
             "real": float,
         }
+
+        # mapping.update({e: e for e in self.model.enum_types})
 
         variable_ranges: dict[str, type] = {
             key: mapping[value]

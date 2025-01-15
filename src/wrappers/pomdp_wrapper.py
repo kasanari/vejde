@@ -1,4 +1,3 @@
-from collections.abc import Callable
 import logging
 from functools import cache
 from typing import Any, SupportsFloat

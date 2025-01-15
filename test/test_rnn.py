@@ -1,6 +1,5 @@
 from gnn.gnn_classes import EmbeddingLayer
 from gnn.gnn_embedder import BooleanEmbedder, RecurrentEmbedder
-import torch.nn as nn
 import itertools
 import torch as th
 from torch import as_tensor, isclose, all

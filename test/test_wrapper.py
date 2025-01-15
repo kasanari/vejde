@@ -7,7 +7,6 @@ from wrappers.add_actions_wrapper import AddActionWrapper
 from wrappers.labelwrapper import LabelingWrapper
 from wrappers.last_obs_wrapper import LastObsWrapper
 from wrappers.stacking_last_obs_wrapper import LastObsStackingWrapper
-from wrappers.stacking_wrapper import StackingWrapper
 from rddl import register_env, register_pomdp_env
 from gymnasium.utils.env_checker import check_env
 

@@ -1,4 +1,3 @@
-from collections.abc import Callable
 import logging
 from functools import cache
 from typing import Any, SupportsFloat
@@ -7,7 +6,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from gymnasium.spaces import Discrete, Sequence, Dict, MultiDiscrete, Box
+from gymnasium.spaces import Discrete, Dict, MultiDiscrete, Box
 
 from wrappers.gym_utils import action_space, obs_space
 

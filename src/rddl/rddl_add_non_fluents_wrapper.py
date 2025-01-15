@@ -7,13 +7,11 @@ from functools import cache
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
-WrapperObsType = TypeVar("WrapperObsType")
-WrapperActType = TypeVar("WrapperActType")
+WrapperObsType = spaces.Dict
+WrapperActType = spaces.Tuple
 
 
-class RDDLAddNonFluents(gym.Wrapper[spaces.Tuple, spaces.Dict, ObsType, ActType]):
-
-
+class RDDLAddNonFluents(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActType]):
     def __init__(self, env: RDDLEnv, only_add_on_reset: bool = False) -> None:
         super().__init__(env)
         self.only_add_on_reset = only_add_on_reset
@@ -26,12 +24,15 @@ class RDDLAddNonFluents(gym.Wrapper[spaces.Tuple, spaces.Dict, ObsType, ActType]
         #     model.ground_vars_with_values(model.non_fluents)  # type: ignore
         # )
 
-        nf_vals = {}
-
-        non_fluents = self.env.model.ast.non_fluents.init_non_fluent  # type: ignore
-        for (name, params), value in non_fluents:
-            gname = RDDLPlanningModel.ground_var(name, params)
-            nf_vals[gname] = value
+        non_fluents = (
+            self.env.model.ast.non_fluents.init_non_fluent
+            if hasattr(self.env.model.ast.non_fluents, "init_non_fluent")
+            else []
+        )
+        nf_vals = {
+            RDDLPlanningModel.ground_var(name, params): value
+            for (name, params), value in non_fluents
+        }
 
         return nf_vals
 
@@ -53,11 +54,9 @@ class RDDLAddNonFluents(gym.Wrapper[spaces.Tuple, spaces.Dict, ObsType, ActType]
         return obs, reward, terminated, truncated, info
 
     def reset(
-        self, seed: int | None = None
-    ) -> tuple[
-        dict[str, bool | None],
-        dict[str, Any],
-    ]:
+        self, *, seed: int | None = None, options: dict[str, Any] | None = None
+    ) -> tuple[WrapperObsType, dict[str, Any]]:
+        super().reset(seed=seed)
         obs, info = self.env.reset(seed=seed)
 
         obs |= self._non_fluent_values

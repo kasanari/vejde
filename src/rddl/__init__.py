@@ -12,9 +12,13 @@ from wrappers.wrapper import GroundedRDDLGraphWrapper
 
 
 class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
-    def __init__(self, domain: str, instance: str) -> None:
+    def __init__(
+        self, domain: str, instance: str, enforce_action_constraints: bool = False
+    ) -> None:
         super().__init__()
-        env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
+        env = pyRDDLGym.make(
+            domain, instance, enforce_action_constraints=enforce_action_constraints
+        )  # type: ignore
         model = RDDLModel(env.model)
         env = RDDLAddNonFluents(env)
         env: gymnasium.Env[Dict, MultiDiscrete] = GroundedRDDLGraphWrapper(
@@ -22,7 +26,10 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         )
         self.env = env
         self.observation_space = env.observation_space
-        self.action_space = env.action_space
+
+    @property
+    def action_space(self):
+        return self.env.action_space
 
     def step(
         self, action: MultiDiscrete
@@ -32,6 +39,7 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Dict, dict[str, Any]]:
+        super().reset(seed=seed)
         return self.env.reset(seed=seed, options=options)
 
     def render(self) -> str:
@@ -60,6 +68,7 @@ class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Dict, dict[str, Any]]:
+        super().reset(seed=seed)
         return self.env.reset(seed=seed, options=options)
 
     def render(self) -> str:
@@ -76,7 +85,7 @@ def register_env():
 
 
 def register_pomdp_env():
-    env_id = "RDDLGraphEnv-v0"
+    env_id = "RDDLPOMDPGraphEnv-v0"
     gymnasium.register(
         id=env_id,
         entry_point="rddl:RDDLStackingGraphEnv",

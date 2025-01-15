@@ -7,9 +7,16 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from gymnasium.spaces import Discrete, Sequence, Dict, MultiDiscrete
+from gymnasium.spaces import Discrete, Dict, MultiDiscrete, Box
 
-from .utils import create_stacked_obs, predicate, to_dict_action, create_obs
+from wrappers.gym_utils import action_space, obs_space
+
+from .utils import (
+    HeteroGraph,
+    create_render_graph,
+    to_dict_action,
+    create_stacked_obs,
+)
 
 from .utils import to_graphviz_alt, to_graphviz
 
@@ -35,7 +42,7 @@ class StackingGroundedRDDLGraphWrapper(
 
     def __init__(
         self,
-        env: gym.Env[tuple[dict[str, Any], dict[str, int]], dict[str, int]],
+        env: gym.Env[dict[str, list[Any]], dict[str, int]],
         model: BaseModel,
         render_mode: str = "human",
     ) -> None:
@@ -44,27 +51,32 @@ class StackingGroundedRDDLGraphWrapper(
         self.env = env
         self.last_obs: dict[str, Any] = {}
         self.iter = 0
-        self._idx_to_object: list[str] = []
-        self._idx_to_object_type: list[str] = []
+        self._idx_to_object: list[str] = ["None"]
+        self._idx_to_object_type: list[str] = ["None"]
 
     def idx_to_object(self, idx: int) -> str:
-        return self._idx_to_object[idx]
+        try:
+            return self._idx_to_object[idx]
+        except IndexError:
+            return "None"
 
     def idx_to_object_type(self, idx: int) -> str:
-        return self._idx_to_object_type[idx]
+        try:
+            return self._idx_to_object_type[idx]
+        except IndexError:
+            return "None"
 
     @property
-    @cache
     def action_space(self) -> gym.spaces.MultiDiscrete:  # type: ignore
-        return gym.spaces.MultiDiscrete(
-            [
-                self.wrapped_model.num_actions,  # type: ignore
-                2000,
-            ]
+        return action_space(
+            self.wrapped_model.action_fluents,
+            self.wrapped_model.num_actions,
+            len(self._idx_to_object) or 1,
+            self.wrapped_model.arity,
         )
 
     def render(self):
-        return to_graphviz(self.last_g)
+        return to_graphviz(self.last_g, scaling=10)
 
         if self.metadata["render_modes"] == "idx":
             obs = self.last_obs
@@ -92,71 +104,66 @@ class StackingGroundedRDDLGraphWrapper(
         # num_objects = self.wrapped_model.num_objects
         num_types = self.wrapped_model.num_types
         num_relations = self.wrapped_model.num_fluents
+        max_arity = max(self.wrapped_model.arity(r) for r in self.wrapped_model.fluents)
 
-        var_value_space = Sequence(spaces.Discrete(2), stack=True)
+        bool_space = Discrete(2)
+        number_space = Box(
+            np.finfo(np.float32).min,
+            np.finfo(np.float32).max,
+            shape=(),
+        )
 
-        s: dict[str, spaces.Space] = {  # type: ignore
-            "var_type": Sequence(Discrete(num_relations), stack=True),
-            "var_value": Sequence(var_value_space, stack=True),
-            "factor": Sequence(
-                Discrete(
-                    num_types,
-                ),
-                stack=True,
-            ),
-            "edge_index": Sequence(
-                spaces.Box(
-                    low=0,
-                    high=2000,
-                    shape=(2,),
-                    dtype=np.int64,
-                ),
-                stack=True,
-            ),
-            "edge_attr": Sequence(Discrete(2), stack=True),
-            "length": Sequence(Discrete(1), stack=True),
-            "n_nodes": Discrete(1),
-        }
+        bool_space = bool_space
+        number_space = number_space
 
-        return spaces.Dict(s)
+        return spaces.Dict(
+            {
+                "bool": obs_space(num_relations, num_types, max_arity, bool_space),
+                "float": obs_space(num_relations, num_types, max_arity, number_space),
+            }
+        )
 
     def _create_obs(
-        self, rddl_obs_with_lengths: tuple[dict[str, list[int]], dict[str, int]]
-    ) -> tuple[spaces.Dict, dict[str, Any]]:
-        (rddl_obs, lengths) = rddl_obs_with_lengths
-        o, g, groundings = create_stacked_obs(
+        self, rddl_obs: dict[str, list[Any]]
+    ) -> tuple[dict[str, Any], HeteroGraph]:
+        o, g, _ = create_stacked_obs(
             rddl_obs,
             self.wrapped_model,
             skip_fluent,
         )
 
-        length = np.array(
-            [lengths[key] for key in groundings if key in lengths],
-            dtype=np.int64,
+        assert o["bool"]["length"].sum() == len(
+            o["bool"]["var_value"]
+        ), "Expected {} but got {}".format(
+            o["bool"]["length"].sum(), len(o["bool"]["var_value"])
+        )
+        assert o["float"]["length"].sum() == len(
+            o["float"]["var_value"]
+        ), "Expected {} but got {}".format(
+            o["float"]["length"].sum(), len(o["float"]["var_value"])
         )
 
-        assert length.sum() == len(o["var_value"])
-
-        o["length"] = length
-        o["n_nodes"] = o["factor"].shape[0]
         return o, g
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[spaces.Dict, dict[str, Any]]:
+        super().reset(seed=seed)
         rddl_obs, info = self.env.reset(seed=seed)
 
         obs, g = self._create_obs(rddl_obs)
+
+        combined_g = create_render_graph(g.boolean, g.numeric)
 
         info["state"] = g
         info["rddl_state"] = self.env.unwrapped.state  # type: ignore
         info["rddl_obs"] = rddl_obs
 
         self.last_obs = obs
-        self.last_g = g
+        self.last_g = combined_g
         self.last_rddl_obs = rddl_obs
-        self._idx_to_object_type = g.factor_values
-        self._idx_to_object = g.factors
+        self._idx_to_object_type = g.boolean.factor_values
+        self._idx_to_object = g.boolean.factors
 
         return obs, info
 
@@ -187,10 +194,10 @@ class StackingGroundedRDDLGraphWrapper(
         info["rddl_action"] = rddl_action
 
         self.last_obs = obs
-        self.last_g = g
+        self.last_g = create_render_graph(g.boolean, g.numeric)
         self.last_rddl_obs = rddl_obs
         self.last_action = grounded_action
-        self._idx_to_object_type = g.factor_values  # type: ignore
-        self._idx_to_object = g.factors  # type: ignore
+        self._idx_to_object_type = g.boolean.factor_values  # type: ignore
+        self._idx_to_object = g.boolean.factors  # type: ignore
 
         return obs, reward, terminated, truncated, info

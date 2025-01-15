@@ -1,16 +1,35 @@
+from collections import deque
+from collections.abc import Iterable
+import json
 from typing import NamedTuple
 
 import torch as th
 from torch import Tensor
-from torch import cumsum, ones_like, stack, concatenate, sum
+from torch import cumsum, ones_like, concatenate
 import torch
+import numpy as np
+
+ObsDict = dict[str, Tensor]
+HeteroObsDict = dict[str, ObsDict]
+
+
+class Serializer(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Tensor):
+            return obj.tolist()
+        if isinstance(obj, np.bool_):
+            return bool(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super().default(obj)
 
 
 class ObsData(NamedTuple):
     var_value: Tensor
     var_type: Tensor
     factor: Tensor
-    edge_index: Tensor
+    senders: Tensor
+    receivers: Tensor
     edge_attr: Tensor
     length: Tensor
     # globals: Tensor
@@ -24,11 +43,12 @@ class ObsData(NamedTuple):
 class StateData(NamedTuple):
     var_value: Tensor
     var_type: Tensor
+    var_batch: Tensor
     factor: Tensor
+    factor_batch: Tensor
     senders: Tensor  # variable
     receivers: Tensor  # factor
     edge_attr: Tensor
-    batch: Tensor
     n_factor: Tensor
     n_variable: Tensor
     n_graphs: int
@@ -39,6 +59,106 @@ class StateData(NamedTuple):
     global_length: Tensor
 
 
+class HeteroStateData(NamedTuple):
+    boolean: StateData
+    numeric: StateData
+
+
+class GraphBuffer:
+    def __init__(self) -> None:
+        self.data: deque[ObsData] = deque()
+
+    def extend(self, obs: Iterable[ObsData]) -> None:
+        self.data.extend(obs)
+
+    def add_single(self, obs: ObsData) -> None:
+        self.data.append(obs)
+
+    def add_single_dict(self, obs: ObsDict) -> None:
+        self.data.append(dict_to_data(obs))
+
+    def batch(self) -> StateData:
+        return batch(list(self.data))
+
+    def __getitem__(self, index: int) -> ObsData:
+        return self.data[index]
+
+    def minibatch(self, indices: Iterable[int]) -> StateData:
+        return batch([self.data[i] for i in indices])
+
+
+class HeteroGraphBuffer:
+    def __init__(self) -> None:
+        types = ("bool", "float")
+        self.buffers = {t: GraphBuffer() for t in types}
+
+    def extend(self, obs: dict[str, Iterable[ObsData]]) -> None:
+        for t in self.buffers:
+            self.buffers[t].extend(obs[t])
+
+    def __iter__(self):
+        return self.buffers.__iter__()
+
+    def add_single_dict(self, obs: HeteroObsDict) -> None:
+        for t in self.buffers:
+            self.buffers[t].add_single_dict(obs[t])
+
+    @property
+    def batch(self) -> HeteroStateData:
+        return heterostatedata({k: list(self.buffers[k].data) for k in self.buffers})
+
+    def minibatch(self, indices: Iterable[int]) -> HeteroStateData:
+        return heterostatedata(
+            {k: [self.buffers[k].data[i] for i in indices] for k in self.buffers}
+        )
+
+
+class Rollout(NamedTuple):
+    rewards: list[float]
+    obs: HeteroGraphBuffer
+    actions: list[tuple[int, int]]
+
+
+def save_rollout(rollout: Rollout, path: str):
+    with open(path, "w") as f:
+        json.dump(rollout._asdict(), f, cls=Serializer)
+
+
+def load_rollout(path: str) -> Rollout:
+    with open(path, "r") as f:
+        data = json.load(f)
+    return Rollout(**data)
+
+
+class RolloutCollector:
+    rewards: deque[float]
+    obs: HeteroGraphBuffer
+    actions: deque[tuple[int, int]]
+
+    def __init__(self) -> None:
+        self.rewards = deque()
+        self.obs = HeteroGraphBuffer()
+        self.actions = deque()
+
+    def add_single(
+        self, obs: HeteroObsDict, action: tuple[int, int], reward: float
+    ) -> None:
+        self.rewards.append(reward)
+        self.obs.add_single_dict(obs)
+        self.actions.append(action)
+
+    def export(self) -> Rollout:
+        return Rollout(
+            rewards=list(self.rewards),
+            obs=self.obs,
+            actions=list(self.actions),
+        )
+
+    @property
+    def return_(self) -> float:
+        return sum(self.rewards)
+
+
 def batch(graphs: list[ObsData]) -> StateData:
     """Returns batched graph given a list of graphs and a numpy-like module."""
     # Calculates offsets for sender and receiver Tensors, caused by concatenating
@@ -46,9 +166,17 @@ def batch(graphs: list[ObsData]) -> StateData:
     factor_offsets = cumsum(
         torch.as_tensor([0] + [g.n_factor for g in graphs[:-1]]), dim=0
     )
+    factor_batch = concatenate([ones_like(g.factor) * i for i, g in enumerate(graphs)])
+    receivers = concatenate([g.receivers + o for g, o in zip(graphs, factor_offsets)])
+
     variable_offsets = cumsum(
         torch.as_tensor([0] + [g.n_variable for g in graphs[:-1]]), dim=0
     )
+    var_batch = concatenate(
+        [torch.ones(g.n_variable, dtype=th.int64) * i for i, g in enumerate(graphs)]
+    )
+    senders = concatenate([g.senders + o for g, o in zip(graphs, variable_offsets)])
+
     global_vars = torch.cat([g.global_vars for g in graphs])
     global_vals = torch.cat([g.global_vals for g in graphs])
     global_batch = torch.cat(
@@ -61,14 +189,10 @@ def batch(graphs: list[ObsData]) -> StateData:
         var_type=concatenate([g.var_type for g in graphs]),
         factor=concatenate([g.factor for g in graphs]),
         edge_attr=concatenate([g.edge_attr for g in graphs]),
-        # globals=_map_concat([g.globals for g in graphs]),
-        senders=concatenate(
-            [g.edge_index[0] + o for g, o in zip(graphs, variable_offsets)]
-        ),
-        receivers=concatenate(
-            [g.edge_index[1] + o for g, o in zip(graphs, factor_offsets)]
-        ),
-        batch=batch,
+        senders=senders,
+        receivers=receivers,
+        factor_batch=factor_batch,
+        var_batch=var_batch,
         n_factor=torch.as_tensor([g.n_factor for g in graphs]),
         n_variable=torch.as_tensor([g.n_variable for g in graphs]),
         n_graphs=len(graphs),
@@ -80,19 +204,11 @@ def batch(graphs: list[ObsData]) -> StateData:
     )
 
 
-def statedata_from_single_obs(obs: dict[str, Tensor]) -> StateData:
+def statedata_from_single_obs(obs: ObsDict) -> StateData:
     return statedata_from_obs([dict_to_data(obs)])
 
 
 def statedata_from_obs(obs: list[ObsData]) -> StateData:
-    return batch(obs)
-
-
-def stackedstatedata_from_single_obs(obs: dict[str, Tensor]) -> StackedStateData:
-    return stackedstatedata_from_obs([stacked_dict_to_data(obs)])
-
-
-def stackedstatedata_from_obs(obs: list[ObsData]) -> StackedStateData:
     return batch(obs)
 
 
@@ -103,31 +219,33 @@ attrs_from_obs = [
 
 def batched_dict_to_data(obs: dict[str, tuple[Tensor]]) -> list[ObsData]:
     def create_data(i: int) -> ObsData:
-        data = {attr: Tensor(obs[attr][i]) for attr in attrs_from_obs}
+        data = {attr: torch.as_tensor(obs[attr][i]) for attr in attrs_from_obs}
         return ObsData(
             **data,
             n_factor=obs["factor"][i].shape[0],  # + obs["var_value"].shape[0]
-            n_variable=obs["var_value"][i].shape[0],
+            n_variable=len(obs["length"][i]),
         )
 
     return [create_data(i) for i in range(len(obs["factor"]))]
 
 
-def dict_to_data(obs: dict[str, Tensor]) -> ObsData:
-    data = {attr: torch.as_tensor(obs[attr]) for attr in attrs_from_obs}
-    return ObsData(
-        **data,
-        n_factor=obs["factor"].shape[0],  # + obs["var_value"].shape[0]
-        n_variable=obs["var_value"].shape[0],
-    )
-
-
-def stacked_dict_to_data(obs: dict[str, Tensor]) -> ObsData:
+def dict_to_data(obs: ObsDict) -> ObsData:
     data = {attr: torch.as_tensor(obs[attr]) for attr in attrs_from_obs}
     return ObsData(
         **data,
         n_factor=obs["factor"].shape[0],  # + obs["var_value"].shape[0]
         n_variable=len(
             obs["length"]
-        ),  # lenght is used since var_values is flattened node histories
+        ),  # length is used since var_values may be flattened node histories
     )
+
+
+def heterostatedata(obs: dict[str, list[ObsData]]) -> HeteroStateData:
+    return HeteroStateData(
+        boolean=batch(obs["bool"]),
+        numeric=batch(obs["float"]),
+    )
+
+
+def heterostatedata_from_single_obs(obs: HeteroObsDict) -> HeteroStateData:
+    return heterostatedata({k: [dict_to_data(obs[k])] for k in obs})

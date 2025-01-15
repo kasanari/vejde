@@ -1,14 +1,20 @@
 from dataclasses import dataclass
-from typing import Any, TypeVar
+from typing import Any, NamedTuple, TypeVar
 
 import torch.nn as nn
 from torch import Tensor
 
 import torch as th
 from dataclasses import asdict
-from .data import StackedStateData, StateData
-from .factorgraph_gnn import BipartiteGNN, FactorGraph
-from .gnn_embedder import Embedder, RecurrentEmbedder
+
+from gnn.gnn_classes import EmbeddingLayer
+from .data import HeteroStateData, StateData
+from .factorgraph_gnn import BatchIdx, BipartiteGNN, FactorGraph
+from .gnn_embedder import (
+    BooleanEmbedder,
+    NumericEmbedder,
+    RecurrentEmbedder,
+)
 from .gnn_policies import ActionMode, TwoActionGNNPolicy
 
 
@@ -39,6 +45,44 @@ def _embed(
     )
     return EmbeddedTuple(variables, factors, globals_)
 
+
+def cat(a: Tensor, b: Tensor) -> Tensor:
+    return th.cat((a, b))
+
+
+def merge_graphs(
+    boolean_data: StateData,
+    numeric_data: StateData,
+    boolean: EmbeddedTuple,
+    numeric: EmbeddedTuple,
+) -> FactorGraph:
+    # this only refers to the factors, so we can use either boolean or numeric data
+    factor_batch = boolean_data.factor_batch
+
+    global_batch = cat(
+        boolean_data.global_batch,
+        numeric_data.global_batch,
+    )
+
+    variable_batch_idx = cat(
+        boolean_data.var_batch,
+        numeric_data.var_batch,
+    )
+
+    return FactorGraph(
+        cat(boolean.variables, numeric.variables),
+        # same factors for both boolean and numeric data, so we can use either
+        boolean.factors,
+        cat(boolean_data.senders, numeric_data.senders + sum(boolean_data.n_variable)),
+        # since factors are the same, we do not need to offset the receiver indices
+        cat(boolean_data.receivers, numeric_data.receivers),
+        cat(boolean_data.edge_attr, numeric_data.edge_attr),
+        boolean_data.n_factor,
+        cat(boolean.globals, numeric.globals),
+        BatchIdx(global_batch, factor_batch, variable_batch_idx),
+    )
+
+
 @dataclass
 class Config:
     num_object_classes: int
@@ -61,11 +105,23 @@ class GraphAgent(nn.Module):
 
         self.config = config
 
-        self.embedder = Embedder(
-            config.num_object_classes,
-            config.num_predicate_classes,
+        self.factor_embedding = EmbeddingLayer(
+            config.num_object_classes, config.embedding_dim
+        )
+
+        self.predicate_embedding = EmbeddingLayer(
+            config.num_predicate_classes, config.embedding_dim
+        )
+
+        self.boolean_embedder = BooleanEmbedder(
+            config.embedding_dim,
+            self.predicate_embedding,
+        )
+
+        self.numeric_embedder = NumericEmbedder(
             config.embedding_dim,
             config.activation,
+            self.predicate_embedding,
         )
 
         self.p_gnn = BipartiteGNN(
@@ -81,35 +137,45 @@ class GraphAgent(nn.Module):
             config.action_mode,
         )
 
-    def embed(self, data: StateData) -> tuple[FactorGraph, Tensor]:
-        variables, factors = self.embedder(data.var_value, data.var_type, data.factor)
-        fg = FactorGraph(
-            variables,
-            factors,
-            data.senders,
-            data.receivers,
-            data.edge_attr,
-            data.batch,
+    def embed(self, data: HeteroStateData) -> tuple[FactorGraph, Tensor]:
+        numeric_data = data.numeric
+        boolean_data = data.boolean
+
+        fg = merge_graphs(
+            boolean_data,
+            numeric_data,
+            _embed(
+                boolean_data,
+                self.boolean_embedder,
+                self.factor_embedding,
+                self.boolean_embedder,
+            ),
+            _embed(
+                numeric_data,
+                self.numeric_embedder,
+                self.factor_embedding,
+                self.numeric_embedder,
+            ),
         )
         e_fg = self.p_gnn(fg)
         return e_fg
 
-    def forward(self, actions: Tensor, data: StateData):
+    def forward(self, actions: Tensor, data: HeteroStateData):
         fg, g = self.embed(data)
         logprob, entropy, value = self.actorcritic(
-            actions, fg.factors, g, data.batch, data.n_factor
+            actions, fg.factors, g, fg.batch.factor, fg.n_factor
         )
         return logprob, entropy, value
 
-    def sample(self, data: StateData, deterministic: bool = False):
+    def sample(self, data: HeteroStateData, deterministic: bool = False):
         fg, g = self.embed(data)
         action, logprob, entropy = self.actorcritic.sample(
-            fg.factors, g, data.batch, data.n_factor, deterministic
+            fg.factors, g, fg.batch.factor, fg.n_factor, deterministic
         )
         value = self.actorcritic.value(g)
         return action, logprob, entropy, value
 
-    def value(self, data: StateData):
+    def value(self, data: HeteroStateData):
         _, g = self.embed(data)
         return self.actorcritic.value(g)
 
@@ -130,11 +196,35 @@ class RecurrentGraphAgent(nn.Module):
 
         self.config = config
 
-        self.embedder = RecurrentEmbedder(
+        self.factor_embedding = EmbeddingLayer(
             config.num_object_classes,
+            config.embedding_dim,
+        )
+
+        self.predicate_embedding = EmbeddingLayer(
             config.num_predicate_classes,
             config.embedding_dim,
+        )
+
+        boolean_embedder = BooleanEmbedder(
+            config.embedding_dim,
+            self.predicate_embedding,
+        )
+
+        self.r_boolean_embedder = RecurrentEmbedder(
+            config.embedding_dim,
+            boolean_embedder,
+        )
+
+        numeric_embedder = NumericEmbedder(
+            config.embedding_dim,
             config.activation,
+            self.predicate_embedding,
+        )
+
+        self.r_numeric_embedder = RecurrentEmbedder(
+            config.embedding_dim,
+            numeric_embedder,
         )
 
         self.p_gnn = BipartiteGNN(
@@ -150,35 +240,39 @@ class RecurrentGraphAgent(nn.Module):
             config.action_mode,
         )
 
-    def embed(self, data: StackedStateData) -> tuple[FactorGraph, Tensor]:
-        variables, factors = self.embedder(
-            data.var_value, data.var_type, data.factor, data.length
+    def embed(self, data: HeteroStateData) -> tuple[FactorGraph, Tensor]:
+        fg = merge_graphs(
+            data.boolean,
+            data.numeric,
+            _embed(
+                data.boolean,
+                self.r_boolean_embedder(data.boolean.length),
+                self.factor_embedding,
+                self.r_boolean_embedder(data.boolean.global_length),
+            ),
+            _embed(
+                data.numeric,
+                self.r_numeric_embedder(data.numeric.length),
+                self.factor_embedding,
+                self.r_numeric_embedder(data.numeric.global_length),
+            ),
         )
-        fg, g = self.p_gnn(
-            FactorGraph(
-                variables,
-                factors,
-                data.senders,
-                data.receivers,
-                data.edge_attr,
-                data.batch,
-            )
-        )
-        return fg, g
+        e_fg, g = self.p_gnn(fg)
+        return e_fg, g
 
-    def forward(self, actions: Tensor, data: StackedStateData):
+    def forward(self, actions: Tensor, data: HeteroStateData):
         fg, g = self.embed(data)
-        return self.actorcritic(actions, fg.factors, g, data.batch, data.n_factor)
+        return self.actorcritic(actions, fg.factors, g, fg.batch.factor, fg.n_factor)
 
-    def sample(self, data: StackedStateData, deterministic: bool = False):
+    def sample(self, data: HeteroStateData, deterministic: bool = False):
         fg, g = self.embed(data)
         action, logprob, entropy = self.actorcritic.sample(
-            fg.factors, g, data.batch, data.n_factor, deterministic
+            fg.factors, g, fg.batch.factor, fg.n_factor, deterministic
         )
         value = self.actorcritic.value(g)
         return action, logprob, entropy, value
 
-    def value(self, data: StackedStateData):
+    def value(self, data: HeteroStateData):
         _, g = self.embed(data)
         return self.actorcritic.value(g)
 

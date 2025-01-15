@@ -4,7 +4,7 @@ from torch.nn import Embedding, Linear, Module
 
 
 class EmbeddingLayer(Module):
-    def __init__(self, num_embeddings: int, embedding_dim: int, activation: Module):
+    def __init__(self, num_embeddings: int, embedding_dim: int):
         super().__init__()  # type: ignore
         self.embedding = Embedding(num_embeddings + 1, embedding_dim, padding_idx=0)
         init.orthogonal_(self.embedding.weight)  # type: ignore

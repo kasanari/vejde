@@ -1,5 +1,5 @@
 from rddl.rddl_model import RDDLModel
-from .utils import get_groundings
+from .rddl_utils import get_groundings
 from functools import cache, cached_property
 
 
@@ -18,12 +18,3 @@ class RDDLPOMDPModel(RDDLModel):
         all_groundings = observ_groundings | non_fluent_groundings
 
         return sorted(all_groundings)
-
-    @cached_property
-    def fluents(self) -> tuple[str, ...]:
-        x = list(self.model.non_fluents.keys())
-        x = x + list(self.model.observ_fluents.keys())
-        x = x + list(self.model.action_fluents.keys())
-        x = x + list(self.model.state_fluents.keys())
-
-        return tuple(["None"] + sorted(x))

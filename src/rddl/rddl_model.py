@@ -3,12 +3,63 @@ from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 from functools import cache, cached_property
 from copy import copy
 from model.base_model import BaseModel
-from .utils import get_groundings
+from .rddl_utils import get_groundings
 
 
 class RDDLModel(BaseModel):
     def __init__(self, model: RDDLLiftedModel) -> None:
         self.model = model
+
+    @cached_property
+    def enum_fluents(self) -> dict[str, list[str]]:
+        fluents = list(
+            chain(
+                *(
+                    self.model.state_fluents.keys(),
+                    self.model.non_fluents.keys(),
+                    self.model.observ_fluents.keys(),
+                    self.model.action_fluents.keys(),
+                )
+            )
+        )
+
+        enum_types = self.model.enum_types
+
+        enum_fluents = {
+            r: [f for f in fluents if r == self.model.variable_ranges[f]]
+            for r in enum_types
+        }
+
+        return enum_fluents
+
+    @cache
+    def _enum_values(self, enum: str):
+        object_to_type = self.model.object_to_type
+        return [o for o, t in object_to_type.items() if t == enum]
+
+    @cached_property
+    def enum_values(self) -> dict[str, list[str]]:
+        return {t: self._enum_values(t) for t in self.model.enum_types}
+
+    @cached_property
+    def combined_enum_fluents(self) -> dict[str, str]:
+        enum_fluents = self.enum_fluents
+        enum_values = self.enum_values
+
+        combined_enum_fluents = {
+            f"{f}^^^{i}": f
+            for enum, values in enum_values.items()
+            for f in enum_fluents[enum]
+            for i, v in enumerate(values)
+        }
+
+        return combined_enum_fluents
+
+    def combined_enum_fluent(self, fluent: str):
+        enum = self.model.variable_ranges[fluent]
+        enum_values = self.enum_values[enum]
+
+        return [f"{fluent}^^^{i}" for i, _ in enumerate(enum_values)]
 
     @cache
     def arity(self, fluent: str) -> int:
@@ -53,18 +104,22 @@ class RDDLModel(BaseModel):
 
     @cached_property
     def fluents(self) -> tuple[str, ...]:
-        x = sorted(
-            list(
-                chain(
-                    self.model.state_fluents.keys(),
-                    self.model.non_fluents.keys(),
-                    self.model.observ_fluents.keys(),
-                    self.model.action_fluents.keys(),
-                )
-            )
+        x: chain[str] = chain(
+            self.model.state_fluents.keys(),
+            self.model.non_fluents.keys(),
+            self.model.observ_fluents.keys(),
+            self.model.action_fluents.keys(),
         )
 
-        return tuple(["None"] + x)
+        fluents_with_enums = list(chain(*self.enum_fluents.values()))
+
+        y = filter(lambda e: e not in fluents_with_enums, x)
+
+        combined_enum_fluents = self.combined_enum_fluents.keys()
+
+        x = chain(y, combined_enum_fluents)
+
+        return tuple(["None"] + sorted(x))
 
     @cached_property
     def types(self) -> tuple[str, ...]:
@@ -92,7 +147,7 @@ class RDDLModel(BaseModel):
             "real": float,
         }
 
-        # mapping.update({e: e for e in self.model.enum_types})
+        mapping.update({e: bool for e in self.model.enum_types})
 
         variable_ranges: dict[str, type] = {
             key: mapping[value]
@@ -101,12 +156,29 @@ class RDDLModel(BaseModel):
 
         variable_ranges["None"] = bool
 
+        combined_enum_fluents = {f: bool for f in self.combined_enum_fluents}
+
+        variable_ranges = {
+            f: variable_ranges.get(f, combined_enum_fluents.get(f))
+            for f in self.fluents
+        }
+
         return variable_ranges
 
     @cached_property
     def _variable_params(self) -> dict[str, tuple[str, ...]]:
         variable_params: dict[str, list[str]] = copy(self.model.variable_params)  # type: ignore
         variable_params["None"] = []
+
+        combined_enum_fluent_params = {
+            f: variable_params[v] for f, v in self.combined_enum_fluents.items()
+        }
+
+        variable_params = {
+            f: variable_params.get(f, combined_enum_fluent_params.get(f))
+            for f in self.fluents
+        }
+
         return {k: tuple(v) for k, v in variable_params.items()}
 
     @cached_property
@@ -135,7 +207,17 @@ class RDDLModel(BaseModel):
     def action_fluents(self) -> list[str]:
         model = self.model
         action_fluents = model.action_fluents  # type: ignore
-        return ["None"] + sorted(action_fluents.keys())  # type: ignore
+
+        enum_fluents = list(chain(*self.enum_fluents.values()))
+
+        new_fluents = chain(
+            *[self.combined_enum_fluent(f) for f in action_fluents if f in enum_fluents]
+        )
+
+        action_fluents = {f for f in action_fluents if f not in enum_fluents}
+        action_fluents = action_fluents | set(new_fluents)
+
+        return ["None"] + sorted(action_fluents)  # type: ignore
 
     @cached_property
     def num_actions(self) -> int:

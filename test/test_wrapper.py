@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Any
 import gymnasium as gym
 import numpy as np
@@ -39,6 +40,40 @@ def save_dot(dot, path):
         f.write(dot)
 
 
+def step_with_render(
+    env: gym.Env,
+    obs: dict[str, Any],
+    sum_reward: int,
+    time: int,
+    done: bool,
+    policy: Callable[[dict[str, Any]], Any],
+):
+    action = policy(obs)
+    obs, reward, terminated, truncated, info = env.step(action)
+    dot = env.render()
+    save_dot(dot, f"render/{time}.dot")
+    done = terminated or truncated
+    sum_reward += reward
+    time += 1
+    return sum_reward, time, done
+
+
+def step(
+    env: gym.Env,
+    obs: dict[str, Any],
+    sum_reward: int,
+    time: int,
+    done: bool,
+    policy: Callable[[dict[str, Any]], Any],
+):
+    action = policy(obs)
+    obs, reward, terminated, truncated, info = env.step(action)
+    done = terminated or truncated
+    sum_reward += reward
+    time += 1
+    return obs, sum_reward, time, done
+
+
 @pytest.mark.parametrize("env_id", [env_id, pomdp_env_id])
 def test_render(seed, env_id):
     # domain = "rddl/conditional_bandit.rddl"
@@ -63,15 +98,9 @@ def test_render(seed, env_id):
     done = False
     time = 0
     sum_reward = 0
-    while not done:
-        time += 1
 
-        action = env.action_space.sample()
-        obs, reward, terminated, truncated, info = env.step(action)
-        dot = env.render()
-        save_dot(dot, f"render/{time}.dot")
-        done = terminated or truncated
-        sum_reward += reward
+    while not done:
+        sum_reward, time, done = step_with_render(env, sum_reward, time, done)
 
     return sum_reward
 
@@ -156,35 +185,7 @@ def test_rddl_domains(env_id):
     logger.setLevel(logging.ERROR)
 
     problems_to_skip = [
-        # "Pizza_rddlsim",  # action arity > 1
-        # "CooperativeRecon_ippc2018",  # action arity > 1
-        # "CooperativeRecon_POMDP_ippc2011",  # action arity > 1
-        # "CooperativeRecon_MDP_ippc2011",  # action arity > 1
-        # "Wildfire_POMDP_ippc2014",  # action arity > 1
-        # "Wildfire_MDP_ippc2014",  # action arity > 1
-        # "GameOfLife_POMDP_ippc2011",  # action arity > 1
-        # "GameOfLife_MDP_ippc2011",  # action arity > 1
-        # "Quadcopter",  # action arity > 1
-        # "RecSim_ippc2023",  # action arity > 1
-        "ComplexSysAdmin_rddlsim",  # has enums
-        "PropDBN_rddlsim",  # has enums
-        "Logistics_rddlsim",  # has enums
-        "Sidewalk_rddlsim",  # has enums
-        "Traffic",  # has enums
-        "ChromaticDice_ippc2018",  # has enums
-        "EarthObservation_ippc2018",  # has enums
-        "PushYourLuck_ippc2018",  # has enums
-        "Manufacturer_ippc2018",  # has enums
-        "RedFinnedBlueEye_ippc2018",  # has enums
-        "Elevators",  # has enums
-        "Tetris_arcade",  # has enums
-        "Sokoban_arcade",  # has enums
-        "Blackjack_arcade",  # has enums
-        "TrafficBLX_SimplePhases",  # has enums
-        "Intruders_Discrete",  # has enums
-        "Knapsack",  # rddl syntax error
-        "Knapsack_or",  # rddl syntax error
-        "TSP_or",  # gym error
+        "ComplexSysAdmin_rddlsim",  # RDDLSim error
         "Tamarisk_POMDP_ippc2014",  # encoding error
         "Tamarisk_MDP_ippc2014",  # encoding error
         "TriangleTireworld_POMDP_ippc2014",  # encoding error
@@ -208,11 +209,8 @@ def test_rddl_domains(env_id):
             print(f"Error in {domain}: {e}")
             assert False, f"Error initing in {domain}: {e}"
 
-        # try:
         obs, info = env.reset(seed=seed)
-        # except Exception as e:
-        #     print(f"Error in {domain}: {e}")
-        #     assert False, f"Error resetting in {domain}: {e}"
+
         done = False
 
         check_obs_in_space("", obs, env.observation_space)
@@ -223,23 +221,19 @@ def test_rddl_domains(env_id):
             print(f"Error in {domain}: {e}")
             assert False, f"Error checking in {domain}: {e}"
 
+        policy = lambda _: env.action_space.sample()
+
+        time = 0
+        sum_reward = 0
+
         while not done:
-            obs, reward, terminated, truncated, info = env.step(
-                env.action_space.sample()
-            )
-            done = terminated or truncated
+            obs, sum_reward, time, done = step(env, obs, sum_reward, time, done, policy)
 
 
 def test_wrapper():
-    # domain = "Elevators_MDP_ippc2011"
-    # domain = "conditional_bandit.rddl"
-    # instance = "conditional_bandit_i0.rddl"
-    # domain = "Elevators_POMDP_ippc2011"
-    # instance = 1
-
     seed = 1
-    domain = "rddl/conditional_bandit.rddl"
-    instance = "rddl/conditional_bandit_i0.rddl"
+    domain = "EarthObservation_ippc2018"  # "rddl/conditional_bandit.rddl"
+    instance = 1
     env_id = register_env()
     env = gym.make(
         env_id,
@@ -258,11 +252,9 @@ def test_wrapper():
     done = False
     time = 0
     sum_reward = 0
+    policy = lambda _: env.action_space.sample()
     while not done:
-        time += 1
-        obs, reward, terminated, truncated, info = env.step(env.action_space.sample())
-        done = terminated or truncated
-        sum_reward += reward
+        obs, sum_reward, time, done = step(env, obs, sum_reward, time, done, policy)
 
     return sum_reward
 
@@ -322,4 +314,4 @@ if __name__ == "__main__":
     # test_last_obs_wrappers()
     # test_render(1)
     # test_wrapper()
-    test_rddl_domains(pomdp_env_id)
+    test_wrapper()

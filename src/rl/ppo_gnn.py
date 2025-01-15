@@ -1,6 +1,7 @@
 # docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/ppo/#ppopy
 from collections import deque
 import os
+from pathlib import Path
 import random
 import time
 from dataclasses import asdict, dataclass
@@ -19,15 +20,14 @@ import wandb
 from tqdm import tqdm
 from typing import Any
 
-from torch_geometric.data import Data
-
 from gnn.data import (
-    BipartiteData,
+    GraphBuffer,
+    ObsData,
     batched_dict_to_data,
     statedata_from_obs,
 )
 from rddl import register_env
-
+import model.utils as model_utils
 from gnn import GraphAgent, Config, ActionMode, StateData
 import mlflow
 import mlflow.pytorch
@@ -82,11 +82,15 @@ class Args:
     """whether to capture videos of the agent performances (check out `videos` folder)"""
 
     # Algorithm specific arguments
-    env_id: str = "rddl/conditional_bandit.rddl"  # "Elevators_MDP_ippc2011"
-    """the id of the environment"""
-    instance: str | int = (
-        "rddl/conditional_bandit_i0.rddl"  # "rddl/elevators_mdp__ippc11.rddl"
-    )
+    # domain: str = "rddl/conditional_bandit.rddl"  # "Elevators_MDP_ippc2011"
+    # """the id of the environment"""
+    # instance: str | int = (
+    #     "rddl/conditional_bandit_i0.rddl"  # "rddl/elevators_mdp__ippc11.rddl"
+    # )
+    # domain: str = "SysAdmin_MDP_ippc2011"
+    # instance: str | int = 1
+    domain = "Elevators_MDP_ippc2011"
+    instance = 1
     total_timesteps: int = 10000
     """total timesteps of the experiments"""
     learning_rate: float = 1.0e-2
@@ -138,7 +142,7 @@ def make_env(
     run_name: str,
 ):
     def thunk() -> gym.Env[Dict, MultiDiscrete]:
-        env: gym.Env[Dict, MultiDiscrete] = gym.make(
+        env: gym.Env[Dict, MultiDiscrete] = gym.make(  # type: ignore
             env_id,
             domain=domain,
             instance=instance,
@@ -201,7 +205,7 @@ class Agent(nn.Module):
 def rollout(
     agent: Agent,
     envs: gym.vector.SyncVectorEnv,
-    next_obs: list[BipartiteData],
+    next_obs: list[ObsData],
     next_done: Tensor,
     dones: Tensor,
     rewards: Tensor,
@@ -212,10 +216,10 @@ def rollout(
     num_envs: int,
     device: torch.device | str,
     global_step: int,
-) -> tuple[list[Data], int, list[float], list[int]]:
+) -> tuple[GraphBuffer, int, list[float], list[int]]:
     returns: deque[float] = deque()
     lengths: deque[int] = deque()
-    obs: deque[BipartiteData] = deque()
+    obs: GraphBuffer = GraphBuffer()
     for step in range(0, num_steps):
         global_step += num_envs
         obs.extend(next_obs)
@@ -243,7 +247,7 @@ def rollout(
         next_done = np.logical_or(terminations, truncations)
         rewards[step] = torch.tensor(reward).to(device).view(-1)
         next_obs, next_done = (
-            batched_dict_to_data(next_obs_dict, num_envs),  # type: ignore
+            batched_dict_to_data(next_obs_dict),  # type: ignore
             torch.Tensor(next_done).to(device),
         )
 
@@ -254,7 +258,7 @@ def rollout(
                 if is_final:
                     returns.append(r)
                     lengths.append(l)
-    return list(obs), global_step, list(returns), list(lengths)
+    return obs, global_step, list(returns), list(lengths)
 
 
 def update(
@@ -363,7 +367,9 @@ def main(
 
     if args.track:
         wandb.watch(agent, log_freq=10, log="all")  # type: ignore
-    optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
+    optimizer = optim.AdamW(
+        agent.parameters(), lr=args.learning_rate, eps=1e-5, amsgrad=True
+    )
 
     # ALGO Logic: Storage setup
     actions = torch.zeros(
@@ -378,7 +384,7 @@ def main(
     global_step = 0
     start_time = time.time()
     next_obs, _ = envs.reset(seed=args.seed)  # type: ignore
-    next_obs = batched_dict_to_data(next_obs, args.num_envs)  # type: ignore
+    next_obs = batched_dict_to_data(next_obs)  # type: ignore
     next_done = torch.zeros(args.num_envs).to(device)
     approx_kl = 0.0
     entropy_loss = 0.0
@@ -446,7 +452,7 @@ def main(
             for start in range(0, batch_size, minibatch_size):
                 end = start + minibatch_size
                 mb_inds = b_inds[start:end]
-                minibatch = statedata_from_obs([obs[i] for i in mb_inds])
+                minibatch = obs.minibatch(mb_inds)
                 (
                     loss,
                     pg_loss,
@@ -522,21 +528,21 @@ def setup():
     print("Connected to mlflow.")
     args = tyro.cli(Args)
 
-    run_name = f"{args.env_id}__{args.exp_name}__{args.seed}"
+    run_name = f"{Path(args.domain).name}__{Path(str(args.instance)).name}__{args.exp_name}__{args.seed}"
 
     env_id = register_env()
     envs = gym.vector.SyncVectorEnv(
         [
             make_env(
-                env_id, args.env_id, args.instance, i, args.capture_video, run_name
+                env_id, args.domain, args.instance, i, args.capture_video, run_name
             )
             for i in range(args.num_envs)
         ],
     )
 
-    n_types = int(envs.single_observation_space["factor"].feature_space.n)  # type: ignore
-    n_relations = int(envs.single_observation_space["var_type"].feature_space.n)  # type: ignore
-    n_actions = int(envs.single_action_space.nvec[0])  # type: ignore
+    n_types = model_utils.n_types(envs.single_observation_space)  # type: ignore
+    n_relations = model_utils.n_relations(envs.single_observation_space)  # type: ignore
+    n_actions = model_utils.n_actions(envs.single_action_space)  # type: ignore
 
     agent_config = Config(
         n_types,
@@ -546,7 +552,7 @@ def setup():
         embedding_dim=8,
         activation=nn.Mish(),
         aggregation="sum",
-        action_mode=ActionMode.ACTION_THEN_NODE,
+        action_mode=ActionMode.NODE_THEN_ACTION,
     )
 
     logged_config = vars(args) | asdict(agent_config)

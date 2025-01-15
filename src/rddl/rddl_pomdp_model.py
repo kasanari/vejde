@@ -24,5 +24,6 @@ class RDDLPOMDPModel(RDDLModel):
         x = list(self.model.non_fluents.keys())
         x = x + list(self.model.observ_fluents.keys())
         x = x + list(self.model.action_fluents.keys())
+        x = x + list(self.model.state_fluents.keys())
 
         return tuple(["None"] + sorted(x))

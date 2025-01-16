@@ -17,6 +17,11 @@ import model.utils as model_utils
 from rl.util import evaluate, rollout, save_eval_data, update
 from rddl import register_pomdp_env as register_env
 
+import logging
+
+logger = logging.getLogger("train")
+logger.setLevel(logging.INFO)
+
 
 class Serializer(json.JSONEncoder):
     def default(self, obj):
@@ -87,6 +92,15 @@ def test_imitation_rnn():
     domain = "rddl/blink_enough_bandit.rddl"
     instance = "rddl/blink_enough_bandit_i0.rddl"
 
+    # logfile = "test_imitation_rnn.log"
+    # file_handler = logging.FileHandler(logfile)
+    # logging.basicConfig(
+    #     level=logging.INFO,
+    # )
+    # logger.addHandler(file_handler)
+
+    logger.addHandler(logging.StreamHandler())
+
     th.manual_seed(0)
     np.random.seed(0)
     random.seed(0)
@@ -120,17 +134,19 @@ def test_imitation_rnn():
 
     data = [evaluate(env, agent, 0) for i in range(10)]
     rewards, _, _ = zip(*data)
-    print(np.mean([np.sum(r) for r in rewards]))
+    logger.info("Sum Reward Before Training: %s", np.mean([np.sum(r) for r in rewards]))
 
     num_seeds = 10
 
-    losses = [iteration(i, env, agent, optimizer, 0) for i in range(150)]
+    losses = [iteration(i, env, agent, optimizer, 0) for i in range(100)]
 
-    assert losses[-1] < 0.0001
+    assert losses[-1] < 0.0001, "Loss was too high: %s" % losses[-1]
 
     pass
 
     data = [evaluate(env, agent, 0) for i in range(3)]
+    rewards, _, _ = zip(*data)
+    logger.info("Sum Reward After Training: %s", np.mean([np.sum(r) for r in rewards]))
 
     save_eval_data(data)
 
@@ -140,7 +156,7 @@ def test_imitation_rnn():
 def iteration(i, env, agent, optimizer, seed: int):
     r, length = rollout(env, seed, policy, 2.0)
     loss, grad_norm = update(i, agent, optimizer, r)
-    print(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}")
+    logger.info(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}")
     return loss
 
 

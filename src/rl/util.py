@@ -194,10 +194,6 @@ class Serializer(json.JSONEncoder):
 
 
 def save_eval_data(data):
-    rewards, _, _ = zip(*data)
-
-    print(np.mean([np.sum(r) for r in rewards]))
-
     to_write = {
         f"ep_{i}": [
             {

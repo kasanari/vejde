@@ -65,9 +65,9 @@ def test_imitation():
     rewards, _, _ = zip(*data)
     print(np.mean(np.sum(rewards, axis=1)))
 
-    losses = [iteration(i, env, agent, optimizer, 0) for i in range(60)]
+    losses = [iteration(i, env, agent, optimizer, 0) for i in range(70)]
 
-    assert losses[-1] < 0.000001
+    assert losses[-1] < 0.000001, "Loss was too high: %s" % losses[-1]
 
     pass
 

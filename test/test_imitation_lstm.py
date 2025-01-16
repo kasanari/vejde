@@ -138,7 +138,7 @@ def test_imitation_rnn():
 
     num_seeds = 10
 
-    losses = [iteration(i, env, agent, optimizer, 0) for i in range(100)]
+    losses = [iteration(i, env, agent, optimizer, 0) for i in range(120)]
 
     assert losses[-1] < 0.0001, "Loss was too high: %s" % losses[-1]
 

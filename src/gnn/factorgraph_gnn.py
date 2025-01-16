@@ -129,21 +129,32 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
         return x
 
 
-class GlobalNode(nn.Module):
+class AttentionalAggregation(nn.Module):
     def __init__(self, emb_size: int, activation: nn.Module):
         super().__init__()  # type: ignore
 
         self.gate = nn.Linear(emb_size, 1)
         self.attn = nn.Linear(emb_size, emb_size)
 
-        self.linear = MLPLayer(emb_size * 2, emb_size, activation)
-        # self.aggr = SumAggregation()
-
-    def forward(self, nodes: Tensor, g_prev: Tensor, batch_idx: Tensor) -> Tensor:
+    def forward(self, nodes: Tensor, batch_idx: Tensor) -> Tensor:
         x = self.gate(nodes)
         x = segmented_softmax(x, batch_idx)
         x = x * self.attn(nodes)
         x = scatter(x, batch_idx, dim=0, reduce="sum")
+        return x
+
+
+class GlobalNode(nn.Module):
+    def __init__(self, emb_size: int, activation: nn.Module):
+        super().__init__()  # type: ignore
+
+        self.attn = AttentionalAggregation(emb_size, activation)
+
+        self.linear = MLPLayer(emb_size * 2, emb_size, activation)
+        # self.aggr = SumAggregation()
+
+    def forward(self, nodes: Tensor, g_prev: Tensor, batch_idx: Tensor) -> Tensor:
+        x = self.attn(nodes, batch_idx)
         x = (x, g_prev)
         x = torch.concatenate(x, dim=-1)
         x = g_prev + self.linear(x)
@@ -210,6 +221,7 @@ class BipartiteGNN(nn.Module):
 
         # self.aggrs = [GlobalNode(embedding_dim, activation) for _ in range(layers)]
         self.aggr = GlobalNode(embedding_dim, activation)
+        self.pre_aggr = AttentionalAggregation(embedding_dim, activation)
         self.hidden_size = embedding_dim
 
     def forward(
@@ -219,7 +231,7 @@ class BipartiteGNN(nn.Module):
         num_graphs = int(fg.batch.factor.max().item() + 1)
         g = torch.zeros(num_graphs, self.hidden_size).to(fg.factors.device)
         g = (
-            self.aggr(g, fg.globals_, fg.batch.global_)
+            self.pre_aggr(fg.globals_, fg.batch.global_)
             if fg.globals_.shape[0] > 0
             else g
         )

@@ -1,5 +1,5 @@
 from gnn.gnn_agent import Config, GraphAgent, RecurrentGraphAgent
-from gnn.data import StateData
+from gnn.data import StateData, HeteroStateData
 from gnn.gnn_policies import ActionMode
 
 __all__ = [
@@ -8,4 +8,5 @@ __all__ = [
     "ActionMode",
     "GraphAgent",
     "StateData",
+    "HeteroStateData",
 ]

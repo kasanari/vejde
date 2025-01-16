@@ -5,7 +5,7 @@ import numpy as np
 import torch as th
 import gymnasium as gym
 
-from gnn.data import Rollout, RolloutCollector, heterostatedata_from_single_obs
+from gnn.data import Rollout, RolloutCollector, single_obs_to_heterostatedata
 from torch import Tensor
 
 from gnn.gnn_agent import GraphAgent
@@ -29,7 +29,7 @@ def evaluate(env: gym.Env, agent: GraphAgent, seed: int):
 
         obs_buf.append(info["rddl_state"])
 
-        s = heterostatedata_from_single_obs(obs)
+        s = single_obs_to_heterostatedata(obs)
 
         action, _, _, _ = agent.sample(
             s,

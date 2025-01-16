@@ -9,8 +9,12 @@ from torch import cumsum, ones_like, concatenate
 import torch
 import numpy as np
 
+
 ObsDict = dict[str, Tensor]
+BatchedObsDict = dict[str, tuple[Tensor]]
+
 HeteroObsDict = dict[str, ObsDict]
+HeteroBatchedObsDict = dict[str, BatchedObsDict]
 
 
 class Serializer(json.JSONEncoder):
@@ -75,7 +79,7 @@ class GraphBuffer:
         self.data.append(obs)
 
     def add_single_dict(self, obs: ObsDict) -> None:
-        self.data.append(dict_to_data(obs))
+        self.data.append(dict_to_obsdata(obs))
 
     def batch(self) -> StateData:
         return batch(list(self.data))
@@ -92,7 +96,7 @@ class HeteroGraphBuffer:
         types = ("bool", "float")
         self.buffers = {t: GraphBuffer() for t in types}
 
-    def extend(self, obs: dict[str, Iterable[ObsData]]) -> None:
+    def extend(self, obs: dict[str, list[ObsData]]) -> None:
         for t in self.buffers:
             self.buffers[t].extend(obs[t])
 
@@ -204,11 +208,11 @@ def batch(graphs: list[ObsData]) -> StateData:
     )
 
 
-def statedata_from_single_obs(obs: ObsDict) -> StateData:
-    return statedata_from_obs([dict_to_data(obs)])
+def obs_to_statedata(obs: ObsDict) -> StateData:
+    return obslist_to_statedata([dict_to_obsdata(obs)])
 
 
-def statedata_from_obs(obs: list[ObsData]) -> StateData:
+def obslist_to_statedata(obs: list[ObsData]) -> StateData:
     return batch(obs)
 
 
@@ -217,7 +221,7 @@ attrs_from_obs = [
 ]
 
 
-def batched_dict_to_data(obs: dict[str, tuple[Tensor]]) -> list[ObsData]:
+def batched_dict_to_obsdata(obs: BatchedObsDict) -> list[ObsData]:
     def create_data(i: int) -> ObsData:
         data = {attr: torch.as_tensor(obs[attr][i]) for attr in attrs_from_obs}
         return ObsData(
@@ -229,7 +233,7 @@ def batched_dict_to_data(obs: dict[str, tuple[Tensor]]) -> list[ObsData]:
     return [create_data(i) for i in range(len(obs["factor"]))]
 
 
-def dict_to_data(obs: ObsDict) -> ObsData:
+def dict_to_obsdata(obs: ObsDict) -> ObsData:
     data = {attr: torch.as_tensor(obs[attr]) for attr in attrs_from_obs}
     return ObsData(
         **data,
@@ -247,5 +251,15 @@ def heterostatedata(obs: dict[str, list[ObsData]]) -> HeteroStateData:
     )
 
 
-def heterostatedata_from_single_obs(obs: HeteroObsDict) -> HeteroStateData:
-    return heterostatedata({k: [dict_to_data(obs[k])] for k in obs})
+def single_obs_to_heterostatedata(obs: HeteroObsDict) -> HeteroStateData:
+    return heterostatedata({k: [dict_to_obsdata(obs[k])] for k in obs})
+
+
+def heterostatedata_from_batched_obs(obs: HeteroBatchedObsDict) -> HeteroStateData:
+    return heterostatedata({k: batched_dict_to_obsdata(obs[k]) for k in obs})
+
+
+def batched_hetero_dict_to_hetero_obs_list(
+    obs: HeteroBatchedObsDict,
+) -> dict[str, list[ObsData]]:
+    return {k: batched_dict_to_obsdata(obs[k]) for k in obs}

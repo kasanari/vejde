@@ -65,19 +65,13 @@ class NumericEmbedder(nn.Module):
 
         self.predicate_embedding = predicate_embedding
 
-        self.biases = nn.Parameter(
-            th.zeros(predicate_embedding.embedding.weight.shape[0], embedding_dim)
-        )
-        self.activation = activation
-
     def forward(
         self,
         var_val: Tensor,
         var_type: Tensor,
     ) -> Tensor:
         preds = self.predicate_embedding(var_type.int())
-        biases = self.biases[var_type.int()]
-        h = nn.functional.relu(preds * var_val.unsqueeze(-1) + biases)
+        h = preds * var_val.unsqueeze(-1)
         return h
 
 

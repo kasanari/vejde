@@ -8,14 +8,14 @@ import torch as th
 from gymnasium.spaces import Dict, MultiDiscrete
 
 
-from gnn import ActionMode, Config, RecurrentGraphAgent
+from regawa.gnn import ActionMode, Config, RecurrentGraphAgent
 
 
-import model.utils as model_utils
+import regawa.model.utils as model_utils
 
 
-from rl.util import evaluate, rollout, save_eval_data, update
-from rddl import register_pomdp_env as register_env
+from regawa.rl.util import evaluate, rollout, save_eval_data, update
+from regawa.rddl import register_pomdp_env as register_env
 
 import logging
 

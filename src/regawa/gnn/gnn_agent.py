@@ -7,7 +7,7 @@ from torch import Tensor
 import torch as th
 from dataclasses import asdict
 
-from gnn.gnn_classes import EmbeddingLayer
+from .gnn_classes import EmbeddingLayer
 from .data import HeteroStateData, StateData
 from .factorgraph_gnn import BatchIdx, BipartiteGNN, FactorGraph
 from .gnn_embedder import (

@@ -8,7 +8,7 @@ from gymnasium import spaces
 
 from gymnasium.spaces import Discrete, Dict, MultiDiscrete, Box
 
-from wrappers.gym_utils import action_space, obs_space
+from .gym_utils import action_space, obs_space
 
 from .utils import (
     HeteroGraph,
@@ -19,7 +19,7 @@ from .utils import (
 
 from .utils import to_graphviz_alt, to_graphviz
 
-from model.base_model import BaseModel
+from regawa import BaseModel
 
 logger = logging.getLogger(__name__)
 

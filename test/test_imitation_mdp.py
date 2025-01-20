@@ -6,13 +6,10 @@ import numpy as np
 import torch as th
 
 
-from gnn import ActionMode, Config, GraphAgent
-
-
-from rl.util import evaluate, rollout, save_eval_data, update
-
-from rddl import register_env
-import model.utils as model_utils
+from regawa.gnn import ActionMode, Config, GraphAgent
+from regawa.rl.util import evaluate, rollout, save_eval_data, update
+from regawa.rddl import register_env
+import regawa.model.utils as model_utils
 
 
 def policy(state: dict[str, bool]) -> tuple[int, int]:

@@ -7,7 +7,7 @@ import numpy as np
 import logging
 from gymnasium.spaces import Dict
 
-from model.base_model import BaseModel
+from regawa import BaseModel
 
 logger = logging.getLogger(__name__)
 

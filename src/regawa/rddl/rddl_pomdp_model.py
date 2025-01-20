@@ -1,4 +1,4 @@
-from rddl.rddl_model import RDDLModel
+from .rddl_model import RDDLModel
 from .rddl_utils import get_groundings
 from functools import cache, cached_property
 

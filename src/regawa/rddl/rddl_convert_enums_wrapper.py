@@ -6,8 +6,8 @@ from gymnasium import spaces
 from pyRDDLGym import RDDLEnv
 from functools import cache
 
-from rddl.rddl_model import RDDLModel
-from wrappers.utils import predicate
+from .rddl_model import RDDLModel
+from regawa.wrappers.utils import predicate
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")

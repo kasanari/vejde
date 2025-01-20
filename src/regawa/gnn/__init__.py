@@ -1,6 +1,6 @@
-from gnn.gnn_agent import Config, GraphAgent, RecurrentGraphAgent
-from gnn.data import StateData, HeteroStateData
-from gnn.gnn_policies import ActionMode
+from .gnn_agent import Config, GraphAgent, RecurrentGraphAgent
+from .data import StateData, HeteroStateData
+from .gnn_policies import ActionMode
 
 __all__ = [
     "Config",

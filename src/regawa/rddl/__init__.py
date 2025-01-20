@@ -3,12 +3,11 @@ import gymnasium
 from gymnasium.spaces import Dict, MultiDiscrete
 import pyRDDLGym
 
-from rddl.rddl_pomdp_model import RDDLPOMDPModel
-from wrappers.pomdp_wrapper import StackingGroundedGraphWrapper
-from wrappers.stacking_wrapper import StackingWrapper
+from .rddl_pomdp_model import RDDLPOMDPModel
+from regawa import StackingGroundedGraphWrapper, GroundedGraphWrapper
+from regawa.wrappers.stacking_wrapper import StackingWrapper
 from .rddl_model import RDDLModel
 from .rddl_add_non_fluents_wrapper import RDDLAddNonFluents
-from wrappers.wrapper import GroundedGraphWrapper
 from .rddl_convert_enums_wrapper import RDDLConvertEnums
 
 
@@ -87,7 +86,7 @@ def register_env():
     env_id = "RDDLGraphEnv-v0"
     gymnasium.register(
         id=env_id,
-        entry_point="rddl:RDDLGraphEnv",
+        entry_point="regawa.rddl:RDDLGraphEnv",
     )
     return env_id
 
@@ -96,6 +95,6 @@ def register_pomdp_env():
     env_id = "RDDLPOMDPGraphEnv-v0"
     gymnasium.register(
         id=env_id,
-        entry_point="rddl:RDDLStackingGraphEnv",
+        entry_point="regawa.rddl:RDDLStackingGraphEnv",
     )
     return env_id

@@ -5,10 +5,10 @@ import numpy as np
 import torch as th
 import gymnasium as gym
 
-from gnn.data import Rollout, RolloutCollector, single_obs_to_heterostatedata
+from regawa.gnn.data import Rollout, RolloutCollector, single_obs_to_heterostatedata
 from torch import Tensor
 
-from gnn.gnn_agent import GraphAgent
+from regawa.gnn.gnn_agent import GraphAgent
 from torch.utils._foreach_utils import (
     _group_tensors_by_device_and_dtype,
 )

@@ -2,7 +2,7 @@ from itertools import chain
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 from functools import cache, cached_property
 from copy import copy
-from model.base_model import BaseModel
+from regawa.model.base_model import BaseModel
 from .rddl_utils import get_groundings
 
 

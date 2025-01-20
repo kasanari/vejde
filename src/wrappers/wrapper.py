@@ -28,7 +28,7 @@ def skip_fluent(key: str, variable_ranges: dict[str, str]) -> bool:
     return False
 
 
-class GroundedRDDLGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict]):
+class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict]):
     @property
     def metadata(self) -> dict[str, Any]:
         return {"render_modes": ["human", "idx"]}

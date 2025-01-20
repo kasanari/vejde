@@ -4,11 +4,11 @@ from gymnasium.spaces import Dict, MultiDiscrete
 import pyRDDLGym
 
 from rddl.rddl_pomdp_model import RDDLPOMDPModel
-from wrappers.pomdp_wrapper import StackingGroundedRDDLGraphWrapper
+from wrappers.pomdp_wrapper import StackingGroundedGraphWrapper
 from wrappers.stacking_wrapper import StackingWrapper
 from .rddl_model import RDDLModel
 from .rddl_add_non_fluents_wrapper import RDDLAddNonFluents
-from wrappers.wrapper import GroundedRDDLGraphWrapper
+from wrappers.wrapper import GroundedGraphWrapper
 from .rddl_convert_enums_wrapper import RDDLConvertEnums
 
 
@@ -25,9 +25,7 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
 
         if len(model.model.enum_types) > 0:
             env = RDDLConvertEnums(env)
-        env: gymnasium.Env[Dict, MultiDiscrete] = GroundedRDDLGraphWrapper(
-            env, model=model
-        )
+        env: gymnasium.Env[Dict, MultiDiscrete] = GroundedGraphWrapper(env, model=model)
         self.env = env
         self.observation_space = env.observation_space
 
@@ -63,7 +61,7 @@ class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         if len(model.model.enum_types) > 0:
             env = RDDLConvertEnums(env)
         env = StackingWrapper(env)
-        env: gymnasium.Env[Dict, MultiDiscrete] = StackingGroundedRDDLGraphWrapper(
+        env: gymnasium.Env[Dict, MultiDiscrete] = StackingGroundedGraphWrapper(
             env, model=model
         )
         self.env = env

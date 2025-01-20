@@ -28,7 +28,7 @@ def skip_fluent(key: str, variable_ranges: dict[str, str]) -> bool:
     return False
 
 
-class StackingGroundedRDDLGraphWrapper(
+class StackingGroundedGraphWrapper(
     gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict]
 ):
     @property

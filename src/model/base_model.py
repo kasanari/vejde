@@ -33,12 +33,6 @@ class BaseModel(ABC):
         """Types/class of the variable/object the fluent/predicate takes as parameter in a given position. Can be seen as the column name in a database table."""
         ...
 
-    @abstractmethod
-    @cache
-    def fluents_of_arity(self, arity: int) -> tuple[str, ...]:
-        """fluents/predicates of a given arity (number of parameters/variables/objects)."""
-        ...
-
     @cached_property
     @abstractmethod
     def groundings(self) -> list[str]:

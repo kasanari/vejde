@@ -242,7 +242,7 @@ def create_obs(
         "float": obs_numeric,
     }
 
-    return obs, HeteroGraph(bool_g, numeric_g), filtered_groundings
+    return obs, HeteroGraph(numeric_g, bool_g), filtered_groundings
 
 
 def create_stacked_obs[V](

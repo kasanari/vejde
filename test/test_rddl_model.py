@@ -15,7 +15,7 @@ def model():
 
 
 def test_num_fluents(model: BaseModel):
-    assert model.num_fluents == 5
+    assert model.num_fluents == 6
 
 
 def test_num_types(model: BaseModel):
@@ -35,7 +35,6 @@ def test_variable_range(model: BaseModel):
     assert f_r("light") is bool
     assert f_r("PAYOUT") is float
     assert f_r("CONNECTED") is bool
-    assert f_r("active") is bool
     assert f_r("None") is bool
 
 
@@ -79,7 +78,7 @@ def test_groundings(model: BaseModel):
     relation___object1__object2__...__objectN
     """
     ...
-    assert len(model.groundings) == 8
+    assert len(model.groundings) == 9
 
 
 def test_action_fluents(model: BaseModel):

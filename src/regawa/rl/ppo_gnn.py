@@ -20,15 +20,15 @@ import wandb
 from tqdm import tqdm
 from typing import Any
 
-from gnn.data import (
+from regawa.gnn.data import (
     HeteroGraphBuffer,
     ObsData,
     batched_hetero_dict_to_hetero_obs_list,
     heterostatedata,
 )
-from rddl import register_env
-import model.utils as model_utils
-from gnn import GraphAgent, Config, ActionMode, HeteroStateData
+from regawa.rddl import register_env
+import regawa.model.utils as model_utils
+from regawa.gnn import GraphAgent, Config, ActionMode, HeteroStateData
 import mlflow
 import mlflow.pytorch
 

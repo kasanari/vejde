@@ -31,10 +31,14 @@ def test_rnn_agent():
 
 
 def test_agent():
-    from rddl import register_env
+    from regawa.rddl import register_env
     from test_imitation_mdp import evaluate, save_eval_data
 
-    path = "conditional_bandit.pth"
+    logfile = open("test_trained_agent.log", "w")
+
+    logging.basicConfig(level=logging.DEBUG, format="%(message)s", stream=logfile)
+
+    path = "SysAdmin_MDP_ippc2011__1__ppo_gnn__0.pth"
     agent, config = GraphAgent.load_agent(path)
     domain = "rddl/conditional_bandit.rddl"
     instance = "rddl/conditional_bandit_i0.rddl"
@@ -46,12 +50,10 @@ def test_agent():
         # types_instead_of_objects=False,
     )
     torch.set_printoptions(precision=2, sci_mode=False)
-    logfile = open("test.log", "w")
-    logging.basicConfig(level=logging.DEBUG, format="%(message)s", stream=logfile)
     data = [evaluate(env, agent, 0) for i in range(1)]
     save_eval_data(data)
     logfile.close()
 
 
 if __name__ == "__main__":
-    test_rnn_agent()
+    test_agent()

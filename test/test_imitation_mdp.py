@@ -10,6 +10,7 @@ from regawa.gnn import ActionMode, Config, GraphAgent
 from regawa.rl.util import evaluate, rollout, save_eval_data, update
 from regawa.rddl import register_env
 import regawa.model.utils as model_utils
+import logging
 
 
 def policy(state: dict[str, bool]) -> tuple[int, int]:
@@ -29,6 +30,11 @@ def test_imitation():
     th.manual_seed(0)
     np.random.seed(0)
     random.seed(0)
+
+    l = logging.getLogger("regawa")
+    l.setLevel(logging.INFO)
+    logfile = logging.FileHandler("test_imitation_mdp.log", mode="w")
+    l.addHandler(logfile)
 
     env_id = register_env()
     env: gym.Env = gym.make(env_id, domain=domain, instance=instance)

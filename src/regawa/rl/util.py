@@ -1,6 +1,7 @@
 from collections import deque
 from collections.abc import Callable, Iterable
 import json
+from typing import Any
 import numpy as np
 import torch as th
 import gymnasium as gym
@@ -183,14 +184,16 @@ def rollout(
 
 
 class Serializer(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, th.Tensor):
-            return obj.tolist()
-        if isinstance(obj, np.bool_):
-            return bool(obj)
-        if isinstance(obj, np.int64):
-            return int(obj)
-        return super().default(obj)
+    def default(self, o: Any) -> Any:
+        if isinstance(o, th.Tensor):
+            return o.tolist()
+        if isinstance(o, np.bool_):
+            return bool(o)
+        if isinstance(o, np.int64):
+            return int(o)
+        if isinstance(o, tuple):
+            return "__".join(o)
+        return super().default(o)
 
 
 def save_eval_data(data):
@@ -198,8 +201,8 @@ def save_eval_data(data):
         f"ep_{i}": [
             {
                 "reward": r,
-                "obs": s,
-                "action": a,
+                "obs": {"_".join(k): v for k, v in s.items()},
+                "action": {"_".join(k): v for k, v in a.items()},
             }
             for r, s, a in zip(*episode)
         ]

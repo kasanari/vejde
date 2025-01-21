@@ -13,10 +13,10 @@ import regawa.model.utils as model_utils
 
 
 def policy(state: dict[str, bool]) -> tuple[int, int]:
-    if state["light___r_m"]:
+    if state[("light", "r_m")]:
         return (1, 4)
 
-    if state["light___g_m"]:
+    if state[("light", "g_m")]:
         return (1, 2)
 
     return (0, 0)

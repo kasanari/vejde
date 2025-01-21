@@ -340,9 +340,7 @@ def to_dict_action(
             action_fluent = "None"
             break
 
-    grounded_action = (
-        f"{action_fluent}___{'__'.join(params)}" if params else action_fluent
-    )
+    grounded_action = (action_fluent, *params)
 
     action_dict = {} if action_fluent == "None" else {grounded_action: 1}
 
@@ -357,13 +355,12 @@ def sample_action(action_space: Dict) -> dict[str, int]:
     return a
 
 
-def predicate(key: str) -> str:
-    return key.split("___")[0]
+def predicate(key: tuple[str, ...]) -> str:
+    return key[0]
 
 
-def objects(key: str) -> list[str]:
-    split = key.split("___")
-    return split[1].split("__") if len(split) > 1 else []
+def objects(key: tuple[str, ...]) -> tuple[str, ...]:
+    return key[1:]
 
 
 def objects_with_type(

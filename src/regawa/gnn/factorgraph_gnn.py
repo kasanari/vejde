@@ -52,6 +52,10 @@ class BipartiteGNNConvVariableToFactor(nn.Module):
         self.combine = MLPLayer(out_channels * 2, out_channels, activation)
         self.message_func = MLPLayer(in_channels * 2, out_channels, activation)
 
+        logger.info("Variable to Factor\n")
+        logger.info("Message Function\n%s", self.message_func)
+        logger.info("Combine Function\n%s", self.combine)
+
     def forward(
         self,
         fg: FactorGraph,
@@ -92,6 +96,11 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
         # self.root = MLPLayer(in_channels, out_channels, activation)
         self.combine = MLPLayer(out_channels * 2, out_channels, activation)
         self.message_func = MLPLayer(in_channels * 2, out_channels, activation)
+
+        logger.info("Factor to Variable\n")
+        logger.info("Message Function\n%s", self.message_func)
+        logger.info("Combine Function\n%s", self.combine)
+
         # self.messages = None
         # self.relation_embedding = nn.Embedding(num_relations, in_channels)
         # nn.init.orthogonal_(self.relation_embedding.weight)
@@ -136,6 +145,10 @@ class AttentionalAggregation(nn.Module):
         self.gate = nn.Linear(emb_size, 1)
         self.attn = nn.Linear(emb_size, emb_size)
 
+        logger.info("Attentional Aggregation\n")
+        logger.info("Gate\n%s", self.gate)
+        logger.info("Attention\n%s", self.attn)
+
     def forward(self, nodes: Tensor, batch_idx: Tensor) -> Tensor:
         x = self.gate(nodes)
         x = segmented_softmax(x, batch_idx)
@@ -149,8 +162,11 @@ class GlobalNode(nn.Module):
         super().__init__()  # type: ignore
 
         self.attn = AttentionalAggregation(emb_size, activation)
-
         self.linear = MLPLayer(emb_size * 2, emb_size, activation)
+
+        logger.info("Global Node\n")
+        logger.info("Update Function\n%s", self.linear)
+
         # self.aggr = SumAggregation()
 
     def forward(self, nodes: Tensor, g_prev: Tensor, batch_idx: Tensor) -> Tensor:
@@ -212,12 +228,11 @@ class BipartiteGNN(nn.Module):
     ):
         super().__init__()  # type: ignore
 
-        self.convs = nn.ModuleList(
-            [
-                FactorGraphLayer(embedding_dim, aggregation, activation)
-                for _ in range(layers)
-            ]
-        )
+        def f(i: int):
+            logger.info("Initing Layer %d\n", i)
+            return FactorGraphLayer(embedding_dim, aggregation, activation)
+
+        self.convs = nn.ModuleList([f(i) for i in range(layers)])
 
         # self.aggrs = [GlobalNode(embedding_dim, activation) for _ in range(layers)]
         self.aggr = GlobalNode(embedding_dim, activation)
@@ -247,8 +262,6 @@ class BipartiteGNN(nn.Module):
 
         for conv in self.convs:
             logger.debug("Layer %d", i)
-            logger.debug("Combine Function\n%s", conv.var2factor.combine)
-            logger.debug("Message Function\n%s", conv.var2factor.message_func)
             (variables, factors) = conv(fg)
             fg = FactorGraph(
                 variables,

@@ -4,18 +4,12 @@ import gymnasium as gym
 from gymnasium import spaces
 from pyRDDLGym import RDDLEnv
 from functools import cache
+from .rddl_utils import split_rddl_grounding
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
 WrapperObsType = spaces.Dict
 WrapperActType = spaces.Tuple
-
-
-@cache
-def split_rddl_grounding(grounding: str):
-    pred, *args = grounding.split("___")
-    args = args[0].split("__") if args else ()
-    return (pred, *args)
 
 
 @cache

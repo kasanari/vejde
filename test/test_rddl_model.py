@@ -1,6 +1,6 @@
-from rddl import RDDLModel
-from model.base_model import BaseModel
-import model.utils as utils
+from regawa.rddl import RDDLModel
+from regawa import BaseModel
+import regawa.model.utils as utils
 import pytest
 
 

@@ -62,11 +62,6 @@ class FactorGraph[V](NamedTuple):
     global_variable_values: list[V]
 
 
-class HeteroGraph(NamedTuple):
-    numeric: FactorGraph[float]
-    boolean: FactorGraph[bool]
-
-
 class StackedFactorGraph[V](NamedTuple):
     variables: list[str]
     variable_values: list[list[V]]
@@ -79,9 +74,9 @@ class StackedFactorGraph[V](NamedTuple):
     global_variable_values: list[list[V]]
 
 
-class StackedHeteroGraph(NamedTuple):
-    numeric: StackedFactorGraph[float]
-    boolean: StackedFactorGraph[bool]
+class HeteroGraph(NamedTuple):
+    numeric: FactorGraph[float] | StackedFactorGraph[float]
+    boolean: FactorGraph[bool] | StackedFactorGraph[bool]
 
 
 def graph_to_dict[V](idx_g: IdxFactorGraph[V]) -> dict[str, Any]:
@@ -140,7 +135,7 @@ def create_render_graph(
     )
 
 
-def empty_factor_graph[V]() -> FactorGraph[V]:
+def empty_factor_graph[V](_: type[V]) -> FactorGraph[V]:
     return FactorGraph[V](
         [],
         [],
@@ -154,7 +149,7 @@ def empty_factor_graph[V]() -> FactorGraph[V]:
     )
 
 
-def empty_stacked_factor_graph[V]() -> StackedFactorGraph[V]:
+def empty_stacked_factor_graph[V](_: type[V]) -> StackedFactorGraph[V]:
     return StackedFactorGraph[V](
         [],
         [],
@@ -209,7 +204,7 @@ def create_obs(
             model.fluent_param,
         )
         if bool_ground
-        else empty_factor_graph()
+        else empty_factor_graph(bool)
     )
 
     n_g = numeric_groundings(filtered_groundings, model.fluent_range)
@@ -222,7 +217,7 @@ def create_obs(
             model.fluent_param,
         )
         if n_g
-        else empty_factor_graph()
+        else empty_factor_graph(float)
     )
 
     assert isinstance(bool_g, FactorGraph)
@@ -270,7 +265,7 @@ def create_stacked_obs[V](
             model.fluent_param,
         )
         if bool_ground
-        else empty_stacked_factor_graph()
+        else empty_stacked_factor_graph(bool)
     )
 
     n_g = numeric_groundings(filtered_groundings, model.fluent_range)
@@ -283,7 +278,7 @@ def create_stacked_obs[V](
             model.fluent_param,
         )
         if n_g
-        else empty_stacked_factor_graph()
+        else empty_stacked_factor_graph(float)
     )
 
     assert isinstance(
@@ -532,13 +527,17 @@ def predicate_list_from_groundings(groundings: list[str]) -> list[str]:
     return sorted(set(chain(*[predicate(g) for g in groundings])))
 
 
-# T = TypeVar("T", type[FactorGraph], type[StackedFactorGraph])
-
-T = TypeVar("T")
+T = TypeVar(
+    "T",
+    type[FactorGraph[bool]],
+    type[StackedFactorGraph[bool]],
+    type[FactorGraph[float]],
+    type[StackedFactorGraph[float]],
+)
 
 
 def generate_bipartite_obs(
-    cls: type[T],
+    cls: T,
     obs: dict[str, bool | float],
     groundings: list[str],
     relation_to_types: Callable[[str, int], str],
@@ -623,8 +622,8 @@ def to_graphviz_alt(
     object_nodes: list[int],
     edges: list[tuple[int, int]],
     edge_attributes: list[int],
-    idx_to_type: list[str],
-    idx_to_rel: list[str],
+    idx_to_type: Callable[[int], str],
+    idx_to_rel: Callable[[int], str],
 ) -> str:
     colors = ["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]
     graph = "graph G {\n"

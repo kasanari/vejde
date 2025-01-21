@@ -2,7 +2,7 @@ import gymnasium as gym
 import torch
 
 
-from gnn import GraphAgent, RecurrentGraphAgent
+from regawa.gnn import GraphAgent, RecurrentGraphAgent
 
 import logging
 

@@ -1,6 +1,6 @@
 import numpy as np
 
-from wrappers.kg_wrapper import KGRDDLGraphWrapper
+from regawa.wrappers.kg_wrapper import KGRDDLGraphWrapper
 
 
 def test_kg():

@@ -1,6 +1,6 @@
 from typing import Any, TypeVar
 
-from model.base_model import BaseModel
+from regawa.model.base_model import BaseModel
 import gymnasium as gym
 import numpy as np
 

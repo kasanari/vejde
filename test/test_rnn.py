@@ -1,5 +1,5 @@
-from gnn.gnn_classes import EmbeddingLayer
-from gnn.gnn_embedder import BooleanEmbedder, RecurrentEmbedder
+from regawa.gnn.gnn_classes import EmbeddingLayer
+from regawa.gnn.gnn_embedder import BooleanEmbedder, RecurrentEmbedder
 import itertools
 import torch as th
 from torch import as_tensor, isclose, all

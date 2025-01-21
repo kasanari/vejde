@@ -134,6 +134,7 @@ class GraphAgent(nn.Module):
         self.actorcritic = GraphActorCritic(
             config.num_actions,
             config.embedding_dim,
+            config.embedding_dim,
             config.action_mode,
         )
 
@@ -237,6 +238,7 @@ class RecurrentGraphAgent(nn.Module):
         self.actorcritic = GraphActorCritic(
             config.num_actions,
             config.embedding_dim,
+            config.embedding_dim,
             config.action_mode,
         )
 
@@ -288,12 +290,13 @@ class GraphActorCritic(nn.Module):
     def __init__(
         self,
         num_actions: int,
-        embedding_dim: int,
+        node_dim: int,
+        graph_dim: int,
         action_mode: ActionMode,
     ):
         super().__init__()  # type: ignore
-        self.policy = TwoActionGNNPolicy(num_actions, embedding_dim, action_mode)
-        self.vf = nn.Linear(embedding_dim, 1)
+        self.policy = TwoActionGNNPolicy(num_actions, node_dim, graph_dim, action_mode)
+        self.vf = nn.Linear(graph_dim, 1)
 
     def value(
         self,

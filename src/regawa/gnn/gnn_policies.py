@@ -50,7 +50,9 @@ def num_graphs(batch_idx: Tensor) -> int:
 
 
 class TwoActionGNNPolicy(nn.Module):
-    def __init__(self, num_actions: int, embedding_dim: int, action_mode: ActionMode):
+    def __init__(
+        self, num_actions: int, node_dim: int, graph_dim: int, action_mode: ActionMode
+    ):
         super().__init__()  # type: ignore
 
         node_prob_out = {
@@ -59,11 +61,13 @@ class TwoActionGNNPolicy(nn.Module):
             ActionMode.ACTION_AND_NODE: 1,
         }
 
-        self.node_prob = nn.Linear(
-            embedding_dim, node_prob_out[action_mode], bias=False
+        self.node_prob = nn.Linear(node_dim, node_prob_out[action_mode], bias=False)
+
+        action_input_dim = (
+            node_dim if action_mode == ActionMode.NODE_THEN_ACTION else graph_dim
         )
 
-        self.action_prob = nn.Linear(embedding_dim, num_actions)
+        self.action_prob = nn.Linear(action_input_dim, num_actions)
 
         action_eval_funcs = {
             ActionMode.ACTION_THEN_NODE: eval_action_then_node,

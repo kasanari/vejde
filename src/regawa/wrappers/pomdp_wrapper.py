@@ -13,6 +13,7 @@ from .gym_utils import action_space, obs_space
 from .utils import (
     HeteroGraph,
     create_render_graph,
+    create_stacked_graphs,
     to_dict_action,
     create_stacked_obs,
 )
@@ -121,8 +122,12 @@ class StackingGroundedGraphWrapper(
     def _create_obs(
         self, rddl_obs: dict[str, list[Any]]
     ) -> tuple[dict[str, Any], HeteroGraph]:
-        o, g, _ = create_stacked_obs(
+        g, _ = create_stacked_graphs(
             rddl_obs,
+            self.wrapped_model,
+        )
+        o = create_stacked_obs(
+            g,
             self.wrapped_model,
         )
 

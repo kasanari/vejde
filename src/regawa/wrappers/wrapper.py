@@ -12,9 +12,10 @@ from .gym_utils import action_space, obs_space
 
 from .utils import (
     HeteroGraph,
+    create_graphs,
     create_render_graph,
     to_dict_action,
-    create_obs,
+    create_obs_dict,
 )
 
 from .utils import to_graphviz_alt, to_graphviz
@@ -116,8 +117,12 @@ class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict
     def _create_obs(
         self, rddl_obs: dict[str, list[int]]
     ) -> tuple[dict[str, Any], HeteroGraph]:
-        o, g, _ = create_obs(
+        g, _ = create_graphs(
             rddl_obs,
+            self.model,
+        )
+        o = create_obs_dict(
+            g,
             self.model,
         )
         return o, g

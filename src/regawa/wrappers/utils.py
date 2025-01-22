@@ -179,10 +179,10 @@ def bool_groundings(
     return [g for g in groundings if fluent_range(predicate(g)) is bool]
 
 
-def create_obs(
+def create_graphs(
     rddl_obs: dict[str, Any],
     model: BaseModel,
-) -> tuple[dict[str, Any], HeteroGraph, list[str]]:
+):
     filtered_groundings = sorted(
         [
             g
@@ -222,13 +222,26 @@ def create_obs(
     assert isinstance(bool_g, FactorGraph)
     assert isinstance(numeric_g, FactorGraph)
     # hetero_g = HeteroGraph(numeric_g, bool_g)
+    return HeteroGraph(numeric_g, bool_g), filtered_groundings
 
+
+def create_obs_dict(
+    heterogenous_graph: HeteroGraph,
+    model: BaseModel,
+) -> tuple[dict[str, Any], HeteroGraph, list[str]]:
     obs_boolean = graph_to_dict(
-        map_graph_to_idx(bool_g, model.fluent_to_idx, model.type_to_idx, np.int8),
+        map_graph_to_idx(
+            heterogenous_graph.boolean, model.fluent_to_idx, model.type_to_idx, np.int8
+        ),
     )
 
     obs_numeric = graph_to_dict(
-        map_graph_to_idx(numeric_g, model.fluent_to_idx, model.type_to_idx, np.float32)
+        map_graph_to_idx(
+            heterogenous_graph.numeric,
+            model.fluent_to_idx,
+            model.type_to_idx,
+            np.float32,
+        )
     )
 
     obs = {
@@ -236,13 +249,13 @@ def create_obs(
         "float": obs_numeric,
     }
 
-    return obs, HeteroGraph(numeric_g, bool_g), filtered_groundings
+    return obs
 
 
-def create_stacked_obs[V](
+def create_stacked_graphs(
     rddl_obs: dict[str, Any],
     model: BaseModel,
-) -> tuple[dict[str, Any], HeteroGraph, list[str]]:
+):
     filtered_groundings = sorted([g for g in rddl_obs])
 
     filtered_obs: dict[str, Any] = {k: rddl_obs[k] for k in filtered_groundings}
@@ -279,18 +292,22 @@ def create_stacked_obs[V](
     assert isinstance(
         numeric_g, StackedFactorGraph
     ), f"expected StackedFactorGraph but got {type(numeric_g)}"
+    return HeteroGraph(numeric_g, bool_g), filtered_groundings
 
+
+def create_stacked_obs[V](
+    heterograph: HeteroGraph,
+    model: BaseModel,
+) -> tuple[dict[str, Any], HeteroGraph, list[str]]:
     obs_boolean = graph_to_dict(
         map_stacked_graph_to_idx(
-            bool_g, model.fluent_to_idx, model.type_to_idx, np.int64
+            heterograph.boolean, model.fluent_to_idx, model.type_to_idx, np.int64
         )
     )
 
-    # numeric_lengths = {key: lengths[key] for key in n_g}
-
     obs_numeric = graph_to_dict(
         map_stacked_graph_to_idx(
-            numeric_g,
+            heterograph.numeric,
             model.fluent_to_idx,
             model.type_to_idx,
             np.float32,
@@ -302,7 +319,7 @@ def create_stacked_obs[V](
         "float": obs_numeric,
     }
 
-    return obs, HeteroGraph(numeric_g, bool_g), bool_ground
+    return obs
 
 
 def num_edges(arities: Callable[[str], int], groundings: list[str]) -> int:

@@ -1,5 +1,6 @@
 from collections import deque
 from collections.abc import Iterable
+from itertools import chain
 import json
 from typing import NamedTuple
 
@@ -163,7 +164,7 @@ class RolloutCollector:
         return sum(self.rewards)
 
 
-def batch(graphs: list[ObsData]) -> StateData:
+def batch(graphs: list[ObsData] | tuple[ObsData, ...]) -> StateData:
     """Returns batched graph given a list of graphs and a numpy-like module."""
     # Calculates offsets for sender and receiver Tensors, caused by concatenating
     # the nodes Tensors.
@@ -221,7 +222,7 @@ attrs_from_obs = [
 ]
 
 
-def batched_dict_to_obsdata(obs: BatchedObsDict) -> list[ObsData]:
+def batched_dict_to_obsdata(obs: BatchedObsDict) -> tuple[ObsData, ...]:
     def create_data(i: int) -> ObsData:
         data = {attr: torch.as_tensor(obs[attr][i]) for attr in attrs_from_obs}
         return ObsData(
@@ -230,7 +231,7 @@ def batched_dict_to_obsdata(obs: BatchedObsDict) -> list[ObsData]:
             n_variable=len(obs["length"][i]),
         )
 
-    return [create_data(i) for i in range(len(obs["factor"]))]
+    return tuple(create_data(i) for i in range(len(obs["factor"])))
 
 
 def dict_to_obsdata(obs: ObsDict) -> ObsData:
@@ -244,7 +245,9 @@ def dict_to_obsdata(obs: ObsDict) -> ObsData:
     )
 
 
-def heterostatedata(obs: dict[str, list[ObsData]]) -> HeteroStateData:
+def heterostatedata(
+    obs: dict[str, list[ObsData] | tuple[ObsData, ...]],
+) -> HeteroStateData:
     return HeteroStateData(
         boolean=batch(obs["bool"]),
         numeric=batch(obs["float"]),
@@ -261,5 +264,32 @@ def heterostatedata_from_batched_obs(obs: HeteroBatchedObsDict) -> HeteroStateDa
 
 def batched_hetero_dict_to_hetero_obs_list(
     obs: HeteroBatchedObsDict,
-) -> dict[str, list[ObsData]]:
+) -> dict[str, tuple[ObsData, ...]]:
     return {k: batched_dict_to_obsdata(obs[k]) for k in obs}
+
+
+def statedata_from_buffer(buf: list[tuple[ObsData, ...]]):
+    return batch(list(chain(*buf)))
+
+
+def heterostatedata_from_buffer(
+    obs: dict[str, list[tuple[ObsData, ...]]],
+) -> HeteroStateData:
+    return HeteroStateData(
+        boolean=statedata_from_buffer(obs["bool"]),
+        numeric=statedata_from_buffer(obs["float"]),
+    )
+
+
+def heterostatedata_from_obslist(obs: list[dict[str, ObsData]]) -> HeteroStateData:
+    boolean_data = list(chain(*[d["bool"] for d in obs]))
+    numeric_data = list(chain(*[d["float"] for d in obs]))
+
+    return HeteroStateData(
+        boolean=batch(boolean_data),
+        numeric=batch(numeric_data),
+    )
+
+
+def heterodict_to_obsdata(obs: HeteroObsDict):
+    return {k: (dict_to_obsdata(obs[k]),) for k in obs}

@@ -88,7 +88,7 @@ def iteration(i, env, agent, optimizer, seed: int):
     # saved_r = load_rollout(f"rollouts/rollout_{i}.json")
     # compare_rollouts(r, saved_r)
 
-    loss, grad_norm = update(i, agent, optimizer, r)
+    loss, grad_norm = update(agent, optimizer, r.actions, r.obs.batch)
     print(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}")
     return loss
 

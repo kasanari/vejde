@@ -6,7 +6,12 @@ import numpy as np
 import torch as th
 import gymnasium as gym
 
-from regawa.gnn.data import Rollout, RolloutCollector, single_obs_to_heterostatedata
+from regawa.gnn.data import (
+    HeteroStateData,
+    Rollout,
+    RolloutCollector,
+    single_obs_to_heterostatedata,
+)
 from torch import Tensor
 
 from regawa.gnn.gnn_agent import GraphAgent
@@ -16,7 +21,7 @@ from torch.utils._foreach_utils import (
 
 
 @th.no_grad()
-def evaluate(env: gym.Env, agent: GraphAgent, seed: int):
+def evaluate(env: gym.Env, agent: GraphAgent, seed: int, deterministic: bool = True):
     obs, info = env.reset(seed=seed)
     done = False
     time = 0
@@ -34,7 +39,7 @@ def evaluate(env: gym.Env, agent: GraphAgent, seed: int):
 
         action, _, _, _ = agent.sample(
             s,
-            deterministic=True,
+            deterministic=deterministic,
         )
 
         next_obs, reward, terminated, truncated, info = env.step(action.squeeze(0))  # type: ignore
@@ -104,15 +109,13 @@ def compare_rollouts(r1: Rollout, r2: Rollout):
 
 
 def update(
-    iteration: int,
     agent: GraphAgent,
     optimizer: th.optim.Optimizer,
-    rollout: Rollout,
+    actions: list[tuple[int, int]],
+    s: HeteroStateData,
 ):
-    _, obs, actions = rollout
-    s = obs.batch
     # b = th.stack([d.var_value for d in obs])
-    actions = th.as_tensor(actions, dtype=th.int32)
+    actions = th.atleast_2d(th.as_tensor(actions, dtype=th.int32))
     logprob, _, _ = agent.forward(
         actions,
         s,
@@ -159,7 +162,7 @@ def rollout(
     seed: int,
     expert_policy: Callable[[dict[str, bool]], tuple[int, int]],
     expected_return: float,
-) -> Rollout:
+) -> tuple[Rollout, int]:
     obs, info = env.reset(seed=seed)
     done = False
     time = 0

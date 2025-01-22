@@ -4,7 +4,7 @@ import gymnasium as gym
 from gymnasium import spaces
 from pyRDDLGym import RDDLEnv
 from functools import cache
-from .rddl_utils import split_rddl_grounding
+from .rddl_utils import rddl_ground_to_tuple
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
@@ -36,7 +36,7 @@ class RDDLToTuple(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActType])
 
         obs, reward, terminated, truncated, info = self.env.step(actions)
 
-        obs = {split_rddl_grounding(k): v for k, v in obs.items()}
+        obs = {rddl_ground_to_tuple(k): v for k, v in obs.items()}
 
         return obs, reward, terminated, truncated, info
 
@@ -46,6 +46,6 @@ class RDDLToTuple(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActType])
         super().reset(seed=seed)
         obs, info = self.env.reset(seed=seed)
 
-        obs = {split_rddl_grounding(k): v for k, v in obs.items()}
+        obs = {rddl_ground_to_tuple(k): v for k, v in obs.items()}
 
         return obs, info

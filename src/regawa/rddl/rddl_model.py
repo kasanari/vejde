@@ -3,7 +3,7 @@ from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 from functools import cache, cached_property
 from copy import copy
 from regawa.model.base_model import BaseModel
-from .rddl_utils import get_groundings, split_rddl_grounding
+from .rddl_utils import get_groundings, rddl_ground_to_tuple
 
 
 class RDDLModel(BaseModel):
@@ -201,7 +201,7 @@ class RDDLModel(BaseModel):
 
         all_groundings = state_groundings | non_fluent_groundings
 
-        all_groundings = [split_rddl_grounding(g) for g in all_groundings]
+        all_groundings = [rddl_ground_to_tuple(g) for g in all_groundings]
 
         return sorted(all_groundings)
 

@@ -155,7 +155,7 @@ def test_imitation_rnn():
 
 def iteration(i, env, agent, optimizer, seed: int):
     r, length = rollout(env, seed, policy, 2.0)
-    loss, grad_norm = update(i, agent, optimizer, r)
+    loss, grad_norm = update(agent, optimizer, r.actions, r.obs.batch)
     logger.info(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}")
     return loss
 

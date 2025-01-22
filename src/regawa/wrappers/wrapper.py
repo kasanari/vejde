@@ -24,10 +24,6 @@ from regawa import BaseModel
 logger = logging.getLogger(__name__)
 
 
-def skip_fluent(key: str, variable_ranges: dict[str, str]) -> bool:
-    return False
-
-
 class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict]):
     @property
     def metadata(self) -> dict[str, Any]:
@@ -44,7 +40,7 @@ class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict
         render_mode: str = "human",
     ) -> None:
         super().__init__(env)
-        self.wrapped_model = model
+        self.model = model
         self.env = env
         self.last_obs: dict[str, Any] = {}
         self.iter = 0
@@ -66,10 +62,10 @@ class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict
     @property
     def action_space(self) -> gym.spaces.MultiDiscrete:  # type: ignore
         return action_space(
-            self.wrapped_model.action_fluents,
-            self.wrapped_model.num_actions,
+            self.model.action_fluents,
+            self.model.num_actions,
             len(self._idx_to_object) or 1,
-            self.wrapped_model.arity,
+            self.model.arity,
         )
 
     def render(self):
@@ -90,8 +86,8 @@ class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict
                 object_nodes,
                 edge_indices,  # type: ignore
                 edge_attributes,
-                self.wrapped_model.idx_to_type,  # type: ignore
-                self.wrapped_model.idx_to_fluent,  # type: ignore
+                self.model.idx_to_type,  # type: ignore
+                self.model.idx_to_fluent,  # type: ignore
             )
 
     @property
@@ -99,9 +95,9 @@ class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict
     def observation_space(self) -> spaces.Dict:  # type: ignore
         # num_groundings = len(self.wrapped_model.groundings)
         # num_objects = self.wrapped_model.num_objects
-        num_types = self.wrapped_model.num_types
-        num_relations = self.wrapped_model.num_fluents
-        max_arity = max(self.wrapped_model.arity(r) for r in self.wrapped_model.fluents)
+        num_types = self.model.num_types
+        num_relations = self.model.num_fluents
+        max_arity = max(self.model.arity(r) for r in self.model.fluents)
 
         bool_space = Discrete(2)
         number_space = Box(
@@ -122,8 +118,7 @@ class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict
     ) -> tuple[dict[str, Any], HeteroGraph]:
         o, g, _ = create_obs(
             rddl_obs,
-            self.wrapped_model,
-            skip_fluent,
+            self.model,
         )
         return o, g
 
@@ -153,10 +148,10 @@ class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict
     ) -> tuple[dict[str, int], str]:
         return to_dict_action(
             action,
-            self.wrapped_model.idx_to_action,
+            self.model.idx_to_action,
             self.idx_to_object_type,
             self.idx_to_object,
-            self.wrapped_model.fluent_params,
+            self.model.fluent_params,
         )
 
     def step(

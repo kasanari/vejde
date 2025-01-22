@@ -24,10 +24,6 @@ from regawa import BaseModel
 logger = logging.getLogger(__name__)
 
 
-def skip_fluent(key: str, variable_ranges: dict[str, str]) -> bool:
-    return False
-
-
 class StackingGroundedGraphWrapper(
     gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict]
 ):
@@ -128,7 +124,6 @@ class StackingGroundedGraphWrapper(
         o, g, _ = create_stacked_obs(
             rddl_obs,
             self.wrapped_model,
-            skip_fluent,
         )
 
         assert o["bool"]["length"].sum() == len(

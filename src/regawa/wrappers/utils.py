@@ -182,13 +182,12 @@ def bool_groundings(
 def create_obs(
     rddl_obs: dict[str, Any],
     model: BaseModel,
-    skip_fluent: Callable[[str, dict[str, str]], bool],
 ) -> tuple[dict[str, Any], HeteroGraph, list[str]]:
     filtered_groundings = sorted(
         [
             g
             for g in rddl_obs
-            if rddl_obs[g] is not None and not skip_fluent(g, model.fluent_range)  # type: ignore
+            if rddl_obs[g] is not None  # type: ignore
         ]
     )
 
@@ -243,15 +242,8 @@ def create_obs(
 def create_stacked_obs[V](
     rddl_obs: dict[str, Any],
     model: BaseModel,
-    skip_fluent: Callable[[str, dict[str, str]], bool],
 ) -> tuple[dict[str, Any], HeteroGraph, list[str]]:
-    filtered_groundings = sorted(
-        [
-            g
-            for g in rddl_obs
-            if not skip_fluent(g, model.fluent_range)  # type: ignore
-        ]
-    )
+    filtered_groundings = sorted([g for g in rddl_obs])
 
     filtered_obs: dict[str, Any] = {k: rddl_obs[k] for k in filtered_groundings}
 
@@ -315,6 +307,14 @@ def create_stacked_obs[V](
 
 def num_edges(arities: Callable[[str], int], groundings: list[str]) -> int:
     return sum(arities(predicate(g)) for g in groundings)
+
+
+def from_dict_action(
+    action: tuple[str, ...],
+    action_to_idx: Callable[[str], int],
+    obj_to_idx: Callable[[str], int],
+) -> tuple[int, ...]:
+    return tuple([action_to_idx(action[0])] + [obj_to_idx(obj) for obj in action[1:]])
 
 
 def to_dict_action(

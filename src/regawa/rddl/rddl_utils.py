@@ -10,7 +10,7 @@ def get_groundings(model: RDDLLiftedModel, fluents: dict[str, Any]) -> set[str]:
 
 
 @cache
-def split_rddl_grounding(grounding: str):
+def rddl_ground_to_tuple(grounding: str):
     pred, *args = grounding.split("___")
     args = args[0].split("__") if args else ()
     return (pred, *args)

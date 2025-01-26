@@ -4,20 +4,23 @@ from torch.nn import Embedding, Linear, Module, LayerNorm, Sequential
 
 
 class EmbeddingLayer(Module):
-    def __init__(self, num_embeddings: int, embedding_dim: int):
+    def __init__(
+        self, num_embeddings: int, embedding_dim: int, use_layer_norm: bool = False
+    ):
         super().__init__()  # type: ignore
-        self.embedding = Embedding(num_embeddings, embedding_dim, padding_idx=0)
-        init.orthogonal_(self.embedding.weight)  # type: ignore
-        self.embedding._fill_padding_idx_with_zero()
-        self.layer_norm = LayerNorm(embedding_dim, elementwise_affine=True)
+        embedding = Embedding(num_embeddings, embedding_dim, padding_idx=0)
+        init.orthogonal_(embedding.weight)  # type: ignore
+        embedding._fill_padding_idx_with_zero()
+        layer_norm = LayerNorm(embedding_dim, elementwise_affine=True)
         # init.ones_(self.embedding.weight)
 
         # self.bias = Parameter(torch.zeros(num_embeddings, embedding_dim))
         # self.activation = activation
 
+        params = (embedding, layer_norm) if use_layer_norm else (embedding,)
+
         self.transform = Sequential(
-            self.embedding,
-            self.layer_norm,
+            *params,
         )
 
     def forward(self, x: Tensor) -> Tensor:

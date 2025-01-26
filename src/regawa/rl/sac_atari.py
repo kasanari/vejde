@@ -21,6 +21,9 @@ from stable_baselines3.common.atari_wrappers import (
 from stable_baselines3.common.buffers import ReplayBuffer
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
+import ale_py
+
+gym.register_envs(ale_py)
 
 
 @dataclass
@@ -55,7 +58,7 @@ class Args:
     """target smoothing coefficient (default: 1)"""
     batch_size: int = 64
     """the batch size of sample from the reply memory"""
-    learning_starts: int = 2e4
+    learning_starts: int = 1
     """timestep to start learning"""
     policy_lr: float = 3e-4
     """the learning rate of the policy network optimizer"""
@@ -89,8 +92,8 @@ def make_env(env_id, seed, idx, capture_video, run_name):
             env = FireResetEnv(env)
         env = ClipRewardEnv(env)
         env = gym.wrappers.ResizeObservation(env, (84, 84))
-        env = gym.wrappers.GrayScaleObservation(env)
-        env = gym.wrappers.FrameStack(env, 4)
+        env = gym.wrappers.GrayscaleObservation(env)
+        env = gym.wrappers.FrameStackObservation(env, 4)
 
         env.action_space.seed(seed)
         return env

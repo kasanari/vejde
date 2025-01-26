@@ -1,6 +1,6 @@
 import torch.nn.init as init
 from torch import Tensor
-from torch.nn import Embedding, Linear, Module
+from torch.nn import Embedding, Linear, Module, LayerNorm
 
 
 class EmbeddingLayer(Module):
@@ -9,6 +9,7 @@ class EmbeddingLayer(Module):
         self.embedding = Embedding(num_embeddings, embedding_dim, padding_idx=0)
         init.orthogonal_(self.embedding.weight)  # type: ignore
         self.embedding._fill_padding_idx_with_zero()
+        self.layer_norm = LayerNorm(embedding_dim, elementwise_affine=True)
         # init.ones_(self.embedding.weight)
 
         # self.bias = Parameter(torch.zeros(num_embeddings, embedding_dim))
@@ -16,7 +17,9 @@ class EmbeddingLayer(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         # bias = self.bias[x]
-        return self.embedding(x)
+        x = self.embedding(x)
+        x = self.layer_norm(x)
+        return x
 
 
 class MLPLayer(Module):
@@ -29,7 +32,9 @@ class MLPLayer(Module):
         self.activation = activation
 
     def forward(self, x: Tensor) -> Tensor:
-        return self.activation(self.linear(x))
+        x = self.linear(x)
+        x = self.activation(x)
+        return x
 
     def __str__(self) -> str:
         return f"Weight:\n{self.linear.weight}\nBias:\n{self.linear.bias}"

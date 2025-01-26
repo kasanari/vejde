@@ -113,6 +113,7 @@ def update(
     optimizer: th.optim.Optimizer,
     actions: list[tuple[int, int]],
     s: HeteroStateData,
+    max_grad_norm: float = 100.0,
 ):
     # b = th.stack([d.var_value for d in obs])
     actions = th.atleast_2d(th.as_tensor(actions, dtype=th.int32))
@@ -135,13 +136,13 @@ def update(
     #     per_sample_grads = per_sample_grad(agent, b, actions)
 
     grad_norms = {
-        k: round(grad_norm_(param, 1.0).item(), 3)
+        k: round(grad_norm_(param, max_grad_norm).item(), 3)
         for k, param in agent.named_parameters()
     }
-    max_grad_norm = max(grad_norms.values())
+    # max_grad_norm = max(grad_norms.values())
 
     grad_norm = th.nn.utils.clip_grad_norm_(
-        agent.parameters(), 1.0, error_if_nonfinite=True
+        agent.parameters(), max_grad_norm, error_if_nonfinite=True
     )
 
     optimizer.step()

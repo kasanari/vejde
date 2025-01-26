@@ -35,11 +35,15 @@ class BooleanEmbedder(nn.Module):
         super().__init__()  # type: ignore
 
         self.predicate_embedding = predicate_embedding
-        logger.debug("predicate_embedding:\n%s", predicate_embedding.embedding.weight)
+        logger.debug(
+            "predicate_embedding:\n%s", predicate_embedding.transform[0].weight
+        )
 
         self.boolean_embedding = EmbeddingLayer(2, embedding_dim)
 
-        logger.debug("boolean_embedding:\n%s", self.boolean_embedding.embedding.weight)
+        logger.debug(
+            "boolean_embedding:\n%s", self.boolean_embedding.transform[0].weight
+        )
 
     def forward(
         self,

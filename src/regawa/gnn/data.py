@@ -10,6 +10,8 @@ from torch import cumsum, ones_like, concatenate
 import torch
 import numpy as np
 
+from regawa.gnn.gnn_classes import SparseTensor
+
 
 ObsDict = dict[str, Tensor]
 BatchedObsDict = dict[str, tuple[Tensor]]
@@ -46,11 +48,9 @@ class ObsData(NamedTuple):
 
 
 class StateData(NamedTuple):
-    var_value: Tensor
-    var_type: Tensor
-    var_batch: Tensor
-    factor: Tensor
-    factor_batch: Tensor
+    var_value: SparseTensor
+    var_type: SparseTensor
+    factor: SparseTensor
     senders: Tensor  # variable
     receivers: Tensor  # factor
     edge_attr: Tensor
@@ -58,9 +58,8 @@ class StateData(NamedTuple):
     n_variable: Tensor
     n_graphs: int
     length: Tensor
-    global_vars: Tensor
-    global_vals: Tensor
-    global_batch: Tensor
+    global_vars: SparseTensor
+    global_vals: SparseTensor
     global_length: Tensor
 
 
@@ -190,21 +189,18 @@ def batch(graphs: list[ObsData] | tuple[ObsData, ...]) -> StateData:
 
     return StateData(
         # n_node=stack([g.n_node for g in graphs]),
-        var_value=concatenate([g.var_value for g in graphs]),
-        var_type=concatenate([g.var_type for g in graphs]),
-        factor=concatenate([g.factor for g in graphs]),
+        var_value=SparseTensor(concatenate([g.var_value for g in graphs]), var_batch),
+        var_type=SparseTensor(concatenate([g.var_type for g in graphs]), var_batch),
+        factor=SparseTensor(concatenate([g.factor for g in graphs]), factor_batch),
         edge_attr=concatenate([g.edge_attr for g in graphs]),
         senders=senders,
         receivers=receivers,
-        factor_batch=factor_batch,
-        var_batch=var_batch,
         n_factor=torch.as_tensor([g.n_factor for g in graphs]),
         n_variable=torch.as_tensor([g.n_variable for g in graphs]),
         n_graphs=len(graphs),
         length=concatenate([g.length for g in graphs]),
-        global_vars=global_vars,
-        global_vals=global_vals,
-        global_batch=global_batch,
+        global_vars=SparseTensor(global_vars, global_batch),
+        global_vals=SparseTensor(global_vals, global_batch),
         global_length=concatenate([g.global_length for g in graphs]),
     )
 

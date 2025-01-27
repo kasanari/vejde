@@ -1,11 +1,38 @@
+from collections.abc import Callable
+from typing import NamedTuple
 import torch.nn.init as init
 from torch import Tensor
+import torch
 from torch.nn import Embedding, Linear, Module, LayerNorm, Sequential
+
+
+class SparseTensor(NamedTuple):
+    values: Tensor
+    indices: Tensor
+
+    @property
+    def shape(self) -> torch.Size:
+        return self.values.shape
+
+    def concat(self, other: "SparseTensor") -> "SparseTensor":
+        return SparseTensor(
+            torch.cat((self.values, other.values)),
+            torch.cat((self.indices, other.indices)),
+        )
+
+
+def sparsify(
+    operation: Callable[[Tensor], Tensor],
+) -> Callable[[SparseTensor], SparseTensor]:
+    def wrapper(x: SparseTensor) -> SparseTensor:
+        return SparseTensor(operation(x.values), x.indices)
+
+    return wrapper
 
 
 class EmbeddingLayer(Module):
     def __init__(
-        self, num_embeddings: int, embedding_dim: int, use_layer_norm: bool = False
+        self, num_embeddings: int, embedding_dim: int, use_layer_norm: bool = True
     ):
         super().__init__()  # type: ignore
         embedding = Embedding(num_embeddings, embedding_dim, padding_idx=0)
@@ -23,7 +50,7 @@ class EmbeddingLayer(Module):
             *params,
         )
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: SparseTensor) -> Tensor:
         return self.transform(x)
 
 

@@ -7,9 +7,9 @@ from torch import Tensor
 import torch as th
 from dataclasses import asdict
 
-from .gnn_classes import EmbeddingLayer
+from .gnn_classes import EmbeddingLayer, SparseTensor, sparsify
 from .data import HeteroStateData, StateData
-from .factorgraph_gnn import BatchIdx, BipartiteGNN, FactorGraph
+from .factorgraph_gnn import BipartiteGNN, FactorGraph
 from .gnn_embedder import (
     BooleanEmbedder,
     NumericEmbedder,
@@ -19,9 +19,9 @@ from .gnn_policies import ActionMode, TwoActionGNNPolicy
 
 
 class EmbeddedTuple(NamedTuple):
-    variables: Tensor
-    factors: Tensor
-    globals: Tensor
+    variables: SparseTensor
+    factors: SparseTensor
+    globals: SparseTensor
 
 
 def _embed(
@@ -30,18 +30,24 @@ def _embed(
     factor_embedding: nn.Module,
     global_var_embedder: nn.Module,
 ) -> EmbeddedTuple:
-    factors = factor_embedding(data.factor)
-    variables = var_embedder(
-        data.var_value,
-        data.var_type,
+    factors = sparsify(factor_embedding)(data.factor)
+    variables = SparseTensor(
+        var_embedder(
+            data.var_value.values,
+            data.var_type.values,
+        ),
+        data.var_value.indices,
     )
     globals_ = (
-        global_var_embedder(
-            data.global_vals,
-            data.global_vars,
+        SparseTensor(
+            global_var_embedder(
+                data.global_vals.values,
+                data.global_vars.values,
+            ),
+            data.global_vals.indices,
         )
         if data.global_vals.shape[0] > 0
-        else th.tensor([])
+        else SparseTensor(th.tensor([]), th.tensor([], dtype=th.long))
     )
     return EmbeddedTuple(variables, factors, globals_)
 
@@ -57,20 +63,9 @@ def merge_graphs(
     numeric: EmbeddedTuple,
 ) -> FactorGraph:
     # this only refers to the factors, so we can use either boolean or numeric data
-    factor_batch = boolean_data.factor_batch
-
-    global_batch = cat(
-        boolean_data.global_batch,
-        numeric_data.global_batch,
-    )
-
-    variable_batch_idx = cat(
-        boolean_data.var_batch,
-        numeric_data.var_batch,
-    )
 
     return FactorGraph(
-        cat(boolean.variables, numeric.variables),
+        boolean.variables.concat(numeric.variables),
         # same factors for both boolean and numeric data, so we can use either
         boolean.factors,
         cat(boolean_data.senders, numeric_data.senders + sum(boolean_data.n_variable)),
@@ -78,8 +73,7 @@ def merge_graphs(
         cat(boolean_data.receivers, numeric_data.receivers),
         cat(boolean_data.edge_attr, numeric_data.edge_attr),
         boolean_data.n_factor,
-        cat(boolean.globals, numeric.globals),
-        BatchIdx(global_batch, factor_batch, variable_batch_idx),
+        boolean.globals.concat(numeric.globals),
     )
 
 
@@ -163,15 +157,13 @@ class GraphAgent(nn.Module):
 
     def forward(self, actions: Tensor, data: HeteroStateData):
         fg, g = self.embed(data)
-        logprob, entropy, value = self.actorcritic(
-            actions, fg.factors, g, fg.batch.factor, fg.n_factor
-        )
+        logprob, entropy, value = self.actorcritic(actions, fg.factors, g, fg.n_factor)
         return logprob, entropy, value
 
     def sample(self, data: HeteroStateData, deterministic: bool = False):
         fg, g = self.embed(data)
         action, logprob, entropy = self.actorcritic.sample(
-            fg.factors, g, fg.batch.factor, fg.n_factor, deterministic
+            fg.factors, g, fg.n_factor, deterministic
         )
         value = self.actorcritic.value(g)
         return action, logprob, entropy, value
@@ -264,12 +256,12 @@ class RecurrentGraphAgent(nn.Module):
 
     def forward(self, actions: Tensor, data: HeteroStateData):
         fg, g = self.embed(data)
-        return self.actorcritic(actions, fg.factors, g, fg.batch.factor, fg.n_factor)
+        return self.actorcritic(actions, fg.factors, g, fg.n_factor)
 
     def sample(self, data: HeteroStateData, deterministic: bool = False):
         fg, g = self.embed(data)
         action, logprob, entropy = self.actorcritic.sample(
-            fg.factors, g, fg.batch.factor, fg.n_factor, deterministic
+            fg.factors, g, fg.n_factor, deterministic
         )
         value = self.actorcritic.value(g)
         return action, logprob, entropy, value
@@ -307,25 +299,23 @@ class GraphActorCritic(nn.Module):
     def forward(
         self,
         actions: Tensor,
-        h: Tensor,
+        h: SparseTensor,
         g: Tensor,
-        batch_idx: Tensor,
         n_nodes: Tensor,
     ) -> tuple[Tensor, Tensor, Tensor]:
         return (
-            *self.policy.forward(actions, h, g, batch_idx, n_nodes),
+            *self.policy.forward(actions, h, g, n_nodes),
             self.vf(g),
         )
 
     def sample(
         self,
-        h: Tensor,
+        h: SparseTensor,
         g: Tensor,
-        batch_idx: Tensor,
         n_nodes: Tensor,
         deterministic: bool = False,
     ):
-        return self.policy.sample(h, g, batch_idx, n_nodes, deterministic)
+        return self.policy.sample(h, g, n_nodes, deterministic)
 
 
 def save_agent(agent: GraphAgent | RecurrentGraphAgent, config: Config, path: str):

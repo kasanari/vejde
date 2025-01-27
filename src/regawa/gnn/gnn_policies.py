@@ -13,6 +13,7 @@ from gnn_policy.functional import (
     eval_node_then_action,
     sample_node,  # type: ignore
 )
+from regawa.gnn.gnn_classes import SparseTensor
 
 
 class SingleActionGNNPolicy(nn.Module):
@@ -90,14 +91,14 @@ class TwoActionGNNPolicy(nn.Module):
 
     # differentiable action evaluation
     def forward(
-        self, a: Tensor, h: Tensor, g: Tensor, batch_idx: Tensor, n_nodes: Tensor
+        self, a: Tensor, h: SparseTensor, g: Tensor, n_nodes: Tensor
     ) -> tuple[Tensor, Tensor]:
-        n_g = num_graphs(batch_idx)
+        n_g = num_graphs(h.indices)
         node_mask = th.ones(h.shape[0], dtype=th.bool)
         action_mask = th.ones((n_g, self.num_actions), dtype=th.bool)
 
-        node_logits = self.node_prob(h).squeeze()
-        action_logits = self.action_prob_func(h, g)
+        node_logits = self.node_prob(h.values).squeeze()
+        action_logits = self.action_prob_func(h.values, g)
 
         logprob, entropy = self.eval_func(  # type: ignore
             a,
@@ -105,30 +106,29 @@ class TwoActionGNNPolicy(nn.Module):
             node_logits,
             action_mask,
             node_mask,
-            batch_idx,
+            h.indices,
             n_nodes,
         )
         return logprob, entropy  # type: ignore
 
     def sample(
         self,
-        h: Tensor,
+        h: SparseTensor,
         g: Tensor,
-        batch_idx: Tensor,
         n_nodes: Tensor,
         deterministic: bool = False,
     ) -> tuple[Tensor, Tensor, Tensor]:
-        n_g = num_graphs(batch_idx)
+        n_g = num_graphs(h.indices)
         action_mask = th.ones((n_g, self.num_actions), dtype=th.bool)
         node_mask = th.ones(h.shape[0], dtype=th.bool)
-        node_logits = self.node_prob(h).squeeze()
-        action_logits = self.action_prob_func(h, g)
+        node_logits = self.node_prob(h.values).squeeze()
+        action_logits = self.action_prob_func(h.values, g)
         actions, logprob, entropy, *_ = self.sample_func(  # type: ignore
             action_logits,
             node_logits,
             action_mask,
             node_mask,
-            batch_idx,
+            h.indices,
             n_nodes,
             deterministic,
         )

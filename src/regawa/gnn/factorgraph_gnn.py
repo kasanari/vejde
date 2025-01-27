@@ -8,7 +8,7 @@ from torch import max
 from torch_scatter import scatter
 
 # from torch import scatter
-from .gnn_classes import MLPLayer
+from .gnn_classes import MLPLayer, SparseTensor
 
 logger = logging.getLogger(__name__)
 
@@ -23,21 +23,14 @@ def segmented_softmax(src: Tensor, index: Tensor, dim: int = 0) -> Tensor:
     return out / out_sum
 
 
-class BatchIdx(NamedTuple):
-    global_: Tensor
-    factor: Tensor
-    variable: Tensor
-
-
 class FactorGraph(NamedTuple):
-    variables: Tensor
-    factors: Tensor
+    variables: SparseTensor
+    factors: SparseTensor
     senders: Tensor
     receivers: Tensor
     edge_attr: Tensor
     n_factor: Tensor
-    globals_: Tensor
-    batch: BatchIdx
+    globals_: SparseTensor
 
 
 class BipartiteGNNConvVariableToFactor(nn.Module):
@@ -69,8 +62,8 @@ class BipartiteGNNConvVariableToFactor(nn.Module):
 
         senders = fg.senders
         receivers = fg.receivers
-        variables = fg.variables
-        factors = fg.factors
+        variables = fg.variables.values
+        factors = fg.factors.values
 
         x_i = factors[receivers]
         x_j = variables[senders]
@@ -118,8 +111,8 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
 
         senders = fg.senders
         receivers = fg.receivers
-        variables = fg.variables
-        factors = fg.factors
+        variables = fg.variables.values
+        factors = fg.factors.values
 
         x_i = variables[senders]
         x_j = factors[receivers]
@@ -149,11 +142,11 @@ class AttentionalAggregation(nn.Module):
         logger.info("Gate\n%s", self.gate)
         logger.info("Attention\n%s", self.attn)
 
-    def forward(self, nodes: Tensor, batch_idx: Tensor) -> Tensor:
-        x = self.gate(nodes)
-        x = segmented_softmax(x, batch_idx)
-        x = x * self.attn(nodes)
-        x = scatter(x, batch_idx, dim=0, reduce="sum")
+    def forward(self, nodes: SparseTensor) -> Tensor:
+        x = self.gate(nodes.values)
+        x = segmented_softmax(x, nodes.indices)
+        x = x * self.attn(nodes.values)
+        x = scatter(x, nodes.indices, dim=0, reduce="sum")
         return x
 
 
@@ -169,8 +162,8 @@ class GlobalNode(nn.Module):
 
         # self.aggr = SumAggregation()
 
-    def forward(self, nodes: Tensor, g_prev: Tensor, batch_idx: Tensor) -> Tensor:
-        x = self.attn(nodes, batch_idx)
+    def forward(self, nodes: SparseTensor, g_prev: Tensor) -> Tensor:
+        x = self.attn(nodes)
         x = (x, g_prev)
         x = torch.concatenate(x, dim=-1)
         x = g_prev + self.linear(x)
@@ -200,13 +193,12 @@ class FactorGraphLayer(nn.Module):
 
         new_fg = FactorGraph(
             fg.variables,
-            n_h_f,
+            SparseTensor(n_h_f, fg.factors.indices),
             fg.senders,
             fg.receivers,
             fg.edge_attr,
             fg.n_factor,
             fg.globals_,
-            fg.batch,
         )
 
         n_h_v = self.factor2var(
@@ -243,15 +235,13 @@ class BipartiteGNN(nn.Module):
         self,
         fg: FactorGraph,
     ) -> tuple[FactorGraph, Tensor]:
-        num_graphs = int(fg.batch.factor.max().item() + 1)
-        g = torch.zeros(num_graphs, self.hidden_size).to(fg.factors.device)
-        g = (
-            self.pre_aggr(fg.globals_, fg.batch.global_)
-            if fg.globals_.shape[0] > 0
-            else g
-        )
+        num_graphs = int(fg.factors.indices.max().item() + 1)
+        g = torch.zeros(num_graphs, self.hidden_size).to(fg.factors.values.device)
+        g = self.pre_aggr(fg.globals_) if fg.globals_.values.shape[0] > 0 else g
 
-        variables = fg.variables + g[fg.batch.variable]
+        variables = SparseTensor(
+            fg.variables.values + g[fg.variables.indices], fg.variables.indices
+        )
 
         i = 0
         logger.debug("Factor Graph")
@@ -264,18 +254,17 @@ class BipartiteGNN(nn.Module):
             logger.debug("Layer %d", i)
             (variables, factors) = conv(fg)
             fg = FactorGraph(
-                variables,
-                factors,
+                SparseTensor(variables, fg.variables.indices),
+                SparseTensor(factors, fg.factors.indices),
                 fg.senders,
                 fg.receivers,
                 fg.edge_attr,
                 fg.n_factor,
                 fg.globals_,
-                fg.batch,
             )
             i += 1
 
-        g = self.aggr(fg.factors, g, fg.batch.factor)
+        g = self.aggr(fg.factors, g)
         logger.debug("Global Node\n%s", g)
         logger.debug("Message Passing Done\n")
         logger.debug("----\n")

@@ -45,6 +45,7 @@ class ObsData(NamedTuple):
     global_vars: Tensor
     global_vals: Tensor
     global_length: Tensor
+    action_mask: Tensor
 
 
 class StateData(NamedTuple):
@@ -61,6 +62,7 @@ class StateData(NamedTuple):
     global_vars: SparseTensor
     global_vals: SparseTensor
     global_length: Tensor
+    action_mask: Tensor
 
 
 class HeteroStateData(NamedTuple):
@@ -187,9 +189,13 @@ def batch(graphs: list[ObsData] | tuple[ObsData, ...]) -> StateData:
         [ones_like(g.global_vars) * i for i, g in enumerate(graphs)]
     )
 
+    var_vals = concatenate([g.var_value for g in graphs])
+
+    action_mask = concatenate([g.action_mask for g in graphs])
+
     return StateData(
         # n_node=stack([g.n_node for g in graphs]),
-        var_value=SparseTensor(concatenate([g.var_value for g in graphs]), var_batch),
+        var_value=SparseTensor(var_vals, var_batch),
         var_type=SparseTensor(concatenate([g.var_type for g in graphs]), var_batch),
         factor=SparseTensor(concatenate([g.factor for g in graphs]), factor_batch),
         edge_attr=concatenate([g.edge_attr for g in graphs]),
@@ -202,6 +208,7 @@ def batch(graphs: list[ObsData] | tuple[ObsData, ...]) -> StateData:
         global_vars=SparseTensor(global_vars, global_batch),
         global_vals=SparseTensor(global_vals, global_batch),
         global_length=concatenate([g.global_length for g in graphs]),
+        action_mask=action_mask,
     )
 
 

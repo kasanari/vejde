@@ -31,6 +31,7 @@ class FactorGraph(NamedTuple):
     edge_attr: Tensor
     n_factor: Tensor
     globals_: SparseTensor
+    action_mask: Tensor
 
 
 class BipartiteGNNConvVariableToFactor(nn.Module):
@@ -199,6 +200,7 @@ class FactorGraphLayer(nn.Module):
             fg.edge_attr,
             fg.n_factor,
             fg.globals_,
+            fg.action_mask,
         )
 
         n_h_v = self.factor2var(
@@ -261,6 +263,7 @@ class BipartiteGNN(nn.Module):
                 fg.edge_attr,
                 fg.n_factor,
                 fg.globals_,
+                fg.action_mask,
             )
             i += 1
 

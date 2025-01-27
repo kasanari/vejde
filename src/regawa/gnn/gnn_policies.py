@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from enum import Enum
+from functools import partial
 
 import torch as th
 from torch import Tensor, nn
@@ -11,7 +12,8 @@ from gnn_policy.functional import (
     sample_action_then_node,  # type: ignore
     sample_node_then_action,
     eval_node_then_action,
-    sample_node,  # type: ignore
+    sample_node,
+    segment_sum,  # type: ignore
 )
 from regawa.gnn.gnn_classes import SparseTensor
 
@@ -48,6 +50,14 @@ class ActionMode(Enum):
 
 def num_graphs(batch_idx: Tensor) -> int:
     return int(batch_idx.max().item() + 1)
+
+
+def node_mask(action_mask: Tensor) -> Tensor:
+    return action_mask[:, 1:].any(1)
+
+
+def predicate_mask(action_mask: Tensor, segsum: Callable[[Tensor], Tensor]) -> Tensor:
+    return segsum(action_mask) > 0
 
 
 class TwoActionGNNPolicy(nn.Module):
@@ -91,21 +101,24 @@ class TwoActionGNNPolicy(nn.Module):
 
     # differentiable action evaluation
     def forward(
-        self, a: Tensor, h: SparseTensor, g: Tensor, n_nodes: Tensor
+        self,
+        a: Tensor,
+        h: SparseTensor,
+        g: Tensor,
+        action_mask: Tensor,
+        n_nodes: Tensor,
     ) -> tuple[Tensor, Tensor]:
-        n_g = num_graphs(h.indices)
-        node_mask = th.ones(h.shape[0], dtype=th.bool)
-        action_mask = th.ones((n_g, self.num_actions), dtype=th.bool)
-
         node_logits = self.node_prob(h.values).squeeze()
         action_logits = self.action_prob_func(h.values, g)
-
+        segsum = partial(
+            segment_sum, num_segments=num_graphs(h.indices), index=h.indices
+        )
         logprob, entropy = self.eval_func(  # type: ignore
             a,
             action_logits,
             node_logits,
-            action_mask,
-            node_mask,
+            predicate_mask(action_mask, segsum),
+            node_mask(action_mask),
             h.indices,
             n_nodes,
         )
@@ -116,18 +129,19 @@ class TwoActionGNNPolicy(nn.Module):
         h: SparseTensor,
         g: Tensor,
         n_nodes: Tensor,
+        action_mask: Tensor,
         deterministic: bool = False,
     ) -> tuple[Tensor, Tensor, Tensor]:
-        n_g = num_graphs(h.indices)
-        action_mask = th.ones((n_g, self.num_actions), dtype=th.bool)
-        node_mask = th.ones(h.shape[0], dtype=th.bool)
         node_logits = self.node_prob(h.values).squeeze()
         action_logits = self.action_prob_func(h.values, g)
+        segsum = partial(
+            segment_sum, num_segments=num_graphs(h.indices), index=h.indices
+        )
         actions, logprob, entropy, *_ = self.sample_func(  # type: ignore
             action_logits,
             node_logits,
-            action_mask,
-            node_mask,
+            predicate_mask(action_mask, segsum),
+            node_mask(action_mask),
             h.indices,
             n_nodes,
             deterministic,

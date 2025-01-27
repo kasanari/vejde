@@ -101,6 +101,7 @@ class StackingGroundedGraphWrapper(
         num_types = self.wrapped_model.num_types
         num_relations = self.wrapped_model.num_fluents
         max_arity = max(self.wrapped_model.arity(r) for r in self.wrapped_model.fluents)
+        num_actions = self.wrapped_model.num_actions
 
         bool_space = Discrete(2)
         number_space = Box(
@@ -114,8 +115,12 @@ class StackingGroundedGraphWrapper(
 
         return spaces.Dict(
             {
-                "bool": obs_space(num_relations, num_types, max_arity, bool_space),
-                "float": obs_space(num_relations, num_types, max_arity, number_space),
+                "bool": obs_space(
+                    num_relations, num_types, max_arity, num_actions, bool_space
+                ),
+                "float": obs_space(
+                    num_relations, num_types, max_arity, num_actions, number_space
+                ),
             }
         )
 

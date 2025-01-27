@@ -48,6 +48,7 @@ class IdxFactorGraph[V](NamedTuple):
     receivers: np.ndarray[np.int64, Any]
     edge_attributes: np.ndarray[np.int64, Any]
     global_vars: Variables[V]
+    action_mask: np.ndarray[np.bool_, Any]
 
 
 class FactorGraph[V](NamedTuple):
@@ -60,6 +61,7 @@ class FactorGraph[V](NamedTuple):
     edge_attributes: list[int]
     global_variables: list[str]
     global_variable_values: list[V]
+    action_mask: np.ndarray[np.bool_, Any]
 
 
 class StackedFactorGraph[V](NamedTuple):
@@ -72,6 +74,7 @@ class StackedFactorGraph[V](NamedTuple):
     edge_attributes: list[int]
     global_variables: list[str]
     global_variable_values: list[list[V]]
+    action_mask: np.ndarray[np.bool_, Any]
 
 
 class HeteroGraph(NamedTuple):
@@ -88,10 +91,10 @@ def graph_to_dict[V](idx_g: IdxFactorGraph[V]) -> dict[str, Any]:
         "receivers": idx_g.receivers,
         "edge_attr": idx_g.edge_attributes,
         "length": idx_g.variables.lengths,
-        "n_nodes": len(idx_g.factors),
         "global_vars": idx_g.global_vars.types,
         "global_vals": idx_g.global_vars.values,
         "global_length": idx_g.global_vars.lengths,
+        "action_mask": idx_g.action_mask,
         # "numeric": numeric,
     }
 
@@ -201,6 +204,7 @@ def create_graphs(
             filtered_obs,
             bool_ground,
             model.fluent_param,
+            model.num_actions,
         )
         if bool_ground
         else empty_factor_graph(bool)
@@ -214,6 +218,7 @@ def create_graphs(
             filtered_obs,
             n_g,
             model.fluent_param,
+            model.num_actions,
         )
         if n_g
         else empty_factor_graph(float)
@@ -268,6 +273,7 @@ def create_stacked_graphs(
             filtered_obs,
             bool_ground,
             model.fluent_param,
+            model.num_actions,
         )
         if bool_ground
         else empty_stacked_factor_graph(bool)
@@ -281,6 +287,7 @@ def create_stacked_graphs(
             filtered_obs,
             n_g,
             model.fluent_param,
+            model.num_actions,
         )
         if n_g
         else empty_stacked_factor_graph(float)
@@ -458,6 +465,7 @@ def map_graph_to_idx[V](
             global_vars_values,
             lengths=np.ones_like(global_vars_values, dtype=np.int64),
         ),
+        factorgraph.action_mask,
     )
 
 
@@ -518,6 +526,7 @@ def map_stacked_graph_to_idx[V](
             np.array(global_vars_values, dtype=val_dtype),
             global_lengths,
         ),
+        action_mask=factorgraph.action_mask,
     )
 
 
@@ -555,6 +564,7 @@ def generate_bipartite_obs(
     obs: dict[str, bool | float],
     groundings: list[str],
     relation_to_types: Callable[[str, int], str],
+    num_actions: int,
     # variable_ranges: dict[str, str],
 ) -> T:
     nullary_groundings = [g for g in groundings if arity(g) == 0]
@@ -581,6 +591,10 @@ def generate_bipartite_obs(
     global_variables = [predicate(key) for key in nullary_groundings]
     global_variable_values = [obs[key] for key in nullary_groundings]
 
+    action_mask = np.ones(
+        (len(obj_names), num_actions), dtype=np.bool_
+    )  # TODO make these actually mask the nodes
+
     if edges:
         assert max(senders) < len(fact_node_values)
         assert max(senders) < len(fact_node_predicate)
@@ -596,6 +610,7 @@ def generate_bipartite_obs(
         edge_attributes,
         global_variables,
         global_variable_values,
+        action_mask,
     )
 
 

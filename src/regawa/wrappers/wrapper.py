@@ -99,6 +99,7 @@ class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict
         num_types = self.model.num_types
         num_relations = self.model.num_fluents
         max_arity = max(self.model.arity(r) for r in self.model.fluents)
+        num_actions = self.model.num_actions
 
         bool_space = Discrete(2)
         number_space = Box(
@@ -109,8 +110,12 @@ class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict
 
         return spaces.Dict(
             {
-                "bool": obs_space(num_relations, num_types, max_arity, bool_space),
-                "float": obs_space(num_relations, num_types, max_arity, number_space),
+                "bool": obs_space(
+                    num_relations, num_types, max_arity, num_actions, bool_space
+                ),
+                "float": obs_space(
+                    num_relations, num_types, max_arity, num_actions, number_space
+                ),
             }
         )
 

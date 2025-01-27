@@ -1,10 +1,16 @@
 from collections.abc import Callable
-from gymnasium.spaces import Discrete, Sequence, Dict, Space, MultiDiscrete
+from typing import Any
+from gymnasium.spaces import Discrete, Sequence, Dict, Space, MultiDiscrete, Box
 
 
 def obs_space(
-    num_relations: int, num_types: int, max_arity: int, var_value_space: Space
+    num_relations: int,
+    num_types: int,
+    max_arity: int,
+    num_actions: int,
+    var_value_space: Space[Any],
 ) -> Dict:
+    big_number = 2000
     return Dict(
         {  # type: ignore
             "var_type": Sequence(Discrete(num_relations), stack=True),
@@ -15,14 +21,14 @@ def obs_space(
                 ),
                 stack=True,
             ),
-            "senders": Sequence(Discrete(2000), stack=True),
-            "receivers": Sequence(Discrete(2000), stack=True),
+            "action_mask": Sequence(Box(0, 1, (num_actions,)), stack=True),
+            "senders": Sequence(Discrete(big_number), stack=True),
+            "receivers": Sequence(Discrete(big_number), stack=True),
             "edge_attr": Sequence(Discrete(max_arity + 1), stack=True),
-            "length": Sequence(Discrete(2000), stack=True),
-            "n_nodes": Discrete(2000),
-            "global_vars": Sequence(Discrete(2000), stack=True),
+            "length": Sequence(Discrete(big_number), stack=True),
+            "global_vars": Sequence(Discrete(big_number), stack=True),
             "global_vals": Sequence(var_value_space, stack=True),
-            "global_length": Sequence(Discrete(2000), stack=True),
+            "global_length": Sequence(Discrete(big_number), stack=True),
         }
     )
 

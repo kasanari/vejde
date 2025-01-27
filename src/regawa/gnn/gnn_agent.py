@@ -74,6 +74,7 @@ def merge_graphs(
         cat(boolean_data.edge_attr, numeric_data.edge_attr),
         boolean_data.n_factor,
         boolean.globals.concat(numeric.globals),
+        boolean_data.action_mask,
     )
 
 
@@ -157,13 +158,16 @@ class GraphAgent(nn.Module):
 
     def forward(self, actions: Tensor, data: HeteroStateData):
         fg, g = self.embed(data)
-        logprob, entropy, value = self.actorcritic(actions, fg.factors, g, fg.n_factor)
+        logprob, entropy = self.actorcritic(
+            actions, fg.factors, g, fg.action_mask, fg.n_factor
+        )
+        value = self.actorcritic.value(g)
         return logprob, entropy, value
 
     def sample(self, data: HeteroStateData, deterministic: bool = False):
         fg, g = self.embed(data)
         action, logprob, entropy = self.actorcritic.sample(
-            fg.factors, g, fg.n_factor, deterministic
+            fg.factors, g, fg.action_mask, fg.n_factor, deterministic
         )
         value = self.actorcritic.value(g)
         return action, logprob, entropy, value
@@ -256,12 +260,15 @@ class RecurrentGraphAgent(nn.Module):
 
     def forward(self, actions: Tensor, data: HeteroStateData):
         fg, g = self.embed(data)
-        return self.actorcritic(actions, fg.factors, g, fg.n_factor)
+        return (
+            *self.actorcritic(actions, fg.factors, g, fg.action_mask, fg.n_factor),
+            self.actorcritic.value(g),
+        )
 
     def sample(self, data: HeteroStateData, deterministic: bool = False):
         fg, g = self.embed(data)
         action, logprob, entropy = self.actorcritic.sample(
-            fg.factors, g, fg.n_factor, deterministic
+            fg.factors, g, fg.action_mask, fg.n_factor, deterministic
         )
         value = self.actorcritic.value(g)
         return action, logprob, entropy, value
@@ -301,21 +308,20 @@ class GraphActorCritic(nn.Module):
         actions: Tensor,
         h: SparseTensor,
         g: Tensor,
+        action_mask: Tensor,
         n_nodes: Tensor,
-    ) -> tuple[Tensor, Tensor, Tensor]:
-        return (
-            *self.policy.forward(actions, h, g, n_nodes),
-            self.vf(g),
-        )
+    ) -> tuple[Tensor, Tensor]:
+        return self.policy.forward(actions, h, g, action_mask, n_nodes)
 
     def sample(
         self,
         h: SparseTensor,
         g: Tensor,
+        action_mask: Tensor,
         n_nodes: Tensor,
         deterministic: bool = False,
     ):
-        return self.policy.sample(h, g, n_nodes, deterministic)
+        return self.policy.sample(h, g, n_nodes, action_mask, deterministic)
 
 
 def save_agent(agent: GraphAgent | RecurrentGraphAgent, config: Config, path: str):

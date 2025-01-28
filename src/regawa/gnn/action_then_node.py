@@ -5,7 +5,8 @@ from torch import Tensor, nn
 from gnn_policy.functional import (
     eval_action_then_node,  # type: ignore
     node_logits_given_action,  # type: ignore
-    sample_action_then_node,  # type: ignore
+    sample_action_then_node,
+    segment_softmax,  # type: ignore
     segment_sum,  # type: ignore
     masked_entropy,  # type: ignore
 )
@@ -18,22 +19,17 @@ def node_mask(action_mask: Tensor) -> Tensor:
     return action_mask[:, 1:].any(1)
 
 
-def _mul(a, b):
-    return a @ b
-
-
 def value_estimate(
-    a: Tensor,
     p_n__a: Tensor,
     q_n__a: Tensor,
     q_a__n: Tensor,
     p_a: Tensor,
     batch_idx: Tensor,
 ) -> Tensor:
-    n_g = max(batch_idx) + 1
-    return node_logits_given_action(q_n__a, a[:, 0], batch_idx) @ p_n__a + vmap(_mul)(
-        segment_sum(q_a__n, batch_idx, n_g), p_a
-    )
+    n_g = num_graphs(batch_idx)
+    segsum = partial(segment_sum, index=batch_idx, num_segments=n_g)
+    q_a = segsum(q_a__n)
+    return segsum((q_n__a * p_n__a).sum(-1)) + (q_a * p_a).sum(1)
 
 
 PolicyFunc = Callable[
@@ -67,7 +63,7 @@ class ActionThenNodePolicy(nn.Module):
         )  # TODO do not use predicate_mask
         mask_nodes = node_mask(action_mask)
 
-        actions, logprob, entropy, p_a, p_n__a = x(
+        actions, logprob, entropy, p_a, _ = x(
             node_logits,
             action_given_node_logits,
             node_given_action_logits,
@@ -77,8 +73,11 @@ class ActionThenNodePolicy(nn.Module):
             n_nodes,
         )
 
+        p_n__a = segment_softmax(
+            node_given_action_logits, h.indices, num_graphs(h.indices)
+        )
+
         value = value_estimate(
-            actions,
             p_n__a,
             self.q_node__action(h.values),
             self.q_action__node(h.values),

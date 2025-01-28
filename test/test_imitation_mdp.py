@@ -27,7 +27,7 @@ def policy(state: dict[str, bool]) -> tuple[int, int]:
 @pytest.mark.parametrize(
     "action_mode, iterations",
     [
-        (ActionMode.NODE_THEN_ACTION, 70),
+        (ActionMode.NODE_THEN_ACTION, 40),
         (ActionMode.ACTION_THEN_NODE, 30),
     ],
 )

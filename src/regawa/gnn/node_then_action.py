@@ -5,7 +5,8 @@ from torch import Tensor, nn
 from gnn_policy.functional import (
     sample_node_then_action,  # type: ignore
     eval_node_then_action,  # type: ignore
-    segment_sum,  # type: ignore
+    segment_sum,
+    softmax,  # type: ignore
 )
 from regawa.functional import num_graphs, predicate_mask
 from regawa.gnn.gnn_classes import SparseTensor
@@ -16,7 +17,6 @@ def node_mask(action_mask: Tensor) -> Tensor:
 
 
 def value_estimate(
-    a: Tensor,
     p_a__n: Tensor,
     q_a__n: Tensor,
     p_n: Tensor,
@@ -24,7 +24,8 @@ def value_estimate(
     batch_idx: Tensor,
 ) -> Tensor:
     n_g = num_graphs(batch_idx)
-    return (q_a__n[a[:, 1]] * p_a__n).sum(1) + segment_sum(q_n * p_n, batch_idx, n_g)
+    segsum = partial(segment_sum, index=batch_idx, num_segments=n_g)
+    return segsum((q_a__n * p_a__n).sum(1)) + segsum(q_n * p_n)
 
 
 PolicyFunc = Callable[
@@ -56,7 +57,7 @@ class NodeThenActionPolicy(nn.Module):
 
         mask_actions = predicate_mask(action_mask, h.indices)
         mask_nodes = node_mask(action_mask)
-        actions, logprob, entropy, p_a__n, p_n = x(  # type: ignore
+        actions, logprob, entropy, _, p_n = x(  # type: ignore
             action_given_node_logits,
             node_logits,
             mask_actions,
@@ -65,9 +66,10 @@ class NodeThenActionPolicy(nn.Module):
             n_nodes,
         )
 
+        p_a__n = softmax(action_given_node_logits)
+
         # action then node
         value = value_estimate(
-            actions,
             p_a__n,
             self.q_action__node(h.values),
             p_n,

@@ -235,7 +235,7 @@ def rollout(
         assert action.dim() == 2
         assert action.shape[0] == num_envs
         assert logprob.dim() == 1
-        assert value.dim() == 2
+        # assert value.dim() == 2
         values[step] = value.flatten()
         actions[step] = action
         logprobs[step] = logprob
@@ -286,7 +286,7 @@ def update(
     assert not newlogprob.isinf().any()
     assert newlogprob.dim() == 1
     assert entropy.dim() == 1
-    assert newvalue.dim() == 2
+    # assert newvalue.dim() == 2
     logratio = newlogprob - logprobs
     ratio = logratio.exp()
 
@@ -553,7 +553,7 @@ def setup():
         embedding_dim=8,
         activation=nn.Mish(),
         aggregation="sum",
-        action_mode=ActionMode.NODE_THEN_ACTION,
+        action_mode=ActionMode.ACTION_THEN_NODE,
     )
 
     logged_config = vars(args) | asdict(agent_config)

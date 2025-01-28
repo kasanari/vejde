@@ -1,6 +1,7 @@
-from .gnn_agent import Config, GraphAgent, RecurrentGraphAgent
+from enum import Enum
+from .gnn_agent import Config, GraphAgent, RecurrentGraphAgent, ActionMode
 from .data import StateData, HeteroStateData
-from .gnn_policies import ActionMode
+
 
 __all__ = [
     "Config",

@@ -7,20 +7,12 @@ import logging
 from torch import max
 from torch_scatter import scatter
 
+from gnn_policy.functional import segment_sum, segmented_softmax
+
 # from torch import scatter
 from .gnn_classes import MLPLayer, SparseTensor
 
 logger = logging.getLogger(__name__)
-
-
-def segmented_softmax(src: Tensor, index: Tensor, dim: int = 0) -> Tensor:
-    n_nodes = max(index).int() + 1
-    src_max = scatter(src.detach(), index, dim, dim_size=n_nodes, reduce="max")
-    out = src - src_max.index_select(dim, index)
-    out = out.exp()
-    out_sum = scatter(out, index, dim, dim_size=n_nodes, reduce="sum") + 1e-16
-    out_sum = out_sum.index_select(dim, index)
-    return out / out_sum
 
 
 class FactorGraph(NamedTuple):
@@ -143,11 +135,11 @@ class AttentionalAggregation(nn.Module):
         logger.info("Gate\n%s", self.gate)
         logger.info("Attention\n%s", self.attn)
 
-    def forward(self, nodes: SparseTensor) -> Tensor:
+    def forward(self, nodes: SparseTensor, num_graphs: int) -> Tensor:
         x = self.gate(nodes.values)
-        x = segmented_softmax(x, nodes.indices)
+        x = segmented_softmax(x, nodes.indices, num_graphs)
         x = x * self.attn(nodes.values)
-        x = scatter(x, nodes.indices, dim=0, reduce="sum")
+        x = segment_sum(x, nodes.indices, num_graphs)
         return x
 
 
@@ -229,17 +221,20 @@ class BipartiteGNN(nn.Module):
         self.convs = nn.ModuleList([f(i) for i in range(layers)])
 
         # self.aggrs = [GlobalNode(embedding_dim, activation) for _ in range(layers)]
-        self.aggr = GlobalNode(embedding_dim, activation)
         self.pre_aggr = AttentionalAggregation(embedding_dim, activation)
         self.hidden_size = embedding_dim
 
     def forward(
         self,
         fg: FactorGraph,
-    ) -> tuple[FactorGraph, Tensor]:
+    ) -> FactorGraph:
         num_graphs = int(fg.factors.indices.max().item() + 1)
         g = torch.zeros(num_graphs, self.hidden_size).to(fg.factors.values.device)
-        g = self.pre_aggr(fg.globals_) if fg.globals_.values.shape[0] > 0 else g
+        g = (
+            self.pre_aggr(fg.globals_, num_graphs)
+            if fg.globals_.values.shape[0] > 0
+            else g
+        )
 
         variables = SparseTensor(
             fg.variables.values + g[fg.variables.indices], fg.variables.indices
@@ -267,9 +262,8 @@ class BipartiteGNN(nn.Module):
             )
             i += 1
 
-        g = self.aggr(fg.factors, g)
         logger.debug("Global Node\n%s", g)
         logger.debug("Message Passing Done\n")
         logger.debug("----\n")
 
-        return fg, g
+        return fg

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, NamedTuple, TypeVar
 
 import torch.nn as nn
@@ -6,6 +7,8 @@ from torch import Tensor
 
 import torch as th
 from dataclasses import asdict
+
+from regawa.gnn.node_then_action import NodeThenActionPolicy
 
 from .gnn_classes import EmbeddingLayer, SparseTensor, sparsify
 from .data import HeteroStateData, StateData
@@ -15,7 +18,14 @@ from .gnn_embedder import (
     NumericEmbedder,
     RecurrentEmbedder,
 )
-from .gnn_policies import ActionMode, TwoActionGNNPolicy
+
+from .action_then_node import ActionThenNodePolicy
+
+
+class ActionMode(Enum):
+    ACTION_THEN_NODE = 0
+    NODE_THEN_ACTION = 1
+    ACTION_AND_NODE = 2
 
 
 class EmbeddedTuple(NamedTuple):
@@ -133,7 +143,7 @@ class GraphAgent(nn.Module):
             config.action_mode,
         )
 
-    def embed(self, data: HeteroStateData) -> tuple[FactorGraph, Tensor]:
+    def embed(self, data: HeteroStateData) -> FactorGraph:
         numeric_data = data.numeric
         boolean_data = data.boolean
 
@@ -157,24 +167,25 @@ class GraphAgent(nn.Module):
         return e_fg
 
     def forward(self, actions: Tensor, data: HeteroStateData):
-        fg, g = self.embed(data)
-        logprob, entropy = self.actorcritic(
-            actions, fg.factors, g, fg.action_mask, fg.n_factor
+        fg = self.embed(data)
+        logprob, entropy, value = self.actorcritic(
+            actions, fg.factors, fg.action_mask, fg.n_factor
         )
-        value = self.actorcritic.value(g)
         return logprob, entropy, value
 
     def sample(self, data: HeteroStateData, deterministic: bool = False):
-        fg, g = self.embed(data)
-        action, logprob, entropy = self.actorcritic.sample(
-            fg.factors, g, fg.action_mask, fg.n_factor, deterministic
+        fg = self.embed(data)
+        action, logprob, entropy, value = self.actorcritic.sample(
+            fg.factors, fg.n_factor, fg.action_mask, deterministic
         )
-        value = self.actorcritic.value(g)
         return action, logprob, entropy, value
 
     def value(self, data: HeteroStateData):
-        _, g = self.embed(data)
-        return self.actorcritic.value(g)
+        fg = self.embed(data)
+        _, _, _, value = self.actorcritic.sample(
+            fg.factors, fg.n_factor, fg.action_mask, False
+        )
+        return value
 
     def save_agent(self, path: str):
         save_agent(self, self.config, path)
@@ -238,7 +249,7 @@ class RecurrentGraphAgent(nn.Module):
             config.action_mode,
         )
 
-    def embed(self, data: HeteroStateData) -> tuple[FactorGraph, Tensor]:
+    def embed(self, data: HeteroStateData) -> FactorGraph:
         fg = merge_graphs(
             data.boolean,
             data.numeric,
@@ -255,27 +266,26 @@ class RecurrentGraphAgent(nn.Module):
                 self.r_numeric_embedder(data.numeric.global_length),
             ),
         )
-        e_fg, g = self.p_gnn(fg)
-        return e_fg, g
+        e_fg = self.p_gnn(fg)
+        return e_fg
 
     def forward(self, actions: Tensor, data: HeteroStateData):
-        fg, g = self.embed(data)
-        return (
-            *self.actorcritic(actions, fg.factors, g, fg.action_mask, fg.n_factor),
-            self.actorcritic.value(g),
-        )
+        fg = self.embed(data)
+        return self.actorcritic(actions, fg.factors, fg.action_mask, fg.n_factor)
 
     def sample(self, data: HeteroStateData, deterministic: bool = False):
-        fg, g = self.embed(data)
-        action, logprob, entropy = self.actorcritic.sample(
-            fg.factors, g, fg.action_mask, fg.n_factor, deterministic
+        fg = self.embed(data)
+        action, logprob, entropy, value = self.actorcritic.sample(
+            fg.factors, fg.n_factor, fg.action_mask, deterministic
         )
-        value = self.actorcritic.value(g)
         return action, logprob, entropy, value
 
     def value(self, data: HeteroStateData):
-        _, g = self.embed(data)
-        return self.actorcritic.value(g)
+        fg = self.embed(data)
+        _, _, _, value = self.actorcritic.sample(
+            fg.factors, fg.n_factor, fg.action_mask, False
+        )
+        return value
 
     def save_agent(self, path: str):
         save_agent(self, self.config, path)
@@ -294,34 +304,30 @@ class GraphActorCritic(nn.Module):
         action_mode: ActionMode,
     ):
         super().__init__()  # type: ignore
-        self.policy = TwoActionGNNPolicy(num_actions, node_dim, graph_dim, action_mode)
-        self.vf = nn.Linear(graph_dim, 1)
-
-    def value(
-        self,
-        g: Tensor,
-    ):
-        return self.vf(g)
+        self.policy = (
+            ActionThenNodePolicy(num_actions, node_dim)
+            if action_mode == ActionMode.ACTION_THEN_NODE
+            else NodeThenActionPolicy(num_actions, node_dim)
+        )
+        self.num_actions = num_actions
 
     def forward(
         self,
         actions: Tensor,
         h: SparseTensor,
-        g: Tensor,
         action_mask: Tensor,
         n_nodes: Tensor,
-    ) -> tuple[Tensor, Tensor]:
-        return self.policy.forward(actions, h, g, action_mask, n_nodes)
+    ) -> tuple[Tensor, Tensor, Tensor]:
+        return self.policy.forward(actions, h, action_mask, n_nodes)
 
     def sample(
         self,
         h: SparseTensor,
-        g: Tensor,
-        action_mask: Tensor,
         n_nodes: Tensor,
+        action_mask: Tensor,
         deterministic: bool = False,
     ):
-        return self.policy.sample(h, g, n_nodes, action_mask, deterministic)
+        return self.policy.sample(h, n_nodes, action_mask, deterministic)
 
 
 def save_agent(agent: GraphAgent | RecurrentGraphAgent, config: Config, path: str):

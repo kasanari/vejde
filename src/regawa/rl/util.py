@@ -116,7 +116,7 @@ def update(
     max_grad_norm: float = 100.0,
 ):
     # b = th.stack([d.var_value for d in obs])
-    actions = th.atleast_2d(th.as_tensor(actions, dtype=th.int32))
+    actions = th.atleast_2d(th.as_tensor(actions, dtype=th.int64))
     logprob, _, _ = agent.forward(
         actions,
         s,

@@ -6,6 +6,7 @@ from gnn_policy.functional import (
     sample_action_then_node,  # type: ignore
     segment_sum,  # type: ignore
 )
+from regawa.functional import num_graphs
 from regawa.gnn.gnn_classes import SparseTensor
 from torch import vmap
 

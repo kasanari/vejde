@@ -5,6 +5,7 @@ from gnn_policy.functional import (
     eval_node_then_action,  # type: ignore
     segment_sum,  # type: ignore
 )
+from regawa.functional import num_graphs
 from regawa.gnn.gnn_classes import SparseTensor
 
 
@@ -20,7 +21,7 @@ def value_estimate(
     q_n: Tensor,
     batch_idx: Tensor,
 ) -> Tensor:
-    n_g = max(batch_idx) + 1
+    n_g = num_graphs(batch_idx)
     return (q_a__n[a[:, 1]] * p_a__n).sum(1) + segment_sum(q_n * p_n, batch_idx, n_g)
 
 

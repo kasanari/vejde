@@ -4,10 +4,10 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 import logging
-from torch import max
 from torch_scatter import scatter
 
 from gnn_policy.functional import segment_sum, segmented_softmax
+from regawa.functional import num_graphs
 
 # from torch import scatter
 from .gnn_classes import MLPLayer, SparseTensor
@@ -228,13 +228,9 @@ class BipartiteGNN(nn.Module):
         self,
         fg: FactorGraph,
     ) -> FactorGraph:
-        num_graphs = int(fg.factors.indices.max().item() + 1)
-        g = torch.zeros(num_graphs, self.hidden_size).to(fg.factors.values.device)
-        g = (
-            self.pre_aggr(fg.globals_, num_graphs)
-            if fg.globals_.values.shape[0] > 0
-            else g
-        )
+        n_g = num_graphs(fg.factors.indices)
+        g = torch.zeros(n_g, self.hidden_size).to(fg.factors.values.device)
+        g = self.pre_aggr(fg.globals_, n_g) if fg.globals_.values.shape[0] > 0 else g
 
         variables = SparseTensor(
             fg.variables.values + g[fg.variables.indices], fg.variables.indices

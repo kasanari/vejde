@@ -1,6 +1,5 @@
 from enum import Enum
 
-from torch import Tensor
 
 
 class ActionMode(Enum):

@@ -8,9 +8,7 @@ WrapperActType = TypeVar("WrapperActType")
 
 
 def remove_false(obs: dict[str, Any]) -> dict[str, Any]:
-    obs_with_actions = {
-        a: v for a, v in obs.items() if v is not False
-    }
+    obs_with_actions = {a: v for a, v in obs.items() if v is not False}
     return obs_with_actions
 
 
@@ -40,9 +38,7 @@ class RemoveFalseWrapper(
         return filtered_obs, reward, terminated, truncated, info
 
     def reset(
-        self,
-        seed: int | None = None,
-        options: dict | None = None
+        self, seed: int | None = None, options: dict | None = None
     ) -> tuple[
         dict[str, bool | None],
         dict[str, Any],

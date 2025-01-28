@@ -4,19 +4,12 @@ from torch import Tensor, nn
 
 from gnn_policy.functional import (
     eval_action_then_node,  # type: ignore
-    node_logits_given_action,  # type: ignore
-    sample_action_then_node,
+    sample_action_then_node,  # type: ignore,
     segment_softmax,  # type: ignore
     segment_sum,  # type: ignore
-    masked_entropy,  # type: ignore
 )
-from regawa.functional import num_graphs, predicate_mask
+from regawa.functional import node_mask, num_graphs, predicate_mask
 from regawa.gnn.gnn_classes import SparseTensor
-from torch import vmap
-
-
-def node_mask(action_mask: Tensor) -> Tensor:
-    return action_mask[:, 1:].any(1)
 
 
 def value_estimate(
@@ -26,10 +19,13 @@ def value_estimate(
     p_a: Tensor,
     batch_idx: Tensor,
 ) -> Tensor:
+    # Estimate value as the sum of the Q-values of the actions weighted by the probability of the actions
+    # we assume Q(a) = Σ_n Q(a | n)
     n_g = num_graphs(batch_idx)
     segsum = partial(segment_sum, index=batch_idx, num_segments=n_g)
     q_a = segsum(q_a__n)
-    return segsum((q_n__a * p_n__a).sum(-1)) + (q_a * p_a).sum(1)
+    # V(N) =  Σ_a p(a) * Q(a) + Σ_(a,n) p(n|a) * Q(n|a)
+    return (q_a * p_a).sum(1) + segsum((q_n__a * p_n__a).sum(-1))
 
 
 PolicyFunc = Callable[

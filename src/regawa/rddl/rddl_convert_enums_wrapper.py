@@ -1,6 +1,5 @@
 from itertools import chain
 from typing import Any, TypeVar
-from pyRDDLGym.core.compiler.model import RDDLPlanningModel  # type: ignore
 import gymnasium as gym
 from gymnasium import spaces
 from pyRDDLGym import RDDLEnv

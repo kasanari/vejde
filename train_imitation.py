@@ -12,7 +12,6 @@ from rddl import register_env
 import model.utils as model_utils
 
 
-
 def policy(state: dict[str, bool]) -> tuple[int, int]:
     if state["light___r_m"]:
         return (1, 4)

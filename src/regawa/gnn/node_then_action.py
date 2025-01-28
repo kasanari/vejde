@@ -8,12 +8,8 @@ from gnn_policy.functional import (
     segment_sum,
     softmax,  # type: ignore
 )
-from regawa.functional import num_graphs, predicate_mask
+from regawa.functional import node_mask, num_graphs, predicate_mask
 from regawa.gnn.gnn_classes import SparseTensor
-
-
-def node_mask(action_mask: Tensor) -> Tensor:
-    return action_mask[:, 1:].any(1)
 
 
 def value_estimate(
@@ -25,7 +21,9 @@ def value_estimate(
 ) -> Tensor:
     n_g = num_graphs(batch_idx)
     segsum = partial(segment_sum, index=batch_idx, num_segments=n_g)
-    return segsum((q_a__n * p_a__n).sum(1)) + segsum(q_n * p_n)
+    # Estimate value as the sum of the Q-values of the actions weighted by the probability of the actions
+    # V(N) =  Σ_n p(n) * Q(n) + Σ_(a,n) p(a|n) * Q(a|n)
+    return segsum(q_n * p_n) + segsum((q_a__n * p_a__n).sum(1))
 
 
 PolicyFunc = Callable[

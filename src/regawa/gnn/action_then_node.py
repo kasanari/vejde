@@ -22,10 +22,10 @@ def value_estimate(
     # Estimate value as the sum of the Q-values of the actions weighted by the probability of the actions
     # we assume Q(a) = Σ_n Q(a | n)
     n_g = num_graphs(batch_idx)
-    segsum = partial(segment_sum, index=batch_idx, num_segments=n_g)
-    q_a = segsum(q_a__n)
+    segsum = partial(segment_sum, index=batch_idx, num_segments=n_g)  # type: ignore
+    q_a = segsum(q_a__n)  # type: ignore
     # V(N) =  Σ_a p(a) * Q(a) + Σ_(a,n) p(n|a) * Q(n|a)
-    return (q_a * p_a).sum(1) + segsum((q_n__a * p_n__a).sum(-1))
+    return (q_a * p_a).sum(1) + segsum((q_n__a * p_n__a).sum(-1))  # type: ignore
 
 
 PolicyFunc = Callable[
@@ -43,8 +43,8 @@ class ActionThenNodePolicy(nn.Module):
         self.node_given_action_prob = nn.Linear(node_dim, num_actions)
 
         self.num_actions = num_actions
-        self.sample_func = sample_action_then_node
-        self.eval_func = eval_action_then_node
+        self.sample_func = sample_action_then_node  # type: ignore
+        self.eval_func = eval_action_then_node  # type: ignore
 
         self.q_node = nn.Linear(node_dim, 1)  # Q(n)
         self.q_node__action = nn.Linear(node_dim, num_actions)  # Q(n|a)
@@ -69,12 +69,12 @@ class ActionThenNodePolicy(nn.Module):
             n_nodes,
         )
 
-        p_n__a = segment_softmax(
+        p_n__a = segment_softmax(  # type: ignore
             node_given_action_logits, h.indices, num_graphs(h.indices)
         )
 
         value = value_estimate(
-            p_n__a,
+            p_n__a,  # type: ignore
             self.q_node__action(h.values),
             self.q_action__node(h.values),
             p_a,
@@ -91,10 +91,10 @@ class ActionThenNodePolicy(nn.Module):
         action_mask: Tensor,
         n_nodes: Tensor,
     ) -> tuple[Tensor, Tensor, Tensor]:
-        def p_func(*args):
-            return a, *self.eval_func(a, *args)
+        def p_func(*args):  # type: ignore
+            return a, *self.eval_func(a, *args)  # type: ignore
 
-        return self.f(h, action_mask, n_nodes, p_func)[1:]
+        return self.f(h, action_mask, n_nodes, p_func)[1:]  # type: ignore
 
     def sample(
         self,
@@ -103,5 +103,5 @@ class ActionThenNodePolicy(nn.Module):
         action_mask: Tensor,
         deterministic: bool = False,
     ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
-        p_func = partial(self.sample_func, deterministic=deterministic)
+        p_func = partial(self.sample_func, deterministic=deterministic)  # type: ignore
         return self.f(h, action_mask, n_nodes, p_func)  # type: ignore

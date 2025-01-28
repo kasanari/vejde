@@ -5,7 +5,7 @@ from torch import Tensor, nn
 from gnn_policy.functional import (
     sample_node_then_action,  # type: ignore
     eval_node_then_action,  # type: ignore
-    segment_sum,
+    segment_sum,  # type: ignore
     softmax,  # type: ignore
 )
 from regawa.functional import node_mask, num_graphs, predicate_mask
@@ -20,10 +20,10 @@ def value_estimate(
     batch_idx: Tensor,
 ) -> Tensor:
     n_g = num_graphs(batch_idx)
-    segsum = partial(segment_sum, index=batch_idx, num_segments=n_g)
+    segsum = partial(segment_sum, index=batch_idx, num_segments=n_g)  # type: ignore
     # Estimate value as the sum of the Q-values of the actions weighted by the probability of the actions
     # V(N) =  Σ_n p(n) * Q(n) + Σ_(a,n) p(a|n) * Q(a|n)
-    return segsum(q_n * p_n) + segsum((q_a__n * p_a__n).sum(1))
+    return segsum(q_n * p_n) + segsum((q_a__n * p_a__n).sum(1))  # type: ignore
 
 
 PolicyFunc = Callable[
@@ -41,8 +41,8 @@ class NodeThenActionPolicy(nn.Module):
         self.node_given_action_prob = nn.Linear(node_dim, num_actions)
 
         self.num_actions = num_actions
-        self.sample_func = sample_node_then_action
-        self.eval_func = eval_node_then_action
+        self.sample_func = sample_node_then_action  # type: ignore
+        self.eval_func = eval_node_then_action  # type: ignore
 
         self.q_node = nn.Linear(node_dim, 1)  # Q(n)
         self.q_action__node = nn.Linear(node_dim, num_actions)  # Q(a|n)
@@ -64,13 +64,13 @@ class NodeThenActionPolicy(nn.Module):
             n_nodes,
         )
 
-        p_a__n = softmax(action_given_node_logits)
+        p_a__n = softmax(action_given_node_logits)  # type: ignore
 
         # action then node
         value = value_estimate(
-            p_a__n,
+            p_a__n,  # type: ignore
             self.q_action__node(h.values),
-            p_n,
+            p_n,  # type: ignore
             self.q_node(h.values).squeeze(),
             h.indices,
         )
@@ -84,10 +84,10 @@ class NodeThenActionPolicy(nn.Module):
         action_mask: Tensor,
         n_nodes: Tensor,
     ) -> tuple[Tensor, Tensor, Tensor]:
-        def p_func(*args):
-            return a, *self.eval_func(a, *args)
+        def p_func(*args):  # type: ignore
+            return a, *self.eval_func(a, *args)  # type: ignore
 
-        return self.f(h, action_mask, n_nodes, p_func)[1:]
+        return self.f(h, action_mask, n_nodes, p_func)[1:]  # type: ignore
 
     def sample(
         self,
@@ -96,5 +96,5 @@ class NodeThenActionPolicy(nn.Module):
         action_mask: Tensor,
         deterministic: bool = False,
     ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
-        p_func = partial(self.sample_func, deterministic=deterministic)
+        p_func = partial(self.sample_func, deterministic=deterministic)  # type: ignore
         return self.f(h, action_mask, n_nodes, p_func)  # type: ignore

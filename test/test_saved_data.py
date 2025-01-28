@@ -12,7 +12,7 @@ from regawa.gnn.data import (
     single_obs_to_heterostatedata,
 )
 from regawa.gnn.gnn_agent import Config, GraphAgent
-from regawa.gnn.gnn_policies import ActionMode
+from regawa.gnn import ActionMode
 from regawa.model.base_model import BaseModel
 from regawa.rddl import register_env
 from regawa.rddl.rddl_utils import rddl_ground_to_tuple

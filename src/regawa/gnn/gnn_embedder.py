@@ -5,6 +5,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 import torch as th
 from .gnn_classes import EmbeddingLayer
 import logging
+from torch.nn.utils.rnn import PackedSequence
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ def compress_time(recurrent: nn.GRU, h: Tensor, length: Tensor) -> Tensor:
     return variables
 
 
-class BooleanEmbedder(nn.Module):
+class BooleanEmbedder(th.jit.ScriptModule):
     def __init__(
         self,
         embedding_dim: int,
@@ -45,6 +46,7 @@ class BooleanEmbedder(nn.Module):
             "boolean_embedding:\n%s", self.boolean_embedding.transform[0].weight
         )
 
+    @th.jit.script_method
     def forward(
         self,
         var_val: Tensor,
@@ -52,13 +54,13 @@ class BooleanEmbedder(nn.Module):
     ) -> Tensor:
         booleans = self.boolean_embedding(var_val.int())
         preds = self.predicate_embedding(var_type.int())
-        logger.debug("bools:\n%s", booleans)
-        logger.debug("preds:\n%s", preds)
+        # logger.debug("bools:\n%s", booleans)
+        # logger.debug("preds:\n%s", preds)
         h = booleans * preds
         return h
 
 
-class NumericEmbedder(nn.Module):
+class NumericEmbedder(th.jit.ScriptModule):
     def __init__(
         self,
         embedding_dim: int,
@@ -69,6 +71,7 @@ class NumericEmbedder(nn.Module):
 
         self.predicate_embedding = predicate_embedding
 
+    @th.jit.script_method
     def forward(
         self,
         var_val: Tensor,

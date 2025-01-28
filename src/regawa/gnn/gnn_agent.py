@@ -66,6 +66,15 @@ def cat(a: Tensor, b: Tensor) -> Tensor:
     return th.cat((a, b))
 
 
+@th.jit.script
+def concat_sparse(a: SparseTensor, b: SparseTensor) -> SparseTensor:
+    return SparseTensor(
+        th.cat((a.values, b.values)),
+        th.cat((a.indices, b.indices)),
+    )
+
+
+@th.jit.script
 def merge_graphs(
     boolean_data: StateData,
     numeric_data: StateData,
@@ -75,7 +84,7 @@ def merge_graphs(
     # this only refers to the factors, so we can use either boolean or numeric data
 
     return FactorGraph(
-        boolean.variables.concat(numeric.variables),
+        concat_sparse(boolean.variables, numeric.variables),
         # same factors for both boolean and numeric data, so we can use either
         boolean.factors,
         cat(boolean_data.senders, numeric_data.senders + sum(boolean_data.n_variable)),
@@ -83,7 +92,7 @@ def merge_graphs(
         cat(boolean_data.receivers, numeric_data.receivers),
         cat(boolean_data.edge_attr, numeric_data.edge_attr),
         boolean_data.n_factor,
-        boolean.globals.concat(numeric.globals),
+        concat_sparse(boolean.globals, numeric.globals),
         boolean_data.action_mask,
     )
 

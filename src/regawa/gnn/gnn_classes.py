@@ -50,7 +50,7 @@ class EmbeddingLayer(Module):
             *params,
         )
 
-    def forward(self, x: SparseTensor) -> Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         return self.transform(x)
 
 

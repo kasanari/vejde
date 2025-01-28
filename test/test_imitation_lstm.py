@@ -4,6 +4,7 @@ import random
 
 import gymnasium as gym
 import numpy as np
+import pytest
 import torch as th
 from gymnasium.spaces import Dict, MultiDiscrete
 
@@ -88,7 +89,14 @@ def count_above_policy(state):
     return [0, 0]
 
 
-def test_imitation_rnn():
+@pytest.mark.parametrize(
+    "action_mode, iterations",
+    [
+        (ActionMode.NODE_THEN_ACTION, 120),
+        (ActionMode.ACTION_THEN_NODE, 120),
+    ],
+)
+def test_imitation_rnn(action_mode: ActionMode, iterations: int):
     domain = "rddl/blink_enough_bandit.rddl"
     instance = "rddl/blink_enough_bandit_i0.rddl"
 
@@ -122,10 +130,10 @@ def test_imitation_rnn():
         n_relations,
         n_actions,
         layers=3,
-        embedding_dim=8,
+        embedding_dim=16,
         activation=th.nn.Mish(),
         aggregation="sum",
-        action_mode=ActionMode.ACTION_THEN_NODE,
+        action_mode=action_mode,
     )
 
     agent = RecurrentGraphAgent(config)
@@ -138,9 +146,13 @@ def test_imitation_rnn():
 
     num_seeds = 10
 
-    losses = [iteration(i, env, agent, optimizer, 0) for i in range(120)]
+    losses = [iteration(i, env, agent, optimizer, 0) for i in range(iterations)]
 
-    assert losses[-1] < 0.0001, "Loss was too high: %s" % losses[-1]
+    max_loss = 4e-6
+    assert losses[-1] < max_loss, "Loss was too high: expected less than %s, got %s" % (
+        max_loss,
+        losses[-1],
+    )
 
     pass
 
@@ -161,4 +173,4 @@ def iteration(i, env, agent, optimizer, seed: int):
 
 
 if __name__ == "__main__":
-    test_imitation_rnn()
+    test_imitation_rnn(ActionMode.ACTION_THEN_NODE, 120)

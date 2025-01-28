@@ -3,10 +3,11 @@ import random
 
 import gymnasium as gym
 import numpy as np
+import pytest
 import torch as th
 
 
-from regawa.gnn import ActionMode, Config, GraphAgent
+from regawa.gnn import Config, GraphAgent, ActionMode
 from regawa.rl.util import evaluate, rollout, save_eval_data, update
 from regawa.rddl import register_env
 import regawa.model.utils as model_utils
@@ -23,7 +24,14 @@ def policy(state: dict[str, bool]) -> tuple[int, int]:
     return (0, 0)
 
 
-def test_imitation():
+@pytest.mark.parametrize(
+    "action_mode, iterations",
+    [
+        (ActionMode.NODE_THEN_ACTION, 70),
+        (ActionMode.ACTION_THEN_NODE, 30),
+    ],
+)
+def test_imitation(action_mode: ActionMode, iterations: int):
     domain = "rddl/conditional_bandit.rddl"
     instance = "rddl/conditional_bandit_i0.rddl"
 
@@ -50,10 +58,10 @@ def test_imitation():
         n_relations,
         n_actions,
         layers=4,
-        embedding_dim=4,
+        embedding_dim=16,
         activation=th.nn.Mish(),
         aggregation="sum",
-        action_mode=ActionMode.ACTION_THEN_NODE,
+        action_mode=action_mode,
     )
 
     agent = GraphAgent(
@@ -68,9 +76,13 @@ def test_imitation():
     rewards, _, _ = zip(*data)
     print(np.mean(np.sum(rewards, axis=1)))
 
-    losses = [iteration(i, env, agent, optimizer, 0) for i in range(70)]
+    losses = [iteration(i, env, agent, optimizer, 0) for i in range(iterations)]
 
-    assert losses[-1] < 0.000001, "Loss was too high: %s" % losses[-1]
+    max_loss = 1e-6
+    assert losses[-1] < max_loss, "Loss was too high: expected less than %s, got %s" % (
+        max_loss,
+        losses[-1],
+    )
 
     pass
 
@@ -94,4 +106,4 @@ def iteration(i, env, agent, optimizer, seed: int):
 
 
 if __name__ == "__main__":
-    test_imitation()
+    test_imitation(ActionMode.NODE_THEN_ACTION, 70)

@@ -1,3 +1,5 @@
+from collections.abc import Callable
+from functools import partial
 from torch import Tensor, nn
 
 from gnn_policy.functional import (
@@ -5,7 +7,7 @@ from gnn_policy.functional import (
     eval_node_then_action,  # type: ignore
     segment_sum,  # type: ignore
 )
-from regawa.functional import num_graphs
+from regawa.functional import num_graphs, predicate_mask
 from regawa.gnn.gnn_classes import SparseTensor
 
 
@@ -25,6 +27,12 @@ def value_estimate(
     return (q_a__n[a[:, 1]] * p_a__n).sum(1) + segment_sum(q_n * p_n, batch_idx, n_g)
 
 
+PolicyFunc = Callable[
+    [Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor],
+    tuple[Tensor, Tensor, Tensor, Tensor, Tensor],
+]
+
+
 class NodeThenActionPolicy(nn.Module):
     def __init__(self, num_actions: int, node_dim: int):
         super().__init__()  # type: ignore
@@ -40,57 +48,21 @@ class NodeThenActionPolicy(nn.Module):
         self.q_node = nn.Linear(node_dim, 1)  # Q(n)
         self.q_action__node = nn.Linear(node_dim, num_actions)  # Q(a|n)
 
-    # differentiable action evaluation
-    def forward(
-        self,
-        a: Tensor,
-        h: SparseTensor,
-        action_mask: Tensor,
-        n_nodes: Tensor,
-    ) -> tuple[Tensor, Tensor, Tensor]:
-        node_logits = self.node_prob(h.values).squeeze()  # ~ln(p(n))
-        action_given_node_logits = self.action_given_node_prob(h.values)  # ~ln(p(a|n))
-
-        logprob, entropy, p_a__n, p_n = self.eval_func(  # type: ignore
-            a,
-            action_given_node_logits,
-            node_logits,
-            action_mask,
-            node_mask(action_mask),
-            h.indices,
-            n_nodes,
-        )
-
-        # action then node
-        value = value_estimate(
-            a,
-            p_a__n,
-            self.q_action__node(h.values),
-            p_n,
-            self.q_node(h.values).squeeze(),
-            h.indices,
-        )
-
-        return logprob, entropy, value  # type: ignore
-
-    def sample(
-        self,
-        h: SparseTensor,
-        n_nodes: Tensor,
-        action_mask: Tensor,
-        deterministic: bool = False,
+    def f(
+        self, h: SparseTensor, action_mask: Tensor, n_nodes: Tensor, x: PolicyFunc
     ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         node_logits = self.node_prob(h.values).squeeze()  # ~ln(p(n))
         action_given_node_logits = self.action_given_node_prob(h.values)  # ~ln(p(a|n))
 
-        actions, logprob, entropy, p_a__n, p_n = self.sample_func(  # type: ignore
+        mask_actions = predicate_mask(action_mask, h.indices)
+        mask_nodes = node_mask(action_mask)
+        actions, logprob, entropy, p_a__n, p_n = x(  # type: ignore
             action_given_node_logits,
             node_logits,
-            action_mask,
-            node_mask(action_mask),
+            mask_actions,
+            mask_nodes,
             h.indices,
             n_nodes,
-            deterministic,
         )
 
         # action then node
@@ -102,8 +74,27 @@ class NodeThenActionPolicy(nn.Module):
             self.q_node(h.values).squeeze(),
             h.indices,
         )
-
-        # node then action
-        # value = self.node_q(h) * p_n + self.node_action_q(h)[a[:, 1]] * p_a__n
-
         return actions, logprob, entropy, value  # type: ignore
+
+    # differentiable action evaluation
+    def forward(
+        self,
+        a: Tensor,
+        h: SparseTensor,
+        action_mask: Tensor,
+        n_nodes: Tensor,
+    ) -> tuple[Tensor, Tensor, Tensor]:
+        def p_func(*args):
+            return a, *self.eval_func(a, *args)
+
+        return self.f(h, action_mask, n_nodes, p_func)[1:]
+
+    def sample(
+        self,
+        h: SparseTensor,
+        n_nodes: Tensor,
+        action_mask: Tensor,
+        deterministic: bool = False,
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+        p_func = partial(self.sample_func, deterministic=deterministic)
+        return self.f(h, action_mask, n_nodes, p_func)  # type: ignore

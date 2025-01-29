@@ -577,7 +577,38 @@ def setup():
         mlflow.log_params(logged_config)
         mlflow.log_artifact(__file__)
         mlflow.log_artifact("kg_gnn.py")
-        main(envs, run_name, args, agent_config)
+        agent = main(envs, run_name, args, agent_config)
+
+        env_id = register_env()
+        eval_env = gym.make(
+            env_id,
+            domain=args.domain,
+            instance=1,
+        )
+
+        def get_eval_returns(seed):
+            rewards, _, _ = evaluate(eval_env, agent.agent, seed, deterministic=True)
+            return np.mean(rewards), sum(rewards)
+
+        seeds = range(10)
+        rewards = [get_eval_returns(seed) for seed in seeds]
+        avg_mean_reward = np.mean([r[0] for r in rewards])
+        avg_return = np.mean([r[1] for r in rewards])
+
+        mlflow.log_metric("eval/mean_reward", avg_mean_reward)
+        mlflow.log_metric("eval/return", avg_return)
+
+    # {"mean": 309.925, "median": 314.0, "min": 237.5, "max": 351.5, "std": 34.07345924616401}
+
+    stats = {
+        "mean": avg_return,
+        "median": np.median([r[1] for r in rewards]),
+        "min": np.min([r[1] for r in rewards]),
+        "max": np.max([r[1] for r in rewards]),
+        "std": np.std([r[1] for r in rewards]),
+    }
+    print(stats)
+    print(f"avg_reward: {avg_mean_reward}")
 
 
 if __name__ == "__main__":

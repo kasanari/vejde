@@ -24,8 +24,8 @@ def value_estimate(
     n_g = num_graphs(batch_idx)
     segsum = partial(segment_sum, index=batch_idx, num_segments=n_g)  # type: ignore
     q_a = segsum(q_a__n)  # type: ignore
-    # V(N) =  Σ_a p(a) * Q(a) + Σ_(a,n) p(n|a) * Q(n|a)
-    return (q_a * p_a).sum(1) + segsum((q_n__a * p_n__a).sum(-1))  # type: ignore
+    # V(N) =  Σ_a p(a) * Q(a) + Σ_a p(a) Σ_(n) p(n|a) * Q(n|a)
+    return (q_a * p_a).sum(1) + (p_a * segsum(q_n__a * p_n__a)).sum(-1)  # type: ignore
 
 
 PolicyFunc = Callable[

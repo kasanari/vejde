@@ -123,6 +123,7 @@ class Rollout(NamedTuple):
     rewards: list[float]
     obs: HeteroGraphBuffer
     actions: list[tuple[int, int]]
+    values: list[float]
 
 
 def save_rollout(rollout: Rollout, path: str):
@@ -158,11 +159,17 @@ class RolloutCollector:
             rewards=list(self.rewards),
             obs=self.obs,
             actions=list(self.actions),
+            values=self.values,
         )
 
     @property
     def return_(self) -> float:
         return sum(self.rewards)
+
+    @property
+    def values(self) -> list[float]:
+        returns = [sum(list(self.rewards)[i:]) for i in range(len(self.rewards))]
+        return returns
 
 
 def batch(graphs: list[ObsData] | tuple[ObsData, ...]) -> StateData:

@@ -8,24 +8,13 @@ from gnn_policy.functional import (
     segment_softmax,  # type: ignore
     segment_sum,  # type: ignore
 )
-from regawa.functional import node_mask, num_graphs, predicate_mask
+from regawa.functional import (
+    action_then_node_value_estimate,
+    node_mask,
+    num_graphs,
+    predicate_mask,
+)
 from regawa.gnn.gnn_classes import SparseTensor
-
-
-def value_estimate(
-    p_n__a: Tensor,
-    q_n__a: Tensor,
-    q_a__n: Tensor,
-    p_a: Tensor,
-    batch_idx: Tensor,
-) -> Tensor:
-    # Estimate value as the sum of the Q-values of the actions weighted by the probability of the actions
-    # we assume Q(a) = Σ_n Q(a | n)
-    n_g = num_graphs(batch_idx)
-    segsum = partial(segment_sum, index=batch_idx, num_segments=n_g)  # type: ignore
-    q_a = segsum(q_a__n)  # type: ignore #TODO this can be done as a weighted sum
-    # V(N) =  Σ_a p(a) * Q(a) + Σ_a p(a) Σ_(n) p(n|a) * Q(n|a)
-    return (q_a * p_a).sum(1) + (p_a * segsum(q_n__a * p_n__a)).sum(-1)  # type: ignore
 
 
 PolicyFunc = Callable[
@@ -58,6 +47,7 @@ class ActionThenNodePolicy(nn.Module):
             action_mask, h.indices
         )  # TODO do not use predicate_mask
         mask_nodes = node_mask(action_mask)
+        n_g = num_graphs(h.indices)
 
         actions, logprob, entropy, p_a, _ = x(
             node_logits,
@@ -70,15 +60,15 @@ class ActionThenNodePolicy(nn.Module):
         )
 
         p_n__a = segment_softmax(  # type: ignore
-            node_given_action_logits, h.indices, num_graphs(h.indices)
+            node_given_action_logits, h.indices, n_g
         )
 
-        value = value_estimate(
+        value = action_then_node_value_estimate(
             p_n__a,  # type: ignore
             self.q_node__action(h.values),
             self.q_action__node(h.values),
             p_a,
-            h.indices,
+            partial(segment_sum, index=h.indices, num_segments=n_g),  # type: ignore
         )
 
         return actions, logprob, entropy, value  # type: ignore

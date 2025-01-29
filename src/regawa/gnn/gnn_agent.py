@@ -32,6 +32,12 @@ class EmbeddedTuple(NamedTuple):
     variables: SparseTensor
     factors: SparseTensor
     globals: SparseTensor
+    senders: Tensor
+    receivers: Tensor
+    edge_attr: Tensor
+    n_variable: Tensor
+    n_factor: Tensor
+    action_mask: Tensor
 
 
 def _embed(
@@ -59,7 +65,17 @@ def _embed(
         if data.global_vals.shape[0] > 0
         else SparseTensor(th.tensor([]), th.tensor([], dtype=th.long))
     )
-    return EmbeddedTuple(variables, factors, globals_)
+    return EmbeddedTuple(
+        variables,
+        factors,
+        globals_,
+        data.senders,
+        data.receivers,
+        data.edge_attr,
+        data.n_variable,
+        data.n_factor,
+        data.action_mask,
+    )
 
 
 def cat(a: Tensor, b: Tensor) -> Tensor:
@@ -76,8 +92,6 @@ def concat_sparse(a: SparseTensor, b: SparseTensor) -> SparseTensor:
 
 @th.jit.script
 def merge_graphs(
-    boolean_data: StateData,
-    numeric_data: StateData,
     boolean: EmbeddedTuple,
     numeric: EmbeddedTuple,
 ) -> FactorGraph:
@@ -87,13 +101,13 @@ def merge_graphs(
         concat_sparse(boolean.variables, numeric.variables),
         # same factors for both boolean and numeric data, so we can use either
         boolean.factors,
-        cat(boolean_data.senders, numeric_data.senders + sum(boolean_data.n_variable)),
+        cat(boolean.senders, numeric.senders + sum(boolean.n_variable)),
         # since factors are the same, we do not need to offset the receiver indices
-        cat(boolean_data.receivers, numeric_data.receivers),
-        cat(boolean_data.edge_attr, numeric_data.edge_attr),
-        boolean_data.n_factor,
+        cat(boolean.receivers, numeric.receivers),
+        cat(boolean.edge_attr, numeric.edge_attr),
+        boolean.n_factor,
         concat_sparse(boolean.globals, numeric.globals),
-        boolean_data.action_mask,
+        boolean.action_mask,
     )
 
 
@@ -145,53 +159,48 @@ class GraphAgent(nn.Module):
             config.activation,
         )
 
-        self.actorcritic = GraphActorCritic(
-            config.num_actions,
-            config.embedding_dim,
-            config.embedding_dim,
-            config.action_mode,
+        policy_args = (config.num_actions, config.embedding_dim)
+        self.policy = (
+            ActionThenNodePolicy(*policy_args)
+            if config.action_mode == ActionMode.ACTION_THEN_NODE
+            else NodeThenActionPolicy(*policy_args)
         )
 
     def embed(self, data: HeteroStateData) -> FactorGraph:
-        numeric_data = data.numeric
-        boolean_data = data.boolean
-
-        fg = merge_graphs(
-            boolean_data,
-            numeric_data,
-            _embed(
-                boolean_data,
-                self.boolean_embedder,
-                self.factor_embedding,
-                self.boolean_embedder,
-            ),
-            _embed(
-                numeric_data,
-                self.numeric_embedder,
-                self.factor_embedding,
-                self.numeric_embedder,
-            ),
+        return self.p_gnn(
+            merge_graphs(
+                _embed(
+                    data.boolean,
+                    self.boolean_embedder,
+                    self.factor_embedding,
+                    self.boolean_embedder,
+                ),
+                _embed(
+                    data.numeric,
+                    self.numeric_embedder,
+                    self.factor_embedding,
+                    self.numeric_embedder,
+                ),
+            )
         )
-        e_fg = self.p_gnn(fg)
-        return e_fg
 
     def forward(self, actions: Tensor, data: HeteroStateData):
         fg = self.embed(data)
-        logprob, entropy, value = self.actorcritic(
+        logprob, entropy, value = self.policy(
             actions, fg.factors, fg.action_mask, fg.n_factor
         )
         return logprob, entropy, value
 
     def sample(self, data: HeteroStateData, deterministic: bool = False):
         fg = self.embed(data)
-        action, logprob, entropy, value = self.actorcritic.sample(
+        action, logprob, entropy, value = self.policy.sample(
             fg.factors, fg.n_factor, fg.action_mask, deterministic
         )
         return action, logprob, entropy, value
 
     def value(self, data: HeteroStateData):
         fg = self.embed(data)
-        _, _, _, value = self.actorcritic.sample(
+        _, _, _, value = self.policy.sample(
             fg.factors, fg.n_factor, fg.action_mask, False
         )
         return value
@@ -251,47 +260,45 @@ class RecurrentGraphAgent(nn.Module):
             config.activation,
         )
 
-        self.actorcritic = GraphActorCritic(
-            config.num_actions,
-            config.embedding_dim,
-            config.embedding_dim,
-            config.action_mode,
+        policy_args = (config.num_actions, config.embedding_dim)
+        self.policy = (
+            ActionThenNodePolicy(*policy_args)
+            if config.action_mode == ActionMode.ACTION_THEN_NODE
+            else NodeThenActionPolicy(*policy_args)
         )
 
     def embed(self, data: HeteroStateData) -> FactorGraph:
-        fg = merge_graphs(
-            data.boolean,
-            data.numeric,
-            _embed(
-                data.boolean,
-                self.r_boolean_embedder(data.boolean.length),
-                self.factor_embedding,
-                self.r_boolean_embedder(data.boolean.global_length),
-            ),
-            _embed(
-                data.numeric,
-                self.r_numeric_embedder(data.numeric.length),
-                self.factor_embedding,
-                self.r_numeric_embedder(data.numeric.global_length),
-            ),
+        return self.p_gnn(
+            merge_graphs(
+                _embed(
+                    data.boolean,
+                    self.r_boolean_embedder(data.boolean.length),
+                    self.factor_embedding,
+                    self.r_boolean_embedder(data.boolean.global_length),
+                ),
+                _embed(
+                    data.numeric,
+                    self.r_numeric_embedder(data.numeric.length),
+                    self.factor_embedding,
+                    self.r_numeric_embedder(data.numeric.global_length),
+                ),
+            )
         )
-        e_fg = self.p_gnn(fg)
-        return e_fg
 
     def forward(self, actions: Tensor, data: HeteroStateData):
         fg = self.embed(data)
-        return self.actorcritic(actions, fg.factors, fg.action_mask, fg.n_factor)
+        return self.policy(actions, fg.factors, fg.action_mask, fg.n_factor)
 
     def sample(self, data: HeteroStateData, deterministic: bool = False):
         fg = self.embed(data)
-        action, logprob, entropy, value = self.actorcritic.sample(
+        action, logprob, entropy, value = self.policy.sample(
             fg.factors, fg.n_factor, fg.action_mask, deterministic
         )
         return action, logprob, entropy, value
 
     def value(self, data: HeteroStateData):
         fg = self.embed(data)
-        _, _, _, value = self.actorcritic.sample(
+        _, _, _, value = self.policy.sample(
             fg.factors, fg.n_factor, fg.action_mask, False
         )
         return value
@@ -302,41 +309,6 @@ class RecurrentGraphAgent(nn.Module):
     @classmethod
     def load_agent(cls, path: str) -> tuple["RecurrentGraphAgent", Config]:
         return load_agent(cls, path)  # type: ignore
-
-
-class GraphActorCritic(nn.Module):
-    def __init__(
-        self,
-        num_actions: int,
-        node_dim: int,
-        graph_dim: int,
-        action_mode: ActionMode,
-    ):
-        super().__init__()  # type: ignore
-        self.policy = (
-            ActionThenNodePolicy(num_actions, node_dim)
-            if action_mode == ActionMode.ACTION_THEN_NODE
-            else NodeThenActionPolicy(num_actions, node_dim)
-        )
-        self.num_actions = num_actions
-
-    def forward(
-        self,
-        actions: Tensor,
-        h: SparseTensor,
-        action_mask: Tensor,
-        n_nodes: Tensor,
-    ) -> tuple[Tensor, Tensor, Tensor]:
-        return self.policy.forward(actions, h, action_mask, n_nodes)
-
-    def sample(
-        self,
-        h: SparseTensor,
-        n_nodes: Tensor,
-        action_mask: Tensor,
-        deterministic: bool = False,
-    ):
-        return self.policy.sample(h, n_nodes, action_mask, deterministic)
 
 
 def save_agent(agent: GraphAgent | RecurrentGraphAgent, config: Config, path: str):

@@ -23,7 +23,7 @@ def value_estimate(
     # we assume Q(a) = Σ_n Q(a | n)
     n_g = num_graphs(batch_idx)
     segsum = partial(segment_sum, index=batch_idx, num_segments=n_g)  # type: ignore
-    q_a = segsum(q_a__n)  # type: ignore
+    q_a = segsum(q_a__n)  # type: ignore #TODO this can be done as a weighted sum
     # V(N) =  Σ_a p(a) * Q(a) + Σ_a p(a) Σ_(n) p(n|a) * Q(n|a)
     return (q_a * p_a).sum(1) + (p_a * segsum(q_n__a * p_n__a)).sum(-1)  # type: ignore
 

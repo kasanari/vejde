@@ -8,7 +8,7 @@ import torch as th
 
 
 from regawa.gnn import Config, GraphAgent, ActionMode
-from regawa.rl.util import evaluate, rollout, save_eval_data, update
+from regawa.rl.util import evaluate, rollout, save_eval_data, update, update_vf_agent
 from regawa.rddl import register_env
 import regawa.model.utils as model_utils
 import logging
@@ -64,9 +64,13 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
         activation=th.nn.Mish(),
         aggregation="sum",
         action_mode=action_mode,
+        arity=2,
     )
 
     agent = GraphAgent(
+        config,
+    )
+    vf_agent = GraphAgent(
         config,
     )
 
@@ -75,13 +79,19 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
     optimizer = th.optim.AdamW(
         agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.1
     )
+    vf_optimizer = th.optim.AdamW(
+        vf_agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.01
+    )
 
     data = [evaluate(env, agent, 0) for i in range(10)]
     rewards, _, _ = zip(*data)
     before_training_rewards = np.mean(np.sum(rewards, axis=1))
     print(before_training_rewards)
 
-    data = [iteration(i, env, agent, optimizer, 0) for i in range(iterations)]
+    data = [
+        iteration(i, env, agent, optimizer, vf_agent, vf_optimizer, 0)
+        for i in range(iterations)
+    ]
 
     losses, norms = zip(*data)
 
@@ -114,7 +124,7 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
     # agent.save_agent("conditional_bandit.pth")
 
 
-def iteration(i, env, agent, optimizer, seed: int):
+def iteration(i, env, agent, optimizer, vf_agent, vf_optimizer, seed: int):
     r, length = rollout(env, seed, policy, 4.0)
 
     # save_rollout(r, f"rollouts/rollout_{i}.json")
@@ -122,9 +132,14 @@ def iteration(i, env, agent, optimizer, seed: int):
     # compare_rollouts(r, saved_r)
 
     loss, grad_norm = update(agent, optimizer, r.actions, r.obs.batch)
-    print(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}")
+    vf_loss, vf_grad_norm = update_vf_agent(
+        vf_agent, vf_optimizer, r.obs.batch, r.rewards
+    )
+    print(
+        f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}, VF Loss: {vf_loss:.3f}, VF Grad Norm: {vf_grad_norm:.3f}"
+    )
     return loss, grad_norm
 
 
 if __name__ == "__main__":
-    test_imitation(ActionMode.NODE_THEN_ACTION, 30)
+    test_imitation(ActionMode.ACTION_THEN_NODE, 30, 16)

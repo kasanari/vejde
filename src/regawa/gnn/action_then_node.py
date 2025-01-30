@@ -35,7 +35,6 @@ class ActionThenNodePolicy(nn.Module):
         self.sample_func = sample_action_then_node  # type: ignore
         self.eval_func = eval_action_then_node  # type: ignore
 
-        self.q_node = nn.Linear(node_dim, 1)  # Q(n)
         self.q_node__action = nn.Linear(node_dim, num_actions)  # Q(n|a)
         self.q_action__node = nn.Linear(node_dim, num_actions)  # Q(a|n)
 

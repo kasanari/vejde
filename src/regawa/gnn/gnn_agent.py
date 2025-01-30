@@ -8,6 +8,7 @@ from torch import Tensor
 import torch as th
 from dataclasses import asdict
 
+from regawa.gnn.agent_utils import ActionMode, Config
 from regawa.gnn.node_then_action import NodeThenActionPolicy
 
 from .gnn_classes import EmbeddingLayer, SparseTensor, sparsify
@@ -20,12 +21,6 @@ from .gnn_embedder import (
 )
 
 from .action_then_node import ActionThenNodePolicy
-
-
-class ActionMode(Enum):
-    ACTION_THEN_NODE = 0
-    NODE_THEN_ACTION = 1
-    ACTION_AND_NODE = 2
 
 
 class EmbeddedTuple(NamedTuple):
@@ -109,19 +104,6 @@ def merge_graphs(
         concat_sparse(boolean.globals, numeric.globals),
         boolean.action_mask,
     )
-
-
-@dataclass
-class Config:
-    num_object_classes: int
-    num_predicate_classes: int
-    num_actions: int
-    embedding_dim: int
-    layers: int
-    aggregation: str
-    activation: nn.Module
-    action_mode: ActionMode
-    recurrent = False
 
 
 class GraphAgent(nn.Module):

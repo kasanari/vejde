@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from torch import Tensor
 
 from gnn_policy.functional import segment_sum
@@ -13,6 +14,8 @@ def predicate_mask(action_mask: Tensor, index: Tensor) -> Tensor:
 
 def num_graphs(batch_idx: Tensor) -> int:
     return int(batch_idx.max().item() + 1)
+
+
 def action_then_node_value_estimate(
     p_n__a: Tensor,  # p(n|a)
     q_n__a: Tensor,  # Q(n|a)

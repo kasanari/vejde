@@ -37,7 +37,7 @@ def evaluate(env: gym.Env, agent: GraphAgent, seed: int, deterministic: bool = T
 
         s = single_obs_to_heterostatedata(obs)
 
-        action, _, _, _ = agent.sample(
+        action, *_ = agent.sample(
             s,
             deterministic=deterministic,
         )
@@ -117,7 +117,7 @@ def update(
 ):
     # b = th.stack([d.var_value for d in obs])
     actions = th.atleast_2d(th.as_tensor(actions, dtype=th.int64))
-    logprob, _, _ = agent.forward(
+    logprob, *_ = agent.forward(
         actions,
         s,
     )

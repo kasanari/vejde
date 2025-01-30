@@ -168,21 +168,17 @@ class GraphAgent(nn.Module):
 
     def forward(self, actions: Tensor, data: HeteroStateData):
         fg = self.embed(data)
-        logprob, entropy, value = self.policy(
-            actions, fg.factors, fg.action_mask, fg.n_factor
-        )
-        return logprob, entropy, value
+        return self.policy(actions, fg.factors, fg.action_mask, fg.n_factor)
 
     def sample(self, data: HeteroStateData, deterministic: bool = False):
         fg = self.embed(data)
-        action, logprob, entropy, value = self.policy.sample(
+        return self.policy.sample(
             fg.factors, fg.n_factor, fg.action_mask, deterministic
         )
-        return action, logprob, entropy, value
 
     def value(self, data: HeteroStateData):
         fg = self.embed(data)
-        _, _, _, value = self.policy.sample(
+        _, _, _, value, *_ = self.policy.sample(
             fg.factors, fg.n_factor, fg.action_mask, False
         )
         return value
@@ -273,14 +269,13 @@ class RecurrentGraphAgent(nn.Module):
 
     def sample(self, data: HeteroStateData, deterministic: bool = False):
         fg = self.embed(data)
-        action, logprob, entropy, value = self.policy.sample(
+        return self.policy.sample(
             fg.factors, fg.n_factor, fg.action_mask, deterministic
         )
-        return action, logprob, entropy, value
 
     def value(self, data: HeteroStateData):
         fg = self.embed(data)
-        _, _, _, value = self.policy.sample(
+        _, _, _, value, *_ = self.policy.sample(
             fg.factors, fg.n_factor, fg.action_mask, False
         )
         return value

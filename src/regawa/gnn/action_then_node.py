@@ -62,16 +62,20 @@ class ActionThenNodePolicy(nn.Module):
         p_n__a = segment_softmax(  # type: ignore
             node_given_action_logits, h.indices, n_g
         )
+        segsum = partial(segment_sum, index=h.indices, num_segments=n_g)  # type: ignore
+
+        q_a__n = self.q_action__node(h.values)
+        q_a = segsum(q_a__n)  # type: ignore #TODO this can be done as a weighted sum
 
         value = action_then_node_value_estimate(
             p_n__a,  # type: ignore
             self.q_node__action(h.values),
-            self.q_action__node(h.values),
+            q_a,  # type: ignore
             p_a,
-            partial(segment_sum, index=h.indices, num_segments=n_g),  # type: ignore
+            segsum,  # type: ignore
         )
 
-        return actions, logprob, entropy, value  # type: ignore
+        return actions, logprob, entropy, value, p_a, p_n__a  # type: ignore
 
     # differentiable action evaluation
     def forward(

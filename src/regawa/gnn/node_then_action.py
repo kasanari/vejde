@@ -65,7 +65,7 @@ class NodeThenActionPolicy(nn.Module):
             p_n,  # type: ignore
             partial(segment_sum, index=h.indices, num_segments=n_g),  # type: ignore
         )
-        return actions, logprob, entropy, value  # type: ignore
+        return actions, logprob, entropy, value, p_n, p_a__n  # type: ignore
 
     # differentiable action evaluation
     def forward(

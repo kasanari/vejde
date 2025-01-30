@@ -156,6 +156,15 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int):
     axs[1].set_title("Grad Norm")
     fig.savefig("test_imitation_rnn.png")
 
+    data = [evaluate(env, agent, 0) for i in range(3)]
+    rewards, _, _ = zip(*data)
+    avg_reward = np.mean([np.sum(r) for r in rewards])
+
+    assert avg_reward == 2.0, "Reward was too low: expected %s, got %s" % (
+        2.0,
+        avg_reward,
+    )
+
     max_loss = 4e-6
     assert losses[-1] < max_loss, "Loss was too high: expected less than %s, got %s" % (
         max_loss,
@@ -164,9 +173,7 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int):
 
     pass
 
-    data = [evaluate(env, agent, 0) for i in range(3)]
-    rewards, _, _ = zip(*data)
-    logger.info("Sum Reward After Training: %s", np.mean([np.sum(r) for r in rewards]))
+    logger.info("Sum Reward After Training: %s", avg_reward)
 
     save_eval_data(data)
 

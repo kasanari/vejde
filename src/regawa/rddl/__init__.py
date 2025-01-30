@@ -122,6 +122,8 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         env = IndexActionWrapper(env, model)
         self.env = env
         self.observation_space = env.observation_space
+        self.model = model
+        self.grounded_model = grounded_rddl_model
 
     @property
     def action_space(self):

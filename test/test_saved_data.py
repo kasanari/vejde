@@ -13,18 +13,24 @@ from regawa.gnn.data import (
 )
 from regawa.gnn.gnn_agent import Config, GraphAgent
 from regawa.gnn import ActionMode
+from regawa.model.base_grounded_model import BaseGroundedModel
 from regawa.model.base_model import BaseModel
 from regawa.model.utils import max_arity
 from regawa.rddl import register_env
 from regawa.rddl.rddl_utils import rddl_ground_to_tuple
-from regawa.rl.util import evaluate, update
+from regawa.rl.util import calc_loss, evaluate, update
 from regawa.wrappers.utils import (
     create_graphs,
     create_obs_dict,
+    create_render_graph,
     from_dict_action,
     object_list,
+    to_graphviz,
 )
 import gymnasium as gym
+from matplotlib import pyplot as plt
+import numpy as np
+import random
 
 
 def convert_to_tuples(d: dict):
@@ -52,14 +58,28 @@ def to_action(action: dict, obj_to_idx, model) -> tuple[int, int]:
     return a
 
 
-def to_obsdata(rddl_obs: dict, model: BaseModel):
+render_index = 0
+
+
+def to_obsdata(rddl_obs: dict, model: BaseModel, grounded_model: BaseGroundedModel):
+    obs, action = rddl_obs
+    obs |= {
+        rddl_ground_to_tuple(g): grounded_model.constant_value(g)
+        for g in grounded_model.constant_groundings
+    }
+
     g, _ = create_graphs(
-        rddl_obs[0],
+        obs,
         model,
     )
+    dot = to_graphviz(create_render_graph(g.boolean, g.numeric))
+    global render_index
+    with open(f"saved_render/graph_{render_index}.dot", "w") as f:
+        f.write(dot)
+    render_index += 1
     o = heterodict_to_obsdata(create_obs_dict(g, model))
     obj_to_idx = lambda x: g.boolean.factors.index(x)
-    a = to_action(rddl_obs[1], obj_to_idx, model)
+    a = to_action(action, obj_to_idx, model)
     return o, a
 
 
@@ -74,10 +94,10 @@ def get_agent(model: BaseModel):
         n_relations,
         n_actions,
         layers=2,
-        embedding_dim=64,
-        activation=th.nn.Mish(),
+        embedding_dim=32,
+        activation=th.nn.LeakyReLU(),
         aggregation="sum",
-        action_mode=ActionMode.ACTION_THEN_NODE,
+        action_mode=ActionMode.NODE_THEN_ACTION,
         arity=arity,
     )
 
@@ -88,9 +108,9 @@ def get_agent(model: BaseModel):
     return agent
 
 
-def get_rddl_data(data: list, model: BaseModel):
+def get_rddl_data(data: list, model: BaseModel, grounded_model: BaseGroundedModel):
     data = [convert_episode(d) for d in data]
-    rollout = [to_obsdata(s, model) for e in data for s in e]
+    rollout = [to_obsdata(s, model, grounded_model) for e in data for s in e]
     return zip(*rollout)
 
 
@@ -126,17 +146,27 @@ def test_expert(env, expert_data, seed, model):
 
 
 def test_saved_data():
-    datafile = "/storage/GitHub/pyRDDLGym-prost/prost/out/sysadmin1/data_sysadmin_mdp_sysadmin_inst_mdp__2.json"
-    domain = "SysAdmin_MDP_ippc2011"
-    instance = 2
+    # datafile = "/storage/GitHub/pyRDDLGym-prost/prost/out/sysadmin1/data_sysadmin_mdp_sysadmin_inst_mdp__2.json"
+    # domain = "SysAdmin_MDP_ippc2011"
+    # instance = 2
+    datafile = "/storage/GitHub/pyRDDLGym-prost/prost/out/elevators1/data_elevators_mdp_elevators_inst_mdp__1.json"
+    domain = "Elevators_MDP_ippc2011"
+    instance = 1
+
     seed = 1
     env_id = register_env()
     env: gym.Env = gym.make(env_id, domain=domain, instance=instance)
-    model: BaseModel = env.unwrapped.env.model
+    model: BaseModel = env.unwrapped.model
+    grounded_model: BaseGroundedModel = env.unwrapped.grounded_model
+
+    np.random.seed(seed)
+    th.manual_seed(seed)
+    random.seed(seed)
 
     agent = get_agent(model)
+    # agent, _ = GraphAgent.load_agent("saved_data.pth")
     optimizer = th.optim.AdamW(
-        agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.1
+        agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.01
     )
 
     with open(datafile, "r") as f:
@@ -146,25 +176,31 @@ def test_saved_data():
     print(
         f"Expert Total reward: {sum(expert_rewards)}, Mean reward: {sum(expert_rewards) / len(expert_rewards)}"
     )
+    rewards, _, _ = evaluate(env, agent, seed, deterministic=True)
+    print(f"Learner Total reward: {sum(rewards)}")
 
-    expert_obs, expert_action = get_rddl_data(data, model)
+    expert_obs, expert_action = get_rddl_data(data, model, grounded_model)
 
     # batch_inds = list(range(0, len(expert_obs)))
 
     d = heterostatedata_from_obslist(expert_obs)
     avg_loss = 0.0
-    num_gradient_steps = 100
+    num_gradient_steps = 200
     avg_grad_norm = 0.0
     pbar = tqdm()
+    grad_norms = deque()
+    losses = deque()
     for _ in range(num_gradient_steps):
         # shuffle(batch_inds)
         # o = [expert_obs[i] for i in batch_inds]
         # a = [expert_action[i] for i in batch_inds]
         # for x, y in zip(o, a):
-        loss, grad_norm = update(agent, optimizer, expert_action, d)
+        loss, grad_norm, _ = update(agent, optimizer, expert_action, d)
         pbar.update(1)
         avg_loss = avg_loss + (loss - avg_loss) / 2
         avg_grad_norm = avg_grad_norm + (grad_norm - avg_grad_norm) / 2
+        grad_norms.append(grad_norm)
+        losses.append(loss)
         pbar.set_description(f"Loss: {avg_loss:.3f}, Grad Norm: {avg_loss:.3f}")
 
     pbar.close()
@@ -172,6 +208,31 @@ def test_saved_data():
     rewards, _, _ = evaluate(env, agent, seed, deterministic=True)
 
     print(f"Learner Total reward: {sum(rewards)}")
+
+    fig, axs = plt.subplots(2)
+    axs[0].plot(list(losses))
+    axs[1].plot(list(grad_norms))
+    axs[0].set_title("Loss")
+    axs[1].set_title("Grad Norm")
+    fig.savefig("test_saved_data.png")
+
+    agent.save_agent("saved_data.pth")
+
+    loss_per_obs = []
+    for d in expert_obs:
+        s = heterostatedata_from_obslist([d])
+        actions, logprob, entropy, value, p_n, p_a__n = agent.sample(s)
+        l2_norms = [th.sum(th.square(w)) for w in agent.parameters()]
+        loss = calc_loss(l2_norms, logprob)
+        loss_per_obs.append(loss.item())
+
+    sorted_loss = sorted(enumerate(loss_per_obs), key=lambda x: x[1], reverse=True)
+
+    with open("sorted_loss.txt", "w") as f:
+        for i, l in sorted_loss:
+            f.write(f"{i}: {l}\n")
+
+    pass
 
 
 if __name__ == "__main__":

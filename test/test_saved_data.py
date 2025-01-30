@@ -14,6 +14,7 @@ from regawa.gnn.data import (
 from regawa.gnn.gnn_agent import Config, GraphAgent
 from regawa.gnn import ActionMode
 from regawa.model.base_model import BaseModel
+from regawa.model.utils import max_arity
 from regawa.rddl import register_env
 from regawa.rddl.rddl_utils import rddl_ground_to_tuple
 from regawa.rl.util import evaluate, update
@@ -66,16 +67,18 @@ def get_agent(model: BaseModel):
     n_types = model.num_types
     n_relations = model.num_fluents
     n_actions = model.num_actions
+    arity = max_arity(model)
 
     config = Config(
         n_types,
         n_relations,
         n_actions,
-        layers=4,
-        embedding_dim=4,
+        layers=2,
+        embedding_dim=64,
         activation=th.nn.Mish(),
         aggregation="sum",
         action_mode=ActionMode.ACTION_THEN_NODE,
+        arity=arity,
     )
 
     agent = GraphAgent(
@@ -132,7 +135,9 @@ def test_saved_data():
     model: BaseModel = env.unwrapped.env.model
 
     agent = get_agent(model)
-    optimizer = th.optim.AdamW(agent.parameters(), lr=0.01, amsgrad=True)
+    optimizer = th.optim.AdamW(
+        agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.1
+    )
 
     with open(datafile, "r") as f:
         data = json.load(f)
@@ -148,7 +153,7 @@ def test_saved_data():
 
     d = heterostatedata_from_obslist(expert_obs)
     avg_loss = 0.0
-    num_gradient_steps = 1
+    num_gradient_steps = 100
     avg_grad_norm = 0.0
     pbar = tqdm()
     for _ in range(num_gradient_steps):
@@ -164,7 +169,7 @@ def test_saved_data():
 
     pbar.close()
 
-    rewards, _, _ = evaluate(env, agent, seed, deterministic=False)
+    rewards, _, _ = evaluate(env, agent, seed, deterministic=True)
 
     print(f"Learner Total reward: {sum(rewards)}")
 

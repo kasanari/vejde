@@ -60,6 +60,68 @@ class BooleanEmbedder(th.jit.ScriptModule):
         return h
 
 
+class NegativeBiasBooleanEmbedder(th.jit.ScriptModule):
+    def __init__(
+        self,
+        embedding_dim: int,
+        predicate_embedding: EmbeddingLayer,
+    ):
+        super().__init__()  # type: ignore
+
+        self.predicate_embedding = predicate_embedding
+        logger.debug(
+            "predicate_embedding:\n%s", predicate_embedding.transform[0].weight
+        )
+        num_predicates = predicate_embedding.transform[0].weight.size(0)
+        self.bias = nn.Parameter(th.zeros(num_predicates, embedding_dim))
+
+    @th.jit.script_method
+    def forward(
+        self,
+        var_val: Tensor,
+        var_type: Tensor,
+    ) -> Tensor:
+        preds = self.predicate_embedding(var_type.int())
+        biases = self.bias[var_type.int()]
+        # logger.debug("bools:\n%s", booleans)
+        # logger.debug("preds:\n%s", preds)
+        h = var_val.unsqueeze(1) * preds + biases
+        return h
+
+
+class PositiveNegativeBooleanEmbedder(th.jit.ScriptModule):
+    def __init__(
+        self,
+        embedding_dim: int,
+        predicate_embedding: EmbeddingLayer,
+    ):
+        super().__init__()  # type: ignore
+
+        self.positive_predicate_embedding = predicate_embedding
+        logger.debug(
+            "predicate_embedding:\n%s", predicate_embedding.transform[0].weight
+        )
+        num_predicates = predicate_embedding.transform[0].weight.size(0)
+        self.neg_predicate_embedding = EmbeddingLayer(num_predicates, embedding_dim)
+
+    @th.jit.script_method
+    def forward(
+        self,
+        var_val: Tensor,
+        var_type: Tensor,
+    ) -> Tensor:
+        postive_preds = self.positive_predicate_embedding(var_type.int())
+        negative_preds = self.neg_predicate_embedding(var_type.int())
+
+        # logger.debug("bools:\n%s", booleans)
+        # logger.debug("preds:\n%s", preds)
+        h = (
+            var_val.unsqueeze(1) * postive_preds
+            + (1 - var_val).unsqueeze(1) * negative_preds
+        )
+        return h
+
+
 class NumericEmbedder(th.jit.ScriptModule):
     def __init__(
         self,
@@ -86,7 +148,7 @@ class RecurrentEmbedder(nn.Module):
     def __init__(
         self,
         embedding_dim: int,
-        base_embedder: BooleanEmbedder | NumericEmbedder,
+        base_embedder: NegativeBiasBooleanEmbedder | NumericEmbedder,
     ):
         super().__init__()  # type: ignore
 

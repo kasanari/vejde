@@ -108,6 +108,28 @@ def compare_rollouts(r1: Rollout, r2: Rollout):
             assert o == o2[k], f"{o} != {o2[k]} for {k}"
 
 
+def update_vf_agent(
+    agent: GraphAgent,
+    optimizer: th.optim.Optimizer,
+    s: HeteroStateData,
+    values: list[float],
+):
+    _, _, _, value, *_ = agent.value(
+        s,
+    )
+    value_loss = th.nn.functional.mse_loss(
+        th.as_tensor(values, dtype=th.float32), value
+    )
+    grad_norm = th.nn.utils.clip_grad_norm_(
+        agent.parameters(), 100.0, error_if_nonfinite=True
+    )
+    optimizer.zero_grad()
+    value_loss.backward()
+    optimizer.step()
+
+    return value_loss.item(), grad_norm.item()
+
+
 def update(
     agent: GraphAgent,
     optimizer: th.optim.Optimizer,

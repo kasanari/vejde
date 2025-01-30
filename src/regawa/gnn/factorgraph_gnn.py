@@ -232,8 +232,8 @@ class BipartiteGNN(nn.Module):
         g = torch.zeros(n_g, self.hidden_size).to(fg.factors.values.device)
         g = self.pre_aggr(fg.globals_, n_g) if fg.globals_.values.shape[0] > 0 else g
 
-        variables = SparseTensor(
-            fg.variables.values + g[fg.variables.indices], fg.variables.indices
+        factors = SparseTensor(
+            fg.factors.values + g[fg.factors.indices], fg.factors.indices
         )
 
         i = 0

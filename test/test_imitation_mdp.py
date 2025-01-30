@@ -27,13 +27,13 @@ def policy(state: dict[str, bool]) -> tuple[int, int]:
 
 
 @pytest.mark.parametrize(
-    "action_mode, iterations",
+    "action_mode, iterations, embedding_dim",
     [
-        (ActionMode.NODE_THEN_ACTION, 40),
-        (ActionMode.ACTION_THEN_NODE, 30),
+        (ActionMode.NODE_THEN_ACTION, 30, 64),
+        (ActionMode.ACTION_THEN_NODE, 30, 16),
     ],
 )
-def test_imitation(action_mode: ActionMode, iterations: int):
+def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int):
     domain = "rddl/conditional_bandit.rddl"
     instance = "rddl/conditional_bandit_i0.rddl"
 
@@ -60,7 +60,7 @@ def test_imitation(action_mode: ActionMode, iterations: int):
         n_relations,
         n_actions,
         layers=4,
-        embedding_dim=16,
+        embedding_dim=embedding_dim,
         activation=th.nn.Mish(),
         aggregation="sum",
         action_mode=action_mode,
@@ -78,7 +78,8 @@ def test_imitation(action_mode: ActionMode, iterations: int):
 
     data = [evaluate(env, agent, 0) for i in range(10)]
     rewards, _, _ = zip(*data)
-    print(np.mean(np.sum(rewards, axis=1)))
+    before_training_rewards = np.mean(np.sum(rewards, axis=1))
+    print(before_training_rewards)
 
     data = [iteration(i, env, agent, optimizer, 0) for i in range(iterations)]
 
@@ -89,7 +90,7 @@ def test_imitation(action_mode: ActionMode, iterations: int):
     axs[1].plot(norms)
     axs[0].set_title("Loss")
     axs[1].set_title("Grad Norm")
-    fig.savefig("test_imitation_mdp.png")
+    fig.savefig(f"test_imitation_mdp_{action_mode}.png")
     max_loss = 1e-6
     assert losses[-1] < max_loss, "Loss was too high: expected less than %s, got %s" % (
         max_loss,
@@ -110,7 +111,6 @@ def test_imitation(action_mode: ActionMode, iterations: int):
 
     save_eval_data(data)
 
-    assert losses[-1] < 0.000001, "Loss was too high: %s" % losses[-1]
     # agent.save_agent("conditional_bandit.pth")
 
 
@@ -127,4 +127,4 @@ def iteration(i, env, agent, optimizer, seed: int):
 
 
 if __name__ == "__main__":
-    test_imitation(ActionMode.NODE_THEN_ACTION, 40)
+    test_imitation(ActionMode.NODE_THEN_ACTION, 30)

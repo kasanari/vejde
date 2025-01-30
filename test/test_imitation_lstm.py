@@ -92,13 +92,13 @@ def count_above_policy(state):
 
 
 @pytest.mark.parametrize(
-    "action_mode, iterations",
+    "action_mode, iterations, embedding_dim",
     [
-        (ActionMode.NODE_THEN_ACTION, 120),
-        (ActionMode.ACTION_THEN_NODE, 120),
+        (ActionMode.NODE_THEN_ACTION, 200, 64),
+        (ActionMode.ACTION_THEN_NODE, 120, 16),
     ],
 )
-def test_imitation_rnn(action_mode: ActionMode, iterations: int):
+def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: int):
     domain = "rddl/blink_enough_bandit.rddl"
     instance = "rddl/blink_enough_bandit_i0.rddl"
 
@@ -128,7 +128,7 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int):
         n_relations,
         n_actions,
         layers=3,
-        embedding_dim=16,
+        embedding_dim=embedding_dim,
         activation=th.nn.Mish(),
         aggregation="sum",
         action_mode=action_mode,
@@ -154,7 +154,7 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int):
     axs[1].plot(norms)
     axs[0].set_title("Loss")
     axs[1].set_title("Grad Norm")
-    fig.savefig("test_imitation_rnn.png")
+    fig.savefig(f"test_imitation_rnn_{action_mode}.png")
 
     data = [evaluate(env, agent, 0) for i in range(3)]
     rewards, _, _ = zip(*data)
@@ -188,4 +188,4 @@ def iteration(i, env, agent, optimizer, seed: int):
 
 
 if __name__ == "__main__":
-    test_imitation_rnn(ActionMode.ACTION_THEN_NODE, 120)
+    test_imitation_rnn(ActionMode.NODE_THEN_ACTION, 120)

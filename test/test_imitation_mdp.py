@@ -87,6 +87,14 @@ def test_imitation(action_mode: ActionMode, iterations: int):
     pass
 
     data = [evaluate(env, agent, 0) for i in range(3)]
+    rewards, _, _ = zip(*data)
+    avg_reward = np.mean(np.sum(rewards, axis=1))
+    print(avg_reward)
+
+    assert avg_reward == 4.0, "Reward was too low: expected %s, got %s" % (
+        4.0,
+        avg_reward,
+    )
 
     save_eval_data(data)
 

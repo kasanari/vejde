@@ -35,25 +35,8 @@ class BaseModel(ABC):
 
     @cached_property
     @abstractmethod
-    def groundings(self) -> list[tuple[str, ...]]:
-        """
-        A list of all possible grounded variables in the language.
-        relation___object1__object2__...__objectN
-        """
-        ...
-
-    @cached_property
-    @abstractmethod
-    def action_fluents(self) -> list[str]:
+    def action_fluents(self) -> tuple[str, ...]:
         """relations/fluents/predicates that can be used as actions in the model."""
-        ...
-
-    @cached_property
-    @abstractmethod
-    def action_groundings(self) -> list[tuple[str, ...]]:
-        """groundings of action fluents/variables.
-        one the form: relation___object1__object2__...__objectN
-        """
         ...
 
     @cached_property

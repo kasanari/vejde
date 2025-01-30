@@ -3,7 +3,6 @@ from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 from functools import cache, cached_property
 from copy import copy
 from regawa.model.base_model import BaseModel
-from .rddl_utils import get_groundings, rddl_ground_to_tuple
 
 
 class RDDLModel(BaseModel):
@@ -190,22 +189,6 @@ class RDDLModel(BaseModel):
         }
 
     @cached_property
-    def groundings(self) -> list[tuple[str, ...]]:
-        model = self.model
-
-        state_fluents = model.state_fluents  # type: ignore
-        non_fluents = model.non_fluents  # type: ignore
-
-        non_fluent_groundings = get_groundings(model, non_fluents)  # type: ignore
-        state_groundings = get_groundings(model, state_fluents)  # type: ignore
-
-        all_groundings = state_groundings | non_fluent_groundings
-
-        all_groundings = [rddl_ground_to_tuple(g) for g in all_groundings]
-
-        return sorted(all_groundings)
-
-    @cached_property
     def action_fluents(self) -> list[str]:
         model = self.model
         action_fluents = model.action_fluents  # type: ignore
@@ -224,10 +207,6 @@ class RDDLModel(BaseModel):
     @cached_property
     def num_actions(self) -> int:
         return len(self.action_fluents)
-
-    @cached_property
-    def action_groundings(self) -> set[str]:
-        return get_groundings(self.model, self.model.action_fluents) | {"None"}  # type: ignore
 
     @cached_property
     def num_fluents(self) -> int:

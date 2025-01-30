@@ -3,6 +3,7 @@ import gymnasium
 from gymnasium.spaces import Dict, MultiDiscrete
 import pyRDDLGym
 
+from regawa.rddl.rddl_grounded_model import RDDLGroundedModel
 from regawa.rddl.rddl_to_tuple_wrapper import RDDLToTuple
 from regawa.wrappers.index_wrapper import IndexActionWrapper
 
@@ -10,7 +11,7 @@ from .rddl_pomdp_model import RDDLPOMDPModel
 from regawa import StackingGroundedGraphWrapper, GroundedGraphWrapper
 from regawa.wrappers.stacking_wrapper import StackingWrapper
 from .rddl_model import RDDLModel
-from .rddl_add_non_fluents_wrapper import RDDLAddNonFluents
+from ..wrappers.add_constants_wrapper import AddConstants
 from .rddl_convert_enums_wrapper import RDDLConvertEnums
 
 from rddlrepository import RDDLRepoManager
@@ -30,7 +31,7 @@ def make_env(
         instance,
         enforce_action_constraints=enforce_action_constraints,
     )  # type: ignore
-    env = RDDLAddNonFluents(env)
+    env = AddConstants(env)
     env = RDDLToTuple(env)
     if has_enums:
         env = RDDLConvertEnums(env)
@@ -113,8 +114,10 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         env = pyRDDLGym.make(
             domain, instance, enforce_action_constraints=enforce_action_constraints
         )  # type: ignore
-        model = RDDLModel(env.model)
-        env = RDDLAddNonFluents(env)
+        rddl_model = env.model
+        grounded_rddl_model = RDDLGroundedModel(rddl_model)
+        env = AddConstants(env, grounded_rddl_model)
+        model = RDDLModel(rddl_model)
         env = RDDLToTuple(env)
         if len(model.model.enum_types) > 0:
             env = RDDLConvertEnums(env)
@@ -153,7 +156,7 @@ class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
             domain, instance, enforce_action_constraints=enforce_action_constraints
         )  # type: ignore
         model = RDDLPOMDPModel(env.model)
-        env = RDDLAddNonFluents(env, only_add_on_reset=True)
+        env = AddConstants(env, only_add_on_reset=True)
         env = RDDLToTuple(env)
         if len(model.model.enum_types) > 0:
             env = RDDLConvertEnums(env)

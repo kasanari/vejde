@@ -3,6 +3,8 @@ from regawa import BaseModel
 import regawa.model.utils as utils
 import pytest
 
+from regawa.rddl.rddl_grounded_model import RDDLGroundedModel
+
 
 @pytest.fixture()
 def model():
@@ -12,6 +14,16 @@ def model():
     instance = "rddl/conditional_bandit_i0.rddl"
     env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
     return RDDLModel(env.model)
+
+
+@pytest.fixture()
+def ground_model():
+    import pyRDDLGym
+
+    domain = "rddl/conditional_bandit.rddl"
+    instance = "rddl/conditional_bandit_i0.rddl"
+    env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
+    return RDDLGroundedModel(env.model)
 
 
 def test_num_fluents(model: BaseModel):
@@ -72,13 +84,13 @@ def test_fluents_of_arity(model: BaseModel):
     assert fluents_of_arity(2) == ("CONNECTED",)
 
 
-def test_groundings(model: BaseModel):
+def test_groundings(ground_model: RDDLGroundedModel):
     """
     A list of all possible grounded variables in the language.
     relation___object1__object2__...__objectN
     """
     ...
-    assert len(model.groundings) == 9
+    assert len(ground_model.groundings) == 9
 
 
 def test_action_fluents(model: BaseModel):
@@ -86,11 +98,11 @@ def test_action_fluents(model: BaseModel):
     assert len(model.action_fluents) == 2
 
 
-def test_action_groundings(model: BaseModel):
+def test_action_groundings(ground_model: RDDLGroundedModel):
     """groundings of action fluents/variables.
     one the form: relation___object1__object2__...__objectN
     """
-    assert len(model.action_groundings) == 3
+    assert len(ground_model.action_groundings) == 3
 
 
 def test_num_relations(model: BaseModel):

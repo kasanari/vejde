@@ -18,7 +18,7 @@ from .utils import (
     create_stacked_obs,
 )
 
-from .utils import to_graphviz_alt, to_graphviz
+from .utils import to_graphviz_alt, to_graphviz, GroundValue
 
 from regawa import BaseModel
 
@@ -47,19 +47,13 @@ class StackingGroundedGraphWrapper(
         self.env = env
         self.last_obs: dict[str, Any] = {}
         self.iter = 0
-        self._idx_to_object: list[str] = ["None"]
-        self._idx_to_object_type: list[str] = ["None"]
+        self._object_to_type: dict[str, str] = {"None": "None"}
 
-    def idx_to_object(self, idx: int) -> str:
+    def obj_to_type(self, obj: str) -> str:
         try:
-            return self._idx_to_object[idx]
+            return self._object_to_type[obj]
         except IndexError:
-            return "None"
-
-    def idx_to_object_type(self, idx: int) -> str:
-        try:
-            return self._idx_to_object_type[idx]
-        except IndexError:
+            logger.warning(f"Object {obj} not found in object_to_type")
             return "None"
 
     @property
@@ -67,7 +61,7 @@ class StackingGroundedGraphWrapper(
         return action_space(
             self.wrapped_model.action_fluents,
             self.wrapped_model.num_actions,
-            len(self._idx_to_object) or 1,
+            len(self._object_to_type) or 1,
             self.wrapped_model.arity,
         )
 
@@ -162,32 +156,29 @@ class StackingGroundedGraphWrapper(
         info["state"] = g
         info["rddl_state"] = self.env.unwrapped.state  # type: ignore
         info["rddl_obs"] = rddl_obs
+        info["idx_to_object"] = g.boolean.factors
+
+        self._object_to_type = {
+            k: v for k, v in zip(g.boolean.factors, g.boolean.factor_values)
+        }
 
         self.last_obs = obs
         self.last_g = combined_g
         self.last_rddl_obs = rddl_obs
-        self._idx_to_object_type = g.boolean.factor_values
-        self._idx_to_object = g.boolean.factors
 
         return obs, info
 
-    def _to_rddl_action(
-        self, action: spaces.MultiDiscrete
-    ) -> tuple[dict[str, int], str]:
+    def _to_rddl_action(self, action: GroundValue) -> dict[GroundValue, Any]:
         return to_dict_action(
             action,
-            self.wrapped_model.idx_to_action,
-            self.idx_to_object_type,
-            self.idx_to_object,
+            self.obj_to_type,
             self.wrapped_model.fluent_params,
         )
 
     def step(
-        self, action: spaces.MultiDiscrete
+        self, action: GroundValue
     ) -> tuple[spaces.Dict, SupportsFloat, bool, bool, dict[str, Any]]:
-        rddl_action, grounded_action = self._to_rddl_action(
-            action,
-        )
+        rddl_action = self._to_rddl_action(action)
         rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action)
 
         obs, g = self._create_obs(rddl_obs)
@@ -196,12 +187,14 @@ class StackingGroundedGraphWrapper(
         info["rddl_state"] = self.env.unwrapped.state  # type: ignore
         info["rddl_obs"] = rddl_obs
         info["rddl_action"] = rddl_action
+        info["idx_to_object"] = g.boolean.factors
+
+        self._object_to_type = {
+            k: v for k, v in zip(g.boolean.factors, g.boolean.factor_values)
+        }
 
         self.last_obs = obs
         self.last_g = create_render_graph(g.boolean, g.numeric)
         self.last_rddl_obs = rddl_obs
-        self.last_action = grounded_action
-        self._idx_to_object_type = g.boolean.factor_values  # type: ignore
-        self._idx_to_object = g.boolean.factors  # type: ignore
-
+        self.last_action = action
         return obs, reward, terminated, truncated, info

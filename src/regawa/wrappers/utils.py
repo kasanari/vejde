@@ -351,34 +351,44 @@ def from_dict_action(
     return tuple([action_to_idx(action[0])] + [obj_to_idx(obj) for obj in action[1:]])
 
 
-def to_dict_action(
-    action: tuple[int, int],
-    idx_to_action: Callable[[int], str],
-    idx_to_type: Callable[[int], str],
-    idx_to_obj: Callable[[int], str],
-    fluent_params: Callable[[str], list[str]],
-) -> tuple[dict[GroundValue, int], GroundValue]:
-    action_fluent = idx_to_action(action[0])
-
+def has_valid_parameters(
+    action: GroundValue,
+    obj_to_type: Callable[[str], str],
+    fluent_params: Callable[[str], tuple[str, ...]],
+) -> bool:
+    action_fluent = predicate(action)
     param_types = fluent_params(action_fluent)
-
-    params: list[str] = [
-        f"{idx_to_obj(action[i + 1])}" for i, _ in enumerate(param_types)
-    ]
+    params: tuple[str, ...] = objects(action)
     for i, intended_param in enumerate(param_types):
-        actual_param = idx_to_type(action[i + 1])
-        if intended_param != actual_param:
-            logger.warning(
-                f"Invalid parameter type for fluent {action_fluent} in position {i}. Expected {intended_param} but got {actual_param}."
-            )
-            action_fluent = "None"
-            break
+        if intended_param != obj_to_type(params[i]):
+            return False
 
-    grounded_action = (action_fluent, *params)
+    return True
 
-    action_dict = {} if action_fluent == "None" else {grounded_action: 1}
 
-    return action_dict, grounded_action
+def to_dict_action(
+    action: GroundValue,
+    obj_to_type: Callable[[str], str],
+    fluent_params: Callable[[str], tuple[str, ...]],
+) -> dict[GroundValue, int]:
+    action_fluent = predicate(action)
+    action_fluent = (
+        "None"
+        if not has_valid_parameters(action, obj_to_type, fluent_params)
+        else action_fluent
+    )
+
+    action_dict = {} if action_fluent == "None" else {action: 1}
+
+    return action_dict
+
+
+def idx_action_to_ground_value(
+    action: tuple[int, ...],
+    idx_to_action: Callable[[int], str],
+    idx_to_obj: Callable[[int], str],
+) -> GroundValue:
+    return (idx_to_action(action[0]),) + tuple([idx_to_obj(obj) for obj in action[1:]])
 
 
 def sample_action(action_space: Dict) -> dict[str, int]:

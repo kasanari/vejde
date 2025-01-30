@@ -4,6 +4,7 @@ from gymnasium.spaces import Dict, MultiDiscrete
 import pyRDDLGym
 
 from regawa.rddl.rddl_to_tuple_wrapper import RDDLToTuple
+from regawa.wrappers.index_wrapper import IndexActionWrapper
 
 from .rddl_pomdp_model import RDDLPOMDPModel
 from regawa import StackingGroundedGraphWrapper, GroundedGraphWrapper
@@ -118,6 +119,7 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         if len(model.model.enum_types) > 0:
             env = RDDLConvertEnums(env)
         env: gymnasium.Env[Dict, MultiDiscrete] = GroundedGraphWrapper(env, model=model)
+        env = IndexActionWrapper(env, model)
         self.env = env
         self.observation_space = env.observation_space
 
@@ -157,6 +159,7 @@ class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         env: gymnasium.Env[Dict, MultiDiscrete] = StackingGroundedGraphWrapper(
             env, model=model
         )
+        env = IndexActionWrapper(env, model)
         self.env = env
         self.observation_space = env.observation_space
         self.action_space = env.action_space

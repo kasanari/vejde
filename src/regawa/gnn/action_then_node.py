@@ -28,7 +28,7 @@ class ActionThenNodePolicy(nn.Module):
         super().__init__()  # type: ignore
 
         self.node_prob = nn.Linear(node_dim, 1, bias=False)
-        self.action_given_node_prob = nn.Linear(node_dim, num_actions)
+        self.action_given_node_prob = nn.Linear(node_dim, num_actions, bias=False)
         self.node_given_action_prob = nn.Linear(node_dim, num_actions)
 
         self.num_actions = num_actions

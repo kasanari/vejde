@@ -19,9 +19,7 @@ from regawa.rl.util import evaluate, rollout, save_eval_data, update
 from regawa.rddl import register_pomdp_env as register_env
 
 import logging
-
-logger = logging.getLogger("train")
-logger.setLevel(logging.INFO)
+import matplotlib.pyplot as plt
 
 
 class Serializer(json.JSONEncoder):
@@ -33,6 +31,10 @@ class Serializer(json.JSONEncoder):
         if isinstance(obj, np.int64):
             return int(obj)
         return super().default(obj)
+
+
+logger = logging.getLogger("train")
+logger.setLevel(logging.INFO)
 
 
 def knowledge_graph_policy(obs):
@@ -100,13 +102,9 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int):
     domain = "rddl/blink_enough_bandit.rddl"
     instance = "rddl/blink_enough_bandit_i0.rddl"
 
-    # logfile = "test_imitation_rnn.log"
-    # file_handler = logging.FileHandler(logfile)
-    # logging.basicConfig(
-    #     level=logging.INFO,
-    # )
-    # logger.addHandler(file_handler)
-
+    logging.getLogger("regawa").setLevel(logging.ERROR)
+    logfile = logging.FileHandler("test_imitation_rnn.log", mode="w")
+    logger.addHandler(logfile)
     logger.addHandler(logging.StreamHandler())
 
     th.manual_seed(0)
@@ -138,7 +136,9 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int):
 
     agent = RecurrentGraphAgent(config)
 
-    optimizer = th.optim.AdamW(agent.parameters(), lr=0.01, amsgrad=True)
+    optimizer = th.optim.AdamW(
+        agent.parameters(), lr=0.01, amsgrad=True, weight_decay=1e-2
+    )
 
     data = [evaluate(env, agent, 0) for i in range(10)]
     rewards, _, _ = zip(*data)
@@ -146,7 +146,15 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int):
 
     num_seeds = 10
 
-    losses = [iteration(i, env, agent, optimizer, 0) for i in range(iterations)]
+    data = [iteration(i, env, agent, optimizer, 0) for i in range(iterations)]
+    losses, norms = zip(*data)
+
+    fig, axs = plt.subplots(2)
+    axs[0].plot(losses)
+    axs[1].plot(norms)
+    axs[0].set_title("Loss")
+    axs[1].set_title("Grad Norm")
+    fig.savefig("test_imitation_rnn.png")
 
     max_loss = 4e-6
     assert losses[-1] < max_loss, "Loss was too high: expected less than %s, got %s" % (
@@ -169,7 +177,7 @@ def iteration(i, env, agent, optimizer, seed: int):
     r, length = rollout(env, seed, policy, 2.0)
     loss, grad_norm = update(agent, optimizer, r.actions, r.obs.batch)
     logger.info(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}")
-    return loss
+    return loss, grad_norm
 
 
 if __name__ == "__main__":

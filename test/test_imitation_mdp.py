@@ -13,6 +13,8 @@ from regawa.rddl import register_env
 import regawa.model.utils as model_utils
 import logging
 
+import matplotlib.pyplot as plt
+
 
 def policy(state: dict[str, bool]) -> tuple[int, int]:
     if state[("light", "r_m")]:
@@ -70,14 +72,24 @@ def test_imitation(action_mode: ActionMode, iterations: int):
 
     # agent, config = agent.load_agent("conditional_bandit.pth")
 
-    optimizer = th.optim.AdamW(agent.parameters(), lr=0.01, amsgrad=True)
+    optimizer = th.optim.AdamW(
+        agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.1
+    )
 
     data = [evaluate(env, agent, 0) for i in range(10)]
     rewards, _, _ = zip(*data)
     print(np.mean(np.sum(rewards, axis=1)))
 
-    losses = [iteration(i, env, agent, optimizer, 0) for i in range(iterations)]
+    data = [iteration(i, env, agent, optimizer, 0) for i in range(iterations)]
 
+    losses, norms = zip(*data)
+
+    fig, axs = plt.subplots(2)
+    axs[0].plot(losses)
+    axs[1].plot(norms)
+    axs[0].set_title("Loss")
+    axs[1].set_title("Grad Norm")
+    fig.savefig("test_imitation_mdp.png")
     max_loss = 1e-6
     assert losses[-1] < max_loss, "Loss was too high: expected less than %s, got %s" % (
         max_loss,
@@ -98,6 +110,7 @@ def test_imitation(action_mode: ActionMode, iterations: int):
 
     save_eval_data(data)
 
+    assert losses[-1] < 0.000001, "Loss was too high: %s" % losses[-1]
     # agent.save_agent("conditional_bandit.pth")
 
 
@@ -110,8 +123,8 @@ def iteration(i, env, agent, optimizer, seed: int):
 
     loss, grad_norm = update(agent, optimizer, r.actions, r.obs.batch)
     print(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}")
-    return loss
+    return loss, grad_norm
 
 
 if __name__ == "__main__":
-    test_imitation(ActionMode.NODE_THEN_ACTION, 70)
+    test_imitation(ActionMode.NODE_THEN_ACTION, 40)

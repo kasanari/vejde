@@ -15,7 +15,6 @@ from regawa.gnn.gnn_agent import Config, GraphAgent
 from regawa.gnn import ActionMode
 from regawa.model.base_grounded_model import BaseGroundedModel
 from regawa.model.base_model import BaseModel
-from regawa.model.utils import max_arity
 from regawa.rddl import register_env
 from regawa.rddl.rddl_utils import rddl_ground_to_tuple
 from regawa.rl.util import calc_loss, evaluate, update
@@ -87,7 +86,6 @@ def get_agent(model: BaseModel):
     n_types = model.num_types
     n_relations = model.num_fluents
     n_actions = model.num_actions
-    arity = max_arity(model)
 
     config = Config(
         n_types,
@@ -98,7 +96,6 @@ def get_agent(model: BaseModel):
         activation=th.nn.LeakyReLU(),
         aggregation="sum",
         action_mode=ActionMode.NODE_THEN_ACTION,
-        arity=arity,
     )
 
     agent = GraphAgent(

@@ -156,7 +156,8 @@ class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
             domain, instance, enforce_action_constraints=enforce_action_constraints
         )  # type: ignore
         model = RDDLPOMDPModel(env.model)
-        env = AddConstants(env, only_add_on_reset=True)
+        grounded_model = RDDLGroundedModel(env.model)
+        env = AddConstants(env, grounded_model, only_add_on_reset=True)
         env = RDDLToTuple(env)
         if len(model.model.enum_types) > 0:
             env = RDDLConvertEnums(env)

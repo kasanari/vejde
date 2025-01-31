@@ -64,7 +64,6 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
         activation=th.nn.Mish(),
         aggregation="sum",
         action_mode=action_mode,
-        arity=2,
     )
 
     agent = GraphAgent(

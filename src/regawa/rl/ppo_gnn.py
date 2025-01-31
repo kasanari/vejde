@@ -174,7 +174,7 @@ class Agent(nn.Module):
         return value
 
     def sample_action_and_value(self, s: HeteroStateData):
-        action, logprob, entropy, value = self.agent.sample(
+        action, logprob, entropy, value, *_ = self.agent.sample(
             s,
         )
         return action, logprob, entropy, value
@@ -186,7 +186,7 @@ class Agent(nn.Module):
     ):
         # num_graphs = batch_idx.max() + 1
         # action_mask = action_mask.reshape(num_graphs, -1)
-        logprob, entropy, value = self.agent.forward(
+        logprob, entropy, value, *_ = self.agent.forward(
             action,
             s,
             # num_graphs,

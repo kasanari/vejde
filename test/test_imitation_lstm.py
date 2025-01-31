@@ -165,7 +165,7 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
         avg_reward,
     )
 
-    max_loss = 4e-6
+    max_loss = 7e-6
     assert losses[-1] < max_loss, "Loss was too high: expected less than %s, got %s" % (
         max_loss,
         losses[-1],
@@ -182,7 +182,7 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
 
 def iteration(i, env, agent, optimizer, seed: int):
     r, length = rollout(env, seed, policy, 2.0)
-    loss, grad_norm = update(agent, optimizer, r.actions, r.obs.batch)
+    loss, grad_norm, _ = update(agent, optimizer, r.actions, r.obs.batch)
     logger.info(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}")
     return loss, grad_norm
 

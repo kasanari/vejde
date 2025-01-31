@@ -239,7 +239,7 @@ class BipartiteGNN(nn.Module):
         i = 0
         logger.debug("Factor Graph")
         logger.debug("Factors:\n%s", fg.factors)
-        logger.debug("Variables:\n%s", variables)
+        # logger.debug("Variables:\n%s", variables)
         logger.debug("Edge Index:\n%s", (fg.senders, fg.receivers))
         logger.debug("----\n")
 

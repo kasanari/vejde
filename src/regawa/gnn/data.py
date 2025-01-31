@@ -301,5 +301,15 @@ def heterostatedata_from_obslist(obs: list[dict[str, ObsData]]) -> HeteroStateDa
     )
 
 
+def heterostatedata_from_obslist_alt(obs: list[dict[str, ObsData]]) -> HeteroStateData:
+    boolean_data = [d["bool"] for d in obs]
+    numeric_data = [d["float"] for d in obs]
+
+    return HeteroStateData(
+        boolean=batch(boolean_data),
+        numeric=batch(numeric_data),
+    )
+
+
 def heterodict_to_obsdata(obs: HeteroObsDict):
     return {k: (dict_to_obsdata(obs[k]),) for k in obs}

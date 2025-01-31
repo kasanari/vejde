@@ -160,6 +160,7 @@ def update(
     grad_norms = {
         k: round(grad_norm_(param, max_grad_norm).item(), 3)
         for k, param in agent.named_parameters()
+        if "weight" in k
     }
     # max_grad_norm = max(grad_norms.values())
 
@@ -169,7 +170,7 @@ def update(
 
     optimizer.step()
 
-    return loss.item(), grad_norm.item()
+    return loss.item(), grad_norm.item(), grad_norms
 
 
 def calc_loss(l2_norms: list[Tensor], logprob: Tensor) -> th.Tensor:

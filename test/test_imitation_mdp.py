@@ -93,7 +93,18 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
         for i in range(iterations)
     ]
 
-    losses, norms = zip(*data)
+    losses, norms, per_param_grad = zip(*data)
+    # reshape
+    keys = per_param_grad[0].keys()
+    per_param_grad = {k: [d[k] for d in per_param_grad] for k in keys}
+
+    fig, axs = plt.subplots(len(per_param_grad), figsize=(10, 30))
+    for i, (k, v) in enumerate(per_param_grad.items()):
+        axs[i].plot(v, "-o")
+        axs[i].set_title(k)
+        # axs[i].set_ylim(0, 5)
+    fig.tight_layout()
+    fig.savefig(f"test_imitation_mdp_{action_mode}_grads.pdf")
 
     fig, axs = plt.subplots(2)
     axs[0].plot(losses)
@@ -131,15 +142,15 @@ def iteration(i, env, agent, optimizer, vf_agent, vf_optimizer, seed: int):
     # saved_r = load_rollout(f"rollouts/rollout_{i}.json")
     # compare_rollouts(r, saved_r)
 
-    loss, grad_norm = update(agent, optimizer, r.actions, r.obs.batch)
+    loss, grad_norm, per_param_grad = update(agent, optimizer, r.actions, r.obs.batch)
     vf_loss, vf_grad_norm = update_vf_agent(
         vf_agent, vf_optimizer, r.obs.batch, r.rewards
     )
     print(
         f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}, VF Loss: {vf_loss:.3f}, VF Grad Norm: {vf_grad_norm:.3f}"
     )
-    return loss, grad_norm
+    return loss, grad_norm, per_param_grad
 
 
 if __name__ == "__main__":
-    test_imitation(ActionMode.ACTION_THEN_NODE, 30, 16)
+    test_imitation(ActionMode.ACTION_THEN_NODE, 30, 8)

@@ -32,6 +32,8 @@ from regawa.gnn import GraphAgent, Config, ActionMode, HeteroStateData
 import mlflow
 import mlflow.pytorch
 
+from regawa.rl.util import evaluate
+
 
 @torch.inference_mode()
 def gae(
@@ -91,7 +93,7 @@ class Args:
     instance: str | int = 1
     # domain = "Elevators_MDP_ippc2011"
     # instance = 1
-    total_timesteps: int = 10000
+    total_timesteps: int = 2000
     """total timesteps of the experiments"""
     learning_rate: float = 1.0e-2
     """the learning rate of the optimizer"""
@@ -101,7 +103,7 @@ class Args:
     """the number of steps to run in each environment per policy rollout"""
     anneal_lr: bool = True
     """Toggle learning rate annealing for policy and value networks"""
-    gamma: float = 0.99
+    gamma: float = 1.0
     """the discount factor gamma"""
     gae_lambda: float = 0.0
     """the lambda for the general advantage estimation"""
@@ -117,7 +119,7 @@ class Args:
     """Toggles whether or not to use a clipped loss for the value function, as per the paper."""
     ent_coef: float = 0.01
     """coefficient of the entropy"""
-    vf_coef: float = 0.1
+    vf_coef: float = 1.0
     """coefficient of the value function"""
     max_grad_norm: float = 1.0
     """the maximum norm for the gradient clipping"""
@@ -368,7 +370,11 @@ def main(
     if args.track:
         wandb.watch(agent, log_freq=10, log="all")  # type: ignore
     optimizer = optim.AdamW(
-        agent.parameters(), lr=args.learning_rate, eps=1e-5, amsgrad=True
+        agent.parameters(),
+        lr=args.learning_rate,
+        eps=1e-5,
+        amsgrad=True,
+        weight_decay=0.1,
     )
 
     # ALGO Logic: Storage setup
@@ -520,6 +526,7 @@ def main(
         )
 
     envs.close()
+    return agent
 
 
 def setup():

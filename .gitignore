@@ -16,3 +16,5 @@ gnn_policy
 *.yml
 build
 render
+images
+*.log

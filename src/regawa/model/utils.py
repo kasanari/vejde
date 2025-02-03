@@ -1,6 +1,5 @@
 from .base_model import BaseModel
 from functools import cache
-from gymnasium.spaces import Dict, MultiDiscrete
 
 
 def type_attributes(model: BaseModel):
@@ -31,15 +30,3 @@ def fluents_of_arity(model: BaseModel):
         return d[arity]
 
     return f
-
-
-def n_types(observation_space: Dict):
-    return int(observation_space["bool"]["factor"].feature_space.n)  # type: ignore
-
-
-def n_relations(observation_space: Dict):
-    return int(observation_space["bool"]["var_type"].feature_space.n)  # type: ignore
-
-
-def n_actions(action_space: MultiDiscrete):
-    return int(action_space.nvec[0])  # type: ignore

@@ -48,3 +48,15 @@ def action_space(
         ]
         * max_action_args
     )
+
+
+def n_types(observation_space: Dict):
+    return int(observation_space["bool"]["factor"].feature_space.n)  # type: ignore
+
+
+def n_relations(observation_space: Dict):
+    return int(observation_space["bool"]["var_type"].feature_space.n)  # type: ignore
+
+
+def n_actions(action_space: MultiDiscrete):
+    return int(action_space.nvec[0])  # type: ignore

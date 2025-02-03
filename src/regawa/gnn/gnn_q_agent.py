@@ -1,5 +1,4 @@
 import torch.nn as nn
-from torch import Tensor
 
 
 from regawa.gnn.agent_utils import ActionMode, Config

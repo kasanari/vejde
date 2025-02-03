@@ -1,9 +1,6 @@
 from typing import Any, TypeVar
-from pyRDDLGym.core.compiler.model import RDDLPlanningModel  # type: ignore
 import gymnasium as gym
 from gymnasium import spaces
-from pyRDDLGym import RDDLEnv
-from functools import cache
 from regawa import GroundValue
 from regawa.model.base_grounded_model import BaseGroundedModel
 

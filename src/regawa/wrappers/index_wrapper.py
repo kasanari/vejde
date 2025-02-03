@@ -2,7 +2,6 @@ from typing import Any, TypeVar
 
 
 import gymnasium as gym
-import numpy as np
 
 from regawa.model.base_model import BaseModel
 from .utils import idx_action_to_ground_value

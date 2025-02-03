@@ -5,7 +5,6 @@ from torch.nn.utils.rnn import pack_padded_sequence
 import torch as th
 from .gnn_classes import EmbeddingLayer
 import logging
-from torch.nn.utils.rnn import PackedSequence
 
 logger = logging.getLogger(__name__)
 

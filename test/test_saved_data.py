@@ -1,15 +1,11 @@
 from collections import deque
 import json
-from random import shuffle
 
 import torch as th
 from tqdm import tqdm
 from regawa.gnn.data import (
-    dict_to_obsdata,
     heterodict_to_obsdata,
-    heterostatedata,
     heterostatedata_from_obslist,
-    single_obs_to_heterostatedata,
 )
 from regawa.gnn.gnn_agent import Config, GraphAgent
 from regawa.gnn import ActionMode

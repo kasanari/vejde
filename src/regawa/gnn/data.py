@@ -4,17 +4,20 @@ from itertools import chain
 import json
 from typing import NamedTuple
 
-import torch as th
-from torch import Tensor
-from torch import cumsum, ones_like, concatenate
-import torch
+# import torch as th
+# from torch import NDArray
+from numpy import asarray, cumsum, ones_like, concatenate
+
+from numpy.typing import NDArray
+
+# import torch
 import numpy as np
 
 from regawa.gnn.gnn_classes import SparseTensor
 
 
-ObsDict = dict[str, Tensor]
-BatchedObsDict = dict[str, tuple[Tensor]]
+ObsDict = dict[str, NDArray]
+BatchedObsDict = dict[str, tuple[NDArray]]
 
 HeteroObsDict = dict[str, ObsDict]
 HeteroBatchedObsDict = dict[str, BatchedObsDict]
@@ -22,7 +25,7 @@ HeteroBatchedObsDict = dict[str, BatchedObsDict]
 
 class Serializer(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, Tensor):
+        if isinstance(obj, NDArray):
             return obj.tolist()
         if isinstance(obj, np.bool_):
             return bool(obj)
@@ -32,37 +35,37 @@ class Serializer(json.JSONEncoder):
 
 
 class ObsData(NamedTuple):
-    var_value: Tensor
-    var_type: Tensor
-    factor: Tensor
-    senders: Tensor
-    receivers: Tensor
-    edge_attr: Tensor
-    length: Tensor
-    # globals: Tensor
+    var_value: NDArray
+    var_type: NDArray
+    factor: NDArray
+    senders: NDArray
+    receivers: NDArray
+    edge_attr: NDArray
+    length: NDArray
+    # globals: NDArray
     n_factor: int
     n_variable: int
-    global_vars: Tensor
-    global_vals: Tensor
-    global_length: Tensor
-    action_mask: Tensor
+    global_vars: NDArray
+    global_vals: NDArray
+    global_length: NDArray
+    action_mask: NDArray
 
 
 class StateData(NamedTuple):
     var_value: SparseTensor
     var_type: SparseTensor
     factor: SparseTensor
-    senders: Tensor  # variable
-    receivers: Tensor  # factor
-    edge_attr: Tensor
-    n_factor: Tensor
-    n_variable: Tensor
+    senders: NDArray  # variable
+    receivers: NDArray  # factor
+    edge_attr: NDArray
+    n_factor: NDArray
+    n_variable: NDArray
     n_graphs: int
-    length: Tensor
+    length: NDArray
     global_vars: SparseTensor
     global_vals: SparseTensor
-    global_length: Tensor
-    action_mask: Tensor
+    global_length: NDArray
+    action_mask: NDArray
 
 
 class HeteroStateData(NamedTuple):
@@ -174,25 +177,27 @@ class RolloutCollector:
 
 def batch(graphs: list[ObsData] | tuple[ObsData, ...]) -> StateData:
     """Returns batched graph given a list of graphs and a numpy-like module."""
-    # Calculates offsets for sender and receiver Tensors, caused by concatenating
-    # the nodes Tensors.
+    # Calculates offsets for sender and receiver NDArrays, caused by concatenating
+    # the nodes NDArrays.
     factor_offsets = cumsum(
-        torch.as_tensor([0] + [g.n_factor for g in graphs[:-1]]), dim=0
+        asarray([0] + [g.n_factor for g in graphs[:-1]]),
+        axis=0,
     )
     factor_batch = concatenate([ones_like(g.factor) * i for i, g in enumerate(graphs)])
     receivers = concatenate([g.receivers + o for g, o in zip(graphs, factor_offsets)])
 
     variable_offsets = cumsum(
-        torch.as_tensor([0] + [g.n_variable for g in graphs[:-1]]), dim=0
+        asarray([0] + [g.n_variable for g in graphs[:-1]]),
+        axis=0,
     )
     var_batch = concatenate(
-        [torch.ones(g.n_variable, dtype=th.int64) * i for i, g in enumerate(graphs)]
+        [np.ones(g.n_variable, dtype=np.int64) * i for i, g in enumerate(graphs)]
     )
     senders = concatenate([g.senders + o for g, o in zip(graphs, variable_offsets)])
 
-    global_vars = torch.cat([g.global_vars for g in graphs])
-    global_vals = torch.cat([g.global_vals for g in graphs])
-    global_batch = torch.cat(
+    global_vars = np.concatenate([g.global_vars for g in graphs])
+    global_vals = np.concatenate([g.global_vals for g in graphs])
+    global_batch = np.concatenate(
         [ones_like(g.global_vars) * i for i, g in enumerate(graphs)]
     )
 
@@ -208,8 +213,8 @@ def batch(graphs: list[ObsData] | tuple[ObsData, ...]) -> StateData:
         edge_attr=concatenate([g.edge_attr for g in graphs]),
         senders=senders,
         receivers=receivers,
-        n_factor=torch.as_tensor([g.n_factor for g in graphs]),
-        n_variable=torch.as_tensor([g.n_variable for g in graphs]),
+        n_factor=asarray([g.n_factor for g in graphs]),
+        n_variable=asarray([g.n_variable for g in graphs]),
         n_graphs=len(graphs),
         length=concatenate([g.length for g in graphs]),
         global_vars=SparseTensor(global_vars, global_batch),
@@ -234,24 +239,24 @@ attrs_from_obs = [
 
 def batched_dict_to_obsdata(obs: BatchedObsDict) -> tuple[ObsData, ...]:
     def create_data(i: int) -> ObsData:
-        data = {attr: torch.as_tensor(obs[attr][i]) for attr in attrs_from_obs}
+        data = {attr: obs[attr][i] for attr in attrs_from_obs}
         return ObsData(
             **data,
             n_factor=obs["factor"][i].shape[0],  # + obs["var_value"].shape[0]
-            n_variable=len(obs["length"][i]),
+            n_variable=obs["length"][i].shape[0],
         )
 
     return tuple(create_data(i) for i in range(len(obs["factor"])))
 
 
 def dict_to_obsdata(obs: ObsDict) -> ObsData:
-    data = {attr: torch.as_tensor(obs[attr]) for attr in attrs_from_obs}
+    data = {attr: obs[attr] for attr in attrs_from_obs}
     return ObsData(
         **data,
         n_factor=obs["factor"].shape[0],  # + obs["var_value"].shape[0]
-        n_variable=len(
-            obs["length"]
-        ),  # length is used since var_values may be flattened node histories
+        n_variable=obs["length"].shape[
+            0
+        ],  # length is used since var_values may be flattened node histories
     )
 
 

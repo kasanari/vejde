@@ -14,7 +14,11 @@ from regawa.gnn.data import (
 )
 from torch import Tensor
 
-from regawa.gnn.gnn_agent import GraphAgent
+from regawa.gnn.gnn_agent import (
+    GraphAgent,
+    heterostatedata_to_tensors,
+    statedata_to_tensors,
+)
 from torch.utils._foreach_utils import (
     _group_tensors_by_device_and_dtype,
 )
@@ -36,6 +40,7 @@ def evaluate(env: gym.Env, agent: GraphAgent, seed: int, deterministic: bool = T
         obs_buf.append(info["rddl_state"])
 
         s = single_obs_to_heterostatedata(obs)
+        s = heterostatedata_to_tensors(s)
 
         action, *_ = agent.sample(
             s,
@@ -139,6 +144,7 @@ def update(
 ):
     # b = th.stack([d.var_value for d in obs])
     actions = th.atleast_2d(th.as_tensor(actions, dtype=th.int64))
+
     logprob, *_ = agent.forward(
         actions,
         s,

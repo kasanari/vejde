@@ -5,9 +5,10 @@ import gymnasium as gym
 import numpy as np
 import pytest
 import torch as th
-
+import time
 
 from regawa.gnn import Config, GraphAgent, ActionMode
+from regawa.gnn.gnn_agent import heterostatedata_to_tensors
 from regawa.rl.util import evaluate, rollout, save_eval_data, update, update_vf_agent
 from regawa.rddl import register_env
 import regawa.model.utils as model_utils
@@ -141,10 +142,9 @@ def iteration(i, env, agent, optimizer, vf_agent, vf_optimizer, seed: int):
     # saved_r = load_rollout(f"rollouts/rollout_{i}.json")
     # compare_rollouts(r, saved_r)
 
-    loss, grad_norm, per_param_grad = update(agent, optimizer, r.actions, r.obs.batch)
-    vf_loss, vf_grad_norm = update_vf_agent(
-        vf_agent, vf_optimizer, r.obs.batch, r.rewards
-    )
+    b = heterostatedata_to_tensors(r.obs.batch)
+    loss, grad_norm, per_param_grad = update(agent, optimizer, r.actions, b)
+    vf_loss, vf_grad_norm = update_vf_agent(vf_agent, vf_optimizer, b, r.rewards)
     print(
         f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}, VF Loss: {vf_loss:.3f}, VF Grad Norm: {vf_grad_norm:.3f}"
     )
@@ -152,4 +152,6 @@ def iteration(i, env, agent, optimizer, vf_agent, vf_optimizer, seed: int):
 
 
 if __name__ == "__main__":
-    test_imitation(ActionMode.ACTION_THEN_NODE, 30, 8)
+    t = time.time()
+    test_imitation(ActionMode.ACTION_THEN_NODE, 30, 16)
+    print("Time: ", time.time() - t)

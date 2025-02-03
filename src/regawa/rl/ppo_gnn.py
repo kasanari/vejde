@@ -26,6 +26,7 @@ from regawa.gnn.data import (
     batched_hetero_dict_to_hetero_obs_list,
     heterostatedata,
 )
+from regawa.gnn.gnn_agent import heterostatedata_to_tensors
 from regawa.rddl import register_env
 import regawa.model.utils as model_utils
 from regawa.gnn import GraphAgent, Config, ActionMode, HeteroStateData
@@ -229,6 +230,7 @@ def rollout(
 
         # ALGO LOGIC: action logic
         s = heterostatedata(next_obs)
+        s = heterostatedata_to_tensors(s)
         action, logprob, _, value = agent.sample_action_and_value(
             s
             # batch.action_mask,
@@ -426,6 +428,7 @@ def main(
         # bootstrap value if not done
         with torch.no_grad():
             next_obs_batch = heterostatedata(next_obs)
+            next_obs_batch = heterostatedata_to_tensors(next_obs_batch)
             next_value = agent.get_value(next_obs_batch).reshape(1, -1)
             advantages, returns = gae(
                 rewards,
@@ -459,6 +462,7 @@ def main(
                 end = start + minibatch_size
                 mb_inds = b_inds[start:end]
                 minibatch = obs.minibatch(mb_inds)
+                minibatch = heterostatedata_to_tensors(minibatch)
                 (
                     loss,
                     pg_loss,

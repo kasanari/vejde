@@ -19,6 +19,7 @@ from .gnn_embedder import (
 )
 
 from .action_then_node import ActionThenNodePolicy
+from torch import as_tensor
 
 
 class EmbeddedTuple(NamedTuple):
@@ -31,6 +32,24 @@ class EmbeddedTuple(NamedTuple):
     n_variable: Tensor
     n_factor: Tensor
     action_mask: Tensor
+
+
+def heterostatedata_to_tensors(data: HeteroStateData) -> HeteroStateData:
+    return HeteroStateData(
+        statedata_to_tensors(data.boolean),
+        statedata_to_tensors(data.numeric),
+    )
+
+
+def statedata_to_tensors(data: StateData) -> StateData:
+    params = tuple(
+        SparseTensor(as_tensor(attr.values), as_tensor(attr.indices))
+        if isinstance(attr, SparseTensor)
+        else as_tensor(attr)
+        for attr in data
+    )
+
+    return StateData(*params)
 
 
 def _embed(

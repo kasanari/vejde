@@ -44,7 +44,7 @@ class NodeThenActionPolicy(nn.Module):
         action_given_node_logits = self.action_given_node_prob(h.values)  # ~ln(p(a|n))
         n_g = n_nodes.shape[0]
 
-        mask_actions = predicate_mask(action_mask, h.indices)
+        mask_actions = predicate_mask(action_mask, h.indices, n_g)
         mask_nodes = node_mask(action_mask)
         actions, logprob, entropy, _, p_n = x(  # type: ignore
             action_given_node_logits,

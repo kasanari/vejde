@@ -7,6 +7,7 @@ from functools import cache
 
 from .rddl_model import RDDLModel
 from regawa.wrappers.utils import predicate
+from regawa import GroundValue
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
@@ -40,8 +41,8 @@ class RDDLConvertEnums(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActT
         obs = {k: v for k, v in obs.items() if predicate(k) not in self.enum_fluents}
         return obs
 
-    def convert_action(self, action: str) -> dict[str, str]:
-        action_with_enum, *args = action.split("___")
+    def convert_action(self, action: GroundValue) -> dict[str, str]:
+        action_with_enum, *args = action
 
         action, *enum_value_index = action_with_enum.split("^^^")
 
@@ -49,7 +50,7 @@ class RDDLConvertEnums(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActT
 
         args = [a.replace("@", "") for a in args]
 
-        key = f"{action}___{args[0]}" if len(args) > 0 else action
+        key = (action, *args)
 
         return (key, value)
 

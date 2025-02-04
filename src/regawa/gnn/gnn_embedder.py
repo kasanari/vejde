@@ -147,7 +147,7 @@ class RecurrentEmbedder(nn.Module):
     def __init__(
         self,
         embedding_dim: int,
-        base_embedder: NegativeBiasBooleanEmbedder | NumericEmbedder,
+        base_embedder: NegativeBiasBooleanEmbedder | NumericEmbedder | BooleanEmbedder,
     ):
         super().__init__()  # type: ignore
 
@@ -177,7 +177,9 @@ class RecurrentEmbedder(nn.Module):
 
             logger.debug("h:\n%s", h)
 
-            variables = compress_time(self.recurrent, h, length)
+            variables = (
+                compress_time(self.recurrent, h, length) if h.shape[0] > 0 else h
+            )
 
             logger.debug("variables:\n%s", variables)
 

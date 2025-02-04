@@ -9,7 +9,7 @@ from dataclasses import asdict
 from regawa.gnn.agent_utils import ActionMode, Config
 from regawa.gnn.node_then_action import NodeThenActionPolicy
 
-from .gnn_classes import EmbeddingLayer, SparseTensor, sparsify
+from .gnn_classes import EmbeddingLayer, SparseArray, SparseTensor, sparsify
 from .data import HeteroStateData, StateData
 from .factorgraph_gnn import BipartiteGNN, FactorGraph
 from .gnn_embedder import (
@@ -44,7 +44,7 @@ def heterostatedata_to_tensors(data: HeteroStateData) -> HeteroStateData:
 def statedata_to_tensors(data: StateData) -> StateData:
     params = tuple(
         SparseTensor(as_tensor(attr.values), as_tensor(attr.indices))
-        if isinstance(attr, SparseTensor)
+        if isinstance(attr, SparseArray)
         else as_tensor(attr)
         for attr in data
     )

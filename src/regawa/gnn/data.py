@@ -2,7 +2,7 @@ from collections import deque
 from collections.abc import Iterable
 from itertools import chain
 import json
-from typing import NamedTuple
+from typing import NamedTuple, TypeVar
 
 # import torch as th
 # from torch import NDArray
@@ -13,7 +13,7 @@ from numpy.typing import NDArray
 # import torch
 import numpy as np
 
-from regawa.gnn.gnn_classes import SparseTensor
+from regawa.gnn.gnn_classes import SparseArray
 
 
 ObsDict = dict[str, NDArray]
@@ -51,26 +51,29 @@ class ObsData(NamedTuple):
     action_mask: NDArray
 
 
-class StateData(NamedTuple):
-    var_value: SparseTensor
-    var_type: SparseTensor
-    factor: SparseTensor
-    senders: NDArray  # variable
-    receivers: NDArray  # factor
-    edge_attr: NDArray
-    n_factor: NDArray
-    n_variable: NDArray
-    n_graphs: int
-    length: NDArray
-    global_vars: SparseTensor
-    global_vals: SparseTensor
-    global_length: NDArray
-    action_mask: NDArray
+V = TypeVar("V", np.float32, np.bool_)
+
+
+class StateData[V](NamedTuple):
+    var_value: SparseArray[V]
+    var_type: SparseArray[np.int64]
+    factor: SparseArray[np.int64]
+    senders: NDArray[np.int64]  # variable
+    receivers: NDArray[np.int64]  # factor
+    edge_attr: NDArray[np.int64]
+    n_factor: NDArray[np.int64]
+    n_variable: NDArray[np.int64]
+    n_graphs: np.int64
+    length: NDArray[np.int64]
+    global_vars: SparseArray[np.int64]
+    global_vals: SparseArray[V]
+    global_length: NDArray[np.int64]
+    action_mask: NDArray[np.int8]
 
 
 class HeteroStateData(NamedTuple):
-    boolean: StateData
-    numeric: StateData
+    boolean: StateData[np.bool_]
+    numeric: StateData[np.float32]
 
 
 class GraphBuffer:
@@ -207,9 +210,9 @@ def batch(graphs: list[ObsData] | tuple[ObsData, ...]) -> StateData:
 
     return StateData(
         # n_node=stack([g.n_node for g in graphs]),
-        var_value=SparseTensor(var_vals, var_batch),
-        var_type=SparseTensor(concatenate([g.var_type for g in graphs]), var_batch),
-        factor=SparseTensor(concatenate([g.factor for g in graphs]), factor_batch),
+        var_value=SparseArray(var_vals, var_batch),
+        var_type=SparseArray(concatenate([g.var_type for g in graphs]), var_batch),
+        factor=SparseArray(concatenate([g.factor for g in graphs]), factor_batch),
         edge_attr=concatenate([g.edge_attr for g in graphs]),
         senders=senders,
         receivers=receivers,
@@ -217,8 +220,8 @@ def batch(graphs: list[ObsData] | tuple[ObsData, ...]) -> StateData:
         n_variable=asarray([g.n_variable for g in graphs]),
         n_graphs=len(graphs),
         length=concatenate([g.length for g in graphs]),
-        global_vars=SparseTensor(global_vars, global_batch),
-        global_vals=SparseTensor(global_vals, global_batch),
+        global_vars=SparseArray(global_vars, global_batch),
+        global_vals=SparseArray(global_vals, global_batch),
         global_length=concatenate([g.global_length for g in graphs]),
         action_mask=action_mask,
     )

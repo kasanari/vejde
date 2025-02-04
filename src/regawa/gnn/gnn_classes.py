@@ -1,9 +1,28 @@
 from collections.abc import Callable
-from typing import NamedTuple
+from typing import NamedTuple, TypeVar
 import torch.nn.init as init
 from torch import Tensor
 import torch
 from torch.nn import Embedding, Linear, Module, LayerNorm, Sequential
+from numpy.typing import NDArray
+import numpy as np
+
+V = TypeVar("V")
+
+
+class SparseArray[V](NamedTuple):
+    values: NDArray[V]
+    indices: NDArray[np.int64]
+
+    @property
+    def shape(self) -> torch.Size:
+        return self.values.shape
+
+    def concat(self, other: "SparseTensor") -> "SparseTensor":
+        return SparseTensor(
+            np.concatenate((self.values, other.values)),
+            np.concatenate((self.indices, other.indices)),
+        )
 
 
 class SparseTensor(NamedTuple):

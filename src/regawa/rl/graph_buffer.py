@@ -11,7 +11,7 @@ from gymnasium import spaces
 import numpy.typing as npt
 import torch as th
 
-from regawa.model.utils import n_actions
+from regawa.wrappers.gym_utils import n_actions
 
 
 class ReplayBufferSamples(NamedTuple):

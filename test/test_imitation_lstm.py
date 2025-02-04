@@ -12,6 +12,7 @@ from gymnasium.spaces import Dict, MultiDiscrete
 from regawa.gnn import ActionMode, Config, RecurrentGraphAgent
 
 
+from regawa.gnn.gnn_agent import heterostatedata_to_tensors
 from regawa.rl.util import evaluate, rollout, save_eval_data, update
 from regawa.rddl import register_pomdp_env as register_env
 
@@ -146,7 +147,7 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
     num_seeds = 10
 
     data = [iteration(i, env, agent, optimizer, 0) for i in range(iterations)]
-    losses, norms = zip(*data)
+    losses, norms, _ = zip(*data)
 
     fig, axs = plt.subplots(2)
     axs[0].plot(losses)
@@ -181,10 +182,11 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
 
 def iteration(i, env, agent, optimizer, seed: int):
     r, length = rollout(env, seed, policy, 2.0)
-    loss, grad_norm, _ = update(agent, optimizer, r.actions, r.obs.batch)
-    logger.info(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}")
-    return loss, grad_norm
+    b = heterostatedata_to_tensors(r.obs.batch)
+    loss, grad_norm, per_param_grad = update(agent, optimizer, r.actions, b)
+    print(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}")
+    return loss, grad_norm, per_param_grad
 
 
 if __name__ == "__main__":
-    test_imitation_rnn(ActionMode.NODE_THEN_ACTION, 120)
+    test_imitation_rnn(ActionMode.NODE_THEN_ACTION, 120, 16)

@@ -173,21 +173,21 @@ def create_graphs(
     bool_ground = bool_groundings(filtered_groundings, model.fluent_range)
 
     bool_g = generate_bipartite_obs(
-            FactorGraph[bool],
-            filtered_obs,
-            bool_ground,
-            model.fluent_param,
-            model.num_actions,
+        FactorGraph[bool],
+        filtered_obs,
+        bool_ground,
+        model.fluent_param,
+        model.num_actions,
     )
 
     n_g = numeric_groundings(filtered_groundings, model.fluent_range)
 
     numeric_g = generate_bipartite_obs(  # TODO add this to obs
-            FactorGraph[float],
-            filtered_obs,
-            n_g,
-            model.fluent_param,
-            model.num_actions,
+        FactorGraph[float],
+        filtered_obs,
+        n_g,
+        model.fluent_param,
+        model.num_actions,
     )
 
     assert isinstance(bool_g, FactorGraph)
@@ -237,21 +237,21 @@ def create_stacked_graphs(
     bool_ground = bool_groundings(filtered_groundings, model.fluent_range)
 
     bool_g = generate_bipartite_obs(
-            StackedFactorGraph[bool],
-            filtered_obs,
-            bool_ground,
-            model.fluent_param,
-            model.num_actions,
+        StackedFactorGraph[bool],
+        filtered_obs,
+        bool_ground,
+        model.fluent_param,
+        model.num_actions,
     )
 
     n_g = numeric_groundings(filtered_groundings, model.fluent_range)
 
     numeric_g = generate_bipartite_obs(
-            StackedFactorGraph[float],
-            filtered_obs,
-            n_g,
-            model.fluent_param,
-            model.num_actions,
+        StackedFactorGraph[float],
+        filtered_obs,
+        n_g,
+        model.fluent_param,
+        model.num_actions,
     )
 
     assert isinstance(
@@ -309,15 +309,19 @@ def has_valid_parameters(
     action: GroundValue,
     obj_to_type: Callable[[str], str],
     fluent_params: Callable[[str], tuple[str, ...]],
-) -> bool:
+) -> tuple[bool, str]:
     action_fluent = predicate(action)
     param_types = fluent_params(action_fluent)
     params: tuple[str, ...] = objects(action)
+
+    if len(param_types) != len(params):
+        return False, f"Expected {len(param_types)} parameters, got {len(params)}"
+
     for i, intended_param in enumerate(param_types):
         if intended_param != obj_to_type(params[i]):
-            return False
+            return False, f"Expected {intended_param}, got {obj_to_type(params[i])}"
 
-    return True
+    return True, ""
 
 
 def to_dict_action(
@@ -326,11 +330,11 @@ def to_dict_action(
     fluent_params: Callable[[str], tuple[str, ...]],
 ) -> dict[GroundValue, int]:
     action_fluent = predicate(action)
-    action_fluent = (
-        "None"
-        if not has_valid_parameters(action, obj_to_type, fluent_params)
-        else action_fluent
-    )
+    has_valid_param, reason = has_valid_parameters(action, obj_to_type, fluent_params)
+    action_fluent = "None" if not has_valid_param else action_fluent
+
+    if not has_valid_param:
+        logger.warning(f"Invalid action {action} because {reason}")
 
     action_dict = {} if action_fluent == "None" else {action: 1}
 

@@ -31,9 +31,9 @@ class RDDLToTuple(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActType])
         bool,
         dict[str, Any],
     ]:
-        actions = {merge_rddl_grounding(k): v for k, v in actions.items()}
-
-        obs, reward, terminated, truncated, info = self.env.step(actions)
+        obs, reward, terminated, truncated, info = self.env.step(
+            {merge_rddl_grounding(k): v for k, v in actions.items()}
+        )
 
         obs = {rddl_ground_to_tuple(k): v for k, v in obs.items()}
 

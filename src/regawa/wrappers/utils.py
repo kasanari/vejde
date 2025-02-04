@@ -140,42 +140,6 @@ def create_render_graph(
     )
 
 
-def empty_factor_graph[V](
-    _: type[V], num_actions: int, add_none: bool = False
-) -> FactorGraph[V]:
-    return FactorGraph[V](
-        [],
-        [],
-        ["None"] if add_none else [],
-        ["None"] if add_none else [],
-        np.array([], dtype=np.int64),
-        np.array([], dtype=np.int64),
-        [],
-        [],
-        [],
-        np.ones((1, num_actions), dtype=np.bool_)
-        if num_actions > 0
-        else np.array([], dtype=np.bool_),
-    )
-
-
-def empty_stacked_factor_graph[V](
-    _: type[V], add_none: bool = False
-) -> StackedFactorGraph[V]:
-    return StackedFactorGraph[V](
-        [],
-        [],
-        ["None"] if add_none else [],
-        ["None"] if add_none else [],
-        np.array([], dtype=np.int64),
-        np.array([], dtype=np.int64),
-        [],
-        [],
-        [],
-        np.array([], dtype=np.bool_),
-    )
-
-
 def numeric_groundings(
     groundings: list[GroundValue], fluent_range: Callable[[str], type]
 ) -> list[GroundValue]:
@@ -208,30 +172,22 @@ def create_graphs(
 
     bool_ground = bool_groundings(filtered_groundings, model.fluent_range)
 
-    bool_g = (
-        generate_bipartite_obs(
+    bool_g = generate_bipartite_obs(
             FactorGraph[bool],
             filtered_obs,
             bool_ground,
             model.fluent_param,
             model.num_actions,
-        )
-        if bool_ground
-        else empty_factor_graph(bool, model.num_actions, add_none=True)
     )
 
     n_g = numeric_groundings(filtered_groundings, model.fluent_range)
 
-    numeric_g = (
-        generate_bipartite_obs(  # TODO add this to obs
+    numeric_g = generate_bipartite_obs(  # TODO add this to obs
             FactorGraph[float],
             filtered_obs,
             n_g,
             model.fluent_param,
             model.num_actions,
-        )
-        if n_g
-        else empty_factor_graph(float, model.num_actions)
     )
 
     assert isinstance(bool_g, FactorGraph)
@@ -280,30 +236,22 @@ def create_stacked_graphs(
 
     bool_ground = bool_groundings(filtered_groundings, model.fluent_range)
 
-    bool_g = (
-        generate_bipartite_obs(
+    bool_g = generate_bipartite_obs(
             StackedFactorGraph[bool],
             filtered_obs,
             bool_ground,
             model.fluent_param,
             model.num_actions,
-        )
-        if bool_ground
-        else empty_stacked_factor_graph(bool)
     )
 
     n_g = numeric_groundings(filtered_groundings, model.fluent_range)
 
-    numeric_g = (
-        generate_bipartite_obs(
+    numeric_g = generate_bipartite_obs(
             StackedFactorGraph[float],
             filtered_obs,
             n_g,
             model.fluent_param,
             model.num_actions,
-        )
-        if n_g
-        else empty_stacked_factor_graph(float)
     )
 
     assert isinstance(

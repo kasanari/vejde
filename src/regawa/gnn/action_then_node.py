@@ -43,7 +43,7 @@ class ActionThenNodePolicy(nn.Module):
         action_given_node_logits = self.action_given_node_prob(h.values)  # ~ln(p(a|n))
         node_given_action_logits = self.node_given_action_prob(h.values)  # ~ln(p(n|a))
         mask_actions = predicate_mask(
-            action_mask, h.indices
+            action_mask, h.indices, n_nodes.shape[0]
         )  # TODO do not use predicate_mask
         mask_nodes = node_mask(action_mask)
         n_g = num_graphs(h.indices)

@@ -12,14 +12,13 @@ from gymnasium.spaces import Dict, MultiDiscrete
 from regawa.gnn import ActionMode, Config, RecurrentGraphAgent
 
 
-import regawa.model.utils as model_utils
-
-
 from regawa.rl.util import evaluate, rollout, save_eval_data, update
 from regawa.rddl import register_pomdp_env as register_env
 
 import logging
 import matplotlib.pyplot as plt
+
+import regawa.wrappers.gym_utils as model_utils
 
 
 class Serializer(json.JSONEncoder):

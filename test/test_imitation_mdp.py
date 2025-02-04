@@ -11,10 +11,11 @@ from regawa.gnn import Config, GraphAgent, ActionMode
 from regawa.gnn.gnn_agent import heterostatedata_to_tensors
 from regawa.rl.util import evaluate, rollout, save_eval_data, update, update_vf_agent
 from regawa.rddl import register_env
-import regawa.model.utils as model_utils
 import logging
 
 import matplotlib.pyplot as plt
+
+import regawa.wrappers.gym_utils as model_utils
 
 
 def policy(state: dict[str, bool]) -> tuple[int, int]:

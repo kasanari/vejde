@@ -28,12 +28,12 @@ from regawa.gnn.data import (
 )
 from regawa.gnn.gnn_agent import heterostatedata_to_tensors
 from regawa.rddl import register_env
-import regawa.model.utils as model_utils
 from regawa.gnn import GraphAgent, Config, ActionMode, HeteroStateData
 import mlflow
 import mlflow.pytorch
 
 from regawa.rl.util import evaluate
+import regawa.wrappers.gym_utils as model_utils
 
 
 @torch.inference_mode()

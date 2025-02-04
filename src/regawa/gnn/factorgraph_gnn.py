@@ -7,7 +7,6 @@ import logging
 from torch_scatter import scatter
 
 from gnn_policy.functional import segment_sum, segmented_softmax
-from regawa.functional import num_graphs
 
 # from torch import scatter
 from .gnn_classes import MLPLayer, SparseTensor
@@ -68,7 +67,7 @@ class BipartiteGNNConvVariableToFactor(nn.Module):
         logger.debug("V2F Messages\n%s", x)
         x = scatter(x, receivers, dim=0, reduce="sum")
         logger.debug("V2F Aggr out:\n%s", x)
-        x = (factors, x)
+        x = (factors, x) if x.shape[0] > 0 else (factors, torch.zeros_like(factors))
         x = torch.concatenate(x, dim=-1)
         x = self.combine(x)
         return x
@@ -228,12 +227,22 @@ class BipartiteGNN(nn.Module):
         self,
         fg: FactorGraph,
     ) -> FactorGraph:
-        n_g = num_graphs(fg.factors.indices)
+        n_g = fg.n_factor.shape[0]
         g = torch.zeros(n_g, self.hidden_size).to(fg.factors.values.device)
         g = self.pre_aggr(fg.globals_, n_g) if fg.globals_.values.shape[0] > 0 else g
 
         factors = SparseTensor(
             fg.factors.values + g[fg.factors.indices], fg.factors.indices
+        )
+        fg = FactorGraph(
+            fg.variables,
+            factors,
+            fg.senders,
+            fg.receivers,
+            fg.edge_attr,
+            fg.n_factor,
+            fg.globals_,
+            fg.action_mask,
         )
 
         i = 0

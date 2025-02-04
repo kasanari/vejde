@@ -39,7 +39,7 @@ def action_space(
     num_objects: int,
     arity: Callable[[str], int],
 ) -> MultiDiscrete:
-    max_action_args = max(arity(a) for a in action_fluents)
+    max_action_args = max(arity(a) for a in action_fluents) or 1
 
     return MultiDiscrete(
         [num_actions]

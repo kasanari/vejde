@@ -140,27 +140,33 @@ def create_render_graph(
     )
 
 
-def empty_factor_graph[V](_: type[V]) -> FactorGraph[V]:
+def empty_factor_graph[V](
+    _: type[V], num_actions: int, add_none: bool = False
+) -> FactorGraph[V]:
     return FactorGraph[V](
         [],
         [],
-        [],
-        [],
+        ["None"] if add_none else [],
+        ["None"] if add_none else [],
         np.array([], dtype=np.int64),
         np.array([], dtype=np.int64),
         [],
         [],
         [],
-        np.array([], dtype=np.bool_),
+        np.ones((1, num_actions), dtype=np.bool_)
+        if num_actions > 0
+        else np.array([], dtype=np.bool_),
     )
 
 
-def empty_stacked_factor_graph[V](_: type[V]) -> StackedFactorGraph[V]:
+def empty_stacked_factor_graph[V](
+    _: type[V], add_none: bool = False
+) -> StackedFactorGraph[V]:
     return StackedFactorGraph[V](
         [],
         [],
-        [],
-        [],
+        ["None"] if add_none else [],
+        ["None"] if add_none else [],
         np.array([], dtype=np.int64),
         np.array([], dtype=np.int64),
         [],
@@ -211,7 +217,7 @@ def create_graphs(
             model.num_actions,
         )
         if bool_ground
-        else empty_factor_graph(bool)
+        else empty_factor_graph(bool, model.num_actions, add_none=True)
     )
 
     n_g = numeric_groundings(filtered_groundings, model.fluent_range)
@@ -225,7 +231,7 @@ def create_graphs(
             model.num_actions,
         )
         if n_g
-        else empty_factor_graph(float)
+        else empty_factor_graph(float, model.num_actions)
     )
 
     assert isinstance(bool_g, FactorGraph)
@@ -388,7 +394,9 @@ def idx_action_to_ground_value(
     idx_to_action: Callable[[int], str],
     idx_to_obj: Callable[[int], str],
 ) -> GroundValue:
-    return (idx_to_action(action[0]),) + tuple([idx_to_obj(obj) for obj in action[1:]])
+    return (idx_to_action(action[0]),) + tuple(
+        [idx_to_obj(obj) for obj in action[1:] if obj != 0]
+    )
 
 
 def sample_action(action_space: Dict) -> dict[str, int]:
@@ -551,10 +559,10 @@ def map_stacked_graph_to_idx[V](
 
 
 def object_list(
-    obs: dict[GroundValue, Any], relation_to_types: Callable[[str, int], str]
+    keys: list[GroundValue], relation_to_types: Callable[[str, int], str]
 ) -> list[Object]:
     obs_objects: set[Object] = set()
-    for key in obs:
+    for key in keys:
         for object in objects_with_type(key, relation_to_types):
             obs_objects.add(object)
     object_list = sorted(obs_objects)
@@ -592,7 +600,9 @@ def generate_bipartite_obs(
 
     edges = create_edges(non_nullary_groundings)
 
-    obj_list = object_list(obs, relation_to_types)
+    obj_list = object_list(
+        obs.keys(), relation_to_types
+    )  # NOTE: this makes factors common between boolean and numeric
 
     object_types = [object.type for object in obj_list]
 

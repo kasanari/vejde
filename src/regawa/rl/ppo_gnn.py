@@ -533,12 +533,12 @@ def main(
     return agent
 
 
-def setup():
+def setup(args: Args | None = None):
     print("Attempting to connect to mlflow...")
     tracking_uri = "http://127.0.0.1:5000"
     mlflow.set_tracking_uri(uri=tracking_uri)
     print(f"Connected to mlflow at {tracking_uri}")
-    args = tyro.cli(Args)
+    args = tyro.cli(Args) if args is None else args
 
     run_name = f"{Path(args.domain).name}__{Path(str(args.instance)).name}__{args.exp_name}__{args.seed}"
 
@@ -587,14 +587,13 @@ def setup():
     with mlflow.start_run():
         mlflow.log_params(logged_config)
         mlflow.log_artifact(__file__)
-        mlflow.log_artifact("kg_gnn.py")
         agent = main(envs, run_name, args, agent_config)
 
         env_id = register_env()
         eval_env = gym.make(
             env_id,
             domain=args.domain,
-            instance=1,
+            instance=args.instance,
         )
 
         def get_eval_returns(seed):

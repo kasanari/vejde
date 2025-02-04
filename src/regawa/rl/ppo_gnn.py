@@ -620,6 +620,8 @@ def setup(args: Args | None = None):
     print(stats)
     print(f"avg_reward: {avg_mean_reward}")
 
+    return stats, agent
+
 
 if __name__ == "__main__":
     setup()

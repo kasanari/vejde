@@ -60,8 +60,8 @@ class NodeThenActionPolicy(nn.Module):
         value = node_then_action_value_estimate(
             p_a__n,  # type: ignore
             self.q_action__node(h.values),
-            self.q_node(h.values).squeeze(),
             p_n,  # type: ignore
+            self.q_node(h.values).squeeze(),
             partial(segment_sum, index=h.indices, num_segments=n_g),  # type: ignore
         )
         return actions, logprob, entropy, value, p_n, p_a__n  # type: ignore

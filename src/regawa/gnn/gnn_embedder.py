@@ -89,7 +89,7 @@ class RecurrentEmbedder(nn.Module):
 
         self.embedder = base_embedder
 
-        self.recurrent = nn.GRU(
+        self.recurrent = nn.RNN(
             embedding_dim,
             embedding_dim,
             batch_first=True,

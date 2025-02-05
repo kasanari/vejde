@@ -481,7 +481,7 @@ def map_stacked_graph_to_idx[V](
     global_vars = [rel_to_idx(p) for p in global_vars]
 
     global_lengths = np.array(
-        [len(v) for v in factorgraph.global_variables], dtype=np.int64
+        [len(v) for v in factorgraph.global_variable_values], dtype=np.int64
     )
 
     lengths = np.array([len(v) for v in factorgraph.variable_values], dtype=np.int64)

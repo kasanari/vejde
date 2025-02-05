@@ -8,6 +8,8 @@ domain_arities = {}
 
 action_arities = {}
 
+has_real_actions = {}
+
 for p in manager.list_problems():
     instance_arities = {}
     instance_action_arities = {}
@@ -26,15 +28,24 @@ for p in manager.list_problems():
         instance_action_arities[i] = max([arities[af] for af in action_fluents])
         instance_arities[i] = max(arities.values())
 
+        has_real_actions[p] = "real" in env.model.action_ranges.values()
+
     if instance_arities:
         domain_arities[p] = max(instance_arities.values())
     if instance_action_arities:
         action_arities[p] = max(instance_action_arities.values())
 
-filtered_arities = {k: v for k, v in domain_arities.items() if v <= 2 and v > 0}
+filtered_arities = {k: v for k, v in domain_arities.items() if v <= 2}
 
 filtered_action_arities = {
     k: v for k, v in action_arities.items() if k in filtered_arities
+}
+
+
+ok_problems = {
+    k: v
+    for k, v in filtered_action_arities.items()
+    if v < 2 and not has_real_actions[k]
 }
 
 with open("arities.yml", "w") as f:
@@ -42,6 +53,9 @@ with open("arities.yml", "w") as f:
 
 with open("action_arities.yml", "w") as f:
     yaml.dump(filtered_action_arities, f)
+
+with open("ok_problems.yml", "w") as f:
+    yaml.dump(ok_problems, f)
 
 descriptions = {d: manager.get_problem(d).desc for d in domains}
 

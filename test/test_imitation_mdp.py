@@ -32,7 +32,7 @@ def policy(state: dict[str, bool]) -> tuple[int, int]:
     "action_mode, iterations, embedding_dim",
     [
         (ActionMode.NODE_THEN_ACTION, 30, 64),
-        (ActionMode.ACTION_THEN_NODE, 30, 16),
+        (ActionMode.ACTION_THEN_NODE, 17, 16),
     ],
 )
 def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int):

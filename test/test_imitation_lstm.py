@@ -122,7 +122,7 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
     )
     n_types = model_utils.n_types(env.observation_space)
     n_relations = model_utils.n_relations(env.observation_space)
-    arities = model_utils.action_arities(env.action_space)
+    n_actions = model_utils.n_actions(env.action_space)
 
     params = GNNParams(
         layers=3,
@@ -135,14 +135,14 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
     config = AgentConfig(
         n_types,
         n_relations,
-        arities,
+        n_actions,
         params,
     )
 
     agent = RecurrentGraphAgent(config)
 
     optimizer = th.optim.AdamW(
-        agent.parameters(), lr=0.01, amsgrad=True, weight_decay=1e-2
+        agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.1
     )
 
     data = [evaluate(env, agent, 0) for i in range(10)]
@@ -194,4 +194,4 @@ def iteration(i, env, agent, optimizer, seed: int):
 
 
 if __name__ == "__main__":
-    test_imitation_rnn(ActionMode.NODE_THEN_ACTION, 120, 16)
+    test_imitation_rnn(ActionMode.ACTION_THEN_NODE, 120, 16)

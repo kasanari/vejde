@@ -217,49 +217,50 @@ class RecurrentGraphAgent(nn.Module):
         super().__init__()  # type: ignore
 
         self.config = config
+        gnn_params = config.hyper_params
 
         self.factor_embedding = EmbeddingLayer(
             config.num_object_classes,
-            config.embedding_dim,
+            gnn_params.embedding_dim,
         )
 
         self.predicate_embedding = EmbeddingLayer(
             config.num_predicate_classes,
-            config.embedding_dim,
+            gnn_params.embedding_dim,
         )
 
         boolean_embedder = BooleanEmbedder(
-            config.embedding_dim,
+            gnn_params.embedding_dim,
             self.predicate_embedding,
         )
 
         self.r_boolean_embedder = RecurrentEmbedder(
-            config.embedding_dim,
+            gnn_params.embedding_dim,
             boolean_embedder,
         )
 
         numeric_embedder = NumericEmbedder(
-            config.embedding_dim,
-            config.activation,
+            gnn_params.embedding_dim,
+            gnn_params.activation,
             self.predicate_embedding,
         )
 
         self.r_numeric_embedder = RecurrentEmbedder(
-            config.embedding_dim,
+            gnn_params.embedding_dim,
             numeric_embedder,
         )
 
         self.p_gnn = BipartiteGNN(
-            config.layers,
-            config.embedding_dim,
-            config.aggregation,
-            config.activation,
+            gnn_params.layers,
+            gnn_params.embedding_dim,
+            gnn_params.aggregation,
+            gnn_params.activation,
         )
 
-        policy_args = (config.num_actions, config.embedding_dim)
+        policy_args = (config.num_actions, gnn_params.embedding_dim)
         self.policy = (
             ActionThenNodePolicy(*policy_args)
-            if config.action_mode == ActionMode.ACTION_THEN_NODE
+            if gnn_params.action_mode == ActionMode.ACTION_THEN_NODE
             else NodeThenActionPolicy(*policy_args)
         )
 

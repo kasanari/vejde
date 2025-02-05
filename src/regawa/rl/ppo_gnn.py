@@ -18,7 +18,7 @@ from gymnasium.spaces import Dict, MultiDiscrete
 from torch import Tensor
 import wandb
 from tqdm import tqdm
-from typing import Any
+from typing import Any, NamedTuple
 
 from regawa.gnn.data import (
     HeteroGraphBuffer,
@@ -192,6 +192,14 @@ class Agent(nn.Module):
         )
 
 
+class RolloutData(NamedTuple):
+    obs: HeteroGraphBuffer
+    last_obs: dict[str, list[ObsData]]
+    global_step: int
+    returns: list[float]
+    lengths: list[int]
+
+
 @torch.inference_mode()
 def rollout(
     agent: Agent,
@@ -207,7 +215,7 @@ def rollout(
     num_envs: int,
     device: torch.device | str,
     global_step: int,
-) -> tuple[HeteroGraphBuffer, dict[str, list[ObsData]], int, list[float], list[int]]:
+) -> RolloutData:
     returns: deque[float] = deque()
     lengths: deque[int] = deque()
     obs: HeteroGraphBuffer = HeteroGraphBuffer()
@@ -250,25 +258,47 @@ def rollout(
                 if is_final:
                     returns.append(r)
                     lengths.append(l)
-    return obs, next_obs, global_step, list(returns), list(lengths)
+    return RolloutData(obs, next_obs, global_step, list(returns), list(lengths))
+
+
+class UpdateData(NamedTuple):
+    loss: Tensor
+    pg_loss: Tensor
+    v_loss: Tensor
+    entropy_loss: Tensor
+    old_approx_kl: Tensor
+    approx_kl: Tensor
+    grad_norm: Tensor
+    clipfracs: list[float]
+
+
+class BatchData(NamedTuple):
+    s: HeteroStateData
+    actions: Tensor
+    logprobs: Tensor
+    advantages: Tensor
+    returns: Tensor
+    values: Tensor
+
+
+class PPOParams(NamedTuple):
+    clip_coef: float
+    norm_adv: bool
+    clip_vloss: bool
+    ent_coef: float
+    vf_coef: float
+    max_grad_norm: float
 
 
 def update(
     agent: Agent,
     optimizer: optim.Optimizer,
-    s: HeteroStateData,
-    actions: Tensor,
-    logprobs: Tensor,
-    advantages: Tensor,
-    returns: Tensor,
-    values: Tensor,
-    clip_coef: float,
-    norm_adv: bool,
-    clip_vloss: bool,
-    ent_coef: float,
-    vf_coef: float,
-    max_grad_norm: float,
-) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, list[float]]:
+    b: BatchData,
+    params: PPOParams,
+) -> UpdateData:
+    s, actions, logprobs, advantages, returns, values = b
+    clip_coef, norm_adv, clip_vloss, ent_coef, vf_coef, max_grad_norm = params
+
     newlogprob, entropy, newvalue = agent.evaluate_action_and_value(
         actions,
         s,
@@ -323,7 +353,7 @@ def update(
     )
     optimizer.step()
 
-    return (
+    return UpdateData(
         loss,
         pg_loss,
         v_loss,
@@ -382,8 +412,15 @@ def main(
     next_obs, _ = envs.reset(seed=args.seed)  # type: ignore
     next_obs = batched_hetero_dict_to_hetero_obs_list(next_obs)  # type: ignore
     next_done = torch.zeros(args.num_envs).to(device)
-    approx_kl = 0.0
-    entropy_loss = 0.0
+
+    ppo_params = PPOParams(
+        args.clip_coef,
+        args.norm_adv,
+        args.clip_vloss,
+        args.ent_coef,
+        args.vf_coef,
+        args.max_grad_norm,
+    )
 
     pbar = tqdm(total=args.num_iterations)
 
@@ -394,7 +431,7 @@ def main(
             lrnow = frac * args.learning_rate
             optimizer.param_groups[0]["lr"] = lrnow
 
-        obs, next_obs, global_step, rollout_returns, rollout_lengths = rollout(
+        r_data = rollout(
             agent,
             envs,
             next_obs,
@@ -410,13 +447,15 @@ def main(
             global_step,
         )
 
-        r = np.mean(rollout_returns) if rollout_returns else None
-        length = np.mean(rollout_lengths) if rollout_lengths else None
+        r = np.mean(r_data.returns) if r_data.returns else None
+        length = np.mean(r_data.lengths) if r_data.lengths else None
+        global_step = r_data.global_step
 
         # bootstrap value if not done
         with torch.no_grad():
-            next_obs_batch = heterostatedata(next_obs)
-            next_obs_batch = heterostatedata_to_tensors(next_obs_batch)
+            next_obs_batch = heterostatedata_to_tensors(
+                heterostatedata(r_data.last_obs)
+            )
             next_value = agent.get_value(next_obs_batch).reshape(1, -1)
             advantages, returns = gae(
                 rewards,
@@ -443,44 +482,36 @@ def main(
         minibatch_size = args.minibatch_size
         update_epochs = args.update_epochs
         b_inds = np.arange(batch_size)
+        u_data = None
         clipfracs: list[float] = []
         for _ in range(update_epochs):
             np.random.shuffle(b_inds)
             for start in range(0, batch_size, minibatch_size):
                 end = start + minibatch_size
                 mb_inds = b_inds[start:end]
-                minibatch = obs.minibatch(mb_inds)
+                minibatch = r_data.obs.minibatch(mb_inds)
                 minibatch = heterostatedata_to_tensors(minibatch)
-                (
-                    loss,
-                    pg_loss,
-                    v_loss,
-                    entropy_loss,
-                    old_approx_kl,
-                    approx_kl,
-                    grad_norm,
-                    clipfrac,
-                ) = update(
-                    agent,
-                    optimizer,
+                b = BatchData(
                     minibatch,
                     b_actions.long()[mb_inds],
                     b_logprobs[mb_inds],
                     b_advantages[mb_inds],
                     b_returns[mb_inds],
                     b_values[mb_inds],
-                    args.clip_coef,
-                    args.norm_adv,
-                    args.clip_vloss,
-                    args.ent_coef,
-                    args.vf_coef,
-                    args.max_grad_norm,
                 )
-                clipfracs += clipfrac
+                u_data = update(
+                    agent,
+                    optimizer,
+                    b,
+                    ppo_params,
+                )
+                clipfracs += u_data.clipfracs
 
-            if args.target_kl is not None and approx_kl > args.target_kl:
+            assert u_data
+            if args.target_kl is not None and u_data.approx_kl > args.target_kl:
                 break
 
+        assert u_data
         y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()  # type: ignore
         var_y = np.var(y_true)  # type: ignore
         explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
@@ -501,13 +532,15 @@ def main(
             mlflow.log_metric("rollout/mean_episodic_return", r, global_step)  # type: ignore
         if length is not None:
             mlflow.log_metric("rollout/mean_episodic_length", length, global_step)  # type: ignore
-        mlflow.log_metric("losses/total_loss", loss.item(), global_step)  # type: ignore
-        mlflow.log_metric("losses/grad_norm", grad_norm, global_step)  # type: ignore
-        mlflow.log_metric("losses/value_loss", v_loss.item(), global_step)  # type: ignore
-        mlflow.log_metric("losses/policy_loss", pg_loss.item(), global_step)  # type: ignore
-        mlflow.log_metric("losses/entropy", entropy_loss.item(), global_step)  # type: ignore
-        mlflow.log_metric("losses/old_approx_kl", old_approx_kl.item(), global_step)  # type: ignore
-        mlflow.log_metric("losses/approx_kl", approx_kl.item(), global_step)  # type: ignore
+        mlflow.log_metric("losses/total_loss", u_data.loss.item(), global_step)  # type: ignore
+        mlflow.log_metric("losses/grad_norm", u_data.grad_norm, global_step)  # type: ignore
+        mlflow.log_metric("losses/value_loss", u_data.v_loss.item(), global_step)  # type: ignore
+        mlflow.log_metric("losses/policy_loss", u_data.pg_loss.item(), global_step)  # type: ignore
+        mlflow.log_metric("losses/entropy", u_data.entropy_loss.item(), global_step)  # type: ignore
+        mlflow.log_metric(
+            "losses/old_approx_kl", u_data.old_approx_kl.item(), global_step
+        )  # type: ignore
+        mlflow.log_metric("losses/approx_kl", u_data.approx_kl.item(), global_step)  # type: ignore
         mlflow.log_metric("losses/clipfrac", np.mean(clipfracs), global_step)  # type: ignore
         mlflow.log_metric("losses/explained_variance", explained_var, global_step)  # type: ignore
         mlflow.log_metric(
@@ -586,8 +619,6 @@ def setup(args: Args | None = None):
 
         mlflow.log_metric("eval/mean_reward", avg_mean_reward)
 
-        # {"mean": 309.925, "median": 314.0, "min": 237.5, "max": 351.5, "std": 34.07345924616401}
-
         stats = {
             "mean": avg_return,
             "median": np.median([r[1] for r in rewards]),
@@ -598,6 +629,7 @@ def setup(args: Args | None = None):
 
         for k, v in stats.items():
             mlflow.log_metric(f"eval/return_{k}", v)
+
     print(stats)
     print(f"avg_reward: {avg_mean_reward}")
 

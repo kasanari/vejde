@@ -64,6 +64,8 @@ class FactorGraph[V](NamedTuple):
     global_variables: list[str]
     global_variable_values: list[V]
     action_mask: np.ndarray[np.bool_, Any]
+    groundings: list[GroundValue]
+    global_groundings: list[GroundValue]
 
 
 class StackedFactorGraph[V](NamedTuple):
@@ -77,6 +79,8 @@ class StackedFactorGraph[V](NamedTuple):
     global_variables: list[str]
     global_variable_values: list[list[V]]
     action_mask: np.ndarray[np.bool_, Any]
+    groundings: list[GroundValue]
+    global_groundings: list[GroundValue]
 
 
 class HeteroGraph(NamedTuple):
@@ -104,13 +108,17 @@ def graph_to_dict[V](idx_g: IdxFactorGraph[V]) -> dict[str, Any]:
 def create_render_graph(
     bool_g: FactorGraph[bool], numeric_g: FactorGraph[float]
 ) -> RenderGraph:
+    def format_label(key: GroundValue) -> str:
+        fluent, *args = key
+        return f"{fluent}({', '.join(args)})" if args else fluent
+
     boolean_labels = [
-        f"{key}={bool_g.variable_values[idx]}"
-        for idx, key in enumerate(bool_g.variables)
+        f"{format_label(key)}={bool_g.variable_values[idx]}"
+        for idx, key in enumerate(bool_g.groundings)
     ]
     numeric_labels = [
-        f"{key}={numeric_g.variable_values[idx]}"
-        for idx, key in enumerate(numeric_g.variables)
+        f"{format_label(key)}={numeric_g.variable_values[idx]}"
+        for idx, key in enumerate(numeric_g.groundings)
     ]
 
     labels = boolean_labels + numeric_labels
@@ -601,6 +609,8 @@ def generate_bipartite_obs(
         global_variables,
         global_variable_values,  # type: ignore
         action_mask,
+        non_nullary_groundings,
+        nullary_groundings,
     )
 
 

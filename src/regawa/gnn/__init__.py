@@ -1,10 +1,10 @@
 from enum import Enum
-from .gnn_agent import Config, GraphAgent, RecurrentGraphAgent, ActionMode
+from .gnn_agent import AgentConfig, GraphAgent, RecurrentGraphAgent, ActionMode
 from .data import StateData, HeteroStateData
 
 
 __all__ = [
-    "Config",
+    "AgentConfig",
     "RecurrentGraphAgent",
     "ActionMode",
     "GraphAgent",

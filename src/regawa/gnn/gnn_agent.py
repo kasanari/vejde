@@ -6,7 +6,7 @@ from torch import Tensor
 import torch as th
 from dataclasses import asdict
 
-from regawa.gnn.agent_utils import ActionMode, Config
+from regawa.gnn.agent_utils import ActionMode, AgentConfig
 from regawa.gnn.node_then_action import NodeThenActionPolicy
 
 from .gnn_classes import EmbeddingLayer, SparseArray, SparseTensor, sparsify
@@ -126,42 +126,43 @@ def merge_graphs(
 class GraphAgent(nn.Module):
     def __init__(
         self,
-        config: Config,
+        config: AgentConfig,
     ):
         super().__init__()  # type: ignore
 
         self.config = config
+        gnn_params = config.hyper_params
 
         self.factor_embedding = EmbeddingLayer(
-            config.num_object_classes, config.embedding_dim
+            config.num_object_classes, gnn_params.embedding_dim
         )
 
         self.predicate_embedding = EmbeddingLayer(
-            config.num_predicate_classes, config.embedding_dim
+            config.num_predicate_classes, gnn_params.embedding_dim
         )
 
         self.boolean_embedder = BooleanEmbedder(
-            config.embedding_dim,
+            gnn_params.embedding_dim,
             self.predicate_embedding,
         )
 
         self.numeric_embedder = NumericEmbedder(
-            config.embedding_dim,
-            config.activation,
+            gnn_params.embedding_dim,
+            gnn_params.activation,
             self.predicate_embedding,
         )
 
         self.p_gnn = BipartiteGNN(
-            config.layers,
-            config.embedding_dim,
-            config.aggregation,
-            config.activation,
+            gnn_params.layers,
+            gnn_params.embedding_dim,
+            gnn_params.aggregation,
+            gnn_params.activation,
         )
 
-        policy_args = (config.num_actions, config.embedding_dim)
+        policy_args = (config.num_actions, gnn_params.embedding_dim)
         self.policy = (
             ActionThenNodePolicy(*policy_args)
-            if config.action_mode == ActionMode.ACTION_THEN_NODE
+            if gnn_params.action_mode == ActionMode.ACTION_THEN_NODE
             else NodeThenActionPolicy(*policy_args)
         )
 
@@ -204,14 +205,14 @@ class GraphAgent(nn.Module):
         save_agent(self, self.config, path)
 
     @classmethod
-    def load_agent(cls, path: str) -> tuple["RecurrentGraphAgent", Config]:
+    def load_agent(cls, path: str) -> tuple["RecurrentGraphAgent", AgentConfig]:
         return load_agent(cls, path)  # type: ignore
 
 
 class RecurrentGraphAgent(nn.Module):
     def __init__(
         self,
-        config: Config,
+        config: AgentConfig,
     ):
         super().__init__()  # type: ignore
 
@@ -301,11 +302,11 @@ class RecurrentGraphAgent(nn.Module):
         save_agent(self, self.config, path)
 
     @classmethod
-    def load_agent(cls, path: str) -> tuple["RecurrentGraphAgent", Config]:
+    def load_agent(cls, path: str) -> tuple["RecurrentGraphAgent", AgentConfig]:
         return load_agent(cls, path)  # type: ignore
 
 
-def save_agent(agent: GraphAgent | RecurrentGraphAgent, config: Config, path: str):
+def save_agent(agent: GraphAgent | RecurrentGraphAgent, config: AgentConfig, path: str):
     state_dict = agent.state_dict()
     to_save: dict[str, Any] = {}
     to_save["config"] = asdict(config)
@@ -316,9 +317,9 @@ def save_agent(agent: GraphAgent | RecurrentGraphAgent, config: Config, path: st
 T = TypeVar("T", bound=GraphAgent | RecurrentGraphAgent)
 
 
-def load_agent(cls: T, path: str) -> tuple[T, Config]:
+def load_agent(cls: T, path: str) -> tuple[T, AgentConfig]:
     data = th.load(path, weights_only=False)  # type: ignore
-    config = Config(**data["config"])
+    config = AgentConfig(**data["config"])
     agent = cls(config)
     agent.load_state_dict(data["state_dict"])
 

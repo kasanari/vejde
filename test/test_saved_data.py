@@ -7,7 +7,7 @@ from regawa.gnn.data import (
     heterodict_to_obsdata,
     heterostatedata_from_obslist,
 )
-from regawa.gnn.gnn_agent import Config, GraphAgent
+from regawa.gnn.gnn_agent import AgentConfig, GraphAgent
 from regawa.gnn import ActionMode
 from regawa.model.base_grounded_model import BaseGroundedModel
 from regawa.model.base_model import BaseModel
@@ -83,7 +83,7 @@ def get_agent(model: BaseModel):
     n_relations = model.num_fluents
     n_actions = model.num_actions
 
-    config = Config(
+    config = AgentConfig(
         n_types,
         n_relations,
         n_actions,

@@ -7,7 +7,8 @@ import pytest
 import torch as th
 import time
 
-from regawa.gnn import Config, GraphAgent, ActionMode
+from regawa.gnn import AgentConfig, GraphAgent, ActionMode
+from regawa.gnn.agent_utils import GNNParams
 from regawa.gnn.gnn_agent import heterostatedata_to_tensors
 from regawa.rl.util import evaluate, rollout, save_eval_data, update, update_vf_agent
 from regawa.rddl import register_env
@@ -57,15 +58,19 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
     n_relations = model_utils.n_relations(env.observation_space)
     n_actions = model_utils.n_actions(env.action_space)
 
-    config = Config(
-        n_types,
-        n_relations,
-        n_actions,
+    params = GNNParams(
         layers=4,
         embedding_dim=embedding_dim,
         activation=th.nn.Mish(),
         aggregation="sum",
         action_mode=action_mode,
+    )
+
+    config = AgentConfig(
+        n_types,
+        n_relations,
+        n_actions,
+        params,
     )
 
     agent = GraphAgent(

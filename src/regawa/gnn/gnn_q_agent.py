@@ -1,7 +1,7 @@
 import torch.nn as nn
 
 
-from regawa.gnn.agent_utils import ActionMode, Config
+from regawa.gnn.agent_utils import ActionMode, AgentConfig
 from regawa.gnn.gnn_agent import _embed, merge_graphs
 from regawa.gnn.q_action_then_node import QActionThenNode
 from regawa.gnn.q_node_then_action import QNodeThenAction
@@ -18,7 +18,7 @@ from .gnn_embedder import (
 class GraphQAgent(nn.Module):
     def __init__(
         self,
-        config: Config,
+        config: AgentConfig,
     ):
         super().__init__()  # type: ignore
 
@@ -82,5 +82,5 @@ class GraphQAgent(nn.Module):
         save_agent(self, self.config, path)
 
     @classmethod
-    def load_agent(cls, path: str) -> tuple["RecurrentGraphAgent", Config]:
+    def load_agent(cls, path: str) -> tuple["RecurrentGraphAgent", AgentConfig]:
         return load_agent(cls, path)  # type: ignore

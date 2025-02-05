@@ -9,9 +9,10 @@ import torch as th
 from gymnasium.spaces import Dict, MultiDiscrete
 
 
-from regawa.gnn import ActionMode, Config, RecurrentGraphAgent
+from regawa.gnn import ActionMode, AgentConfig, RecurrentGraphAgent
 
 
+from regawa.gnn.agent_utils import GNNParams
 from regawa.gnn.gnn_agent import heterostatedata_to_tensors
 from regawa.rl.util import evaluate, rollout, save_eval_data, update
 from regawa.rddl import register_pomdp_env as register_env
@@ -121,17 +122,21 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
     )
     n_types = model_utils.n_types(env.observation_space)
     n_relations = model_utils.n_relations(env.observation_space)
-    n_actions = model_utils.n_actions(env.action_space)
+    arities = model_utils.action_arities(env.action_space)
 
-    config = Config(
-        n_types,
-        n_relations,
-        n_actions,
+    params = GNNParams(
         layers=3,
         embedding_dim=embedding_dim,
         activation=th.nn.Mish(),
         aggregation="sum",
         action_mode=action_mode,
+    )
+
+    config = AgentConfig(
+        n_types,
+        n_relations,
+        arities,
+        params,
     )
 
     agent = RecurrentGraphAgent(config)

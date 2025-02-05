@@ -28,11 +28,12 @@ from regawa.gnn.data import (
 )
 from regawa.gnn.gnn_agent import heterostatedata_to_tensors
 from regawa.rddl import register_env
-from regawa.gnn import GraphAgent, Config, ActionMode, HeteroStateData
+from regawa.gnn import GraphAgent, AgentConfig, HeteroStateData
 import mlflow
 import mlflow.pytorch
 
 from regawa.rl.util import evaluate
+from regawa import GNNParams
 import regawa.wrappers.gym_utils as model_utils
 
 
@@ -69,6 +70,7 @@ def gae(
 class Args:
     domain: str
     instance: str | int
+    agent_config: GNNParams
     exp_name: str = os.path.basename(__file__)[: -len(".py")]
     """the name of this experiment"""
     seed: int = 0
@@ -148,7 +150,7 @@ def make_env(
 class Agent(nn.Module):
     def __init__(
         self,
-        config: Config,
+        config: AgentConfig,
         **kwargs: dict[str, Any],
     ):
         super().__init__()  # type: ignore
@@ -369,7 +371,7 @@ def main(
     envs: gym.vector.SyncVectorEnv,
     run_name: str,
     args: Args,
-    agent_config: Config,
+    agent_config: AgentConfig,
 ):
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
@@ -569,15 +571,11 @@ def setup(args: Args | None = None):
     n_relations = model_utils.n_relations(envs.single_observation_space)  # type: ignore
     n_actions = model_utils.n_actions(envs.single_action_space)  # type: ignore
 
-    agent_config = Config(
+    agent_config = AgentConfig(
         n_types,
         n_relations,
         n_actions,
-        layers=3,
-        embedding_dim=8,
-        activation=nn.Mish(),
-        aggregation="sum",
-        action_mode=ActionMode.ACTION_THEN_NODE,
+        args.agent_config,
     )
 
     logged_config = vars(args) | asdict(agent_config)

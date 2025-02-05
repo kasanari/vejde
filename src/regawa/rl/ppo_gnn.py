@@ -67,6 +67,8 @@ def gae(
 
 @dataclass
 class Args:
+    domain: str
+    instance: str | int
     exp_name: str = os.path.basename(__file__)[: -len(".py")]
     """the name of this experiment"""
     seed: int = 0
@@ -81,19 +83,8 @@ class Args:
     """the wandb's project name"""
     wandb_entity: str | None = None
     """the entity (team) of wandb's project"""
-    capture_video: bool = False
-    """whether to capture videos of the agent performances (check out `videos` folder)"""
 
     # Algorithm specific arguments
-    # domain: str = "rddl/conditional_bandit.rddl"  # "Elevators_MDP_ippc2011"
-    # """the id of the environment"""
-    # instance: str | int = (
-    #     "rddl/conditional_bandit_i0.rddl"  # "rddl/elevators_mdp__ippc11.rddl"
-    # )
-    domain: str = "SysAdmin_MDP_ippc2011"
-    instance: str | int = 1
-    # domain = "Elevators_MDP_ippc2011"
-    # instance = 1
     total_timesteps: int = 2000
     """total timesteps of the experiments"""
     learning_rate: float = 1.0e-2
@@ -140,9 +131,6 @@ def make_env(
     env_id: str,
     domain: str,
     instance: str | int,
-    idx: int,
-    capture_video: bool,
-    run_name: str,
 ):
     def thunk() -> gym.Env[Dict, MultiDiscrete]:
         env: gym.Env[Dict, MultiDiscrete] = gym.make(  # type: ignore
@@ -513,9 +501,6 @@ def main(
             mlflow.log_metric("rollout/mean_episodic_return", r, global_step)  # type: ignore
         if length is not None:
             mlflow.log_metric("rollout/mean_episodic_length", length, global_step)  # type: ignore
-        mlflow.log_metric("rollout/advantages", b_advantages.mean().item(), global_step)
-        mlflow.log_metric("rollout/returns", b_returns.mean().item(), global_step)
-        mlflow.log_metric("rollout/values", b_values.mean().item(), global_step)
         mlflow.log_metric("losses/total_loss", loss.item(), global_step)  # type: ignore
         mlflow.log_metric("losses/grad_norm", grad_norm, global_step)  # type: ignore
         mlflow.log_metric("losses/value_loss", v_loss.item(), global_step)  # type: ignore
@@ -544,12 +529,7 @@ def setup(args: Args | None = None):
 
     env_id = register_env()
     envs = gym.vector.SyncVectorEnv(
-        [
-            make_env(
-                env_id, args.domain, args.instance, i, args.capture_video, run_name
-            )
-            for i in range(args.num_envs)
-        ],
+        [make_env(env_id, args.domain, args.instance) for _ in range(args.num_envs)],
     )
 
     n_types = model_utils.n_types(envs.single_observation_space)  # type: ignore
@@ -589,7 +569,6 @@ def setup(args: Args | None = None):
         mlflow.log_artifact(__file__)
         agent = main(envs, run_name, args, agent_config)
 
-        env_id = register_env()
         eval_env = gym.make(
             env_id,
             domain=args.domain,
@@ -606,22 +585,20 @@ def setup(args: Args | None = None):
         avg_return = np.mean([r[1] for r in rewards])
 
         mlflow.log_metric("eval/mean_reward", avg_mean_reward)
-        mlflow.log_metric("eval/return", avg_return)
 
-    # {"mean": 309.925, "median": 314.0, "min": 237.5, "max": 351.5, "std": 34.07345924616401}
+        # {"mean": 309.925, "median": 314.0, "min": 237.5, "max": 351.5, "std": 34.07345924616401}
 
-    stats = {
-        "mean": avg_return,
-        "median": np.median([r[1] for r in rewards]),
-        "min": np.min([r[1] for r in rewards]),
-        "max": np.max([r[1] for r in rewards]),
-        "std": np.std([r[1] for r in rewards]),
-    }
+        stats = {
+            "mean": avg_return,
+            "median": np.median([r[1] for r in rewards]),
+            "min": np.min([r[1] for r in rewards]),
+            "max": np.max([r[1] for r in rewards]),
+            "std": np.std([r[1] for r in rewards]),
+        }
+
+        for k, v in stats.items():
+            mlflow.log_metric(f"eval/return_{k}", v)
     print(stats)
     print(f"avg_reward: {avg_mean_reward}")
 
     return stats, agent
-
-
-if __name__ == "__main__":
-    setup()

@@ -309,19 +309,19 @@ def has_valid_parameters(
     action: GroundValue,
     obj_to_type: Callable[[str], str],
     fluent_params: Callable[[str], tuple[str, ...]],
-) -> tuple[bool, str]:
+) -> bool:
     action_fluent = predicate(action)
     param_types = fluent_params(action_fluent)
     params: tuple[str, ...] = objects(action)
 
     if len(param_types) != len(params):
-        return False, f"Expected {len(param_types)} parameters, got {len(params)}"
+        return False
 
-    for i, intended_param in enumerate(param_types):
-        if intended_param != obj_to_type(params[i]):
-            return False, f"Expected {intended_param}, got {obj_to_type(params[i])}"
+    for intended_param, param in zip(param_types, params):
+        if intended_param != obj_to_type(param):
+            return False
 
-    return True, ""
+    return True
 
 
 def to_dict_action(
@@ -330,13 +330,21 @@ def to_dict_action(
     fluent_params: Callable[[str], tuple[str, ...]],
 ) -> dict[GroundValue, int]:
     action_fluent = predicate(action)
-    has_valid_param, reason = has_valid_parameters(action, obj_to_type, fluent_params)
+    action_arity = len(fluent_params(action_fluent))
+    if action_arity == 0:
+        return {} if action_fluent == "None" else {(action_fluent,): 1}
+
+    has_valid_param = has_valid_parameters(action, obj_to_type, fluent_params)
     action_fluent = "None" if not has_valid_param else action_fluent
 
-    if not has_valid_param:
-        logger.warning(f"Invalid action {action} because {reason}")
+    num_params = len(fluent_params(action_fluent))
 
-    action_dict = {} if action_fluent == "None" else {action: 1}
+    if not has_valid_param:
+        logger.warning(f"Invalid parameters for action {action}")
+
+    a = (action_fluent, *objects(action)[:num_params])
+
+    action_dict = {} if action_fluent == "None" else {a: 1}
 
     return action_dict
 

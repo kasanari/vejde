@@ -7,11 +7,11 @@ from gnn_policy.functional import (
     eval_node_then_action,  # type: ignore
     segment_sum,  # type: ignore
     softmax,  # type: ignore
+    mask_logits,
 )
 from regawa.functional import (
     node_mask,
     node_then_action_value_estimate,
-    predicate_mask,
 )
 from regawa.gnn.gnn_classes import SparseTensor
 
@@ -43,18 +43,17 @@ class NodeThenActionPolicy(nn.Module):
         action_given_node_logits = self.action_given_node_prob(h.values)  # ~ln(p(a|n))
         n_g = n_nodes.shape[0]
 
-        mask_actions = predicate_mask(action_mask, h.indices, n_g)
         mask_nodes = node_mask(action_mask)
         actions, logprob, entropy, _, p_n = x(  # type: ignore
             action_given_node_logits,
             node_logits,
-            mask_actions,
             mask_nodes,
+            action_mask,
             h.indices,
             n_nodes,
         )
 
-        p_a__n = softmax(action_given_node_logits)  # type: ignore
+        p_a__n = softmax(mask_logits(action_given_node_logits, action_mask))  # type: ignore
 
         # action then node
         value = node_then_action_value_estimate(

@@ -3,14 +3,14 @@ from functools import partial
 from torch import Tensor, nn
 
 from gnn_policy.functional import (
-    eval_action_then_node,  # type: ignore
-    sample_action_then_node,  # type: ignore,
-    segment_softmax,  # type: ignore
-    segment_sum,  # type: ignore
+    eval_action_then_node,
+    mask_logits,
+    sample_action_then_node,
+    segment_softmax,
+    segment_sum,
 )
 from regawa.functional import (
     action_then_node_value_estimate,
-    node_mask,
     num_graphs,
     predicate_mask,
 )
@@ -42,10 +42,7 @@ class ActionThenNodePolicy(nn.Module):
         node_logits = self.node_prob(h.values).squeeze()  # ~ln(p(n))
         action_given_node_logits = self.action_given_node_prob(h.values)  # ~ln(p(a|n))
         node_given_action_logits = self.node_given_action_prob(h.values)  # ~ln(p(n|a))
-        mask_actions = predicate_mask(
-            action_mask, h.indices, n_nodes.shape[0]
-        )  # TODO do not use predicate_mask
-        mask_nodes = node_mask(action_mask)
+        mask_actions = predicate_mask(action_mask, h.indices, n_nodes.shape[0])
         n_g = num_graphs(h.indices)
 
         actions, logprob, entropy, p_a, _ = x(
@@ -53,13 +50,13 @@ class ActionThenNodePolicy(nn.Module):
             action_given_node_logits,
             node_given_action_logits,
             mask_actions,
-            mask_nodes,
+            action_mask,
             h.indices,
             n_nodes,
         )
 
         p_n__a = segment_softmax(  # type: ignore
-            node_given_action_logits, h.indices, n_g
+            mask_logits(node_given_action_logits, action_mask), h.indices, n_g
         )
         segsum = partial(segment_sum, index=h.indices, num_segments=n_g)  # type: ignore
 

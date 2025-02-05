@@ -32,7 +32,7 @@ def policy(state: dict[str, bool]) -> tuple[int, int]:
 @pytest.mark.parametrize(
     "action_mode, iterations, embedding_dim",
     [
-        (ActionMode.NODE_THEN_ACTION, 30, 64),
+        (ActionMode.NODE_THEN_ACTION, 17, 16),
         (ActionMode.ACTION_THEN_NODE, 17, 16),
     ],
 )
@@ -159,5 +159,5 @@ def iteration(i, env, agent, optimizer, vf_agent, vf_optimizer, seed: int):
 
 if __name__ == "__main__":
     t = time.time()
-    test_imitation(ActionMode.ACTION_THEN_NODE, 30, 16)
+    test_imitation(ActionMode.NODE_THEN_ACTION, 17, 16)
     print("Time: ", time.time() - t)

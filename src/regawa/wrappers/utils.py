@@ -8,6 +8,7 @@ import logging
 from gymnasium.spaces import Dict
 
 from regawa import BaseModel
+from regawa.model.utils import valid_action_fluents
 
 logger = logging.getLogger(__name__)
 
@@ -185,6 +186,7 @@ def create_graphs(
         filtered_obs,
         bool_ground,
         model.fluent_param,
+        valid_action_fluents(model),
         model.num_actions,
     )
 
@@ -195,6 +197,7 @@ def create_graphs(
         filtered_obs,
         n_g,
         model.fluent_param,
+        valid_action_fluents(model),
         model.num_actions,
     )
 
@@ -249,6 +252,7 @@ def create_stacked_graphs(
         filtered_obs,
         bool_ground,
         model.fluent_param,
+        valid_action_fluents(model),
         model.num_actions,
     )
 
@@ -259,6 +263,7 @@ def create_stacked_graphs(
         filtered_obs,
         n_g,
         model.fluent_param,
+        valid_action_fluents(model),
         model.num_actions,
     )
 
@@ -560,6 +565,7 @@ def generate_bipartite_obs(
     obs: dict[GroundValue, bool | float],
     groundings: list[GroundValue],
     relation_to_types: Callable[[str, int], str],
+    action_fluent_mask: Callable[[str], tuple[bool, ...]],
     num_actions: int,
     # variable_ranges: dict[str, str],
 ) -> T:
@@ -589,9 +595,7 @@ def generate_bipartite_obs(
     global_variables = [predicate(key) for key in nullary_groundings]
     global_variable_values = [obs[key] for key in nullary_groundings]
 
-    action_mask = np.ones(
-        (len(obj_names), num_actions), dtype=np.bool_
-    )  # TODO make these actually mask the nodes
+    action_mask = [action_fluent_mask(o) for o in object_types]
 
     if edges:
         assert max(senders) < len(fact_node_values)

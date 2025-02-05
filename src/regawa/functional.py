@@ -5,7 +5,7 @@ from gnn_policy.functional import segment_sum
 
 
 def node_mask(action_mask: Tensor) -> Tensor:
-    return action_mask[:, 1:].any(1)
+    return action_mask.any(1)
 
 
 def predicate_mask(action_mask: Tensor, index: Tensor, num_graphs: int) -> Tensor:

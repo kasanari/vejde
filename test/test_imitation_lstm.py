@@ -117,8 +117,8 @@ def count_above_policy(state):
 @pytest.mark.parametrize(
     "action_mode, iterations, embedding_dim",
     [
-        (ActionMode.NODE_THEN_ACTION, 200, 64),
-        (ActionMode.ACTION_THEN_NODE, 120, 16),
+        (ActionMode.NODE_THEN_ACTION, 120, 16),
+        (ActionMode.ACTION_THEN_NODE, 60, 16),
     ],
 )
 def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: int):
@@ -214,4 +214,4 @@ def iteration(i, env, agent, optimizer, seed: int):
 
 
 if __name__ == "__main__":
-    test_imitation_rnn(ActionMode.ACTION_THEN_NODE, 120, 16)
+    test_imitation_rnn(ActionMode.NODE_THEN_ACTION, 60, 16)

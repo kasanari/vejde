@@ -206,7 +206,9 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
 def iteration(i, env, agent, optimizer, seed: int):
     r, length = rollout(env, seed, policy, 2.0)
     b = heterostatedata_to_tensors(r.obs.batch)
-    loss, grad_norm, per_param_grad = update(agent, optimizer, r.actions, b)
+    loss, grad_norm, per_param_grad = update(
+        agent, optimizer, r.actions, b, max_grad_norm=1.0
+    )
     print(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}")
     return loss, grad_norm, per_param_grad
 

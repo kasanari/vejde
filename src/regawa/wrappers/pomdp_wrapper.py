@@ -156,7 +156,9 @@ class StackingGroundedGraphWrapper(
         combined_g = create_render_graph(g.boolean, g.numeric)
 
         info["state"] = g
-        info["rddl_state"] = self.env.unwrapped.state  # type: ignore
+        info["rddl_state"] = (
+            self.env.unwrapped.state if hasattr(self.env.unwrapped, "state") else {}
+        )  # type: ignore
         info["rddl_obs"] = rddl_obs
         info["idx_to_object"] = g.boolean.factors
 
@@ -186,7 +188,9 @@ class StackingGroundedGraphWrapper(
         obs, g = self._create_obs(rddl_obs)
 
         info["state"] = g
-        info["rddl_state"] = self.env.unwrapped.state  # type: ignore
+        info["rddl_state"] = (
+            self.env.unwrapped.state if hasattr(self.env.unwrapped, "state") else {}
+        )  # type: ignore
         info["rddl_obs"] = rddl_obs
         info["rddl_action"] = rddl_action
         info["idx_to_object"] = g.boolean.factors

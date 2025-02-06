@@ -3,7 +3,6 @@ from pprint import pprint
 from typing import Any, TypeVar
 from copy import deepcopy
 
-import pyRDDLGym  # type: ignore
 
 import gymnasium as gym
 

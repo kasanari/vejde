@@ -1,13 +1,12 @@
 from typing import Any, TypeVar
 import gymnasium as gym
-from gymnasium import spaces
 from regawa import GroundValue
 from regawa.model.base_grounded_model import BaseGroundedModel
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
-WrapperObsType = spaces.Dict
-WrapperActType = spaces.Tuple
+WrapperObsType = dict[GroundValue, Any]
+WrapperActType = dict[GroundValue, Any]
 
 
 class AddConstantsWrapper(
@@ -15,7 +14,7 @@ class AddConstantsWrapper(
 ):
     def __init__(
         self,
-        env: gym.Env,
+        env: gym.Env[ObsType, ActType],
         ground_model: BaseGroundedModel,
         only_add_on_reset: bool = False,
     ) -> None:

@@ -1,4 +1,3 @@
-from enum import Enum
 from .gnn_agent import AgentConfig, GraphAgent, RecurrentGraphAgent, ActionMode
 from .data import StateData, HeteroStateData
 

@@ -29,6 +29,28 @@ def policy(state: dict[str, bool]) -> tuple[int, int]:
     return (0, 0)
 
 
+def plot_per_grad_norms(per_param_grad, action_mode):
+    keys = per_param_grad[0].keys()
+    per_param_grad = {k: [d[k] for d in per_param_grad] for k in keys}
+
+    fig, axs = plt.subplots(len(per_param_grad), figsize=(10, 30))
+    for i, (k, v) in enumerate(per_param_grad.items()):
+        axs[i].plot(v, "-o")
+        axs[i].set_title(k)
+        # axs[i].set_ylim(0, 5)
+    fig.tight_layout()
+    fig.savefig(f"test_imitation_mdp_{action_mode}_grads.pdf")
+
+
+def plot_loses_grads(losses, norms, action_mode):
+    fig, axs = plt.subplots(2)
+    axs[0].plot(losses)
+    axs[1].plot(norms)
+    axs[0].set_title("Loss")
+    axs[1].set_title("Grad Norm")
+    fig.savefig(f"test_imitation_mdp_{action_mode}.png")
+
+
 @pytest.mark.parametrize(
     "action_mode, iterations, embedding_dim",
     [
@@ -101,23 +123,10 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
 
     losses, norms, per_param_grad = zip(*data)
     # reshape
-    keys = per_param_grad[0].keys()
-    per_param_grad = {k: [d[k] for d in per_param_grad] for k in keys}
 
-    fig, axs = plt.subplots(len(per_param_grad), figsize=(10, 30))
-    for i, (k, v) in enumerate(per_param_grad.items()):
-        axs[i].plot(v, "-o")
-        axs[i].set_title(k)
-        # axs[i].set_ylim(0, 5)
-    fig.tight_layout()
-    fig.savefig(f"test_imitation_mdp_{action_mode}_grads.pdf")
+    plot_loses_grads(losses, norms, action_mode)
+    plot_per_grad_norms(per_param_grad, action_mode)
 
-    fig, axs = plt.subplots(2)
-    axs[0].plot(losses)
-    axs[1].plot(norms)
-    axs[0].set_title("Loss")
-    axs[1].set_title("Grad Norm")
-    fig.savefig(f"test_imitation_mdp_{action_mode}.png")
     max_loss = 1e-6
     assert losses[-1] < max_loss, "Loss was too high: expected less than %s, got %s" % (
         max_loss,

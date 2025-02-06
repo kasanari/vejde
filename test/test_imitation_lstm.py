@@ -38,6 +38,28 @@ logger = logging.getLogger("train")
 logger.setLevel(logging.INFO)
 
 
+def plot_per_grad_norms(per_param_grad, action_mode):
+    keys = per_param_grad[0].keys()
+    per_param_grad = {k: [d[k] for d in per_param_grad] for k in keys}
+
+    fig, axs = plt.subplots(len(per_param_grad), figsize=(10, 30))
+    for i, (k, v) in enumerate(per_param_grad.items()):
+        axs[i].plot(v, "-o")
+        axs[i].set_title(k)
+        # axs[i].set_ylim(0, 5)
+    fig.tight_layout()
+    fig.savefig(f"test_imitation_rnn_{action_mode}_grads.pdf")
+
+
+def plot_loses_grads(losses, norms, action_mode):
+    fig, axs = plt.subplots(2)
+    axs[0].plot(losses)
+    axs[1].plot(norms)
+    axs[0].set_title("Loss")
+    axs[1].set_title("Grad Norm")
+    fig.savefig(f"test_imitation_rnn_{action_mode}.png")
+
+
 def knowledge_graph_policy(obs):
     nonzero = np.flatnonzero(obs["edge_attr"])
     if len(nonzero) == 0:
@@ -142,7 +164,7 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
     agent = RecurrentGraphAgent(config)
 
     optimizer = th.optim.AdamW(
-        agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.1
+        agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.01
     )
 
     data = [evaluate(env, agent, 0) for i in range(10)]
@@ -152,18 +174,14 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
     num_seeds = 10
 
     data = [iteration(i, env, agent, optimizer, 0) for i in range(iterations)]
-    losses, norms, _ = zip(*data)
-
-    fig, axs = plt.subplots(2)
-    axs[0].plot(losses)
-    axs[1].plot(norms)
-    axs[0].set_title("Loss")
-    axs[1].set_title("Grad Norm")
-    fig.savefig(f"test_imitation_rnn_{action_mode}.png")
+    losses, norms, per_param_grad = zip(*data)
 
     data = [evaluate(env, agent, 0) for i in range(3)]
     rewards, _, _ = zip(*data)
     avg_reward = np.mean([np.sum(r) for r in rewards])
+
+    plot_loses_grads(losses, norms, action_mode)
+    plot_per_grad_norms(per_param_grad, action_mode)
 
     assert avg_reward == 2.0, "Reward was too low: expected %s, got %s" % (
         2.0,

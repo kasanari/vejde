@@ -40,7 +40,7 @@ class RDDLGroundedModel(BaseGroundedModel):
         return self._non_fluent_vals[constant_grounding]
 
     @cached_property
-    def _non_fluents(self):
+    def _non_fluents(self) -> list[tuple[str, Any]]:
         return (
             self.model.ast.non_fluents.init_non_fluent  # type: ignore
             if hasattr(self.model.ast.non_fluents, "init_non_fluent")  # type: ignore
@@ -50,6 +50,6 @@ class RDDLGroundedModel(BaseGroundedModel):
     @cached_property
     def _non_fluent_vals(self) -> dict[GroundValue, Any]:
         return {
-            RDDLPlanningModel.ground_var(name, params): value
+            rddl_ground_to_tuple(RDDLPlanningModel.ground_var(name, params)): value
             for (name, params), value in self._non_fluents
         }

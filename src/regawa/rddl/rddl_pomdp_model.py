@@ -1,12 +1,12 @@
-from .rddl_model import RDDLModel
-from .rddl_utils import get_groundings
-from functools import cache
+from .rddl_grounded_model import RDDLGroundedModel
+from .rddl_utils import get_groundings, rddl_ground_to_tuple
+from functools import cached_property
+from regawa import GroundValue
 
 
-class RDDLPOMDPModel(RDDLModel):
-    @property
-    @cache
-    def groundings(self) -> list[str]:
+class RDDLPOMDPGroundedModel(RDDLGroundedModel):
+    @cached_property
+    def groundings(self) -> tuple[GroundValue, ...]:
         model = self.model
 
         observ_fluents = model.observ_fluents  # type: ignore
@@ -17,4 +17,6 @@ class RDDLPOMDPModel(RDDLModel):
 
         all_groundings = observ_groundings | non_fluent_groundings
 
-        return sorted(all_groundings)
+        all_groundings = [rddl_ground_to_tuple(g) for g in all_groundings]
+
+        return tuple(sorted(all_groundings))

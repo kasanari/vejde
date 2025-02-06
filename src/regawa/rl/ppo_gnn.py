@@ -35,6 +35,9 @@ import mlflow.pytorch
 from regawa.rl.util import evaluate
 from regawa import GNNParams
 import regawa.wrappers.gym_utils as model_utils
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @torch.inference_mode()
@@ -43,25 +46,24 @@ def gae(
     dones: Tensor,
     values: Tensor,
     next_value: Tensor,
-    next_done: Tensor,
+    next_step_is_terminal: Tensor,
     num_steps: int,
     gamma: float,
     gae_lambda: float,
     device: torch.device | str,
 ) -> tuple[Tensor, Tensor]:
     advantages = torch.zeros_like(rewards).to(device)
-    lastgaelam = 0
+    last_gae_lam = 0
     for t in reversed(range(num_steps)):
         if t == num_steps - 1:
-            nextnonterminal = 1.0 - next_done
-            nextvalues = next_value
+            next_non_terminal = 1.0 - next_step_is_terminal.float()
+            next_values = next_value
         else:
-            nextnonterminal = 1.0 - dones[t + 1]
-            nextvalues = values[t + 1]
-        delta = rewards[t] + gamma * nextvalues * nextnonterminal - values[t]
-        advantages[t] = lastgaelam = (
-            delta + gamma * gae_lambda * nextnonterminal * lastgaelam
-        )
+            next_non_terminal = 1.0 - dones[t + 1]
+            next_values = values[t + 1]
+        delta = rewards[t] + gamma * next_values * next_non_terminal - values[t]
+        last_gae_lam = delta + gamma * gae_lambda * next_non_terminal * last_gae_lam
+        advantages[t] = last_gae_lam
     returns = advantages + values  # negates the -values[t] to get td targets
     return advantages, returns
 
@@ -197,6 +199,7 @@ class Agent(nn.Module):
 class RolloutData(NamedTuple):
     obs: HeteroGraphBuffer
     last_obs: dict[str, list[ObsData]]
+    last_done: Tensor
     global_step: int
     returns: list[float]
     lengths: list[int]
@@ -260,7 +263,9 @@ def rollout(
                 if is_final:
                     returns.append(r)
                     lengths.append(l)
-    return RolloutData(obs, next_obs, global_step, list(returns), list(lengths))
+    return RolloutData(
+        obs, next_obs, next_done, global_step, list(returns), list(lengths)
+    )
 
 
 class UpdateData(NamedTuple):
@@ -353,6 +358,12 @@ def update(
     grad_norm = nn.utils.clip_grad_norm_(
         agent.parameters(), max_grad_norm, error_if_nonfinite=True
     )
+
+    if v_loss.item() > 500.0:
+        per_param_grad = {k: v.grad for k, v in dict(agent.named_parameters()).items()}
+        logger.warning(f"v_loss: {v_loss.item()}")
+        logger.warning(f"per_param_grad: {per_param_grad}")
+
     optimizer.step()
 
     return UpdateData(
@@ -415,6 +426,15 @@ def main(
     next_obs = batched_hetero_dict_to_hetero_obs_list(next_obs)  # type: ignore
     next_done = torch.zeros(args.num_envs).to(device)
 
+    r_data = RolloutData(
+        obs=HeteroGraphBuffer(),
+        last_obs=next_obs,
+        last_done=next_done,
+        global_step=global_step,
+        returns=[],
+        lengths=[],
+    )
+
     ppo_params = PPOParams(
         args.clip_coef,
         args.norm_adv,
@@ -436,8 +456,8 @@ def main(
         r_data = rollout(
             agent,
             envs,
-            next_obs,
-            next_done,
+            r_data.last_obs,
+            r_data.last_done,
             dones,
             rewards,
             actions,
@@ -458,13 +478,12 @@ def main(
             next_obs_batch = heterostatedata_to_tensors(
                 heterostatedata(r_data.last_obs)
             )
-            next_value = agent.get_value(next_obs_batch).reshape(1, -1)
             advantages, returns = gae(
                 rewards,
                 dones,
                 values,
-                next_value,
-                next_done,
+                agent.get_value(next_obs_batch).reshape(1, -1),
+                r_data.last_done,
                 args.num_steps,
                 args.gamma,
                 args.gae_lambda,
@@ -594,6 +613,8 @@ def setup(args: Args | None = None):
         pass
 
     mlflow.set_experiment(run_name)
+
+    logger.addHandler(logging.FileHandler(f"{run_name}.log"))
 
     with mlflow.start_run():
         mlflow.log_params(logged_config)

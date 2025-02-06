@@ -10,7 +10,9 @@ WrapperObsType = spaces.Dict
 WrapperActType = spaces.Tuple
 
 
-class AddConstants(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActType]):
+class AddConstantsWrapper(
+    gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActType]
+):
     def __init__(
         self,
         env: gym.Env,

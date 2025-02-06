@@ -2,25 +2,21 @@ from typing import Any, SupportsFloat
 import gymnasium
 from gymnasium.spaces import Dict, MultiDiscrete
 import pyRDDLGym
-
-from regawa.rddl.rddl_grounded_model import RDDLGroundedModel
-from regawa.rddl.rddl_to_tuple_wrapper import RDDLToTuple
-from regawa.wrappers.index_wrapper import IndexActionWrapper
-
-from .rddl_pomdp_model import RDDLPOMDPGroundedModel
-from regawa import StackingGroundedGraphWrapper, GroundedGraphWrapper
-from regawa.wrappers.stacking_wrapper import StackingWrapper
-from .rddl_model import RDDLModel
-from ..wrappers.add_constants_wrapper import AddConstants
-from .rddl_convert_enums_wrapper import RDDLConvertEnums
-
 from rddlrepository import RDDLRepoManager
-import numpy as np
-
-
 from pyRDDLGym.core.parser.parser import RDDLParser
 from pyRDDLGym.core.parser.reader import RDDLReader
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel
+
+from .rddl_grounded_model import RDDLGroundedModel
+from .rddl_to_tuple_wrapper import RDDLToTuple
+from .rddl_model import RDDLModel
+from .rddl_pomdp_model import RDDLPOMDPGroundedModel
+from .rddl_convert_enums_wrapper import RDDLConvertEnums
+
+from regawa import StackingGroundedGraphWrapper, GroundedGraphWrapper
+from regawa.wrappers import AddConstantsWrapper, IndexActionWrapper, StackingWrapper
+
+import numpy as np
 
 
 def make_env(
@@ -31,7 +27,7 @@ def make_env(
         instance,
         enforce_action_constraints=enforce_action_constraints,
     )  # type: ignore
-    env = AddConstants(env)
+    env = AddConstantsWrapper(env)
     env = RDDLToTuple(env)
     if has_enums:
         env = RDDLConvertEnums(env)
@@ -118,7 +114,7 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         model = RDDLModel(rddl_model)
         grounded_rddl_model = RDDLGroundedModel(rddl_model)
         env = RDDLToTuple(env)
-        env = AddConstants(env, grounded_rddl_model)
+        env = AddConstantsWrapper(env, grounded_rddl_model)
         if len(model.model.enum_types) > 0:
             env = RDDLConvertEnums(env)
         env: gymnasium.Env[Dict, MultiDiscrete] = GroundedGraphWrapper(env, model=model)
@@ -158,7 +154,7 @@ class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         model = RDDLModel(env.model)
         grounded_model = RDDLPOMDPGroundedModel(env.model)
         env = RDDLToTuple(env)
-        env = AddConstants(env, grounded_model, only_add_on_reset=True)
+        env = AddConstantsWrapper(env, grounded_model, only_add_on_reset=True)
         if len(model.model.enum_types) > 0:
             env = RDDLConvertEnums(env)
         env = StackingWrapper(env)

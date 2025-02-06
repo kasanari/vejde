@@ -8,11 +8,10 @@ import logging
 from gymnasium.spaces import Dict
 
 from regawa import BaseModel
+from regawa.model import GroundValue
 from regawa.model.utils import valid_action_fluents
 
 logger = logging.getLogger(__name__)
-
-GroundValue = tuple[str, ...]
 
 
 class Object(NamedTuple):

@@ -3,7 +3,7 @@ from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 from functools import cache, cached_property
 from regawa.model.base_grounded_model import BaseGroundedModel
 from .rddl_utils import get_groundings, rddl_ground_to_tuple
-from regawa import GroundValue
+from regawa.model import GroundValue
 from pyRDDLGym.core.compiler.model import RDDLPlanningModel  # type: ignore
 
 

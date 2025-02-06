@@ -1,0 +1,1 @@
+GroundValue = tuple[str, ...]

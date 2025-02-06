@@ -1,7 +1,7 @@
 from .rddl_grounded_model import RDDLGroundedModel
 from .rddl_utils import get_groundings, rddl_ground_to_tuple
 from functools import cached_property
-from regawa import GroundValue
+from regawa.model import GroundValue
 
 
 class RDDLPOMDPGroundedModel(RDDLGroundedModel):

@@ -7,7 +7,7 @@ from functools import cache
 
 from .rddl_model import RDDLModel
 from regawa.wrappers.utils import predicate
-from regawa import GroundValue
+from regawa.model import GroundValue
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")

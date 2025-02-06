@@ -8,6 +8,8 @@ from gymnasium import spaces
 
 from gymnasium.spaces import Discrete, Dict, MultiDiscrete, Box
 
+from regawa.model import GroundValue
+
 from .gym_utils import action_space, obs_space
 
 from .utils import (
@@ -18,7 +20,7 @@ from .utils import (
     create_obs_dict,
 )
 
-from .utils import to_graphviz_alt, to_graphviz, GroundValue
+from .utils import to_graphviz_alt, to_graphviz
 
 from regawa import BaseModel
 

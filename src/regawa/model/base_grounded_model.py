@@ -1,7 +1,7 @@
 from functools import cache, cached_property
 from abc import ABC, abstractmethod
 from typing import Any
-from regawa import GroundValue
+from regawa.model import GroundValue
 
 
 class BaseGroundedModel(ABC):

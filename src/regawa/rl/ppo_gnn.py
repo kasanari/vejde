@@ -28,12 +28,11 @@ from regawa.gnn.data import (
     heterostatedata,
 )
 from regawa.gnn.gnn_agent import heterostatedata_to_tensors
-from regawa.rddl import register_env
 from regawa.gnn import GraphAgent, AgentConfig, HeteroStateData
 import mlflow
 import mlflow.pytorch
 
-from regawa.rl.util import evaluate
+from regawa.rl.util import evaluate, save_eval_data
 from regawa import GNNParams
 import regawa.wrappers.gym_utils as model_utils
 import logging
@@ -314,6 +313,7 @@ def gae(
 
 @dataclass
 class Args:
+    env_id: str
     domain: str
     instance: str | int
     agent_config: GNNParams
@@ -696,9 +696,11 @@ def setup(args: Args | None = None):
 
     run_name = f"{Path(args.domain).name}__{Path(str(args.instance)).name}__{args.exp_name}__{args.seed}"
 
-    env_id = register_env()
     envs = gym.vector.SyncVectorEnv(
-        [make_env(env_id, args.domain, args.instance) for _ in range(args.num_envs)],
+        [
+            make_env(args.env_id, args.domain, args.instance)
+            for _ in range(args.num_envs)
+        ],
     )
 
     n_types = model_utils.n_types(envs.single_observation_space)  # type: ignore
@@ -737,28 +739,28 @@ def setup(args: Args | None = None):
         agent = main(envs, run_name, args, agent_config)
 
         eval_env = gym.make(
-            env_id,
+            args.env_id,
             domain=args.domain,
             instance=args.instance,
         )
 
-        def get_eval_returns(seed):
-            rewards, _, _ = evaluate(eval_env, agent.agent, seed, deterministic=True)
-            return np.mean(rewards), sum(rewards)
-
-        seeds = range(10)
-        rewards = [get_eval_returns(seed) for seed in seeds]
-        avg_mean_reward = np.mean([r[0] for r in rewards])
-        avg_return = np.mean([r[1] for r in rewards])
+        seeds = range(20)
+        data = [
+            evaluate(eval_env, agent.agent, seed, deterministic=True) for seed in seeds
+        ]
+        rewards, _, _ = zip(*data)
+        avg_mean_reward = np.mean([np.mean(r) for r in rewards])
+        returns = [np.sum(r) for r in rewards]
+        save_eval_data(data, f"{run_name}.json")
 
         mlflow.log_metric("eval/mean_reward", avg_mean_reward)
 
         stats = {
-            "mean": avg_return,
-            "median": np.median([r[1] for r in rewards]),
-            "min": np.min([r[1] for r in rewards]),
-            "max": np.max([r[1] for r in rewards]),
-            "std": np.std([r[1] for r in rewards]),
+            "mean": np.mean(returns),
+            "median": np.median(returns),
+            "min": np.min(returns),
+            "max": np.max(returns),
+            "std": np.std(returns),
         }
 
         for k, v in stats.items():

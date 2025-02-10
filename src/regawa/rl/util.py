@@ -229,7 +229,7 @@ class Serializer(json.JSONEncoder):
         return super().default(o)
 
 
-def save_eval_data(data):
+def save_eval_data(data, path: str = "evaluation.json"):
     to_write = {
         f"ep_{i}": [
             {
@@ -242,7 +242,7 @@ def save_eval_data(data):
         for i, episode in enumerate(data)
     }
 
-    with open("evaluation.json", "w") as f:
+    with open(path, "w") as f:
         import json
 
         json.dump(to_write, f, cls=Serializer, indent=2)

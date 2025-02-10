@@ -32,8 +32,6 @@ class NodeThenActionPolicy(nn.Module):
         self.num_actions = num_actions
         self.sample_func = sample_node_then_action  # type: ignore
         self.eval_func = eval_node_then_action  # type: ignore
-
-        self.q_node = nn.Linear(node_dim, 1)  # Q(n)
         self.q_action__node = nn.Linear(node_dim, num_actions)  # Q(a|n)
 
     def f(
@@ -60,7 +58,6 @@ class NodeThenActionPolicy(nn.Module):
             p_a__n,  # type: ignore
             self.q_action__node(h.values),
             p_n,  # type: ignore
-            self.q_node(h.values).squeeze(),
             partial(segment_sum, index=h.indices, num_segments=n_g),  # type: ignore
         )
         return actions, logprob, entropy, value, p_n, p_a__n  # type: ignore

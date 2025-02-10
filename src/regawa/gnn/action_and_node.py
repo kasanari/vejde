@@ -3,14 +3,12 @@ from functools import partial
 from torch import Tensor, nn
 
 from gnn_policy.functional import (
-    eval_action_then_node,
-    mask_logits,
-    sample_action_then_node,
-    segment_softmax,
+    eval_action_and_node,
+    sample_action_and_node,
     segment_sum,
 )
 from regawa.functional import (
-    action_then_node_value_estimate,
+    action_and_node_value_estimate,
     num_graphs,
     predicate_mask,
 )
@@ -32,10 +30,11 @@ class ActionThenNodePolicy(nn.Module):
         self.node_given_action_prob = nn.Linear(node_dim, num_actions)
 
         self.num_actions = num_actions
-        self.sample_func = sample_action_then_node  # type: ignore
-        self.eval_func = eval_action_then_node  # type: ignore
+        self.sample_func = sample_action_and_node  # type: ignore
+        self.eval_func = eval_action_and_node  # type: ignore
 
-        self.q_node__action = nn.Linear(node_dim, num_actions)  # Q(n|a)
+        self.q_action__node = nn.Linear(node_dim, num_actions)  # Q(a|n)
+        self.q_node = nn.Linear(node_dim, 1)  # Q(n)
 
     def f(self, h: SparseTensor, action_mask: Tensor, n_nodes: Tensor, x: PolicyFunc):
         node_logits = self.node_prob(h.values).squeeze()  # ~ln(p(n))
@@ -44,7 +43,7 @@ class ActionThenNodePolicy(nn.Module):
         mask_actions = predicate_mask(action_mask, h.indices, n_nodes.shape[0])
         n_g = num_graphs(h.indices)
 
-        actions, logprob, entropy, p_a, _ = x(
+        actions, logprob, entropy, p_a, p_n = x(
             node_logits,
             action_given_node_logits,
             node_given_action_logits,
@@ -54,19 +53,20 @@ class ActionThenNodePolicy(nn.Module):
             n_nodes,
         )
 
-        p_n__a = segment_softmax(  # type: ignore
-            mask_logits(node_given_action_logits, action_mask), h.indices, n_g
-        )
         segsum = partial(segment_sum, index=h.indices, num_segments=n_g)  # type: ignore
 
-        value = action_then_node_value_estimate(
-            p_n__a,  # type: ignore
-            self.q_node__action(h.values),
+        q_a__n = self.q_action__node(h.values)
+        q_a = segsum(q_a__n)  # type: ignore #TODO this can be done as a weighted sum
+
+        value = action_and_node_value_estimate(
+            p_a,  # type: ignore
+            self.q_node(h.values),
+            q_a,  # type: ignore
             p_a,
             segsum,  # type: ignore
         )
 
-        return actions, logprob, entropy, value, p_a, p_n__a  # type: ignore
+        return actions, logprob, entropy, value, p_a, p_n  # type: ignore
 
     # differentiable action evaluation
     def forward(

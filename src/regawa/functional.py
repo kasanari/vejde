@@ -16,6 +16,9 @@ def num_graphs(batch_idx: Tensor) -> int:
     return int(batch_idx.max().item() + 1)
 
 
+ACTION_DIM = 1
+
+
 def action_then_node_value_estimate(
     p_n__a: Tensor,  # p(n|a)
     q_n__a: Tensor,  # Q(n|a)
@@ -25,7 +28,7 @@ def action_then_node_value_estimate(
     # Estimate value as the sum of the Q-values of the actions weighted by the probability of the actions
 
     # V(N) =  Σ_a p(a) Σ_(n) p(n|a) * Q(n|a)
-    return (p_a * segsum(q_n__a * p_n__a)).sum(-1)  # type: ignore
+    return (p_a * segsum(q_n__a * p_n__a)).sum(ACTION_DIM)  # type: ignore
 
 
 def node_then_action_value_estimate(
@@ -36,7 +39,7 @@ def node_then_action_value_estimate(
 ) -> Tensor:
     # Estimate value as the sum of the Q-values of the actions weighted by the probability of the actions
     # V(N) =  Σ_n p(n) Σ_(a) p(a|n) * Q(a|n)
-    return segsum(p_n * (q_a__n * p_a__n).sum(1))  # type: ignore
+    return segsum(p_n * (q_a__n * p_a__n).sum(ACTION_DIM))  # type: ignore
 
 
 def action_and_node_value_estimate(
@@ -46,4 +49,4 @@ def action_and_node_value_estimate(
     q_n: Tensor,  # Q(n)
     segsum: Callable[[Tensor], Tensor],
 ) -> Tensor:
-    return (q_a * p_a).sum(1) + segsum(q_n * p_n)
+    return (q_a * p_a).sum(ACTION_DIM) + segsum(q_n * p_n)

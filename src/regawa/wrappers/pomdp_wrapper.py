@@ -9,11 +9,11 @@ from gymnasium import spaces
 from gymnasium.spaces import Discrete, Dict, MultiDiscrete, Box
 
 from regawa.model import GroundValue
+from .util_types import HeteroGraph
 
 from .gym_utils import action_space, obs_space
 
 from .utils import (
-    HeteroGraph,
     create_render_graph,
     create_stacked_graphs,
     to_dict_action,

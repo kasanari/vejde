@@ -134,7 +134,7 @@ class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict
         info["idx_to_object"] = g.boolean.factors
 
         self._object_to_type = {
-            k: v for k, v in zip(g.boolean.factors, g.boolean.factor_values)
+            k: v for k, v in zip(g.boolean.factors, g.boolean.factor_types)
         }
 
         self.last_obs = obs
@@ -168,7 +168,7 @@ class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict
         info["idx_to_object"] = g.boolean.factors
 
         self._object_to_type = {
-            k: v for k, v in zip(g.boolean.factors, g.boolean.factor_values)
+            k: v for k, v in zip(g.boolean.factors, g.boolean.factor_types)
         }
 
         self.last_obs = obs

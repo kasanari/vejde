@@ -28,9 +28,9 @@ class RenderGraph(NamedTuple):
 
 
 class Variables[V](NamedTuple):
-    types: np.ndarray[np.int64, Any]
-    values: np.ndarray[V, Any]
-    lengths: np.ndarray[np.int64, Any]
+    types: np.ndarray[np.int64, Any] | list[str]
+    values: np.ndarray[V, Any] | list[V]
+    lengths: np.ndarray[np.int64, Any] | list[int]
 
 
 class IdxFactorGraph[V](NamedTuple):
@@ -47,7 +47,7 @@ class FactorGraph[V](NamedTuple):
     variables: list[str]
     variable_values: list[V]
     factors: list[str]
-    factor_values: list[str]
+    factor_types: list[str]
     senders: np.ndarray[np.int64, Any]
     receivers: np.ndarray[np.int64, Any]
     edge_attributes: list[int]
@@ -62,7 +62,7 @@ class StackedFactorGraph[V](NamedTuple):
     variables: list[str]
     variable_values: list[list[V]]
     factors: list[str]
-    factor_values: list[str]
+    factor_types: list[str]
     senders: np.ndarray[np.int64, Any]
     receivers: np.ndarray[np.int64, Any]
     edge_attributes: list[int]

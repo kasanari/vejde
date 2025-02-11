@@ -11,7 +11,7 @@ from gymnasium.spaces import Discrete, Dict, MultiDiscrete, Box
 from regawa.model import GroundValue
 from .grounding_utils import to_dict_action
 from .render_utils import to_graphviz_alt
-from .stacked_utils import create_stacked_graphs, create_stacked_obs
+from .stacked_utils import create_graphs, create_obs_dict
 from .util_types import HeteroGraph
 
 from .gym_utils import action_space, obs_space
@@ -123,11 +123,11 @@ class StackingGroundedGraphWrapper(
     def _create_obs(
         self, rddl_obs: dict[str, list[Any]]
     ) -> tuple[dict[str, Any], HeteroGraph]:
-        g, _ = create_stacked_graphs(
+        g, _ = create_graphs(
             rddl_obs,
             self.wrapped_model,
         )
-        o = create_stacked_obs(
+        o = create_obs_dict(
             g,
             self.wrapped_model,
         )
@@ -163,7 +163,7 @@ class StackingGroundedGraphWrapper(
         info["idx_to_object"] = g.boolean.factors
 
         self._object_to_type = {
-            k: v for k, v in zip(g.boolean.factors, g.boolean.factor_values)
+            k: v for k, v in zip(g.boolean.factors, g.boolean.factor_types)
         }
 
         self.last_obs = obs
@@ -196,7 +196,7 @@ class StackingGroundedGraphWrapper(
         info["idx_to_object"] = g.boolean.factors
 
         self._object_to_type = {
-            k: v for k, v in zip(g.boolean.factors, g.boolean.factor_values)
+            k: v for k, v in zip(g.boolean.factors, g.boolean.factor_types)
         }
 
         self.last_obs = obs

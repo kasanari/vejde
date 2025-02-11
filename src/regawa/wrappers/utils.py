@@ -17,15 +17,56 @@ from regawa.wrappers.grounding_utils import (
 from regawa.wrappers.util_types import (
     Edge,
     FactorGraph,
+    IdxFactorGraph,
     Object,
     RenderGraph,
     StackedFactorGraph,
+    Variables,
 )
+from numpy.typing import NDArray
+from numpy import asarray
+
 
 logger = logging.getLogger(__name__)
 
 
 V = TypeVar("V")
+
+
+def map_graph_to_idx[V](
+    vars: Variables[V],
+    global_vars: Variables[V],
+    senders: NDArray[np.int64],
+    receivers: NDArray[np.int64],
+    edge_attributes: list[int],
+    action_mask: NDArray[np.int64],
+    factor_types: list[str],
+    rel_to_idx: Callable[[str], int],
+    type_to_idx: Callable[[str], int],
+    var_val_dtype: type,
+) -> IdxFactorGraph[V]:
+    factor_type_idx = [type_to_idx(object) for object in factor_types]
+    idx_global_vars = [rel_to_idx(p) for p in global_vars.types]
+    idx_vars = [rel_to_idx(p) for p in vars.types]
+
+    arr = asarray
+    return IdxFactorGraph(
+        Variables(
+            arr(idx_vars, dtype=np.int64),
+            arr(vars.values, dtype=var_val_dtype),
+            arr(vars.lengths),
+        ),
+        arr(factor_type_idx, dtype=np.int64),
+        senders,
+        receivers,
+        np.asarray(edge_attributes, dtype=np.int64),
+        Variables(
+            arr(idx_global_vars, dtype=np.int64),
+            arr(global_vars.values, dtype=var_val_dtype),
+            arr(global_vars.lengths),
+        ),
+        action_mask,
+    )
 
 
 def create_render_graph(

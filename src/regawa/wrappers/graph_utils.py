@@ -7,59 +7,44 @@ from regawa.wrappers.gym_utils import graph_to_dict
 from regawa.wrappers.util_types import (
     FactorGraph,
     HeteroGraph,
-    IdxFactorGraph,
     Variables,
 )
-
 
 import numpy as np
 
 
 from collections.abc import Callable
 
-from regawa.wrappers.utils import generate_bipartite_obs
+from regawa.wrappers.utils import generate_bipartite_obs, map_graph_to_idx
 
 
-def map_graph_to_idx[V](
+def _map_graph_to_idx[V](
     factorgraph: FactorGraph[V],
     rel_to_idx: Callable[[str], int],
     type_to_idx: Callable[[str], int],
     var_val_dtype: type,
-) -> IdxFactorGraph[V]:
-    edge_attributes = np.asarray(factorgraph.edge_attributes, dtype=np.int64)
-
-    vals = np.array(  # type: ignore
-        factorgraph.variable_values, dtype=var_val_dtype
-    )  # TODO: handle None values in a better way
-
-    global_vars_values = np.array(  # type: ignore
-        factorgraph.global_variable_values, dtype=var_val_dtype
+):
+    vars = Variables(
+        factorgraph.variables,
+        factorgraph.variable_values,
+        np.ones_like(factorgraph.variable_values, dtype=np.int64),
     )
-    global_vars = np.array(
-        [rel_to_idx(key) for key in factorgraph.global_variables], dtype=np.int64
+    global_vars = Variables(
+        factorgraph.global_variables,
+        factorgraph.global_variable_values,
+        np.ones_like(factorgraph.global_variable_values, dtype=np.int64),
     )
-
-    return IdxFactorGraph(
-        Variables(
-            np.array(
-                [rel_to_idx(key) for key in factorgraph.variables], dtype=np.int64
-            ),
-            vals,
-            lengths=np.ones_like(vals, dtype=np.int64),
-        ),
-        np.array(
-            [type_to_idx(object) for object in factorgraph.factor_values],
-            dtype=np.int64,
-        ),
+    return map_graph_to_idx(
+        vars,
+        global_vars,
         factorgraph.senders,
         factorgraph.receivers,
-        edge_attributes,
-        Variables(
-            global_vars,
-            global_vars_values,
-            lengths=np.ones_like(global_vars_values, dtype=np.int64),
-        ),
-        action_mask=factorgraph.action_mask,
+        factorgraph.edge_attributes,
+        factorgraph.action_mask,
+        factorgraph.factor_types,
+        rel_to_idx,
+        type_to_idx,
+        var_val_dtype,
     )
 
 
@@ -67,30 +52,24 @@ def create_obs_dict(
     heterogenous_graph: HeteroGraph,
     model: BaseModel,
 ) -> dict[str, Any]:
-    obs_boolean = graph_to_dict(
-        map_graph_to_idx(
-            heterogenous_graph.boolean,  # type: ignore
-            model.fluent_to_idx,
-            model.type_to_idx,
-            np.int8,
+    return {
+        "bool": graph_to_dict(
+            _map_graph_to_idx(
+                heterogenous_graph.boolean,  # type: ignore
+                model.fluent_to_idx,
+                model.type_to_idx,
+                np.int8,
+            ),
         ),
-    )
-
-    obs_numeric = graph_to_dict(
-        map_graph_to_idx(  # type: ignore
-            heterogenous_graph.numeric,  # type: ignore
-            model.fluent_to_idx,
-            model.type_to_idx,
-            np.float32,
-        )
-    )
-
-    obs = {
-        "bool": obs_boolean,
-        "float": obs_numeric,
+        "float": graph_to_dict(
+            _map_graph_to_idx(
+                heterogenous_graph.numeric,  # type: ignore
+                model.fluent_to_idx,
+                model.type_to_idx,
+                np.float32,
+            )
+        ),
     }
-
-    return obs
 
 
 def create_graphs(

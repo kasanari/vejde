@@ -16,7 +16,7 @@ from .util_types import HeteroGraph
 
 from .gym_utils import action_space, obs_space
 
-from .utils import (
+from .render_utils import (
     create_render_graph,
 )
 

@@ -19,7 +19,6 @@ from regawa.wrappers.util_types import (
     FactorGraph,
     IdxFactorGraph,
     Object,
-    RenderGraph,
     StackedFactorGraph,
     Variables,
 )
@@ -66,49 +65,6 @@ def map_graph_to_idx[V](
             arr(global_vars.lengths),
         ),
         arr(action_mask),
-    )
-
-
-def create_render_graph(
-    bool_g: FactorGraph[bool], numeric_g: FactorGraph[float]
-) -> RenderGraph:
-    def format_label(key: GroundValue) -> str:
-        fluent, *args = key
-        return f"{fluent}({', '.join(args)})" if args else fluent
-
-    boolean_labels = [
-        f"{format_label(key)}={bool_g.variable_values[idx]}"
-        for idx, key in enumerate(bool_g.groundings)
-    ]
-    numeric_labels = [
-        f"{format_label(key)}={numeric_g.variable_values[idx]}"
-        for idx, key in enumerate(numeric_g.groundings)
-    ]
-
-    labels = boolean_labels + numeric_labels
-
-    factor_labels = [f"{key}" for key in bool_g.factors]
-
-    edge_attributes = bool_g.edge_attributes + numeric_g.edge_attributes
-
-    senders = np.concatenate(
-        [bool_g.senders, numeric_g.senders + len(bool_g.variables)]
-    )
-
-    receivers = np.concatenate([bool_g.receivers, numeric_g.receivers])
-
-    global_numeric = [
-        f"{key}={numeric_g.global_variable_values[idx]}"
-        for idx, key in enumerate(numeric_g.global_variables)
-    ]
-    global_boolean = [
-        f"{key}={bool_g.global_variable_values[idx]}"
-        for idx, key in enumerate(bool_g.global_variables)
-    ]
-    global_labels = global_boolean + global_numeric
-
-    return RenderGraph(
-        labels, factor_labels, senders, receivers, edge_attributes, global_labels
     )
 
 

@@ -1,6 +1,9 @@
 from collections.abc import Callable
 
-from regawa.wrappers.util_types import RenderGraph
+import numpy as np
+
+from regawa.model import GroundValue
+from regawa.wrappers.util_types import FactorGraph, RenderGraph
 
 
 def to_graphviz_alt(
@@ -62,3 +65,46 @@ def to_graphviz(
         graph += f'"{first_mapping[sender]}" -- "{second_mapping[receiver]}" [color="{colors[int(attribute)]}"]\n'
     graph += "}"
     return graph
+
+
+def create_render_graph(
+    bool_g: FactorGraph[bool], numeric_g: FactorGraph[float]
+) -> RenderGraph:
+    def format_label(key: GroundValue) -> str:
+        fluent, *args = key
+        return f"{fluent}({', '.join(args)})" if args else fluent
+
+    boolean_labels = [
+        f"{format_label(key)}={bool_g.variable_values[idx]}"
+        for idx, key in enumerate(bool_g.groundings)
+    ]
+    numeric_labels = [
+        f"{format_label(key)}={numeric_g.variable_values[idx]}"
+        for idx, key in enumerate(numeric_g.groundings)
+    ]
+
+    labels = boolean_labels + numeric_labels
+
+    factor_labels = [f"{key}" for key in bool_g.factors]
+
+    edge_attributes = bool_g.edge_attributes + numeric_g.edge_attributes
+
+    senders = np.concatenate(
+        [bool_g.senders, numeric_g.senders + len(bool_g.variables)]
+    )
+
+    receivers = np.concatenate([bool_g.receivers, numeric_g.receivers])
+
+    global_numeric = [
+        f"{key}={numeric_g.global_variable_values[idx]}"
+        for idx, key in enumerate(numeric_g.global_variables)
+    ]
+    global_boolean = [
+        f"{key}={bool_g.global_variable_values[idx]}"
+        for idx, key in enumerate(bool_g.global_variables)
+    ]
+    global_labels = global_boolean + global_numeric
+
+    return RenderGraph(
+        labels, factor_labels, senders, receivers, edge_attributes, global_labels
+    )

@@ -14,10 +14,10 @@ from regawa.model.base_model import BaseModel
 from regawa.rddl import register_env
 from regawa.rddl.rddl_utils import rddl_ground_to_tuple
 from regawa.rl.util import calc_loss, evaluate, update
-from regawa.wrappers.gym_utils import create_obs_dict
+from regawa.wrappers.graph_utils import create_graphs
+from regawa.wrappers.graph_utils import create_obs_dict
 from regawa.wrappers.render_utils import to_graphviz
 from regawa.wrappers.utils import (
-    create_graphs,
     create_render_graph,
     from_dict_action,
     object_list,

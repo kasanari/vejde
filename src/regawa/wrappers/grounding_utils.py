@@ -29,16 +29,6 @@ def arity(grounding: GroundValue) -> int:
     return len(o)
 
 
-def create_edges(d: list[GroundValue]) -> list[Edge]:
-    edges: deque[Edge] = deque()
-    keys = sorted(d)
-    for key in keys:
-        for pos, object in enumerate(objects(key)):
-            new_key = Edge(key, object, pos)
-            edges.append(new_key)
-    return list(edges)
-
-
 def has_valid_parameters(
     action: GroundValue,
     obj_to_type: Callable[[str], str],
@@ -81,6 +71,20 @@ def to_dict_action(
     action_dict = {} if action_fluent == "None" else {a: 1}
 
     return action_dict
+
+
+def create_edges(d: list[GroundValue]) -> list[Edge]:
+    edges: deque[Edge] = deque()
+    keys = sorted(d)
+    for key in keys:
+        for pos, object in enumerate(objects(key)):
+            new_key = Edge(key, object, pos)
+            edges.append(new_key)
+    return list(edges)
+
+
+def num_edges(groundings: list[GroundValue], arities: Callable[[str], int]) -> int:
+    return sum(arities(predicate(g)) for g in groundings)
 
 
 def numeric_groundings(

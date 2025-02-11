@@ -1,13 +1,13 @@
 from regawa import BaseModel
-from typing import Any
 from regawa.model import GroundValue
 from regawa.model.utils import valid_action_fluents
 from regawa.wrappers.grounding_utils import bool_groundings, numeric_groundings
+from typing import Any
 from regawa.wrappers.gym_utils import graph_to_dict
 from regawa.wrappers.util_types import (
+    FactorGraph,
     HeteroGraph,
     IdxFactorGraph,
-    StackedFactorGraph,
     Variables,
 )
 
@@ -16,89 +16,68 @@ import numpy as np
 
 
 from collections.abc import Callable
-from itertools import chain
 
-from regawa.wrappers.utils import (
-    generate_bipartite_obs,
-)
+from regawa.wrappers.utils import generate_bipartite_obs
 
 
-def map_stacked_graph_to_idx[V](
-    factorgraph: StackedFactorGraph[V],
+def map_graph_to_idx[V](
+    factorgraph: FactorGraph[V],
     rel_to_idx: Callable[[str], int],
     type_to_idx: Callable[[str], int],
     var_val_dtype: type,
 ) -> IdxFactorGraph[V]:
     edge_attributes = np.asarray(factorgraph.edge_attributes, dtype=np.int64)
 
-    # Flatten the list of node history lists to account for different node history lengths
-    vals = list(chain(*factorgraph.variable_values))
+    vals = np.array(  # type: ignore
+        factorgraph.variable_values, dtype=var_val_dtype
+    )  # TODO: handle None values in a better way
 
-    vars = [
-        [factorgraph.variables[i] for _ in v]
-        for i, v in enumerate(factorgraph.variable_values)
-    ]
-    vars = list(chain(*vars))
-
-    vars = [rel_to_idx(p) for p in vars]
-
-    factors = [type_to_idx(object) for object in factorgraph.factor_values]
-
-    global_vars_values = list(chain(*factorgraph.global_variable_values))
-
-    global_vars = [
-        [factorgraph.global_variables[i] for _ in v]
-        for i, v in enumerate(factorgraph.global_variable_values)
-    ]
-
-    global_vars = list(chain(*global_vars))
-    global_vars = [rel_to_idx(p) for p in global_vars]
-
-    global_lengths = np.array(
-        [len(v) for v in factorgraph.global_variable_values], dtype=np.int64
+    global_vars_values = np.array(  # type: ignore
+        factorgraph.global_variable_values, dtype=var_val_dtype
     )
-
-    lengths = np.array([len(v) for v in factorgraph.variable_values], dtype=np.int64)
+    global_vars = np.array(
+        [rel_to_idx(key) for key in factorgraph.global_variables], dtype=np.int64
+    )
 
     return IdxFactorGraph(
         Variables(
-            np.array(vars, dtype=np.int64),
-            np.array(vals, dtype=var_val_dtype),
-            lengths,
+            np.array(
+                [rel_to_idx(key) for key in factorgraph.variables], dtype=np.int64
+            ),
+            vals,
+            lengths=np.ones_like(vals, dtype=np.int64),
         ),
         np.array(
-            factors,
+            [type_to_idx(object) for object in factorgraph.factor_values],
             dtype=np.int64,
         ),
         factorgraph.senders,
         factorgraph.receivers,
         edge_attributes,
         Variables(
-            np.array(
-                global_vars,
-            ),
-            np.array(global_vars_values, dtype=var_val_dtype),
-            global_lengths,
+            global_vars,
+            global_vars_values,
+            lengths=np.ones_like(global_vars_values, dtype=np.int64),
         ),
         action_mask=factorgraph.action_mask,
     )
 
 
-def create_stacked_obs(
+def create_obs_dict(
     heterogenous_graph: HeteroGraph,
     model: BaseModel,
 ) -> dict[str, Any]:
     obs_boolean = graph_to_dict(
-        map_stacked_graph_to_idx(  # type: ignore
+        map_graph_to_idx(
             heterogenous_graph.boolean,  # type: ignore
             model.fluent_to_idx,
             model.type_to_idx,
             np.int8,
-        )
+        ),
     )
 
     obs_numeric = graph_to_dict(
-        map_stacked_graph_to_idx(  # type: ignore
+        map_graph_to_idx(  # type: ignore
             heterogenous_graph.numeric,  # type: ignore
             model.fluent_to_idx,
             model.type_to_idx,
@@ -114,7 +93,7 @@ def create_stacked_obs(
     return obs
 
 
-def create_stacked_graphs(
+def create_graphs(
     rddl_obs: dict[GroundValue, Any],
     model: BaseModel,
 ):
@@ -131,7 +110,7 @@ def create_stacked_graphs(
     bool_ground = bool_groundings(filtered_groundings, model.fluent_range)
 
     bool_g = generate_bipartite_obs(
-        StackedFactorGraph[bool],
+        FactorGraph[bool],
         filtered_obs,
         bool_ground,
         model.fluent_param,
@@ -142,7 +121,7 @@ def create_stacked_graphs(
     n_g = numeric_groundings(filtered_groundings, model.fluent_range)
 
     numeric_g = generate_bipartite_obs(
-        StackedFactorGraph[float],
+        FactorGraph[float],
         filtered_obs,
         n_g,
         model.fluent_param,
@@ -150,10 +129,7 @@ def create_stacked_graphs(
         model.num_actions,
     )
 
-    assert isinstance(
-        bool_g, StackedFactorGraph
-    ), f"expected StackedFactorGraph but got {type(bool_g)}"
-    assert isinstance(
-        numeric_g, StackedFactorGraph
-    ), f"expected StackedFactorGraph but got {type(numeric_g)}"
+    assert isinstance(bool_g, FactorGraph)
+    assert isinstance(numeric_g, FactorGraph)
+    # hetero_g = HeteroGraph(numeric_g, bool_g)
     return HeteroGraph(numeric_g, bool_g), filtered_groundings

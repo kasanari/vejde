@@ -53,22 +53,18 @@ def create_obs_dict(
     model: BaseModel,
 ) -> dict[str, Any]:
     return {
-        "bool": graph_to_dict(
+        k: graph_to_dict(
             _map_graph_to_idx(
-                heterogenous_graph.boolean,  # type: ignore
+                v,  # type: ignore
                 model.fluent_to_idx,
                 model.type_to_idx,
-                np.int8,
+                dtype,
             ),
-        ),
-        "float": graph_to_dict(
-            _map_graph_to_idx(
-                heterogenous_graph.numeric,  # type: ignore
-                model.fluent_to_idx,
-                model.type_to_idx,
-                np.float32,
-            )
-        ),
+        )
+        for k, v, dtype in [
+            ("bool", heterogenous_graph.boolean, np.int8),
+            ("float", heterogenous_graph.numeric, np.float32),
+        ]
     }
 
 

@@ -46,10 +46,8 @@ def _map_graph_to_idx[V](
     type_to_idx: Callable[[str], int],
     var_val_dtype: type,
 ):
-    vars, global_vars = flatten_values(factorgraph)
     return map_graph_to_idx(
-        vars,
-        global_vars,
+        *flatten_values(factorgraph),
         factorgraph.senders,
         factorgraph.receivers,
         factorgraph.edge_attributes,
@@ -66,22 +64,18 @@ def create_obs_dict(
     model: BaseModel,
 ) -> dict[str, Any]:
     return {
-        "bool": graph_to_dict(
+        k: graph_to_dict(
             _map_graph_to_idx(
-                heterogenous_graph.boolean,  # type: ignore
+                v,  # type: ignore
                 model.fluent_to_idx,
                 model.type_to_idx,
-                np.int8,
+                dtype,
             ),
-        ),
-        "float": graph_to_dict(
-            _map_graph_to_idx(
-                heterogenous_graph.numeric,  # type: ignore
-                model.fluent_to_idx,
-                model.type_to_idx,
-                np.float32,
-            )
-        ),
+        )
+        for k, v, dtype in [
+            ("bool", heterogenous_graph.boolean, np.int8),
+            ("float", heterogenous_graph.numeric, np.float32),
+        ]
     }
 
 
@@ -99,23 +93,19 @@ def create_graphs(
 
     filtered_obs: dict[GroundValue, Any] = {k: rddl_obs[k] for k in filtered_groundings}
 
-    bool_ground = bool_groundings(filtered_groundings, model.fluent_range)
-
     bool_g = generate_bipartite_obs(
         StackedFactorGraph[bool],
         filtered_obs,
-        bool_ground,
+        bool_groundings(filtered_groundings, model.fluent_range),
         model.fluent_param,
         valid_action_fluents(model),
         model.num_actions,
     )
 
-    n_g = numeric_groundings(filtered_groundings, model.fluent_range)
-
     numeric_g = generate_bipartite_obs(
         StackedFactorGraph[float],
         filtered_obs,
-        n_g,
+        numeric_groundings(filtered_groundings, model.fluent_range),
         model.fluent_param,
         valid_action_fluents(model),
         model.num_actions,

@@ -45,26 +45,20 @@ class StackingGroundedGraphWrapper(
         render_mode: str = "human",
     ) -> None:
         super().__init__(env)
-        self.wrapped_model = model
+        self.model = model
         self.env = env
         self.last_obs: dict[str, Any] = {}
+        self.last_action: GroundValue | None = None
         self.iter = 0
         self._object_to_type: dict[str, str] = {"None": "None"}
-
-    def obj_to_type(self, obj: str) -> str:
-        try:
-            return self._object_to_type[obj]
-        except IndexError:
-            logger.warning(f"Object {obj} not found in object_to_type")
-            return "None"
 
     @property
     def action_space(self) -> gym.spaces.MultiDiscrete:  # type: ignore
         return action_space(
-            self.wrapped_model.action_fluents,
-            self.wrapped_model.num_actions,
+            self.model.action_fluents,
+            self.model.num_actions,
             len(self._object_to_type) or 1,
-            self.wrapped_model.arity,
+            self.model.arity,
         )
 
     def render(self):
@@ -85,8 +79,8 @@ class StackingGroundedGraphWrapper(
                 object_nodes,
                 edge_indices,  # type: ignore
                 edge_attributes,
-                self.wrapped_model.idx_to_type,  # type: ignore
-                self.wrapped_model.idx_to_fluent,  # type: ignore
+                self.model.idx_to_type,  # type: ignore
+                self.model.idx_to_fluent,  # type: ignore
             )
 
     @property
@@ -94,10 +88,10 @@ class StackingGroundedGraphWrapper(
     def observation_space(self) -> spaces.Dict:  # type: ignore
         # num_groundings = len(self.wrapped_model.groundings)
         # num_objects = self.wrapped_model.num_objects
-        num_types = self.wrapped_model.num_types
-        num_relations = self.wrapped_model.num_fluents
-        max_arity = max(self.wrapped_model.arity(r) for r in self.wrapped_model.fluents)
-        num_actions = self.wrapped_model.num_actions
+        num_types = self.model.num_types
+        num_relations = self.model.num_fluents
+        max_arity = max(self.model.arity(r) for r in self.model.fluents)
+        num_actions = self.model.num_actions
 
         bool_space = Discrete(2)
         number_space = Box(
@@ -105,9 +99,6 @@ class StackingGroundedGraphWrapper(
             np.finfo(np.float32).max,
             shape=(),
         )
-
-        bool_space = bool_space
-        number_space = number_space
 
         return spaces.Dict(
             {
@@ -125,11 +116,11 @@ class StackingGroundedGraphWrapper(
     ) -> tuple[dict[str, Any], HeteroGraph]:
         g, _ = create_graphs(
             rddl_obs,
-            self.wrapped_model,
+            self.model,
         )
         o = create_obs_dict(
             g,
-            self.wrapped_model,
+            self.model,
         )
 
         assert o["bool"]["length"].sum() == len(
@@ -169,15 +160,19 @@ class StackingGroundedGraphWrapper(
         self.last_obs = obs
         self.last_g = combined_g
         self.last_rddl_obs = rddl_obs
+        self.last_action = None
 
         return obs, info
 
+    def obj_to_type(self, obj: str) -> str:
+        try:
+            return self._object_to_type[obj]
+        except IndexError:
+            logger.warning(f"Object {obj} not found in object_to_type")
+            return "None"
+
     def _to_rddl_action(self, action: GroundValue) -> dict[GroundValue, Any]:
-        return to_dict_action(
-            action,
-            self.obj_to_type,
-            self.wrapped_model.fluent_params,
-        )
+        return to_dict_action(action, self.obj_to_type, self.model.fluent_params)
 
     def step(
         self, action: GroundValue
@@ -203,4 +198,5 @@ class StackingGroundedGraphWrapper(
         self.last_g = create_render_graph(g.boolean, g.numeric)
         self.last_rddl_obs = rddl_obs
         self.last_action = action
+
         return obs, reward, terminated, truncated, info

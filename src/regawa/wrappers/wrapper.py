@@ -46,6 +46,7 @@ class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict
         self.model = model
         self.env = env
         self.last_obs: dict[str, Any] = {}
+        self.last_action: GroundValue | None = None
         self.iter = 0
         self._object_to_type: dict[str, str] = {"None": "None"}
 
@@ -109,7 +110,7 @@ class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict
         )
 
     def _create_obs(
-        self, rddl_obs: dict[str, list[int]]
+        self, rddl_obs: dict[str, list[Any]]
     ) -> tuple[dict[str, Any], HeteroGraph]:
         g, _ = create_graphs(
             rddl_obs,
@@ -129,6 +130,8 @@ class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict
 
         obs, g = self._create_obs(rddl_obs)
 
+        combined_g = create_render_graph(g.boolean, g.numeric)
+
         info["state"] = g
         info["rddl_state"] = rddl_obs  # type: ignore
         info["idx_to_object"] = g.boolean.factors
@@ -138,7 +141,7 @@ class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict
         }
 
         self.last_obs = obs
-        self.last_g = create_render_graph(g.boolean, g.numeric)
+        self.last_g = combined_g
         self.last_rddl_obs = rddl_obs
         self.last_action = None
 
@@ -148,7 +151,7 @@ class GroundedGraphWrapper(gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict
         try:
             return self._object_to_type[obj]
         except IndexError:
-            logger.warning(f"{obj} not found in idx_to_object")
+            logger.warning(f"Object {obj} not found in object_to_type")
             return "None"
 
     def _to_rddl_action(self, action: GroundValue) -> dict[GroundValue, Any]:

@@ -39,7 +39,7 @@ def map_graph_to_idx[V](
     senders: NDArray[np.int64],
     receivers: NDArray[np.int64],
     edge_attributes: list[int],
-    action_mask: NDArray[np.int64],
+    action_mask: list[tuple[bool, ...]],
     factor_types: list[str],
     rel_to_idx: Callable[[str], int],
     type_to_idx: Callable[[str], int],
@@ -65,7 +65,7 @@ def map_graph_to_idx[V](
             arr(global_vars.values, dtype=var_val_dtype),
             arr(global_vars.lengths),
         ),
-        action_mask,
+        arr(action_mask),
     )
 
 
@@ -198,7 +198,7 @@ def generate_bipartite_obs(
     edges = create_edges(non_nullary_groundings)
 
     obj_list = object_list(
-        obs.keys(), relation_to_types
+        list(obs.keys()), relation_to_types
     )  # NOTE: this makes factors common between boolean and numeric
 
     object_types = [object.type for object in obj_list]

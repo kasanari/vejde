@@ -53,7 +53,7 @@ class FactorGraph[V](NamedTuple):
     edge_attributes: list[int]
     global_variables: list[str]
     global_variable_values: list[V]
-    action_mask: np.ndarray[np.bool_, Any]
+    action_mask: list[tuple[bool, ...]]
     groundings: list[GroundValue]
     global_groundings: list[GroundValue]
 
@@ -68,7 +68,7 @@ class StackedFactorGraph[V](NamedTuple):
     edge_attributes: list[int]
     global_variables: list[str]
     global_variable_values: list[list[V]]
-    action_mask: np.ndarray[np.bool_, Any]
+    action_mask: list[tuple[bool, ...]]
     groundings: list[GroundValue]
     global_groundings: list[GroundValue]
 

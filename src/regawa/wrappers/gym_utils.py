@@ -1,6 +1,11 @@
 from collections.abc import Callable
 from typing import Any
 from gymnasium.spaces import Discrete, Sequence, Dict, Space, MultiDiscrete, Box
+import numpy as np
+
+from regawa import BaseModel
+from regawa.wrappers.util_types import HeteroGraph, IdxFactorGraph
+from regawa.wrappers.utils import map_graph_to_idx
 
 
 def obs_space(
@@ -60,3 +65,50 @@ def n_relations(observation_space: Dict):
 
 def n_actions(action_space: MultiDiscrete):
     return int(action_space.nvec[0])  # type: ignore
+
+
+def graph_to_dict[V](idx_g: IdxFactorGraph[V]) -> dict[str, Any]:
+    return {
+        "var_type": idx_g.variables.types,
+        "var_value": idx_g.variables.values,
+        "factor": idx_g.factors,
+        "senders": idx_g.senders,
+        "receivers": idx_g.receivers,
+        "edge_attr": idx_g.edge_attributes,
+        "length": idx_g.variables.lengths,
+        "global_vars": idx_g.global_vars.types,
+        "global_vals": idx_g.global_vars.values,
+        "global_length": idx_g.global_vars.lengths,
+        "action_mask": idx_g.action_mask,
+        # "numeric": numeric,
+    }
+
+
+def create_obs_dict(
+    heterogenous_graph: HeteroGraph,
+    model: BaseModel,
+) -> dict[str, Any]:
+    obs_boolean = graph_to_dict(
+        map_graph_to_idx(
+            heterogenous_graph.boolean,  # type: ignore
+            model.fluent_to_idx,
+            model.type_to_idx,
+            np.int8,
+        ),
+    )
+
+    obs_numeric = graph_to_dict(
+        map_graph_to_idx(
+            heterogenous_graph.numeric,  # type: ignore
+            model.fluent_to_idx,
+            model.type_to_idx,
+            np.float32,
+        )
+    )
+
+    obs = {
+        "bool": obs_boolean,
+        "float": obs_numeric,
+    }
+
+    return obs

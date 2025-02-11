@@ -6,7 +6,7 @@ from pyRDDLGym import RDDLEnv
 from functools import cache
 
 from .rddl_model import RDDLModel
-from regawa.wrappers.utils import predicate
+from regawa.wrappers.grounding_utils import predicate
 from regawa.model import GroundValue
 
 ObsType = TypeVar("ObsType")

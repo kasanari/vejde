@@ -9,18 +9,18 @@ from gymnasium import spaces
 from gymnasium.spaces import Discrete, Dict, MultiDiscrete, Box
 
 from regawa.model import GroundValue
+from .grounding_utils import to_dict_action
+from .render_utils import to_graphviz_alt
+from .stacked_utils import create_stacked_graphs, create_stacked_obs
 from .util_types import HeteroGraph
 
 from .gym_utils import action_space, obs_space
 
 from .utils import (
     create_render_graph,
-    create_stacked_graphs,
-    to_dict_action,
-    create_stacked_obs,
 )
 
-from .utils import to_graphviz_alt, to_graphviz
+from .render_utils import to_graphviz
 
 from regawa import BaseModel
 

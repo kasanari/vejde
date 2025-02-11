@@ -1,0 +1,78 @@
+from typing import Any, NamedTuple, TypeVar
+
+import numpy as np
+
+from regawa.model import GroundValue
+
+V = TypeVar("V")
+
+
+class Object(NamedTuple):
+    name: str
+    type: str
+
+
+class Edge(NamedTuple):
+    grounding: GroundValue
+    object: str
+    pos: int
+
+
+class RenderGraph(NamedTuple):
+    variable_labels: list[str]
+    factor_labels: list[str]
+    senders: np.ndarray[np.int64, Any]
+    receivers: np.ndarray[np.int64, Any]
+    edge_attributes: list[int]
+    global_variables: list[str]
+
+
+class Variables[V](NamedTuple):
+    types: np.ndarray[np.int64, Any]
+    values: np.ndarray[V, Any]
+    lengths: np.ndarray[np.int64, Any]
+
+
+class IdxFactorGraph[V](NamedTuple):
+    variables: Variables[V]
+    factors: np.ndarray[np.int64, Any]
+    senders: np.ndarray[np.int64, Any]
+    receivers: np.ndarray[np.int64, Any]
+    edge_attributes: np.ndarray[np.int64, Any]
+    global_vars: Variables[V]
+    action_mask: np.ndarray[np.bool_, Any]
+
+
+class FactorGraph[V](NamedTuple):
+    variables: list[str]
+    variable_values: list[V]
+    factors: list[str]
+    factor_values: list[str]
+    senders: np.ndarray[np.int64, Any]
+    receivers: np.ndarray[np.int64, Any]
+    edge_attributes: list[int]
+    global_variables: list[str]
+    global_variable_values: list[V]
+    action_mask: np.ndarray[np.bool_, Any]
+    groundings: list[GroundValue]
+    global_groundings: list[GroundValue]
+
+
+class StackedFactorGraph[V](NamedTuple):
+    variables: list[str]
+    variable_values: list[list[V]]
+    factors: list[str]
+    factor_values: list[str]
+    senders: np.ndarray[np.int64, Any]
+    receivers: np.ndarray[np.int64, Any]
+    edge_attributes: list[int]
+    global_variables: list[str]
+    global_variable_values: list[list[V]]
+    action_mask: np.ndarray[np.bool_, Any]
+    groundings: list[GroundValue]
+    global_groundings: list[GroundValue]
+
+
+class HeteroGraph(NamedTuple):
+    numeric: FactorGraph[float] | StackedFactorGraph[float]
+    boolean: FactorGraph[bool] | StackedFactorGraph[bool]

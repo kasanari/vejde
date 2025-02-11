@@ -10,7 +10,8 @@ from gymnasium.spaces import MultiDiscrete, Sequence
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel
 from pyRDDLGym.core.env import RDDLEnv
 
-from regawa.wrappers.utils import objects, predicate
+from regawa.wrappers.grounding_utils import objects
+from regawa.wrappers.grounding_utils import predicate
 
 logger = logging.getLogger(__name__)
 

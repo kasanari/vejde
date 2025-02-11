@@ -1,10 +1,12 @@
 from collections.abc import Callable
 
+from .grounding_utils import objects, predicate
+
 from .util_types import FactorGraph
 
 from ..model import GroundValue
 from regawa.model.base_model import BaseModel
-from .utils import objects, predicate, translate_edges
+from .utils import translate_edges
 import numpy as np
 from typing import Any, NamedTuple, TypeVar
 

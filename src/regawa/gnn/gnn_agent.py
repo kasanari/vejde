@@ -6,7 +6,7 @@ from torch import Tensor
 import torch as th
 from dataclasses import asdict
 
-from regawa.gnn.agent_utils import ActionMode, AgentConfig
+from regawa.gnn.agent_utils import ActionMode, AgentConfig, GNNParams
 from regawa.gnn.node_then_action import NodeThenActionPolicy
 
 from .gnn_classes import EmbeddingLayer, SparseArray, SparseTensor, sparsify
@@ -205,7 +205,7 @@ class GraphAgent(nn.Module):
         save_agent(self, self.config, path)
 
     @classmethod
-    def load_agent(cls, path: str) -> tuple["RecurrentGraphAgent", AgentConfig]:
+    def load_agent(cls, path: str) -> tuple["GraphAgent", AgentConfig]:
         return load_agent(cls, path)  # type: ignore
 
 
@@ -320,6 +320,9 @@ T = TypeVar("T", bound=GraphAgent | RecurrentGraphAgent)
 
 def load_agent(cls: T, path: str) -> tuple[T, AgentConfig]:
     data = th.load(path, weights_only=False)  # type: ignore
+
+    data["config"]["hyper_params"] = GNNParams(**data["config"]["hyper_params"])
+
     config = AgentConfig(**data["config"])
     agent = cls(config)
     agent.load_state_dict(data["state_dict"])

@@ -80,6 +80,7 @@ class BipartiteGNNConvVariableToFactor(nn.Module):
         super().__init__()
         self.combine = MLPLayer(out_channels * 2, out_channels, activation)
         self.message_func = MLPLayer(in_channels * 2, out_channels, activation)
+        self.aggr = aggr
 
         logger.info("Variable to Factor\n")
         logger.info("Message Function\n%s", self.message_func)
@@ -109,7 +110,7 @@ class BipartiteGNNConvVariableToFactor(nn.Module):
         x = torch.concatenate(x, dim=-1)
         m = self.message_func(x)
         logger.debug("V2F Messages\n%s", m)
-        x = scatter(m, receivers, dim=0, reduce="sum")
+        x = scatter(m, receivers, dim=0, reduce=self.aggr)
         logger.debug("V2F Aggr out:\n%s", x)
         x = (factors, x) if x.shape[0] > 0 else (factors, torch.zeros_like(factors))
         x = torch.concatenate(x, dim=-1)
@@ -128,6 +129,7 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
         # self.root = MLPLayer(in_channels, out_channels, activation)
         self.combine = MLPLayer(out_channels * 2, out_channels, activation)
         self.message_func = MLPLayer(in_channels * 2, out_channels, activation)
+        self.aggr = aggr
 
         logger.info("Factor to Variable\n")
         logger.info("Message Function\n%s", self.message_func)
@@ -161,7 +163,7 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
         x = torch.concatenate(x, dim=-1)
         m = self.message_func(x)
         logger.debug("F2V Messages\n%s", m)
-        x = scatter(m, senders, dim=0, reduce="sum")
+        x = scatter(m, senders, dim=0, reduce=self.aggr)
         logger.debug("F2V Aggr out\n%s", x)
         x = (variables, x)
         x = torch.concatenate(x, dim=-1)

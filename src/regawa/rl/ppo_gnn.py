@@ -173,9 +173,9 @@ def update_step(
         b: BatchData,
         b_inds: NDArray[np.int32],
         clipfracs: list[float],
-    ) -> UpdateData:
+    ) -> tuple[list[UpdateData], list[float]]:
         np.random.shuffle(b_inds)
-        u_data = None
+        u_datas: list[UpdateData] = []
         for start in range(0, batch_size, minibatch_size):
             u_data, clipfracs = mb_step(
                 start,
@@ -184,8 +184,9 @@ def update_step(
                 b,
                 clipfracs,
             )
-        assert u_data
-        return u_data, clipfracs
+            u_datas.append(u_data)
+
+        return u_datas, clipfracs
 
     return _update_step
 
@@ -207,7 +208,7 @@ def iteration_step(
     gae_func: Callable[[Tensor, Tensor, Tensor, Tensor, Tensor], tuple[Tensor, Tensor]],
     update_func: Callable[
         [HeteroGraphBuffer, BatchData, NDArray[np.int32], list[float]],
-        tuple[UpdateData, list[float]],
+        tuple[list[UpdateData], list[float]],
     ],
 ):
     def _iteration_step(
@@ -261,20 +262,23 @@ def iteration_step(
         # Optimizing the policy and value network
 
         b_inds = np.arange(batch_size)
-        u_data = None
+        u_datas: list[UpdateData] = []
         clipfracs: list[float] = []
         for _ in range(update_epochs):
             u_data, clipfracs = update_func(r_data.obs, flattened_b, b_inds, clipfracs)
-            if target_kl is not None and u_data.approx_kl > target_kl:
+            if (
+                target_kl is not None
+                and np.mean([u.approx_kl for u in u_data]) > target_kl
+            ):
                 break
+            u_datas.extend(u_data)
 
-        assert u_data
         y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()  # type: ignore
         var_y = np.var(y_true)  # type: ignore
         explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
         carry = IterationCarry(b, r_data.last_obs, r_data.last_done, r_data.global_step)
-        return r_data, u_data, clipfracs, explained_var, carry
+        return r_data, u_datas, clipfracs, explained_var, carry
 
     return _iteration_step
 
@@ -317,6 +321,8 @@ class Args:
     domain: str
     instance: str | int
     agent_config: GNNParams
+    remove_false: bool = False
+    debug: bool = False
     exp_name: str = os.path.basename(__file__)[: -len(".py")]
     """the name of this experiment"""
     seed: int = 0
@@ -379,12 +385,14 @@ def make_env(
     env_id: str,
     domain: str,
     instance: str | int,
+    remove_false: bool,
 ):
     def thunk() -> gym.Env[Dict, MultiDiscrete]:
         env: gym.Env[Dict, MultiDiscrete] = gym.make(  # type: ignore
             env_id,
             domain=domain,
             instance=instance,
+            remove_false=remove_false,
             # add_inverse_relations=False,
         )
         env = gym.wrappers.RecordEpisodeStatistics(env)
@@ -668,15 +676,37 @@ def main(
             mlflow.log_metric("rollout/mean_episodic_return", r, global_step)  # type: ignore
         if length is not None:
             mlflow.log_metric("rollout/mean_episodic_length", length, global_step)  # type: ignore
-        mlflow.log_metric("losses/total_loss", u_data.loss.item(), global_step)  # type: ignore
-        mlflow.log_metric("losses/grad_norm", u_data.grad_norm, global_step)  # type: ignore
-        mlflow.log_metric("losses/value_loss", u_data.v_loss.item(), global_step)  # type: ignore
-        mlflow.log_metric("losses/policy_loss", u_data.pg_loss.item(), global_step)  # type: ignore
-        mlflow.log_metric("losses/entropy", u_data.entropy_loss.item(), global_step)  # type: ignore
         mlflow.log_metric(
-            "losses/old_approx_kl", u_data.old_approx_kl.item(), global_step
+            "losses/total_loss", np.mean([u.loss.item() for u in u_data]), global_step
         )  # type: ignore
-        mlflow.log_metric("losses/approx_kl", u_data.approx_kl.item(), global_step)  # type: ignore
+        mlflow.log_metric(
+            "losses/grad_norm",
+            np.mean([u.grad_norm.item() for u in u_data]),
+            global_step,
+        )  # type: ignore
+        mlflow.log_metric(
+            "losses/value_loss", np.mean([u.v_loss.item() for u in u_data]), global_step
+        )  # type: ignore
+        mlflow.log_metric(
+            "losses/policy_loss",
+            np.mean([u.pg_loss.item() for u in u_data]),
+            global_step,
+        )  # type: ignore
+        mlflow.log_metric(
+            "losses/entropy",
+            np.mean([u.entropy_loss.item() for u in u_data]),
+            global_step,
+        )  # type: ignore
+        mlflow.log_metric(
+            "losses/old_approx_kl",
+            np.mean([u.old_approx_kl.item() for u in u_data]),
+            global_step,
+        )  # type: ignore
+        mlflow.log_metric(
+            "losses/approx_kl",
+            np.mean([u.approx_kl.item() for u in u_data]),
+            global_step,
+        )  # type: ignore
         mlflow.log_metric("losses/clipfrac", np.mean(clipfracs), global_step)  # type: ignore
         mlflow.log_metric("losses/explained_variance", explained_var, global_step)  # type: ignore
         mlflow.log_metric(
@@ -688,17 +718,27 @@ def main(
 
 
 def setup(args: Args | None = None):
-    print("Attempting to connect to mlflow...")
-    tracking_uri = "http://127.0.0.1:5000"
-    mlflow.set_tracking_uri(uri=tracking_uri)
-    print(f"Connected to mlflow at {tracking_uri}")
     args = tyro.cli(Args) if args is None else args
 
-    run_name = f"{Path(args.domain).name}__{Path(str(args.instance)).name}__{args.exp_name}__{args.seed}"
+    print("Attempting to connect to mlflow...")
+    tracking_uri = "http://127.0.0.1:5000" if not args.debug else ""
+    mlflow.set_tracking_uri(uri=tracking_uri)
+    print(f"Connected to mlflow at {tracking_uri}")
+
+    run_name = (
+        f"{Path(args.domain).name}__{Path(str(args.instance)).name}__{args.exp_name}__{args.seed}"
+        if not args.debug
+        else "debug"
+    )
 
     envs = gym.vector.SyncVectorEnv(
         [
-            make_env(args.env_id, args.domain, args.instance)
+            make_env(
+                args.env_id,
+                args.domain,
+                args.instance,
+                args.remove_false,
+            )
             for _ in range(args.num_envs)
         ],
     )
@@ -744,11 +784,11 @@ def setup(args: Args | None = None):
             instance=args.instance,
         )
 
-        seeds = range(20)
+        seeds = range(75)
         data = [
-            evaluate(eval_env, agent.agent, seed, deterministic=True) for seed in seeds
+            evaluate(eval_env, agent.agent, seed, deterministic=False) for seed in seeds
         ]
-        rewards, _, _ = zip(*data)
+        rewards, *_ = zip(*data)
         avg_mean_reward = np.mean([np.mean(r) for r in rewards])
         returns = [np.sum(r) for r in rewards]
         save_eval_data(data, f"{run_name}.json")

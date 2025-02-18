@@ -3,11 +3,12 @@ import json
 
 import torch as th
 from tqdm import tqdm
+from regawa.gnn.agent_utils import GNNParams
 from regawa.gnn.data import (
     heterodict_to_obsdata,
     heterostatedata_from_obslist,
 )
-from regawa.gnn.gnn_agent import AgentConfig, GraphAgent
+from regawa.gnn.gnn_agent import AgentConfig, GraphAgent, heterostatedata_to_tensors
 from regawa.gnn import ActionMode
 from regawa.model.base_grounded_model import BaseGroundedModel
 from regawa.model.base_model import BaseModel
@@ -58,8 +59,7 @@ render_index = 0
 def to_obsdata(rddl_obs: dict, model: BaseModel, grounded_model: BaseGroundedModel):
     obs, action = rddl_obs
     obs |= {
-        rddl_ground_to_tuple(g): grounded_model.constant_value(g)
-        for g in grounded_model.constant_groundings
+        g: grounded_model.constant_value(g) for g in grounded_model.constant_groundings
     }
 
     g, _ = create_graphs(
@@ -82,15 +82,19 @@ def get_agent(model: BaseModel):
     n_relations = model.num_fluents
     n_actions = model.num_actions
 
+    params = GNNParams(
+        layers=4,
+        embedding_dim=32,
+        activation=th.nn.Mish(),
+        aggregation="sum",
+        action_mode=ActionMode.ACTION_THEN_NODE,
+    )
+
     config = AgentConfig(
         n_types,
         n_relations,
         n_actions,
-        layers=2,
-        embedding_dim=32,
-        activation=th.nn.LeakyReLU(),
-        aggregation="sum",
-        action_mode=ActionMode.NODE_THEN_ACTION,
+        params,
     )
 
     agent = GraphAgent(
@@ -141,8 +145,8 @@ def test_saved_data():
     # datafile = "/storage/GitHub/pyRDDLGym-prost/prost/out/sysadmin1/data_sysadmin_mdp_sysadmin_inst_mdp__2.json"
     # domain = "SysAdmin_MDP_ippc2011"
     # instance = 2
-    datafile = "/storage/GitHub/pyRDDLGym-prost/prost/out/elevators1/data_elevators_mdp_elevators_inst_mdp__1.json"
-    domain = "Elevators_MDP_ippc2011"
+    datafile = "/storage/GitHub/pyRDDLGym-prost/prost/out/OUTPUTS/data_academic-advising_mdp_academic-advising_inst_mdp__01.json"
+    domain = "AcademicAdvising_ippc2018"
     instance = 1
 
     seed = 1
@@ -168,16 +172,16 @@ def test_saved_data():
     print(
         f"Expert Total reward: {sum(expert_rewards)}, Mean reward: {sum(expert_rewards) / len(expert_rewards)}"
     )
-    rewards, _, _ = evaluate(env, agent, seed, deterministic=True)
+    rewards, *_ = evaluate(env, agent, seed, deterministic=True)
     print(f"Learner Total reward: {sum(rewards)}")
 
     expert_obs, expert_action = get_rddl_data(data, model, grounded_model)
 
     # batch_inds = list(range(0, len(expert_obs)))
 
-    d = heterostatedata_from_obslist(expert_obs)
+    d = heterostatedata_to_tensors(heterostatedata_from_obslist(expert_obs))
     avg_loss = 0.0
-    num_gradient_steps = 200
+    num_gradient_steps = 400
     avg_grad_norm = 0.0
     pbar = tqdm()
     grad_norms = deque()
@@ -197,7 +201,7 @@ def test_saved_data():
 
     pbar.close()
 
-    rewards, _, _ = evaluate(env, agent, seed, deterministic=True)
+    rewards, *_ = evaluate(env, agent, seed, deterministic=True)
 
     print(f"Learner Total reward: {sum(rewards)}")
 
@@ -212,7 +216,7 @@ def test_saved_data():
 
     loss_per_obs = []
     for d in expert_obs:
-        s = heterostatedata_from_obslist([d])
+        s = heterostatedata_to_tensors(heterostatedata_from_obslist([d]))
         actions, logprob, entropy, value, p_n, p_a__n = agent.sample(s)
         l2_norms = [th.sum(th.square(w)) for w in agent.parameters()]
         loss = calc_loss(l2_norms, logprob)

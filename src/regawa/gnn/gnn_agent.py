@@ -2,6 +2,7 @@ from typing import Any, NamedTuple, TypeVar
 
 import torch.nn as nn
 from torch import Tensor
+import torch
 
 import torch as th
 from dataclasses import asdict
@@ -35,7 +36,7 @@ class EmbeddedTuple(NamedTuple):
 
 
 def heterostatedata_to_tensors(
-    data: HeteroStateData, device: str = "cpu"
+    data: HeteroStateData, device: str | torch.device = "cpu"
 ) -> HeteroStateData:
     return HeteroStateData(
         statedata_to_tensors(data.boolean, device),
@@ -43,7 +44,9 @@ def heterostatedata_to_tensors(
     )
 
 
-def statedata_to_tensors(data: StateData, device: str) -> StateData:
+def statedata_to_tensors(
+    data: StateData, device: str | torch.device = "cpu"
+) -> StateData:
     params = tuple(
         SparseTensor(
             as_tensor(attr.values, device=device),

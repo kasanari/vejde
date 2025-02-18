@@ -270,7 +270,8 @@ def iteration_step(
             u_data, clipfracs = update_func(r_data.obs, flattened_b, b_inds, clipfracs)
             if (
                 target_kl is not None
-                and torch.mean(torch.as_tensor([u.approx_kl for u in u_data])) > target_kl
+                and torch.mean(torch.as_tensor([u.approx_kl for u in u_data]))
+                > target_kl
             ):
                 break
             u_datas.extend(u_data)
@@ -792,8 +793,12 @@ def setup(args: Args | None = None):
         )
 
         seeds = range(10)
+        device = torch.device(
+            "cuda" if torch.cuda.is_available() and args.cuda else "cpu"
+        )
         data = [
-            evaluate(eval_env, agent.agent, seed, deterministic=True) for seed in seeds
+            evaluate(eval_env, agent.agent, seed, deterministic=False, device=device)
+            for seed in seeds
         ]
         rewards, *_ = zip(*data)
         avg_mean_reward = np.mean([np.mean(r) for r in rewards])

@@ -25,7 +25,7 @@ from torch.utils._foreach_utils import (
 
 
 @th.no_grad()
-def evaluate(env: gym.Env, agent: GraphAgent, seed: int, deterministic: bool = True):
+def evaluate(env: gym.Env, agent: GraphAgent, seed: int, deterministic: bool = True, device: str = "cpu"):
     obs, info = env.reset(seed=seed)
     done = False
     time = 0
@@ -45,7 +45,7 @@ def evaluate(env: gym.Env, agent: GraphAgent, seed: int, deterministic: bool = T
         obs_buf.append(o)
 
         s = single_obs_to_heterostatedata(obs)
-        s = heterostatedata_to_tensors(s)
+        s = heterostatedata_to_tensors(s, device=device)
 
         action, *_, p_a, p_n__a = agent.sample(
             s,
@@ -55,7 +55,7 @@ def evaluate(env: gym.Env, agent: GraphAgent, seed: int, deterministic: bool = T
         next_obs, reward, terminated, truncated, info = env.step(action.squeeze(0))  # type: ignore
 
         factor_weights = (
-            p_n__a.T[action[:, 0]].round(decimals=2).detach().squeeze().numpy()
+            p_n__a.T[action[:, 0]].detach().squeeze().round(decimals=2).cpu().numpy()
         )
 
         weight_by_factor = {
@@ -66,7 +66,7 @@ def evaluate(env: gym.Env, agent: GraphAgent, seed: int, deterministic: bool = T
             k: float(v)
             for k, v in zip(
                 info["action_fluents"],
-                p_a.detach().round(decimals=2).squeeze().numpy(),
+                p_a.detach().squeeze().round(decimals=2).cpu().numpy(),
             )
             if v > 0.0
         }

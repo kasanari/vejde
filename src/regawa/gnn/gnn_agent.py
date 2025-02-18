@@ -204,6 +204,9 @@ class GraphAgent(nn.Module):
     def save_agent(self, path: str):
         save_agent(self, self.config, path)
 
+    def num_trainable_params(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
     @classmethod
     def load_agent(cls, path: str) -> tuple["GraphAgent", AgentConfig]:
         return load_agent(cls, path)  # type: ignore

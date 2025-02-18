@@ -135,6 +135,7 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
 
     pass
 
+    print(f"Trainable Parameters: {agent.num_trainable_params()}")
     data = [evaluate(env, agent, 0) for i in range(3)]
     rewards, *_ = zip(*data)
     avg_reward = np.mean(np.sum(rewards, axis=1))

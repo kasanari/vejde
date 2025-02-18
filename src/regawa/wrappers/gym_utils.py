@@ -3,6 +3,9 @@ from typing import Any
 from gymnasium.spaces import Discrete, Sequence, Dict, Space, MultiDiscrete, Box
 
 from regawa.wrappers.util_types import IdxFactorGraph
+from typing import TypeVar
+
+V = TypeVar("V")
 
 
 def obs_space(
@@ -64,7 +67,7 @@ def n_actions(action_space: MultiDiscrete):
     return int(action_space.nvec[0])  # type: ignore
 
 
-def graph_to_dict[V](idx_g: IdxFactorGraph[V]) -> dict[str, Any]:
+def graph_to_dict(idx_g: IdxFactorGraph[V]) -> dict[str, Any]:
     return {
         "var_type": idx_g.variables.types,
         "var_value": idx_g.variables.values,

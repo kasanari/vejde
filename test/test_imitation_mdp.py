@@ -71,6 +71,10 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
     logfile = logging.FileHandler("test_imitation_mdp.log", mode="w")
     l.addHandler(logfile)
 
+    render_logger = logging.getLogger("message_pass_render")
+    render_logfile = logging.FileHandler("test_imitation_mdp_render.log", mode="w")
+    render_logger.addHandler(render_logfile)
+
     env_id = register_env()
     env: gym.Env = gym.make(env_id, domain=domain, instance=instance)
 
@@ -136,6 +140,8 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
     pass
 
     print(f"Trainable Parameters: {agent.num_trainable_params()}")
+
+    render_logger.setLevel(logging.DEBUG)
     data = [evaluate(env, agent, 0) for i in range(3)]
     rewards, *_ = zip(*data)
     avg_reward = np.mean(np.sum(rewards, axis=1))
@@ -169,5 +175,5 @@ def iteration(i, env, agent, optimizer, vf_agent, vf_optimizer, seed: int):
 
 if __name__ == "__main__":
     t = time.time()
-    test_imitation(ActionMode.ACTION_THEN_NODE, 13, 16)
+    test_imitation(ActionMode.ACTION_THEN_NODE, 30, 24)
     print("Time: ", time.time() - t)

@@ -27,6 +27,14 @@ class FactorGraph(NamedTuple):
     action_mask: Tensor
 
 
+class Lazy:
+    def __init__(self, func):
+        self.func = func
+
+    def __str__(self) -> str:
+        return self.func()
+
+
 def to_graphviz(
     messages: Tensor,
     senders: Tensor,
@@ -106,7 +114,9 @@ class BipartiteGNNConvVariableToFactor(nn.Module):
         x = (factors, x) if x.shape[0] > 0 else (factors, torch.zeros_like(factors))
         x = torch.concatenate(x, dim=-1)
         x = self.combine(x)
-        render_logger.debug(to_graphviz(m, senders, receivers, variables, factors))
+        render_logger.debug(
+            "%s", Lazy(lambda: to_graphviz(m, senders, receivers, variables, factors))
+        )
         return x
 
 
@@ -158,7 +168,12 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
         x = self.combine(x)
         x = variables + x
         render_logger.debug(
-            to_graphviz(m, senders, receivers, variables, factors, reverse=True)
+            "%s",
+            Lazy(
+                lambda: to_graphviz(
+                    m, senders, receivers, variables, factors, reverse=True
+                )
+            ),
         )
         return x
 

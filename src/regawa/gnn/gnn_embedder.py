@@ -39,7 +39,7 @@ class BooleanEmbedder(th.jit.ScriptModule):
             "predicate_embedding:\n%s", predicate_embedding.transform[0].weight
         )
 
-        self.boolean_embedding = EmbeddingLayer(2, embedding_dim)
+        self.boolean_embedding = EmbeddingLayer(2, embedding_dim, use_padding=False)
 
         logger.debug(
             "boolean_embedding:\n%s", self.boolean_embedding.transform[0].weight

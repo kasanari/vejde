@@ -51,10 +51,18 @@ def sparsify(
 
 class EmbeddingLayer(Module):
     def __init__(
-        self, num_embeddings: int, embedding_dim: int, use_layer_norm: bool = True
+        self,
+        num_embeddings: int,
+        embedding_dim: int,
+        use_layer_norm: bool = True,
+        use_padding: bool = True,
     ):
         super().__init__()  # type: ignore
-        embedding = Embedding(num_embeddings, embedding_dim, padding_idx=0)
+        embedding = (
+            Embedding(num_embeddings, embedding_dim, padding_idx=0)
+            if use_padding
+            else Embedding(num_embeddings, embedding_dim)
+        )
         init.orthogonal_(embedding.weight)  # type: ignore
         embedding._fill_padding_idx_with_zero()
         layer_norm = LayerNorm(embedding_dim, elementwise_affine=True)

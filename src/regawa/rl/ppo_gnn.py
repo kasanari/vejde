@@ -68,16 +68,18 @@ class UpdateData(NamedTuple):
     old_approx_kl: Tensor
     approx_kl: Tensor
     grad_norm: Tensor
-    clipfracs: list[float]
+    clipfrac: float
+    stop_training: bool
 
 
 class PPOParams(NamedTuple):
     clip_coef: float
     norm_adv: bool
-    clip_vloss: bool
+    clip_range_vf: float | None
     ent_coef: float
     vf_coef: float
     max_grad_norm: float
+    target_kl: float | None
 
 
 class Agent(nn.Module):
@@ -109,7 +111,7 @@ class Agent(nn.Module):
         self,
         action: Tensor,
         s: HeteroStateData,
-    ):
+    ) -> tuple[Tensor, Tensor, Tensor]:
         # num_graphs = batch_idx.max() + 1
         # action_mask = action_mask.reshape(num_graphs, -1)
         logprob, entropy, value, *_ = self.agent.forward(
@@ -137,13 +139,12 @@ def minibatch_step(
         b_inds: NDArray[np.int32],
         obs: HeteroGraphBuffer,
         b: BatchData,
-        clipfracs: list[float],
     ):
         end = start + minibatch_size
         mb_inds = b_inds[start:end]
         minibatch = obs.minibatch(mb_inds)
         minibatch = heterostatedata_to_tensors(minibatch, device)
-        u_data = update_func(
+        return update_func(
             minibatch,
             BatchData(
                 b.actions[mb_inds],
@@ -155,8 +156,6 @@ def minibatch_step(
                 b.dones[mb_inds],
             ),
         )
-        clipfracs += u_data.clipfracs
-        return u_data, clipfracs
 
     return _minibatch_step
 
@@ -165,35 +164,35 @@ def update_step(
     batch_size: int,
     minibatch_size: int,
     mb_step: Callable[
-        [int, NDArray[np.int32], HeteroGraphBuffer, BatchData, list[float]],
-        tuple[UpdateData, list[float]],
+        [int, NDArray[np.int32], HeteroGraphBuffer, BatchData], UpdateData
     ],
 ):
     def _update_step(
         obs: HeteroGraphBuffer,
         b: BatchData,
         b_inds: NDArray[np.int32],
-        clipfracs: list[float],
-    ) -> tuple[list[UpdateData], list[float]]:
+    ) -> tuple[list[UpdateData], bool]:
         np.random.shuffle(b_inds)
         u_datas: list[UpdateData] = []
+        stop_training = False
         for start in range(0, batch_size, minibatch_size):
-            u_data, clipfracs = mb_step(
+            u_data = mb_step(
                 start,
                 b_inds,
                 obs,
                 b,
-                clipfracs,
             )
             u_datas.append(u_data)
+            if u_data.stop_training:
+                stop_training = True
+                break
 
-        return u_datas, clipfracs
+        return u_datas, stop_training
 
     return _update_step
 
 
 def iteration_step(
-    target_kl: float | None,
     anneal_lr: bool,
     agent: Agent,
     batch_size: int,
@@ -208,8 +207,8 @@ def iteration_step(
     ],
     gae_func: Callable[[Tensor, Tensor, Tensor, Tensor, Tensor], tuple[Tensor, Tensor]],
     update_func: Callable[
-        [HeteroGraphBuffer, BatchData, NDArray[np.int32], list[float]],
-        tuple[list[UpdateData], list[float]],
+        [HeteroGraphBuffer, BatchData, NDArray[np.int32]],
+        tuple[list[UpdateData], bool],
     ],
     device: str,
 ):
@@ -265,23 +264,20 @@ def iteration_step(
 
         b_inds = np.arange(batch_size)
         u_datas: list[UpdateData] = []
-        clipfracs: list[float] = []
-        for _ in range(update_epochs):
-            u_data, clipfracs = update_func(r_data.obs, flattened_b, b_inds, clipfracs)
-            if (
-                target_kl is not None
-                and torch.mean(torch.as_tensor([u.approx_kl for u in u_data]))
-                > target_kl
-            ):
-                break
+        for epoch in range(update_epochs):
+            u_data, stop_training = update_func(r_data.obs, flattened_b, b_inds)
             u_datas.extend(u_data)
+            if stop_training:
+                print(
+                    f"Early stopping at step {epoch} due to reaching max kl: {u_datas[-1].approx_kl:.2f}"
+                )
 
         y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()  # type: ignore
         var_y = np.var(y_true)  # type: ignore
         explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
         carry = IterationCarry(b, r_data.last_obs, r_data.last_done, r_data.global_step)
-        return r_data, u_datas, clipfracs, explained_var, carry
+        return r_data, u_datas, explained_var, carry
 
     return _iteration_step
 
@@ -298,19 +294,21 @@ def gae(
         dones: Tensor,
         values: Tensor,
         next_value: Tensor,
-        next_step_is_terminal: Tensor,
+        next_step_is_terminal: Tensor,  # env will autoreset on next call to step
     ) -> tuple[Tensor, Tensor]:
         advantages = torch.zeros_like(rewards).to(device)
         last_gae_lam = 0
         for t in reversed(range(num_steps)):
             if t == num_steps - 1:
-                next_non_terminal = 1.0 - next_step_is_terminal.float()
+                next_is_not_terminal = 1.0 - next_step_is_terminal.float()
                 next_values = next_value
             else:
-                next_non_terminal = 1.0 - dones[t + 1]
+                next_is_not_terminal = 1.0 - dones[t + 1]
                 next_values = values[t + 1]
-            delta = rewards[t] + gamma * next_values * next_non_terminal - values[t]
-            last_gae_lam = delta + gamma * gae_lambda * next_non_terminal * last_gae_lam
+            delta = rewards[t] + gamma * next_values * next_is_not_terminal - values[t]
+            last_gae_lam = (
+                delta + gamma * gae_lambda * next_is_not_terminal * last_gae_lam
+            )
             advantages[t] = last_gae_lam
         returns = advantages + values  # negates the -values[t] to get td targets
         return advantages, returns
@@ -413,58 +411,73 @@ def rollout(
 ):
     @torch.inference_mode()
     def _rollout(
-        next_obs: dict[str, list[ObsData]],
-        next_done: Tensor,
+        prev_obs: dict[str, list[ObsData]],
+        prev_is_final: Tensor,
         b: BatchData,
         global_step: int,
     ) -> tuple[RolloutData, BatchData]:
         returns: deque[float] = deque()
         lengths: deque[int] = deque()
-        obs: HeteroGraphBuffer = HeteroGraphBuffer()
-        for step in range(0, num_steps):
-            global_step += num_envs
-            obs.extend(next_obs)
-            b.dones[step] = next_done
+        obs_buf: HeteroGraphBuffer = HeteroGraphBuffer()
 
-            # ALGO LOGIC: action logic
-            s = heterostatedata(next_obs)
+        is_final = prev_is_final
+        obs = prev_obs
+        for step in range(0, num_steps):
+            s = heterostatedata(obs)
             s = heterostatedata_to_tensors(s, device)
-            action, logprob, _, value = agent.sample_action_and_value(
-                s
-                # batch.action_mask,
-                # batch.node_mask,
-            )
+            action, logprob, _, value = agent.sample_action_and_value(s)
             assert action.dim() == 2
             assert action.shape[0] == num_envs
             assert logprob.dim() == 1
-            # assert value.dim() == 2
-            b.values[step] = value.flatten()
-            b.actions[step] = action
-            b.logprobs[step] = logprob
 
-            # TRY NOT TO MODIFY: execute the game and log data.
             next_obs_dict, reward, terminations, truncations, infos = envs.step(  # type: ignore
                 action.cpu().numpy()  # type: ignore
             )
-            next_done = np.logical_or(terminations, truncations)
-            b.rewards[step] = torch.tensor(reward).to(device).view(-1)
-            next_obs, next_done = (
+            next_is_final = np.logical_or(terminations, truncations)
+            next_obs, next_is_final = (
                 batched_hetero_dict_to_hetero_obs_list(next_obs_dict),  # type: ignore
-                torch.Tensor(next_done).to(device),
+                torch.Tensor(next_is_final).to(device),
             )
 
+            # add data to buffer
+            b.rewards[step] = torch.tensor(reward).to(device).view(-1)
+            b.actions[step] = action
+            b.values[step] = value.flatten()
+            b.logprobs[step] = logprob
+            b.dones[step] = is_final
+            obs_buf.extend(obs)
+            global_step += num_envs
+
+            obs = next_obs
+            is_final = next_is_final
+
             if "episode" in infos:
-                for is_final, r, l in zip(
+                for next_is_final, r, l in zip(
                     infos["_episode"], infos["episode"]["r"], infos["episode"]["l"]
                 ):
-                    if is_final:
+                    if next_is_final:
                         returns.append(r)
                         lengths.append(l)
         return RolloutData(
-            obs, next_obs, next_done, global_step, list(returns), list(lengths)
+            obs_buf,
+            obs,
+            is_final,
+            global_step,
+            list(returns),
+            list(lengths),
         ), b
 
     return _rollout
+
+
+@torch.no_grad()
+def approximate_kl(logprob_new: Tensor, logprob_old: Tensor) -> tuple[Tensor, Tensor]:
+    # calculate approx_kl http://joschu.net/blog/kl-approx.html
+    log_ratio = logprob_new - logprob_old
+    ratio = torch.exp(log_ratio)
+    old_approx_kl = torch.mean(-log_ratio)
+    approx_kl = torch.mean((ratio - 1) - log_ratio)
+    return old_approx_kl, approx_kl
 
 
 def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
@@ -472,53 +485,53 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
         s: HeteroStateData,
         b: BatchData,
     ) -> UpdateData:
-        actions, logprobs, advantages, returns, values, _, _ = b
-        clip_coef, norm_adv, clip_vloss, ent_coef, vf_coef, max_grad_norm = params
+        actions, logprob_old, advantages, returns, values_old, _, _ = b
+        (
+            clip_coef,
+            norm_adv,
+            clip_range_vf,
+            ent_coef,
+            vf_coef,
+            max_grad_norm,
+            target_kl,
+        ) = params
 
-        newlogprob, entropy, newvalue = agent.evaluate_action_and_value(
+        logprob_new, entropy, values_new = agent.evaluate_action_and_value(
             actions,
             s,
             # torch.ones_like(obs.action_mask),
             # torch.ones_like(obs.node_mask),
         )
-        assert not newlogprob.isinf().any()
-        assert newlogprob.dim() == 1
+        assert not logprob_new.isinf().any()
+        assert logprob_new.dim() == 1
         assert entropy.dim() == 1
-        # assert newvalue.dim() == 2
-        logratio = newlogprob - logprobs
-        ratio = logratio.exp()
 
-        with torch.no_grad():
-            # calculate approx_kl http://joschu.net/blog/kl-approx.html
-            old_approx_kl = (-logratio).mean()
-            approx_kl = ((ratio - 1) - logratio).mean()
-            clipfracs = [((ratio - 1.0).abs() > clip_coef).float().mean().item()]
+        old_approx_kl, approx_kl = approximate_kl(logprob_new, logprob_old)
 
         if norm_adv:
             advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
         # Policy loss
-        pg_loss1 = torch.mul(-advantages, ratio)
-        pg_loss2 = -advantages * torch.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
-        pg_loss = torch.max(pg_loss1, pg_loss2).mean()
+        ratio = torch.exp(logprob_new - logprob_old)
+        pg_loss1 = torch.mul(advantages, ratio)
+        pg_loss2 = advantages * torch.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
+        pg_loss = -torch.min(pg_loss1, pg_loss2).mean()
+        clipfrac = ((ratio - 1.0).abs() > clip_coef).float().mean().item()
 
         # Value loss
-        newvalue = newvalue.view(-1)
-        if clip_vloss:
-            v_loss_unclipped = (newvalue - returns) ** 2
-            v_clipped = values + torch.clamp(
-                newvalue - values,
-                -clip_coef,
-                clip_coef,
-            )
-            v_loss_clipped = (v_clipped - returns) ** 2
-            v_loss_max = torch.max(v_loss_unclipped, v_loss_clipped)
-            v_loss = 0.5 * v_loss_max.mean()
+        if clip_range_vf is None:
+            # No clipping
+            values_pred = values_new
         else:
-            v_loss = 0.5 * ((newvalue - returns) ** 2).mean()
+            values_pred = values_old + torch.clamp(
+                values_new - values_old, -clip_range_vf, clip_range_vf
+            )
+
+        # Value loss using the TD(gae_lambda) target
+        value_loss = nn.functional.mse_loss(returns, values_pred)
 
         entropy_loss = entropy.mean()
-        loss = pg_loss - ent_coef * entropy_loss + v_loss * vf_coef
+        loss = pg_loss - ent_coef * entropy_loss + value_loss * vf_coef
 
         assert not torch.isnan(loss).any(), loss
 
@@ -528,24 +541,29 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
             agent.parameters(), max_grad_norm, error_if_nonfinite=True
         )
 
-        if v_loss.item() > 500.0:
-            per_param_grad = {
-                k: v.grad for k, v in dict(agent.named_parameters()).items()
-            }
-            logger.warning(f"v_loss: {v_loss.item()}")
-            logger.warning(f"per_param_grad: {per_param_grad}")
+        stop_training = target_kl is not None and bool(
+            (approx_kl > 1.5 * target_kl).item()
+        )
+
+        # if v_loss.item() > 500.0:
+        #     per_param_grad = {
+        #         k: v.grad for k, v in dict(agent.named_parameters()).items()
+        #     }
+        #     logger.warning(f"v_loss: {v_loss.item()}")
+        #     logger.warning(f"per_param_grad: {per_param_grad}")
 
         optimizer.step()
 
         return UpdateData(
             loss,
             pg_loss,
-            v_loss,
+            value_loss,
             entropy_loss,
             old_approx_kl,
             approx_kl,
             grad_norm,
-            clipfracs,
+            clipfrac,
+            stop_training,
         )
 
     return _update
@@ -621,6 +639,7 @@ def main(
         args.ent_coef,
         args.vf_coef,
         args.max_grad_norm,
+        args.target_kl,
     )
 
     pbar = tqdm(total=args.num_iterations)
@@ -631,7 +650,6 @@ def main(
     gae_func = gae(args.num_steps, args.gamma, args.gae_lambda, device)
 
     iter_step_func = iteration_step(
-        args.target_kl,
         args.anneal_lr,
         agent,
         args.batch_size,
@@ -656,7 +674,6 @@ def main(
         (
             r_data,
             u_data,
-            clipfracs,
             explained_var,
             carry,
         ) = iter_step_func(iteration, carry)
@@ -715,7 +732,9 @@ def main(
             np.mean([u.approx_kl.item() for u in u_data]),
             global_step,
         )  # type: ignore
-        mlflow.log_metric("losses/clipfrac", np.mean(clipfracs), global_step)  # type: ignore
+        mlflow.log_metric(
+            "losses/clipfrac", np.mean([u.clipfrac for u in u_data]), global_step
+        )  # type: ignore
         mlflow.log_metric("losses/explained_variance", explained_var, global_step)  # type: ignore
         mlflow.log_metric(
             "charts/SPS", int(global_step / (time.time() - start_time)), global_step

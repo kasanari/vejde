@@ -34,7 +34,9 @@ class EmbeddedTuple(NamedTuple):
     action_mask: Tensor
 
 
-def heterostatedata_to_tensors(data: HeteroStateData, device: str) -> HeteroStateData:
+def heterostatedata_to_tensors(
+    data: HeteroStateData, device: str = "cpu"
+) -> HeteroStateData:
     return HeteroStateData(
         statedata_to_tensors(data.boolean, device),
         statedata_to_tensors(data.numeric, device),
@@ -43,7 +45,10 @@ def heterostatedata_to_tensors(data: HeteroStateData, device: str) -> HeteroStat
 
 def statedata_to_tensors(data: StateData, device: str) -> StateData:
     params = tuple(
-        SparseTensor(as_tensor(attr.values, device=device), as_tensor(attr.indices, device=device))
+        SparseTensor(
+            as_tensor(attr.values, device=device),
+            as_tensor(attr.indices, device=device),
+        )
         if isinstance(attr, SparseArray)
         else as_tensor(attr, device=device)
         for attr in data
@@ -75,7 +80,10 @@ def _embed(
             data.global_vals.indices,
         )
         if data.global_vals.shape[0] > 0
-        else SparseTensor(th.tensor([], device=data.global_vals.values.device), th.tensor([], dtype=th.long, device=data.global_vals.values.device))
+        else SparseTensor(
+            th.tensor([], device=data.global_vals.values.device),
+            th.tensor([], dtype=th.long, device=data.global_vals.values.device),
+        )
     )
     return EmbeddedTuple(
         variables,

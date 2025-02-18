@@ -201,9 +201,13 @@ def test_saved_data():
 
     pbar.close()
 
-    rewards, *_ = evaluate(env, agent, seed, deterministic=True)
+    data = [evaluate(env, agent, i, deterministic=True) for i in range(10)]
 
-    print(f"Learner Total reward: {sum(rewards)}")
+    save_eval_data(data, "imitation_data.json")
+
+    rewards, *_ = zip(*data)
+
+    print(f"Learner Total reward: {np.asarray(rewards).sum(-1).mean()}")
 
     fig, axs = plt.subplots(2)
     axs[0].plot(list(losses))

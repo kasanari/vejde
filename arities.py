@@ -41,6 +41,12 @@ filtered_action_arities = {
     k: v for k, v in action_arities.items() if k in filtered_arities
 }
 
+with open("domains.csv", "w") as f:
+    f.write("domain,arity,action arity,has_real\n")
+    for p in manager.list_problems():
+        f.write(f"{p},{domain_arities[p]},{action_arities[p]},{has_real_actions[p]}\n")
+
+exit()
 
 ok_problems = {
     k: v

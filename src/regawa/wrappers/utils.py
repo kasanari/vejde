@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 V = TypeVar("V")
 
 
-def map_graph_to_idx[V](
+def map_graph_to_idx(
     vars: Variables[V],
     global_vars: Variables[V],
     senders: NDArray[np.int64],

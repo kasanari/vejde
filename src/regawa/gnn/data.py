@@ -2,7 +2,7 @@ from collections import deque
 from collections.abc import Iterable
 from itertools import chain
 import json
-from typing import NamedTuple, TypeVar
+from typing import Generic, NamedTuple, TypeVar
 
 # import torch as th
 # from torch import NDArray
@@ -54,7 +54,7 @@ class ObsData(NamedTuple):
 V = TypeVar("V", np.float32, np.bool_)
 
 
-class StateData[V](NamedTuple):
+class StateData(NamedTuple, Generic[V]):
     var_value: SparseArray[V]
     var_type: SparseArray[np.int64]
     factor: SparseArray[np.int64]

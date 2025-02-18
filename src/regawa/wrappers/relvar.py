@@ -104,7 +104,7 @@ def relvar_edges(
     return sorted(edges)
 
 
-def relvar_obs[V](
+def relvar_obs(
     obs: dict[str, V],
     groundings: list[GroundValue],
     fluent_params: Callable[[str], tuple[str, ...]],
@@ -123,7 +123,7 @@ def relvar_obs[V](
         groundings, factor_names, edges
     )  # edges are (var, factor)
 
-    return FactorGraph[V](
+    return FactorGraph(
         variable_types,
         variable_values,
         factor_names,

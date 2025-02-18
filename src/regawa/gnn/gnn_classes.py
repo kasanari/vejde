@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import NamedTuple, TypeVar
+from typing import Generic, NamedTuple, TypeVar
 import torch.nn.init as init
 from torch import Tensor
 import torch
@@ -10,7 +10,7 @@ import numpy as np
 V = TypeVar("V")
 
 
-class SparseArray[V](NamedTuple):
+class SparseArray(NamedTuple, Generic[V]):
     values: NDArray[V]
     indices: NDArray[np.int64]
 

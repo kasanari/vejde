@@ -1,4 +1,4 @@
-from typing import Any, NamedTuple, TypeVar
+from typing import Any, Generic, NamedTuple, TypeVar
 
 import numpy as np
 
@@ -27,13 +27,13 @@ class RenderGraph(NamedTuple):
     global_variables: list[str]
 
 
-class Variables[V](NamedTuple):
+class Variables(NamedTuple, Generic[V]):
     types: np.ndarray[np.int64, Any] | list[str]
     values: np.ndarray[V, Any] | list[V]
     lengths: np.ndarray[np.int64, Any] | list[int]
 
 
-class IdxFactorGraph[V](NamedTuple):
+class IdxFactorGraph(NamedTuple, Generic[V]):
     variables: Variables[V]
     factors: np.ndarray[np.int64, Any]
     senders: np.ndarray[np.int64, Any]
@@ -43,7 +43,7 @@ class IdxFactorGraph[V](NamedTuple):
     action_mask: np.ndarray[np.bool_, Any]
 
 
-class FactorGraph[V](NamedTuple):
+class FactorGraph(NamedTuple, Generic[V]):
     variables: list[str]
     variable_values: list[V]
     factors: list[str]
@@ -58,7 +58,7 @@ class FactorGraph[V](NamedTuple):
     global_groundings: list[GroundValue]
 
 
-class StackedFactorGraph[V](NamedTuple):
+class StackedFactorGraph(NamedTuple, Generic[V]):
     variables: list[str]
     variable_values: list[list[V]]
     factors: list[str]

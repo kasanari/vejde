@@ -11,6 +11,7 @@ from regawa.wrappers.util_types import (
 )
 
 import numpy as np
+from typing import TypeVar
 
 
 from collections.abc import Callable
@@ -21,8 +22,10 @@ from regawa.wrappers.utils import (
     map_graph_to_idx,
 )
 
+V = TypeVar("V")
 
-def flatten[V](vals: list[list[V]], vars: list[str]) -> Variables[V]:
+
+def flatten(vals: list[list[V]], vars: list[str]) -> Variables[V]:
     # Flatten the list of node history lists to account for different node history lengths
     flat_vals = list(chain(*vals))
     v = [[vars[i] for _ in v] for i, v in enumerate(vals)]  # expand the variable names
@@ -31,7 +34,7 @@ def flatten[V](vals: list[list[V]], vars: list[str]) -> Variables[V]:
     return Variables(flat_vars, flat_vals, lengths)
 
 
-def flatten_values[V](
+def flatten_values(
     factorgraph: StackedFactorGraph[V],
 ) -> tuple[Variables[V], Variables[V]]:
     return (
@@ -40,7 +43,7 @@ def flatten_values[V](
     )
 
 
-def _map_graph_to_idx[V](
+def _map_graph_to_idx(
     factorgraph: StackedFactorGraph[V],
     rel_to_idx: Callable[[str], int],
     type_to_idx: Callable[[str], int],

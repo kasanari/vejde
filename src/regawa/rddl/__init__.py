@@ -7,6 +7,8 @@ from pyRDDLGym.core.parser.parser import RDDLParser
 from pyRDDLGym.core.parser.reader import RDDLReader
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel
 
+from regawa.wrappers.remove_false_wrapper import RemoveFalseWrapper
+
 from .rddl_grounded_model import RDDLGroundedModel
 from .rddl_to_tuple_wrapper import RDDLToTuple
 from .rddl_model import RDDLModel
@@ -104,7 +106,11 @@ class RDDLShuffleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
 
 class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
     def __init__(
-        self, domain: str, instance: str, enforce_action_constraints: bool = False
+        self,
+        domain: str,
+        instance: str,
+        enforce_action_constraints: bool = False,
+        remove_false: bool = False,
     ) -> None:
         super().__init__()
         env = pyRDDLGym.make(
@@ -114,6 +120,8 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         model = RDDLModel(rddl_model)
         grounded_rddl_model = RDDLGroundedModel(rddl_model)
         env = RDDLToTuple(env)
+        if remove_false:
+            env = RemoveFalseWrapper(env)
         env = AddConstantsWrapper(env, grounded_rddl_model)
         if len(model.model.enum_types) > 0:
             env = RDDLConvertEnums(env)

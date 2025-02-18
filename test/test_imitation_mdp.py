@@ -112,7 +112,7 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
     )
 
     data = [evaluate(env, agent, 0) for i in range(10)]
-    rewards, _, _ = zip(*data)
+    rewards, *_ = zip(*data)
     before_training_rewards = np.mean(np.sum(rewards, axis=1))
     print(before_training_rewards)
 
@@ -136,7 +136,7 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
     pass
 
     data = [evaluate(env, agent, 0) for i in range(3)]
-    rewards, _, _ = zip(*data)
+    rewards, *_ = zip(*data)
     avg_reward = np.mean(np.sum(rewards, axis=1))
     print(avg_reward)
 
@@ -168,5 +168,5 @@ def iteration(i, env, agent, optimizer, vf_agent, vf_optimizer, seed: int):
 
 if __name__ == "__main__":
     t = time.time()
-    test_imitation(ActionMode.NODE_THEN_ACTION, 17, 16)
+    test_imitation(ActionMode.ACTION_THEN_NODE, 17, 16)
     print("Time: ", time.time() - t)

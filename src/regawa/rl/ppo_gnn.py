@@ -667,9 +667,15 @@ def main(
         agent.agent.save_agent(f"{run_name}.pth")
         mlflow.log_artifact(f"{run_name}.pth")
         pbar.update(1)
-        # pbar.set_description(
-        #     f"R:{r:.2f} | L:{length:.2f} | ENT:{entropy_loss:.2f} | EXPL_VARIANCE:{explained_var:.2f}"
-        # )
+
+        entropy_loss = np.mean([u.entropy_loss.item() for u in u_data])
+        value_loss = np.mean([u.v_loss.item() for u in u_data])
+        pg_loss = np.mean([u.pg_loss.item() for u in u_data])
+
+        disp_r = f"{r:.2f}" if r is not None else "None"
+        disp_l = f"{length:.2f}" if length is not None else "None"
+        desc = f"R:{disp_r} | L:{disp_l} | ENT:{entropy_loss:.2f} | V: {value_loss:.2f} | PG: {pg_loss:.2f} | EXPL_VARIANCE:{explained_var:.2f}"
+        pbar.set_description(desc)
 
         mlflow.log_metric("rollout/mean_reward", b.rewards.mean().item(), global_step)
         if r is not None:
@@ -684,17 +690,15 @@ def main(
             np.mean([u.grad_norm.item() for u in u_data]),
             global_step,
         )  # type: ignore
-        mlflow.log_metric(
-            "losses/value_loss", np.mean([u.v_loss.item() for u in u_data]), global_step
-        )  # type: ignore
+        mlflow.log_metric("losses/value_loss", value_loss, global_step)  # type: ignore
         mlflow.log_metric(
             "losses/policy_loss",
-            np.mean([u.pg_loss.item() for u in u_data]),
+            pg_loss,
             global_step,
         )  # type: ignore
         mlflow.log_metric(
             "losses/entropy",
-            np.mean([u.entropy_loss.item() for u in u_data]),
+            entropy_loss,
             global_step,
         )  # type: ignore
         mlflow.log_metric(
@@ -784,9 +788,9 @@ def setup(args: Args | None = None):
             instance=args.instance,
         )
 
-        seeds = range(75)
+        seeds = range(10)
         data = [
-            evaluate(eval_env, agent.agent, seed, deterministic=False) for seed in seeds
+            evaluate(eval_env, agent.agent, seed, deterministic=True) for seed in seeds
         ]
         rewards, *_ = zip(*data)
         avg_mean_reward = np.mean([np.mean(r) for r in rewards])

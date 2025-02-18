@@ -4,6 +4,7 @@ import regawa.model.utils as utils
 import pytest
 
 from regawa.rddl.rddl_grounded_model import RDDLGroundedModel
+from regawa.wrappers.render_utils import render_lifted
 
 
 @pytest.fixture()
@@ -178,3 +179,11 @@ def test_arity(model: BaseModel):
     assert model.arity("light") == 1
     assert model.arity("PAYOUT") == 1
     assert model.arity("CONNECTED") == 2
+
+
+def test_render_lifted(model: BaseModel):
+    graph = render_lifted(model)
+
+    with open("test_lifted.dot", "w") as f:
+        f.write(graph)
+    assert graph is not None

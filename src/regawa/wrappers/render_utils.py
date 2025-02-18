@@ -1,9 +1,13 @@
 from collections.abc import Callable
+from itertools import chain
 
 import numpy as np
 
 from regawa.model import GroundValue
+from regawa.model.base_model import BaseModel
+from regawa.wrappers.grounding_utils import create_edges, objects
 from regawa.wrappers.util_types import FactorGraph, RenderGraph
+from regawa.wrappers.utils import translate_edges
 
 
 def to_graphviz_alt(
@@ -43,7 +47,7 @@ def to_graphviz(
 ):
     colors = ["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]
     graph = "graph G {\n"
-    graph += f"overlap_scaling={scaling}\n"
+    graph += f"overlap=false\n"
     first_mapping = {}
     second_mapping = {}
     global_idx = 0
@@ -108,3 +112,55 @@ def create_render_graph(
     return RenderGraph(
         labels, factor_labels, senders, receivers, edge_attributes, global_labels
     )
+
+
+def render_lifted(model: BaseModel):
+    params = {p: model.fluent_params(p) for p in model.fluents}
+
+    atoms = [(p, *params[p]) for p in model.fluents]
+    global_vars = [a for a in atoms if len(objects(a)) == 0]
+    non_global_vars = [a for a in atoms if len(objects(a)) > 0]
+
+    edges = create_edges(non_global_vars)
+
+    o = sorted(set(chain(*[objects(a) for a in non_global_vars])))
+
+    senders, receivers = translate_edges(non_global_vars, o, edges)
+
+    edge_attributes = [key[2] for key in edges]
+
+    graph = FactorGraph(
+        variables=non_global_vars,
+        variable_values=[True for _ in non_global_vars],
+        factors=o,
+        factor_types=o,
+        senders=senders,
+        receivers=receivers,
+        edge_attributes=edge_attributes,
+        global_variables=global_vars,
+        global_variable_values=[True for _ in global_vars],
+        groundings=non_global_vars,
+        global_groundings=global_vars,
+        action_mask=[(True,) for _ in o],
+    )
+
+    n_graph = FactorGraph(
+        variables=[],
+        variable_values=[],
+        factors=[],
+        factor_types=[],
+        senders=np.array([], dtype=np.int64),
+        receivers=np.array([], dtype=np.int64),
+        edge_attributes=[],
+        global_variables=[],
+        global_variable_values=[],
+        groundings=[],
+        global_groundings=[],
+        action_mask=[],
+    )
+
+    render_g = create_render_graph(graph, n_graph)
+
+    return to_graphviz(render_g, scaling=0)
+
+    pass

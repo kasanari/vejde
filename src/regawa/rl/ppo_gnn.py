@@ -130,6 +130,7 @@ class Agent(nn.Module):
 def minibatch_step(
     minibatch_size: int,
     update_func: Callable[[HeteroStateData, BatchData], UpdateData],
+    device: str | torch.device,
 ):
     def _minibatch_step(
         start: int,
@@ -141,7 +142,7 @@ def minibatch_step(
         end = start + minibatch_size
         mb_inds = b_inds[start:end]
         minibatch = obs.minibatch(mb_inds)
-        minibatch = heterostatedata_to_tensors(minibatch)
+        minibatch = heterostatedata_to_tensors(minibatch, device)
         u_data = update_func(
             minibatch,
             BatchData(
@@ -210,6 +211,7 @@ def iteration_step(
         [HeteroGraphBuffer, BatchData, NDArray[np.int32], list[float]],
         tuple[list[UpdateData], list[float]],
     ],
+    device: str,
 ):
     def _iteration_step(
         iteration: int,
@@ -231,7 +233,7 @@ def iteration_step(
         # bootstrap value if not done
         with torch.no_grad():
             next_obs_batch = heterostatedata_to_tensors(
-                heterostatedata(r_data.last_obs)
+                heterostatedata(r_data.last_obs), device
             )
             advantages, returns = gae_func(
                 b.rewards,
@@ -268,7 +270,7 @@ def iteration_step(
             u_data, clipfracs = update_func(r_data.obs, flattened_b, b_inds, clipfracs)
             if (
                 target_kl is not None
-                and np.mean([u.approx_kl for u in u_data]) > target_kl
+                and torch.mean(torch.as_tensor([u.approx_kl for u in u_data])) > target_kl
             ):
                 break
             u_datas.extend(u_data)
@@ -425,7 +427,7 @@ def rollout(
 
             # ALGO LOGIC: action logic
             s = heterostatedata(next_obs)
-            s = heterostatedata_to_tensors(s)
+            s = heterostatedata_to_tensors(s, device)
             action, logprob, _, value = agent.sample_action_and_value(
                 s
                 # batch.action_mask,
@@ -623,7 +625,7 @@ def main(
     pbar = tqdm(total=args.num_iterations)
 
     update_func = update(agent, optimizer, ppo_params)
-    mb_func = minibatch_step(args.minibatch_size, update_func)
+    mb_func = minibatch_step(args.minibatch_size, update_func, device)
     update_step_func = update_step(args.batch_size, args.minibatch_size, mb_func)
     gae_func = gae(args.num_steps, args.gamma, args.gae_lambda, device)
 
@@ -640,6 +642,7 @@ def main(
         rollout(agent, envs, args.num_steps, args.num_envs, device),
         gae_func,
         update_step_func,
+        device,
     )
 
     carry = IterationCarry(

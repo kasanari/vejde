@@ -13,6 +13,8 @@ from .gnn_classes import MLPLayer, SparseTensor
 
 logger = logging.getLogger(__name__)
 
+render_logger = logging.getLogger("message_pass_render")
+
 
 class FactorGraph(NamedTuple):
     variables: SparseTensor
@@ -23,6 +25,40 @@ class FactorGraph(NamedTuple):
     n_factor: Tensor
     globals_: SparseTensor
     action_mask: Tensor
+
+
+def to_graphviz(
+    messages: Tensor,
+    senders: Tensor,
+    receivers: Tensor,
+    variables: Tensor,
+    factors: Tensor,
+    reverse: bool = False,
+):
+    output = "digraph G {"
+
+    norm = lambda x: torch.linalg.norm(x, ord=2, dim=-1)
+    ro = lambda x: torch.round(x, decimals=2)
+
+    v_norm = norm(variables)
+    f_norm = norm(factors)
+    m_norm = norm(messages)
+
+    edge_string = (
+        lambda v, f: f'"{v}_v" -> "{f}_f"' if not reverse else f'"{f}_f" -> "{v}_v"'
+    )
+
+    for i, v in enumerate(v_norm):
+        output += f'"{i}_v" [label="{v:0.2f}", shape=ellipse, color=blue];'
+
+    for i, f in enumerate(f_norm):
+        output += f'"{i}_f" [label="{f:0.2f}", shape=rectangle, color=red];'
+
+    for s, r, m in zip(senders, receivers, m_norm):
+        output += f'{edge_string(s, r)} [label="{m:0.2f}"];'
+
+    output += "}"
+    return output
 
 
 class BipartiteGNNConvVariableToFactor(nn.Module):
@@ -63,13 +99,14 @@ class BipartiteGNNConvVariableToFactor(nn.Module):
         logger.debug("V2F X_j\n%s", x_j)
         logger.debug("V2F X_i\n%s", x_i)
         x = torch.concatenate(x, dim=-1)
-        x = self.message_func(x)
-        logger.debug("V2F Messages\n%s", x)
-        x = scatter(x, receivers, dim=0, reduce="sum")
+        m = self.message_func(x)
+        logger.debug("V2F Messages\n%s", m)
+        x = scatter(m, receivers, dim=0, reduce="sum")
         logger.debug("V2F Aggr out:\n%s", x)
         x = (factors, x) if x.shape[0] > 0 else (factors, torch.zeros_like(factors))
         x = torch.concatenate(x, dim=-1)
         x = self.combine(x)
+        render_logger.debug(to_graphviz(m, senders, receivers, variables, factors))
         return x
 
 
@@ -112,14 +149,17 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
         logger.debug("V2F X_i\n%s", x_i)
         x = (x_i, x_j)
         x = torch.concatenate(x, dim=-1)
-        x = self.message_func(x)
-        logger.debug("F2V Messages\n%s", x)
-        x = scatter(x, senders, dim=0, reduce="sum")
+        m = self.message_func(x)
+        logger.debug("F2V Messages\n%s", m)
+        x = scatter(m, senders, dim=0, reduce="sum")
         logger.debug("F2V Aggr out\n%s", x)
         x = (variables, x)
         x = torch.concatenate(x, dim=-1)
         x = self.combine(x)
         x = variables + x
+        render_logger.debug(
+            to_graphviz(m, senders, receivers, variables, factors, reverse=True)
+        )
         return x
 
 

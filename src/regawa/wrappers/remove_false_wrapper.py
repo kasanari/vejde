@@ -1,5 +1,6 @@
 from typing import Any, TypeVar, SupportsFloat
 import gymnasium as gym
+import numpy as np
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
@@ -8,8 +9,7 @@ WrapperActType = TypeVar("WrapperActType")
 
 
 def remove_false(obs: dict[str, Any]) -> dict[str, Any]:
-    obs_with_actions = {a: v for a, v in obs.items() if v is not False}
-    return obs_with_actions
+    return {a: v for a, v in obs.items() if v is not False and v is not np.bool_(False)}
 
 
 class RemoveFalseWrapper(

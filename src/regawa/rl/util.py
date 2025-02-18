@@ -34,20 +34,45 @@ def evaluate(env: gym.Env, agent: GraphAgent, seed: int, deterministic: bool = T
     obs_buf = deque()
     actions = deque()
 
+    obj_weights = deque()
+    action_weights = deque()
+
     while not done:
         time += 1
 
-        obs_buf.append(info["rddl_state"])
+        o = info["rddl_state"]
+        g = info["state"]
+        obs_buf.append(o)
 
         s = single_obs_to_heterostatedata(obs)
         s = heterostatedata_to_tensors(s)
 
-        action, *_ = agent.sample(
+        action, *_, p_a, p_n__a = agent.sample(
             s,
             deterministic=deterministic,
         )
 
         next_obs, reward, terminated, truncated, info = env.step(action.squeeze(0))  # type: ignore
+
+        factor_weights = (
+            p_n__a.T[action[:, 0]].round(decimals=2).detach().squeeze().numpy()
+        )
+
+        weight_by_factor = {
+            k: float(v) for k, v in zip(g.factor_labels, factor_weights) if v > 0.0
+        }
+
+        weight_by_action = {
+            k: float(v)
+            for k, v in zip(
+                info["action_fluents"],
+                p_a.detach().round(decimals=2).squeeze().numpy(),
+            )
+            if v > 0.0
+        }
+
+        obj_weights.append(weight_by_factor)
+        action_weights.append(weight_by_action)
 
         done = terminated or truncated
         actions.append(info["rddl_action"])  # type: ignore
@@ -58,6 +83,8 @@ def evaluate(env: gym.Env, agent: GraphAgent, seed: int, deterministic: bool = T
         list(rewards),
         list(obs_buf),
         list(actions),
+        list(obj_weights),
+        list(action_weights),
     )
 
 
@@ -236,8 +263,10 @@ def save_eval_data(data, path: str = "evaluation.json"):
                 "reward": r,
                 "obs": {"_".join(k): v for k, v in s.items()},
                 "action": {"_".join(k): v for k, v in a.items()},
+                "obj_weights": a_weight,
+                "action_weights": o_weight,
             }
-            for r, s, a in zip(*episode)
+            for r, s, a, a_weight, o_weight in zip(*episode)
         ]
         for i, episode in enumerate(data)
     }

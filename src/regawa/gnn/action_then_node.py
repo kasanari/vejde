@@ -29,7 +29,9 @@ class ActionThenNodePolicy(nn.Module):
         super().__init__()  # type: ignore
 
         self.node_prob = nn.Linear(node_dim, 1, bias=False)
-        self.action_given_node_prob = nn.Linear(node_dim, num_actions, bias=False)
+        self.action_given_node_prob = nn.Linear(
+            node_dim, num_actions, bias=False
+        )
         self.node_given_action_prob = nn.Linear(node_dim, num_actions)
 
         self.num_actions = num_actions
@@ -41,10 +43,20 @@ class ActionThenNodePolicy(nn.Module):
         )  # Q(n|a)
         self.critic_heads = critic_heads
 
-    def f(self, h: SparseTensor, action_mask: Tensor, n_nodes: Tensor, x: PolicyFunc):
+    def f(
+        self,
+        h: SparseTensor,
+        action_mask: Tensor,
+        n_nodes: Tensor,
+        x: PolicyFunc,
+    ):
         node_logits = self.node_prob(h.values).squeeze()  # ~ln(p(n))
-        action_given_node_logits = self.action_given_node_prob(h.values)  # ~ln(p(a|n))
-        node_given_action_logits = self.node_given_action_prob(h.values)  # ~ln(p(n|a))
+        action_given_node_logits = self.action_given_node_prob(
+            h.values
+        )  # ~ln(p(a|n))
+        node_given_action_logits = self.node_given_action_prob(
+            h.values
+        )  # ~ln(p(n|a))
         mask_actions = predicate_mask(action_mask, h.indices, n_nodes.shape[0])
         n_g = num_graphs(h.indices)
 
@@ -83,7 +95,7 @@ class ActionThenNodePolicy(nn.Module):
         h: SparseTensor,
         action_mask: Tensor,
         n_nodes: Tensor,
-    ) -> tuple[Tensor, Tensor, Tensor]:
+    ):
         def p_func(*args):  # type: ignore
             return a, *self.eval_func(a, *args)  # type: ignore
 
@@ -95,17 +107,21 @@ class ActionThenNodePolicy(nn.Module):
         n_nodes: Tensor,
         action_mask: Tensor,
         deterministic: bool = False,
-    ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+    ):
         p_func = partial(self.sample_func, deterministic=deterministic)  # type: ignore
-        return self.f(h, action_mask, n_nodes, p_func)  # type: ignore
+        return self.f(h, action_mask, n_nodes, p_func)
 
-    def value(self, h: SparseTensor, n_nodes: Tensor, action_mask: Tensor) -> Tensor:
+    def value(
+        self, h: SparseTensor, n_nodes: Tensor, action_mask: Tensor
+    ) -> Tensor:
         node_logits = self.node_prob(h.values).squeeze()  # ~ln(p(n))
         action_given_node_logits = self.action_given_node_prob(h.values)
         node_given_action_logits = self.node_given_action_prob(h.values)
 
         n_g = n_nodes.shape[0]
-        p_a = marginalize(node_logits, action_given_node_logits, h.indices, n_g)
+        p_a = marginalize(
+            node_logits, action_given_node_logits, h.indices, n_g
+        )
 
         p_a = p_a * predicate_mask(action_mask, h.indices, n_g)
 

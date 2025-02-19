@@ -38,7 +38,7 @@ class NodeThenActionPolicy(nn.Module):
 
     def f(
         self, h: SparseTensor, action_mask: Tensor, n_nodes: Tensor, x: PolicyFunc
-    ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
         node_logits = self.node_prob(h.values).squeeze()  # ~ln(p(n))
         action_given_node_logits = self.action_given_node_prob(h.values)  # ~ln(p(a|n))
         n_g = n_nodes.shape[0]
@@ -75,7 +75,7 @@ class NodeThenActionPolicy(nn.Module):
         h: SparseTensor,
         action_mask: Tensor,
         n_nodes: Tensor,
-    ) -> tuple[Tensor, Tensor, Tensor]:
+    ):
         def p_func(*args):  # type: ignore
             return a, *self.eval_func(a, *args)  # type: ignore
 
@@ -87,7 +87,7 @@ class NodeThenActionPolicy(nn.Module):
         n_nodes: Tensor,
         action_mask: Tensor,
         deterministic: bool = False,
-    ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+    ):
         p_func = partial(self.sample_func, deterministic=deterministic)  # type: ignore
         return self.f(h, action_mask, n_nodes, p_func)  # type: ignore
 

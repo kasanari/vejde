@@ -685,9 +685,6 @@ def main(
         mlflow.log_metric(
             "charts/learning_rate", optimizer.param_groups[0]["lr"], global_step
         )
-        agent.agent.save_agent(f"{run_name}.pth")
-        mlflow.log_artifact(f"{run_name}.pth")
-        pbar.update(1)
 
         entropy_loss = np.mean([u.entropy_loss.item() for u in u_data])
         value_loss = np.mean([u.v_loss.item() for u in u_data])
@@ -697,6 +694,7 @@ def main(
         disp_l = f"{length:.2f}" if length is not None else "None"
         desc = f"R:{disp_r} | L:{disp_l} | ENT:{entropy_loss:.2f} | V: {value_loss:.2f} | PG: {pg_loss:.2f} | EXPL_VARIANCE:{explained_var:.2f}"
         pbar.set_description(desc)
+        pbar.update(1)
 
         mlflow.log_metric("rollout/mean_reward", b.rewards.mean().item(), global_step)
         if r is not None:
@@ -799,12 +797,20 @@ def setup(args: Args | None = None):
 
     mlflow.set_experiment(run_name)
 
-    logger.addHandler(logging.FileHandler(f"{run_name}.log"))
+    runs_folder = Path("runs")
+    runs_folder.mkdir(exist_ok=True)
+    run_folder = runs_folder / run_name
+    run_folder.mkdir(exist_ok=True)
+
+    logger.addHandler(logging.FileHandler(run_folder / f"{run_name}.log"))
 
     with mlflow.start_run():
         mlflow.log_params(logged_config)
         mlflow.log_artifact(__file__)
         agent = main(envs, run_name, args, agent_config)
+
+        agent.agent.save_agent(run_folder / f"{run_name}.pth")
+        mlflow.log_artifact(run_folder / f"{run_name}.pth")
 
         eval_env = gym.make(
             args.env_id,
@@ -823,7 +829,7 @@ def setup(args: Args | None = None):
         rewards, *_ = zip(*data)
         avg_mean_reward = np.mean([np.mean(r) for r in rewards])
         returns = [np.sum(r) for r in rewards]
-        save_eval_data(data, f"{run_name}.json")
+        save_eval_data(data, run_folder / f"{run_name}.json")
 
         mlflow.log_metric("eval/mean_reward", avg_mean_reward)
 

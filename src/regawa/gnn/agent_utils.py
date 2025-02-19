@@ -28,3 +28,4 @@ class AgentConfig:
 
     # GNN parameters
     hyper_params: GNNParams
+    arity: int

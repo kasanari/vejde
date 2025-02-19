@@ -88,7 +88,7 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
         layers=4,
         embedding_dim=embedding_dim,
         activation=th.nn.Mish(),
-        aggregation="sum",
+        aggregation="max",
         action_mode=action_mode,
     )
 
@@ -97,6 +97,7 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
         n_relations,
         n_actions,
         params,
+        arity=model_utils.max_arity(env.observation_space),
     )
 
     agent = GraphAgent(
@@ -175,5 +176,5 @@ def iteration(i, env, agent, optimizer, vf_agent, vf_optimizer, seed: int):
 
 if __name__ == "__main__":
     t = time.time()
-    test_imitation(ActionMode.ACTION_THEN_NODE, 30, 24)
+    test_imitation(ActionMode.ACTION_THEN_NODE, 30, 16)
     print("Time: ", time.time() - t)

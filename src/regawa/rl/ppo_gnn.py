@@ -779,6 +779,7 @@ def setup(args: Args | None = None):
         n_relations,
         n_actions,
         args.agent_config,
+        model_utils.max_arity(envs.single_observation_space),  # type: ignore
     )
 
     logged_config = vars(args) | asdict(agent_config)

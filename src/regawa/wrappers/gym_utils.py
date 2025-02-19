@@ -8,6 +8,10 @@ from typing import TypeVar
 V = TypeVar("V")
 
 
+def max_arity(observation_space: Dict) -> int:
+    return observation_space["bool"]["edge_attr"].feature_space.n - 1  # type: ignore
+
+
 def obs_space(
     num_relations: int,
     num_types: int,

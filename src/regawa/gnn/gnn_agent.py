@@ -65,6 +65,7 @@ def _embed(
     var_embedder: nn.Module,
     factor_embedding: nn.Module,
     global_var_embedder: nn.Module,
+    edge_attr_emb: nn.Module,
 ) -> EmbeddedTuple:
     factors = sparsify(factor_embedding)(data.factor)
     variables = SparseTensor(
@@ -88,13 +89,16 @@ def _embed(
             th.tensor([], dtype=th.long, device=data.global_vals.values.device),
         )
     )
+
+    embedd_edge_attr = edge_attr_emb(data.edge_attr)
+
     return EmbeddedTuple(
         variables,
         factors,
         globals_,
         data.senders,
         data.receivers,
-        data.edge_attr,
+        embedd_edge_attr,
         data.n_variable,
         data.n_factor,
         data.action_mask,
@@ -152,6 +156,10 @@ class GraphAgent(nn.Module):
             config.num_predicate_classes, gnn_params.embedding_dim
         )
 
+        self.edge_attr_embedding = EmbeddingLayer(
+            config.arity, gnn_params.embedding_dim, use_padding=False
+        )
+
         self.boolean_embedder = BooleanEmbedder(
             gnn_params.embedding_dim,
             self.predicate_embedding,
@@ -185,12 +193,14 @@ class GraphAgent(nn.Module):
                     self.boolean_embedder,
                     self.factor_embedding,
                     self.boolean_embedder,
+                    self.edge_attr_embedding,
                 ),
                 _embed(
                     data.numeric,
                     self.numeric_embedder,
                     self.factor_embedding,
                     self.numeric_embedder,
+                    self.edge_attr_embedding,
                 ),
             )
         )
@@ -250,6 +260,10 @@ class RecurrentGraphAgent(nn.Module):
             boolean_embedder,
         )
 
+        self.edge_attr_embedding = EmbeddingLayer(
+            config.arity, gnn_params.embedding_dim, use_padding=False
+        )
+
         numeric_embedder = NumericEmbedder(
             gnn_params.embedding_dim,
             gnn_params.activation,
@@ -283,12 +297,14 @@ class RecurrentGraphAgent(nn.Module):
                     self.r_boolean_embedder(data.boolean.length),
                     self.factor_embedding,
                     self.r_boolean_embedder(data.boolean.global_length),
+                    self.edge_attr_embedding,
                 ),
                 _embed(
                     data.numeric,
                     self.r_numeric_embedder(data.numeric.length),
                     self.factor_embedding,
                     self.r_numeric_embedder(data.numeric.global_length),
+                    self.edge_attr_embedding,
                 ),
             )
         )

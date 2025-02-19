@@ -2,6 +2,10 @@ from .base_model import BaseModel
 from functools import cache
 
 
+def max_arity(model: BaseModel):
+    return max(model.arity(fluent) for fluent in model.fluents)  # type: ignore
+
+
 def type_attributes(model: BaseModel):
     vp = model.variable_params  # type: ignore
     d: dict[str, tuple[str, ...]] = {

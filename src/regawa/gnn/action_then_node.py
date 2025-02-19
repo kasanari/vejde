@@ -8,6 +8,7 @@ from gnn_policy.functional import (
     sample_action_then_node,
     segment_softmax,
     segment_sum,
+    marginalize,
 )
 from regawa.functional import (
     action_then_node_value_estimate,
@@ -24,7 +25,7 @@ PolicyFunc = Callable[
 
 
 class ActionThenNodePolicy(nn.Module):
-    def __init__(self, num_actions: int, node_dim: int):
+    def __init__(self, num_actions: int, node_dim: int, critic_heads: int = 2):
         super().__init__()  # type: ignore
 
         self.node_prob = nn.Linear(node_dim, 1, bias=False)
@@ -35,7 +36,10 @@ class ActionThenNodePolicy(nn.Module):
         self.sample_func = sample_action_then_node  # type: ignore
         self.eval_func = eval_action_then_node  # type: ignore
 
-        self.q_node__action = nn.Linear(node_dim, num_actions)  # Q(n|a)
+        self.q_node__action = nn.Linear(
+            node_dim, num_actions * critic_heads, bias=False
+        )  # Q(n|a)
+        self.critic_heads = critic_heads
 
     def f(self, h: SparseTensor, action_mask: Tensor, n_nodes: Tensor, x: PolicyFunc):
         node_logits = self.node_prob(h.values).squeeze()  # ~ln(p(n))
@@ -59,9 +63,13 @@ class ActionThenNodePolicy(nn.Module):
         )
         segsum = partial(segment_sum, index=h.indices, num_segments=n_g)  # type: ignore
 
+        q = self.q_node__action(h.values)
+        q = q.view(-1, self.critic_heads, self.num_actions)
+        q = q.mean(dim=1)
+
         value = action_then_node_value_estimate(
             p_n__a,  # type: ignore
-            self.q_node__action(h.values),
+            q,
             p_a,
             segsum,  # type: ignore
         )
@@ -90,3 +98,29 @@ class ActionThenNodePolicy(nn.Module):
     ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         p_func = partial(self.sample_func, deterministic=deterministic)  # type: ignore
         return self.f(h, action_mask, n_nodes, p_func)  # type: ignore
+
+    def value(self, h: SparseTensor, n_nodes: Tensor, action_mask: Tensor) -> Tensor:
+        node_logits = self.node_prob(h.values).squeeze()  # ~ln(p(n))
+        action_given_node_logits = self.action_given_node_prob(h.values)
+        node_given_action_logits = self.node_given_action_prob(h.values)
+
+        n_g = n_nodes.shape[0]
+        p_a = marginalize(node_logits, action_given_node_logits, h.indices, n_g)
+
+        p_a = p_a * predicate_mask(action_mask, h.indices, n_g)
+
+        p_n__a = segment_softmax(  # type: ignore
+            mask_logits(node_given_action_logits, action_mask), h.indices, n_g
+        )
+        segsum = partial(segment_sum, index=h.indices, num_segments=n_g)  # type: ignore
+
+        q = self.q_node__action(h.values)
+        q = q.view(-1, self.critic_heads, self.num_actions)
+        q = q.mean(dim=1)
+
+        return action_then_node_value_estimate(
+            p_n__a,  # type: ignore
+            q,
+            p_a,
+            segsum,  # type: ignore
+        )

@@ -25,7 +25,13 @@ from torch.utils._foreach_utils import (
 
 
 @th.no_grad()
-def evaluate(env: gym.Env, agent: GraphAgent, seed: int, deterministic: bool = True, device: str = "cpu"):
+def evaluate(
+    env: gym.Env,
+    agent: GraphAgent,
+    seed: int,
+    deterministic: bool = True,
+    device: str = "cpu",
+):
     obs, info = env.reset(seed=seed)
     done = False
     time = 0
@@ -146,7 +152,7 @@ def update_vf_agent(
     s: HeteroStateData,
     values: list[float],
 ):
-    _, _, _, value, *_ = agent.value(
+    value = agent.value(
         s,
     )
     value_loss = th.nn.functional.mse_loss(

@@ -207,10 +207,7 @@ class GraphAgent(nn.Module):
 
     def value(self, data: HeteroStateData):
         fg = self.embed(data)
-        _, _, _, value, *_ = self.policy.sample(
-            fg.factors, fg.n_factor, fg.action_mask, False
-        )
-        return value
+        return self.policy.value(fg.factors, fg.n_factor, fg.action_mask)
 
     def save_agent(self, path: str):
         save_agent(self, self.config, path)

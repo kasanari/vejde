@@ -1,14 +1,14 @@
+from collections.abc import Callable
 from typing import NamedTuple
 
 import torch
 import torch.nn as nn
 from torch import Tensor
 import logging
-from torch_scatter import scatter
 
-from gnn_policy.functional import segment_sum, segmented_softmax
+from regawa.gnn.attentional_aggregation import AttentionalAggregation
+from regawa.gnn.simple_mp import MessagePass
 
-# from torch import scatter
 from .gnn_classes import MLPLayer, SparseTensor
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class FactorGraph(NamedTuple):
 
 
 class Lazy:
-    def __init__(self, func):
+    def __init__(self, func: Callable[[], str]):
         self.func = func
 
     def __str__(self) -> str:
@@ -77,13 +77,12 @@ class BipartiteGNNConvVariableToFactor(nn.Module):
         out_channels: int,
         activation: nn.Module,
     ):
-        super().__init__()
+        super().__init__()  # type: ignore
         self.combine = MLPLayer(out_channels * 2, out_channels, activation)
-        self.message_func = MLPLayer(in_channels * 2, out_channels, activation)
+        self.mp = MessagePass(in_channels, out_channels, aggr, activation)
         self.aggr = aggr
 
         logger.info("Variable to Factor\n")
-        logger.info("Message Function\n%s", self.message_func)
         logger.info("Combine Function\n%s", self.combine)
 
     def forward(
@@ -104,15 +103,14 @@ class BipartiteGNNConvVariableToFactor(nn.Module):
 
         x_i = factors[receivers]
         x_j = variables[senders]
-        x = (x_i, x_j)
-        logger.debug("V2F X_j\n%s", x_j)
-        logger.debug("V2F X_i\n%s", x_i)
-        x = torch.concatenate(x, dim=-1)
-        m = self.message_func(x)
-        logger.debug("V2F Messages\n%s", m)
-        x = scatter(m, receivers, dim=0, reduce=self.aggr)
-        logger.debug("V2F Aggr out:\n%s", x)
-        x = (factors, x) if x.shape[0] > 0 else (factors, torch.zeros_like(factors))
+
+        aggr_m, m = self.mp(x_i, x_j, receivers)
+
+        x = (
+            (factors, aggr_m)
+            if aggr_m.shape[0] > 0
+            else (factors, torch.zeros_like(factors))
+        )
         x = torch.concatenate(x, dim=-1)
         x = self.combine(x)
         render_logger.debug(
@@ -125,19 +123,13 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
     def __init__(
         self, aggr: str, in_channels: int, out_channels: int, activation: nn.Module
     ):
-        super().__init__()
-        # self.root = MLPLayer(in_channels, out_channels, activation)
+        super().__init__()  # type: ignore
+
         self.combine = MLPLayer(out_channels * 2, out_channels, activation)
-        self.message_func = MLPLayer(in_channels * 2, out_channels, activation)
-        self.aggr = aggr
+        self.mp = MessagePass(in_channels, out_channels, aggr, activation)
 
         logger.info("Factor to Variable\n")
-        logger.info("Message Function\n%s", self.message_func)
         logger.info("Combine Function\n%s", self.combine)
-
-        # self.messages = None
-        # self.relation_embedding = nn.Embedding(num_relations, in_channels)
-        # nn.init.orthogonal_(self.relation_embedding.weight)
 
     def forward(
         self,
@@ -157,15 +149,9 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
 
         x_i = variables[senders]
         x_j = factors[receivers]
-        logger.debug("V2F X_j\n%s", x_j)
-        logger.debug("V2F X_i\n%s", x_i)
-        x = (x_i, x_j)
-        x = torch.concatenate(x, dim=-1)
-        m = self.message_func(x)
-        logger.debug("F2V Messages\n%s", m)
-        x = scatter(m, senders, dim=0, reduce=self.aggr)
-        logger.debug("F2V Aggr out\n%s", x)
-        x = (variables, x)
+
+        aggr_m, m = self.mp(x_i, x_j, senders)
+        x = (variables, aggr_m)
         x = torch.concatenate(x, dim=-1)
         x = self.combine(x)
         x = variables + x
@@ -177,45 +163,6 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
                 )
             ),
         )
-        return x
-
-
-class AttentionalAggregation(nn.Module):
-    def __init__(self, emb_size: int, activation: nn.Module):
-        super().__init__()  # type: ignore
-
-        self.gate = nn.Linear(emb_size, 1)
-        self.attn = nn.Linear(emb_size, emb_size)
-
-        logger.info("Attentional Aggregation\n")
-        logger.info("Gate\n%s", self.gate)
-        logger.info("Attention\n%s", self.attn)
-
-    def forward(self, nodes: SparseTensor, num_graphs: int) -> Tensor:
-        x = self.gate(nodes.values)
-        x = segmented_softmax(x, nodes.indices, num_graphs)
-        x = x * self.attn(nodes.values)
-        x = segment_sum(x, nodes.indices, num_graphs)
-        return x
-
-
-class GlobalNode(nn.Module):
-    def __init__(self, emb_size: int, activation: nn.Module):
-        super().__init__()  # type: ignore
-
-        self.attn = AttentionalAggregation(emb_size, activation)
-        self.linear = MLPLayer(emb_size * 2, emb_size, activation)
-
-        logger.info("Global Node\n")
-        logger.info("Update Function\n%s", self.linear)
-
-        # self.aggr = SumAggregation()
-
-    def forward(self, nodes: SparseTensor, g_prev: Tensor) -> Tensor:
-        x = self.attn(nodes)
-        x = (x, g_prev)
-        x = torch.concatenate(x, dim=-1)
-        x = g_prev + self.linear(x)
         return x
 
 
@@ -275,9 +222,7 @@ class BipartiteGNN(nn.Module):
             return FactorGraphLayer(embedding_dim, aggregation, activation)
 
         self.convs = nn.ModuleList([f(i) for i in range(layers)])
-
-        # self.aggrs = [GlobalNode(embedding_dim, activation) for _ in range(layers)]
-        self.pre_aggr = AttentionalAggregation(embedding_dim, activation)
+        self.pre_aggr = AttentionalAggregation(embedding_dim)
         self.hidden_size = embedding_dim
 
     def forward(

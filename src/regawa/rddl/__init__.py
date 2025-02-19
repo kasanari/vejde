@@ -7,6 +7,7 @@ from pyRDDLGym.core.parser.parser import RDDLParser
 from pyRDDLGym.core.parser.reader import RDDLReader
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel
 
+from regawa.rddl.rddl_default_invalid_action_wrapper import RDDLDefaultInvalidActions
 from regawa.wrappers.remove_false_wrapper import RemoveFalseWrapper
 
 from .rddl_grounded_model import RDDLGroundedModel
@@ -109,16 +110,14 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         self,
         domain: str,
         instance: str,
-        enforce_action_constraints: bool = False,
         remove_false: bool = False,
     ) -> None:
         super().__init__()
-        env = pyRDDLGym.make(
-            domain, instance, enforce_action_constraints=enforce_action_constraints
-        )  # type: ignore
+        env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
         rddl_model = env.model
         model = RDDLModel(rddl_model)
         grounded_rddl_model = RDDLGroundedModel(rddl_model)
+        env = RDDLDefaultInvalidActions(env)
         env = RDDLToTuple(env)
         if remove_false:
             env = RemoveFalseWrapper(env)
@@ -152,13 +151,9 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
 
 
 class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
-    def __init__(
-        self, domain: str, instance: str, enforce_action_constraints: bool = False
-    ) -> None:
+    def __init__(self, domain: str, instance: str) -> None:
         super().__init__()
-        env = pyRDDLGym.make(
-            domain, instance, enforce_action_constraints=enforce_action_constraints
-        )  # type: ignore
+        env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
         model = RDDLModel(env.model)
         grounded_model = RDDLPOMDPGroundedModel(env.model)
         env = RDDLToTuple(env)

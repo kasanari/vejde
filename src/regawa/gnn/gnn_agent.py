@@ -2,10 +2,10 @@ from dataclasses import asdict
 from typing import Any, NamedTuple, TypeVar
 
 import torch
-import torch as th
 import torch.nn as nn
-from torch import Tensor, as_tensor, int64, concatenate
 from torch import Generator as Rngs
+from torch import Tensor, as_tensor, concatenate, int64
+
 from regawa.gnn.agent_utils import ActionMode, AgentConfig, GNNParams
 from regawa.gnn.node_then_action import NodeThenActionPolicy
 

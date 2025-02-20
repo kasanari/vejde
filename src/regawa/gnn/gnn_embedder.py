@@ -1,10 +1,9 @@
 import logging
 
-
 import torch.nn as nn
 import torch.nn.init as init
-from torch import Tensor, zeros, cumsum, roll
 from torch import Generator as Rngs
+from torch import Tensor, cumsum, roll, zeros
 from torch.nn.utils.rnn import pack_padded_sequence
 
 from .gnn_classes import EmbeddingLayer

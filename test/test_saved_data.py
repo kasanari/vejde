@@ -14,12 +14,8 @@ from tqdm import tqdm
 from regawa import GNNParams, GroundValue
 from regawa.gnn import ActionMode
 from regawa.gnn.data import heterodict_to_obsdata, heterostatedata_from_obslist
-from regawa.gnn.gnn_agent import (
-    AgentConfig,
-    GraphAgent,
-    RecurrentGraphAgent,
-    heterostatedata_to_tensors,
-)
+from regawa.gnn.gnn_agent import (AgentConfig, GraphAgent, RecurrentGraphAgent,
+                                  heterostatedata_to_tensors)
 from regawa.model.base_grounded_model import BaseGroundedModel
 from regawa.model.base_model import BaseModel
 from regawa.rddl import register_env

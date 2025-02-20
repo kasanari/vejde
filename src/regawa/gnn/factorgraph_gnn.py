@@ -3,9 +3,10 @@ from collections.abc import Callable
 from typing import NamedTuple
 
 import torch.nn as nn
-from torch import Tensor, concatenate, zeros_like, zeros
-from torch.linalg import norm
 from torch import Generator as Rngs
+from torch import Tensor, concatenate, zeros, zeros_like
+from torch.linalg import norm
+
 from regawa.gnn.attentional_aggregation import AttentionalAggregation
 from regawa.gnn.simple_mp import MessagePass
 

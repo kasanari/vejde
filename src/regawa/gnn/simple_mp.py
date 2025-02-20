@@ -1,8 +1,8 @@
 import logging
 
+from torch import Generator as Rngs
 from torch import Tensor, concatenate, nn
 from torch_scatter import scatter  # type: ignore
-from torch import Generator as Rngs
 
 from regawa.gnn.gnn_classes import MLPLayer
 

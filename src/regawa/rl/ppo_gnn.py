@@ -12,10 +12,10 @@ from typing import Any, NamedTuple
 import gymnasium as gym
 import mlflow
 import mlflow.pytorch
-import numpy as np
-import torch
 import npl.nn as nn
 import npl.optim as optim
+import numpy as np
+import torch
 import tyro
 import wandb
 from gymnasium.spaces import Dict, MultiDiscrete
@@ -26,12 +26,9 @@ from tqdm import tqdm
 import regawa.wrappers.gym_utils as model_utils
 from regawa import GNNParams
 from regawa.gnn import AgentConfig, GraphAgent, HeteroStateData
-from regawa.gnn.data import (
-    HeteroGraphBuffer,
-    ObsData,
-    batched_hetero_dict_to_hetero_obs_list,
-    heterostatedata,
-)
+from regawa.gnn.data import (HeteroGraphBuffer, ObsData,
+                             batched_hetero_dict_to_hetero_obs_list,
+                             heterostatedata)
 from regawa.gnn.gnn_agent import heterostatedata_to_tensors
 from regawa.rl.util import evaluate, save_eval_data
 

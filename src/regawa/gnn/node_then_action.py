@@ -1,8 +1,8 @@
 from collections.abc import Callable
 from functools import partial
 
-from torch import Tensor, nn
 from torch import Generator as Rngs
+from torch import Tensor, nn
 
 from gnn_policy.functional import eval_node_then_action  # type: ignore
 from gnn_policy.functional import sample_node_then_action  # type: ignore

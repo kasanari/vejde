@@ -47,7 +47,7 @@ def to_graphviz(
 ):
     colors = ["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]
     graph = "graph G {\n"
-    graph += f"overlap=false\n"
+    graph += "overlap=false\n"
     first_mapping = {}
     second_mapping = {}
     global_idx = 0

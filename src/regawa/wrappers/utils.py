@@ -10,21 +10,10 @@ from numpy import asarray
 from numpy.typing import NDArray
 
 from regawa.model import GroundValue
-from regawa.wrappers.grounding_utils import (
-    arity,
-    create_edges,
-    objects,
-    objects_with_type,
-    predicate,
-)
-from regawa.wrappers.util_types import (
-    Edge,
-    FactorGraph,
-    IdxFactorGraph,
-    Object,
-    StackedFactorGraph,
-    Variables,
-)
+from regawa.wrappers.grounding_utils import (arity, create_edges, objects,
+                                             objects_with_type, predicate)
+from regawa.wrappers.util_types import (Edge, FactorGraph, IdxFactorGraph,
+                                        Object, StackedFactorGraph, Variables)
 
 logger = logging.getLogger(__name__)
 

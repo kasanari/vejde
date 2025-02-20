@@ -4,10 +4,9 @@ from typing import Generic, NamedTuple, TypeVar
 import numpy as np
 import torch.nn.init as init
 from numpy.typing import NDArray
+from torch import Generator as Rngs
 from torch import Tensor, concatenate
 from torch.nn import Embedding, LayerNorm, Linear, Module, Sequential
-from torch import Generator as Rngs
-
 
 V = TypeVar("V")
 

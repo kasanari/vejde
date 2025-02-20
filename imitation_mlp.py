@@ -9,7 +9,6 @@ import torch as th
 from gymnasium.spaces import Dict, MultiDiscrete
 from torch.func import functional_call, grad, vmap
 from torch_geometric.data import Data
-
 # from wrappers.kg_wrapper import register_env
 from wrappers.wrapper import register_env
 

@@ -13,8 +13,7 @@ from regawa.gnn import ActionMode, AgentConfig, GraphAgent
 from regawa.gnn.agent_utils import GNNParams
 from regawa.gnn.gnn_agent import heterostatedata_to_tensors
 from regawa.rddl import register_env
-from regawa.rl.util import (evaluate, rollout, save_eval_data, update,
-                            update_vf_agent)
+from regawa.rl.util import evaluate, rollout, save_eval_data, update, update_vf_agent
 
 
 def policy(state: dict[str, bool]) -> tuple[int, int]:

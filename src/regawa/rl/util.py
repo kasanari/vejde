@@ -72,7 +72,7 @@ def evaluate(
             k: float(v)
             for k, v in zip(
                 info["action_fluents"],
-                p_a.detach().squeeze().round(decimals=2).cpu().numpy(),
+                th.atleast_1d(p_a.detach().squeeze()).round(decimals=2).cpu().numpy(),
             )
             if v > 0.0
         }

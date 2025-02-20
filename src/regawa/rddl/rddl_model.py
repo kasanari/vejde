@@ -6,8 +6,9 @@ from regawa.model.base_model import BaseModel
 
 
 class RDDLModel(BaseModel):
-    def __init__(self, model: RDDLLiftedModel) -> None:
+    def __init__(self, model: RDDLLiftedModel, add_null_action: bool = True) -> None:
         self.model = model
+        self.add_null_action = add_null_action
 
     @cached_property
     def enum_fluents(self) -> dict[str, list[str]]:
@@ -202,7 +203,11 @@ class RDDLModel(BaseModel):
         action_fluents = {f for f in action_fluents if f not in enum_fluents}
         action_fluents = action_fluents | set(new_fluents)
 
-        return ["None"] + sorted(action_fluents)  # type: ignore
+        return (
+            ["None"] + sorted(action_fluents)
+            if self.add_null_action
+            else sorted(action_fluents)
+        )  # type: ignore
 
     @cached_property
     def num_actions(self) -> int:

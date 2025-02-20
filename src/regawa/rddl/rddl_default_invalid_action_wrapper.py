@@ -2,11 +2,26 @@ from typing import Any, TypeVar
 import gymnasium as gym
 from gymnasium import spaces
 from pyRDDLGym import RDDLEnv
+from pyRDDLGym.core.simulator import RDDLSimulator
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
 WrapperObsType = spaces.Dict
 WrapperActType = spaces.Tuple
+
+
+def check_action_preconditions(sampler, actions) -> bool:
+    """Throws an exception if the action preconditions are not satisfied."""
+    actions = sampler._process_actions(actions)
+    subs = sampler.subs | actions
+
+    for i, precond in enumerate(sampler.rddl.preconditions):
+        loc = sampler.precond_names[i]
+        sample = sampler._sample(precond, subs)
+        RDDLSimulator._check_type(sample, bool, loc, precond)
+        if not bool(sample):
+            return False
+    return True
 
 
 class RDDLDefaultInvalidActions(

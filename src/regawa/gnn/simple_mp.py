@@ -21,7 +21,7 @@ class MessagePass(nn.Module):
         self.aggr = aggregation
 
     def forward(self, x_i: Tensor, x_j: Tensor, recipients: Tensor):
-        x = concatenate((x_i, x_j), dim=-1)
+        x = concatenate((x_i, x_j), axis=-1)
         m = self.message_func(x)
         aggr_m = scatter(m, recipients, dim=0, reduce=self.aggr)
         logger.debug("X_j\n%s", x_j)

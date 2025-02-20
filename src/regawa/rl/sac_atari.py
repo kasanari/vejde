@@ -169,7 +169,7 @@ class Actor(nn.Module):
         action = policy_dist.sample()
         # Action probabilities for calculating the adapted soft-Q loss
         action_probs = policy_dist.probs
-        log_prob = F.log_softmax(logits, dim=1)
+        log_prob = F.log_softmax(logits, axis=1)
         return action, log_prob, action_probs
 
 
@@ -312,7 +312,7 @@ poetry run pip install "stable_baselines3==2.0.0a1" "gymnasium[atari,accept-rom-
                         - alpha * next_state_log_pi
                     )
                     # adapt Q-target for discrete Q-function
-                    min_qf_next_target = min_qf_next_target.sum(dim=1)
+                    min_qf_next_target = min_qf_next_target.sum(axis=1)
                     next_q_value = data.rewards.flatten() + (
                         1 - data.dones.flatten()
                     ) * args.gamma * (min_qf_next_target)

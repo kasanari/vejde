@@ -45,7 +45,7 @@ def to_graphviz(
 ):
     output = "digraph G {"
 
-    norm = lambda x: torch.linalg.norm(x, ord=2, dim=-1)
+    norm = lambda x: torch.linalg.norm(x, ord=2, axis=-1)
     ro = lambda x: torch.round(x, decimals=2)
 
     v_norm = norm(variables)
@@ -111,7 +111,7 @@ class BipartiteGNNConvVariableToFactor(nn.Module):
             if aggr_m.shape[0] > 0
             else (factors, torch.zeros_like(factors))
         )
-        x = torch.concatenate(x, dim=-1)
+        x = torch.concatenate(x, axis=-1)
         x = self.combine(x)
         render_logger.debug(
             "%s", Lazy(lambda: to_graphviz(m, senders, receivers, variables, factors))
@@ -152,7 +152,7 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
 
         aggr_m, m = self.mp(x_i, x_j, senders)
         x = (variables, aggr_m)
-        x = torch.concatenate(x, dim=-1)
+        x = torch.concatenate(x, axis=-1)
         x = self.combine(x)
         x = variables + x
         render_logger.debug(

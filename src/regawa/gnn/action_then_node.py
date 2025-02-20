@@ -71,7 +71,7 @@ class ActionThenNodePolicy(nn.Module):
 
         q = self.q_node__action(h.values)
         q = q.view(-1, self.critic_heads, self.num_actions)
-        q = q.mean(dim=1)
+        q = q.mean(axis=1)
 
         value = action_then_node_value_estimate(
             p_n__a,  # type: ignore
@@ -122,7 +122,7 @@ class ActionThenNodePolicy(nn.Module):
 
         q = self.q_node__action(h.values)
         q = q.view(-1, self.critic_heads, self.num_actions)
-        q = q.mean(dim=1)
+        q = q.mean(axis=1)
 
         return action_then_node_value_estimate(
             p_n__a,  # type: ignore

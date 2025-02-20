@@ -18,7 +18,7 @@ def compress_time(recurrent: nn.GRU, h: Tensor, length: Tensor) -> Tensor:
         h.size(-1),
     )
 
-    offsets = th.roll(th.cumsum(length, dim=0), 1, 0)
+    offsets = th.roll(th.cumsum(length, axis=0), 1, 0)
     offsets[0] = 0
     for i, node_l in enumerate(length):
         padded[i, : node_l.item()] = h[offsets[i] : offsets[i] + node_l.item()]

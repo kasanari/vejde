@@ -92,8 +92,8 @@ class MLPAgent(th.nn.Module):
         nullary_action = a[:, 0].unsqueeze(1)
         unary_action = a[:, 1].unsqueeze(1)
 
-        p_nullary = th.nn.functional.softmax(self.nullary_action(logits), dim=-1)
-        p_unary = th.nn.functional.softmax(self.unary_action(logits), dim=-1)
+        p_nullary = th.nn.functional.softmax(self.nullary_action(logits), axis=-1)
+        p_unary = th.nn.functional.softmax(self.unary_action(logits), axis=-1)
 
         # l_joint = self.unary_given_nullary_action(logits).view(
         #     -1,
@@ -106,7 +106,7 @@ class MLPAgent(th.nn.Module):
         # ).squeeze(1)
 
         # p_unary_given_nullary = th.nn.functional.softmax(
-        #     self.unary_action(logits).view(-1, x.size(0), a.size(0)), dim=-1
+        #     self.unary_action(logits).view(-1, x.size(0), a.size(0)), axis=-1
         # )
 
         p_a_nullary = p_nullary.gather(1, nullary_action)
@@ -123,13 +123,13 @@ class MLPAgent(th.nn.Module):
         # x = x.view(x.size(0), -1)
         logits = self.mlp(x)
 
-        p_nullary = th.nn.functional.softmax(self.nullary_action(logits), dim=-1)
-        p_unary = th.nn.functional.softmax(self.unary_action(logits), dim=-1)
+        p_nullary = th.nn.functional.softmax(self.nullary_action(logits), axis=-1)
+        p_unary = th.nn.functional.softmax(self.unary_action(logits), axis=-1)
 
         threshold = 0.05
         # threshold and rescale
         p_unary = th.where(p_unary < threshold, th.zeros_like(p_unary), p_unary)
-        p_unary = th.nn.functional.softmax(p_unary, dim=-1)
+        p_unary = th.nn.functional.softmax(p_unary, axis=-1)
 
         nullary_action = (
             th.distributions.Categorical(p_nullary).sample()
@@ -142,7 +142,7 @@ class MLPAgent(th.nn.Module):
             else th.argmax(p_unary)
         )
 
-        return th.stack([nullary_action, unary_action], dim=0), 0.0, 0.0
+        return th.stack([nullary_action, unary_action], axis=0), 0.0, 0.0
 
 
 def dict_to_data(obs: dict[str, tuple[Any]]) -> Data:

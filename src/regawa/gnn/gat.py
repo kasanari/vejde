@@ -31,15 +31,15 @@ class GraphAttention(nn.Module):
         t = self.target(x_j).view(-1, h, c)
         s = self.source(x_i).view(-1, h, c)
         e = self.edge(edge_attribute).view(-1, h, c)
-        z = ((leaky_relu(s + t + e)) * self.attn).sum(dim=-1)
+        z = ((leaky_relu(s + t + e)) * self.attn).sum(axis=-1)
         a = segment_softmax(
             z,
             senders,
             num_graphs(senders),
-            dim=0,
+            axis=0,
         ).squeeze(0)
         m = t * a.unsqueeze(-1)
-        aggr_m = scatter(m, receivers, dim=0, reduce="sum")
-        aggr_m = aggr_m.mean(dim=1)
-        m = m.mean(dim=1)
+        aggr_m = scatter(m, receivers, axis=0, reduce="sum")
+        aggr_m = aggr_m.mean(axis=1)
+        m = m.mean(axis=1)
         return aggr_m, m

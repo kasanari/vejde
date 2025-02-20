@@ -49,7 +49,7 @@ class NodeThenActionPolicy(nn.Module):
 
         q = self.q_action__node(h.values)
         q = q.view(-1, self.critic_heads, self.num_actions)
-        q = q.mean(dim=1)
+        q = q.mean(axis=1)
 
         p_a__n = softmax(mask_logits(action_given_node_logits, action_mask))  # type: ignore
 
@@ -100,7 +100,7 @@ class NodeThenActionPolicy(nn.Module):
 
         q = self.q_action__node(h.values)
         q = q.view(-1, self.critic_heads, self.num_actions)
-        q = q.mean(dim=1)
+        q = q.mean(axis=1)
 
         return node_then_action_value_estimate(
             p_a__n,  # type: ignore

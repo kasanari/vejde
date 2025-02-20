@@ -130,7 +130,7 @@ class GATConv(MessagePassing):
     ):
         x = x_j + x_i + edge_attr
         x = leaky_relu(x)
-        alpha = (x @ self.attn.T).sum(dim=-1)
+        alpha = (x @ self.attn.T).sum(axis=-1)
         alpha = softmax(alpha, index, ptr, dim_size)
         return alpha
 
@@ -162,10 +162,10 @@ class GNNConv(MessagePassing):
         )
 
     def message(self, x_j: Tensor, edge_attr: Tensor) -> Tensor:
-        return self.msg_combine(torch.concatenate([x_j, edge_attr], dim=-1))
+        return self.msg_combine(torch.concatenate([x_j, edge_attr], axis=-1))
 
     def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:
-        return x + self.combine(torch.concatenate([x, aggr_out], dim=-1))
+        return x + self.combine(torch.concatenate([x, aggr_out], axis=-1))
 
 
 class GlobalNode(nn.Module):
@@ -179,7 +179,7 @@ class GlobalNode(nn.Module):
 
     def forward(self, x: Tensor, g_prev: Tensor, batch_idx: Tensor) -> Tensor:
         g = self.aggr(x, batch_idx)
-        return g_prev + self.linear(torch.concatenate([g, g_prev], dim=-1))
+        return g_prev + self.linear(torch.concatenate([g, g_prev], axis=-1))
 
 
 class SumGlobalNode(nn.Module):
@@ -192,7 +192,7 @@ class SumGlobalNode(nn.Module):
     def forward(self, x: Tensor, g_prev: Tensor, batch_idx: Tensor) -> Tensor:
         x = self.msg(x)
         g = self.aggr(x, batch_idx)
-        return g_prev + self.linear(torch.concatenate([g, g_prev], dim=-1))
+        return g_prev + self.linear(torch.concatenate([g, g_prev], axis=-1))
 
 
 class KGGNN(nn.Module):

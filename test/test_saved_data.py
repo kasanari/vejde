@@ -1,42 +1,29 @@
+import json
+import pathlib
+import random
 from collections import deque
 from collections.abc import Callable
-import json
 from typing import Any, SupportsFloat
 
+import gymnasium as gym
+import matplotlib.pyplot as plt
+import numpy as np
 import torch as th
 from tqdm import tqdm
-from regawa.gnn.data import (
-    heterodict_to_obsdata,
-    heterostatedata_from_obslist,
-)
-from regawa import GroundValue, GNNParams
-from regawa.gnn.gnn_agent import (
-    AgentConfig,
-    RecurrentGraphAgent,
-    GraphAgent,
-    heterostatedata_to_tensors,
-)
+
+from regawa import GNNParams, GroundValue
 from regawa.gnn import ActionMode
+from regawa.gnn.data import heterodict_to_obsdata, heterostatedata_from_obslist
+from regawa.gnn.gnn_agent import (AgentConfig, GraphAgent, RecurrentGraphAgent,
+                                  heterostatedata_to_tensors)
 from regawa.model.base_grounded_model import BaseGroundedModel
 from regawa.model.base_model import BaseModel
-from regawa.rl.util import calc_loss, evaluate, update
 from regawa.rddl import register_env
 from regawa.rddl.rddl_utils import rddl_ground_to_tuple
 from regawa.rl.util import calc_loss, evaluate, update
-from regawa.wrappers.graph_utils import create_graphs
-from regawa.wrappers.graph_utils import create_obs_dict
+from regawa.wrappers.graph_utils import create_graphs, create_obs_dict
 from regawa.wrappers.render_utils import create_render_graph, to_graphviz
-from regawa.wrappers.utils import (
-    from_dict_action,
-    object_list,
-)
-import gymnasium as gym
-import matplotlib.pyplot as plt
-
-import pathlib
-import numpy as np
-import random
-
+from regawa.wrappers.utils import from_dict_action, object_list
 
 RecordingObs = dict[str, Any]
 RecordingAction = dict[str, int]

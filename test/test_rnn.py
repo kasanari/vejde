@@ -1,8 +1,10 @@
+import itertools
+
+import torch as th
+from torch import all, as_tensor, isclose
+
 from regawa.gnn.gnn_classes import EmbeddingLayer
 from regawa.gnn.gnn_embedder import BooleanEmbedder, RecurrentEmbedder
-import itertools
-import torch as th
-from torch import as_tensor, isclose, all
 
 
 def test_factor_embedding():

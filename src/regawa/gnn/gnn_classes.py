@@ -1,11 +1,12 @@
 from collections.abc import Callable
 from typing import Generic, NamedTuple, TypeVar
-import torch.nn.init as init
-from torch import Tensor
-import torch
-from torch.nn import Embedding, Linear, Module, LayerNorm, Sequential
-from numpy.typing import NDArray
+
 import numpy as np
+import torch
+import torch.nn.init as init
+from numpy.typing import NDArray
+from torch import Tensor
+from torch.nn import Embedding, LayerNorm, Linear, Module, Sequential
 
 V = TypeVar("V")
 

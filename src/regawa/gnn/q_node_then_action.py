@@ -1,4 +1,5 @@
 from torch import nn
+
 from regawa.gnn.gnn_classes import SparseTensor
 
 

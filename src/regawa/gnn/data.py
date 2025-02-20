@@ -1,20 +1,17 @@
+import json
 from collections import deque
 from collections.abc import Iterable
 from itertools import chain
-import json
 from typing import Generic, NamedTuple, TypeVar
-
-# import torch as th
-# from torch import NDArray
-from numpy import asarray, cumsum, ones_like, concatenate
-
-from numpy.typing import NDArray
 
 # import torch
 import numpy as np
+# import torch as th
+# from torch import NDArray
+from numpy import asarray, concatenate, cumsum, ones_like
+from numpy.typing import NDArray
 
 from regawa.gnn.gnn_classes import SparseArray
-
 
 ObsDict = dict[str, NDArray]
 BatchedObsDict = dict[str, tuple[NDArray]]

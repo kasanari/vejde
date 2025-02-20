@@ -1,11 +1,11 @@
+import logging
 from typing import Any, TypeVar
-
 
 import gymnasium as gym
 
 from regawa.model.base_model import BaseModel
+
 from .utils import idx_action_to_ground_value
-import logging
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")

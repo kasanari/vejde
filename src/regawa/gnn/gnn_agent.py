@@ -1,26 +1,19 @@
+from dataclasses import asdict
 from typing import Any, NamedTuple, TypeVar
 
-import torch.nn as nn
-from torch import Tensor
 import torch
-
 import torch as th
-from dataclasses import asdict
+import torch.nn as nn
+from torch import Tensor, as_tensor
 
 from regawa.gnn.agent_utils import ActionMode, AgentConfig, GNNParams
 from regawa.gnn.node_then_action import NodeThenActionPolicy
 
-from .gnn_classes import EmbeddingLayer, SparseArray, SparseTensor, sparsify
+from .action_then_node import ActionThenNodePolicy
 from .data import HeteroStateData, StateData
 from .factorgraph_gnn import BipartiteGNN, FactorGraph
-from .gnn_embedder import (
-    BooleanEmbedder,
-    NumericEmbedder,
-    RecurrentEmbedder,
-)
-
-from .action_then_node import ActionThenNodePolicy
-from torch import as_tensor
+from .gnn_classes import EmbeddingLayer, SparseArray, SparseTensor, sparsify
+from .gnn_embedder import BooleanEmbedder, NumericEmbedder, RecurrentEmbedder
 
 
 class EmbeddedTuple(NamedTuple):

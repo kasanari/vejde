@@ -3,9 +3,10 @@ import os
 from typing import Any
 
 from gnn.gnn_agent import GraphActorCritic
-from kg_gnn import KGGNNAgent
 from wrappers.kg_wrapper import KGRDDLGraphWrapper
 from wrappers.wrapper import GroundedRDDLGraphWrapper
+
+from kg_gnn import KGGNNAgent
 
 os.environ["TORCHDYNAMO_INLINE_INBUILT_NN_MODULES"] = "1"
 
@@ -24,12 +25,11 @@ import torch.nn as nn
 import torch.optim as optim
 import tqdm
 import tyro
+import wandb
 from tensordict import from_module
 from tensordict.nn import CudaGraphModule
 from torch import Tensor
 from torch_geometric.data import Batch, Data
-
-import wandb
 
 
 class BipartiteData(Data):

@@ -1,22 +1,20 @@
+import logging
 import random
-
+import time
 
 import gymnasium as gym
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 import torch as th
-import time
-
-from regawa.gnn import AgentConfig, GraphAgent, ActionMode
-from regawa.gnn.agent_utils import GNNParams
-from regawa.gnn.gnn_agent import heterostatedata_to_tensors
-from regawa.rl.util import evaluate, rollout, save_eval_data, update, update_vf_agent
-from regawa.rddl import register_env
-import logging
-
-import matplotlib.pyplot as plt
 
 import regawa.wrappers.gym_utils as model_utils
+from regawa.gnn import ActionMode, AgentConfig, GraphAgent
+from regawa.gnn.agent_utils import GNNParams
+from regawa.gnn.gnn_agent import heterostatedata_to_tensors
+from regawa.rddl import register_env
+from regawa.rl.util import (evaluate, rollout, save_eval_data, update,
+                            update_vf_agent)
 
 
 def policy(state: dict[str, bool]) -> tuple[int, int]:

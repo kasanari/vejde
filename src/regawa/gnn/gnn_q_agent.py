@@ -1,18 +1,14 @@
 import torch.nn as nn
 
-
 from regawa.gnn.agent_utils import ActionMode, AgentConfig
 from regawa.gnn.gnn_agent import _embed, merge_graphs
 from regawa.gnn.q_action_then_node import QActionThenNode
 from regawa.gnn.q_node_then_action import QNodeThenAction
 
-from .gnn_classes import EmbeddingLayer
 from .data import HeteroStateData
 from .factorgraph_gnn import BipartiteGNN, FactorGraph
-from .gnn_embedder import (
-    NegativeBiasBooleanEmbedder,
-    NumericEmbedder,
-)
+from .gnn_classes import EmbeddingLayer
+from .gnn_embedder import NegativeBiasBooleanEmbedder, NumericEmbedder
 
 
 class GraphQAgent(nn.Module):

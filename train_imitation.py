@@ -1,15 +1,14 @@
 import random
 
 import gymnasium as gym
+import model.utils as model_utils
 import numpy as np
 import torch as th
-from gnn import ActionMode, Config, GraphAgent
-
 # from wrappers.kg_wrapper import register_env
 from rl.util import evaluate, rollout, save_eval_data, update
 
+from gnn import ActionMode, Config, GraphAgent
 from rddl import register_env
-import model.utils as model_utils
 
 
 def policy(state: dict[str, bool]) -> tuple[int, int]:

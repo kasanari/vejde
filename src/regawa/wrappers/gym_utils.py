@@ -1,9 +1,10 @@
 from collections.abc import Callable
-from typing import Any
-from gymnasium.spaces import Discrete, Sequence, Dict, Space, MultiDiscrete, Box
+from typing import Any, TypeVar
+
+from gymnasium.spaces import (Box, Dict, Discrete, MultiDiscrete, Sequence,
+                              Space)
 
 from regawa.wrappers.util_types import IdxFactorGraph
-from typing import TypeVar
 
 V = TypeVar("V")
 

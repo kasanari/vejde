@@ -5,24 +5,16 @@ from typing import Any, SupportsFloat
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
-
-from gymnasium.spaces import Discrete, Dict, MultiDiscrete, Box
-
-from regawa.model import GroundValue
-from .grounding_utils import to_dict_action
-from .render_utils import to_graphviz_alt
-from .stacked_utils import create_graphs, create_obs_dict
-from .util_types import HeteroGraph
-
-from .gym_utils import action_space, obs_space
-
-from .render_utils import (
-    create_render_graph,
-)
-
-from .render_utils import to_graphviz
+from gymnasium.spaces import Box, Dict, Discrete, MultiDiscrete
 
 from regawa import BaseModel
+from regawa.model import GroundValue
+
+from .grounding_utils import to_dict_action
+from .gym_utils import action_space, obs_space
+from .render_utils import create_render_graph, to_graphviz, to_graphviz_alt
+from .stacked_utils import create_graphs, create_obs_dict
+from .util_types import HeteroGraph
 
 logger = logging.getLogger(__name__)
 

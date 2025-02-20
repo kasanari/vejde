@@ -1,6 +1,5 @@
-from .gnn_agent import AgentConfig, GraphAgent, RecurrentGraphAgent, ActionMode
-from .data import StateData, HeteroStateData
-
+from .data import HeteroStateData, StateData
+from .gnn_agent import ActionMode, AgentConfig, GraphAgent, RecurrentGraphAgent
 
 __all__ = [
     "AgentConfig",

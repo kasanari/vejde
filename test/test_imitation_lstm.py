@@ -1,26 +1,20 @@
 import json
+import logging
 import random
 
-
 import gymnasium as gym
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 import torch as th
 from gymnasium.spaces import Dict, MultiDiscrete
 
-
+import regawa.wrappers.gym_utils as model_utils
 from regawa.gnn import ActionMode, AgentConfig, RecurrentGraphAgent
-
-
 from regawa.gnn.agent_utils import GNNParams
 from regawa.gnn.gnn_agent import heterostatedata_to_tensors
-from regawa.rl.util import evaluate, rollout, save_eval_data, update
 from regawa.rddl import register_pomdp_env as register_env
-
-import logging
-import matplotlib.pyplot as plt
-
-import regawa.wrappers.gym_utils as model_utils
+from regawa.rl.util import evaluate, rollout, save_eval_data, update
 
 
 class Serializer(json.JSONEncoder):

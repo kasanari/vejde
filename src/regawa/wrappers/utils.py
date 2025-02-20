@@ -1,30 +1,19 @@
-from itertools import chain
-import random
-from typing import Any, TypeVar
-from collections.abc import Callable
-import numpy as np
 import logging
+import random
+from collections.abc import Callable
+from itertools import chain
+from typing import Any, TypeVar
+
+import numpy as np
 from gymnasium.spaces import Dict
+from numpy import asarray
+from numpy.typing import NDArray
 
 from regawa.model import GroundValue
-from regawa.wrappers.grounding_utils import (
-    arity,
-    create_edges,
-    objects,
-    objects_with_type,
-    predicate,
-)
-from regawa.wrappers.util_types import (
-    Edge,
-    FactorGraph,
-    IdxFactorGraph,
-    Object,
-    StackedFactorGraph,
-    Variables,
-)
-from numpy.typing import NDArray
-from numpy import asarray
-
+from regawa.wrappers.grounding_utils import (arity, create_edges, objects,
+                                             objects_with_type, predicate)
+from regawa.wrappers.util_types import (Edge, FactorGraph, IdxFactorGraph,
+                                        Object, StackedFactorGraph, Variables)
 
 logger = logging.getLogger(__name__)
 

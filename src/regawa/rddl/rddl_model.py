@@ -1,7 +1,9 @@
-from itertools import chain
-from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
-from functools import cache, cached_property
 from copy import copy
+from functools import cache, cached_property
+from itertools import chain
+
+from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
+
 from regawa.model.base_model import BaseModel
 
 

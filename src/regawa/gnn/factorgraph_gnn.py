@@ -1,10 +1,10 @@
+import logging
 from collections.abc import Callable
 from typing import NamedTuple
 
 import torch
 import torch.nn as nn
 from torch import Tensor
-import logging
 
 from regawa.gnn.attentional_aggregation import AttentionalAggregation
 from regawa.gnn.simple_mp import MessagePass

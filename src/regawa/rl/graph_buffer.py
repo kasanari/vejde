@@ -1,16 +1,12 @@
 from typing import Any, NamedTuple
-import numpy as np
-from regawa.gnn.data import (
-    HeteroStateData,
-    ObsData,
-    dict_to_obsdata,
-    heterostatedata_from_obslist_alt,
-)
-from gymnasium import spaces
 
+import numpy as np
 import numpy.typing as npt
 import torch as th
+from gymnasium import spaces
 
+from regawa.gnn.data import (HeteroStateData, ObsData, dict_to_obsdata,
+                             heterostatedata_from_obslist_alt)
 from regawa.wrappers.gym_utils import n_actions
 
 

@@ -1,5 +1,6 @@
-from .base_model import BaseModel
 from functools import cache
+
+from .base_model import BaseModel
 
 
 def max_arity(model: BaseModel):

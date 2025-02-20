@@ -1,8 +1,8 @@
-from regawa.rddl import RDDLModel
-from regawa import BaseModel
-import regawa.model.utils as utils
 import pytest
 
+import regawa.model.utils as utils
+from regawa import BaseModel
+from regawa.rddl import RDDLModel
 from regawa.rddl.rddl_grounded_model import RDDLGroundedModel
 from regawa.wrappers.render_utils import render_lifted
 

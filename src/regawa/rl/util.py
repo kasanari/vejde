@@ -1,27 +1,18 @@
+import json
 from collections import deque
 from collections.abc import Callable, Iterable
-import json
 from typing import Any
+
+import gymnasium as gym
 import numpy as np
 import torch as th
-import gymnasium as gym
-
-from regawa.gnn.data import (
-    HeteroStateData,
-    Rollout,
-    RolloutCollector,
-    single_obs_to_heterostatedata,
-)
 from torch import Tensor
+from torch.utils._foreach_utils import _group_tensors_by_device_and_dtype
 
-from regawa.gnn.gnn_agent import (
-    GraphAgent,
-    heterostatedata_to_tensors,
-    statedata_to_tensors,
-)
-from torch.utils._foreach_utils import (
-    _group_tensors_by_device_and_dtype,
-)
+from regawa.gnn.data import (HeteroStateData, Rollout, RolloutCollector,
+                             single_obs_to_heterostatedata)
+from regawa.gnn.gnn_agent import (GraphAgent, heterostatedata_to_tensors,
+                                  statedata_to_tensors)
 
 
 @th.no_grad()

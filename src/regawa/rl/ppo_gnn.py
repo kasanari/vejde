@@ -1,42 +1,36 @@
 # docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/ppo/#ppopy
-from collections import deque
-from collections.abc import Callable
+import logging
 import os
-from pathlib import Path
 import random
 import time
+from collections import deque
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any, NamedTuple
 
 import gymnasium as gym
+import mlflow
+import mlflow.pytorch
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import tyro
-
-
-from gymnasium.spaces import Dict, MultiDiscrete
-from torch import Tensor
 import wandb
-from tqdm import tqdm
-from typing import Any, NamedTuple
-
-from regawa.gnn.data import (
-    HeteroGraphBuffer,
-    ObsData,
-    batched_hetero_dict_to_hetero_obs_list,
-    heterostatedata,
-)
-from regawa.gnn.gnn_agent import heterostatedata_to_tensors
-from regawa.gnn import GraphAgent, AgentConfig, HeteroStateData
-import mlflow
-import mlflow.pytorch
-
-from regawa.rl.util import evaluate, save_eval_data
-from regawa import GNNParams
-import regawa.wrappers.gym_utils as model_utils
-import logging
+from gymnasium.spaces import Dict, MultiDiscrete
 from numpy.typing import NDArray
+from torch import Tensor
+from tqdm import tqdm
+
+import regawa.wrappers.gym_utils as model_utils
+from regawa import GNNParams
+from regawa.gnn import AgentConfig, GraphAgent, HeteroStateData
+from regawa.gnn.data import (HeteroGraphBuffer, ObsData,
+                             batched_hetero_dict_to_hetero_obs_list,
+                             heterostatedata)
+from regawa.gnn.gnn_agent import heterostatedata_to_tensors
+from regawa.rl.util import evaluate, save_eval_data
 
 logger = logging.getLogger(__name__)
 

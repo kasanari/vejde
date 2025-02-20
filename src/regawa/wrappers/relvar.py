@@ -1,14 +1,14 @@
 from collections.abc import Callable
+from typing import Any, NamedTuple, TypeVar
 
-from .grounding_utils import objects, predicate
+import numpy as np
 
-from .util_types import FactorGraph
+from regawa.model.base_model import BaseModel
 
 from ..model import GroundValue
-from regawa.model.base_model import BaseModel
+from .grounding_utils import objects, predicate
+from .util_types import FactorGraph
 from .utils import translate_edges
-import numpy as np
-from typing import Any, NamedTuple, TypeVar
 
 
 class Factor(NamedTuple):

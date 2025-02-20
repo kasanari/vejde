@@ -4,7 +4,6 @@ from typing import Any, TypeVar
 import gymnasium as gym
 from gymnasium import spaces
 
-
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
 WrapperObsType = TypeVar("WrapperObsType")

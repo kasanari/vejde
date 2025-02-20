@@ -1,9 +1,9 @@
+import logging
 from collections import deque
 from collections.abc import Callable
+
 from regawa.model import GroundValue
 from regawa.wrappers.util_types import Edge, Object
-
-import logging
 
 logger = logging.getLogger(__name__)
 

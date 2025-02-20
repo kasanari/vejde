@@ -1,9 +1,9 @@
+from torch import Tensor, empty, nn
+from torch.nn.functional import leaky_relu
 from torch_scatter import scatter  # type: ignore
-from torch import nn, Tensor, empty
 
 from gnn_policy.functional import segment_softmax
 from regawa.functional import num_graphs
-from torch.nn.functional import leaky_relu
 
 
 class GraphAttention(nn.Module):

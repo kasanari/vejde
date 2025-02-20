@@ -1,13 +1,15 @@
+from functools import cache
 from itertools import chain
 from typing import Any, TypeVar
+
 import gymnasium as gym
 from gymnasium import spaces
 from pyRDDLGym import RDDLEnv
-from functools import cache
+
+from regawa.model import GroundValue
+from regawa.wrappers.grounding_utils import predicate
 
 from .rddl_model import RDDLModel
-from regawa.wrappers.grounding_utils import predicate
-from regawa.model import GroundValue
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")

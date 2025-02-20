@@ -1,15 +1,16 @@
 from collections.abc import Callable
 from typing import Any
+
 import gymnasium as gym
 import numpy as np
 import pytest
+from gymnasium.utils.env_checker import check_env
 
+from regawa.rddl import register_env, register_pomdp_env
 from regawa.wrappers.add_actions_wrapper import AddActionWrapper
 from regawa.wrappers.labelwrapper import LabelingWrapper
 from regawa.wrappers.last_obs_wrapper import LastObsWrapper
 from regawa.wrappers.stacking_last_obs_wrapper import LastObsStackingWrapper
-from regawa.rddl import register_env, register_pomdp_env
-from gymnasium.utils.env_checker import check_env
 
 env_id = register_env()
 pomdp_env_id = register_pomdp_env()

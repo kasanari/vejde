@@ -1,4 +1,5 @@
 from collections.abc import Callable
+
 from torch import Tensor
 
 from gnn_policy.functional import segment_sum

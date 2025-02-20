@@ -1,10 +1,10 @@
 from collections import deque
+from copy import deepcopy
 from pprint import pprint
 from typing import Any, TypeVar
-from copy import deepcopy
 
-import pyRDDLGym  # type: ignore
 import gymnasium as gym
+import pyRDDLGym  # type: ignore
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")

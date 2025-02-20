@@ -1,9 +1,9 @@
-from regawa.gnn.gnn_classes import MLPLayer
-from torch import Tensor, nn
-from torch import concatenate
+import logging
+
+from torch import Tensor, concatenate, nn
 from torch_scatter import scatter  # type: ignore
 
-import logging
+from regawa.gnn.gnn_classes import MLPLayer
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,6 @@ import os
 from typing import Any
 
 from geometric import GNNAgent
-
 from wrappers.kg_wrapper import KGRDDLGraphWrapper
 
 os.environ["TORCHDYNAMO_INLINE_INBUILT_NN_MODULES"] = "1"
@@ -22,12 +21,11 @@ import torch.nn as nn
 import torch.optim as optim
 import tqdm
 import tyro
+import wandb
 from tensordict import from_module
 from tensordict.nn import CudaGraphModule
 from torch import Tensor
 from torch_geometric.data import Batch, Data
-
-import wandb
 
 
 def dict_to_data(data: dict[str, tuple[Any]], num_envs: int) -> list[Data]:

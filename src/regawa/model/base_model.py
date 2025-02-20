@@ -1,5 +1,5 @@
-from functools import cache, cached_property
 from abc import ABC, abstractmethod
+from functools import cache, cached_property
 
 
 class BaseModel(ABC):

@@ -1,7 +1,10 @@
+import logging
+
 import torch.nn as nn
 from torch import Tensor
-import logging
+
 from gnn_policy.functional import segment_sum, segmented_softmax
+
 from .gnn_classes import SparseTensor
 
 logger = logging.getLogger(__name__)

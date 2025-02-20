@@ -1,4 +1,5 @@
-from typing import Any, TypeVar, SupportsFloat
+from typing import Any, SupportsFloat, TypeVar
+
 import gymnasium as gym
 import numpy as np
 

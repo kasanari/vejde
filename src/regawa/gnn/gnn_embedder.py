@@ -1,10 +1,12 @@
+import logging
+
+import torch as th
 import torch.nn as nn
 import torch.nn.init as init
 from torch import Tensor
 from torch.nn.utils.rnn import pack_padded_sequence
-import torch as th
+
 from .gnn_classes import EmbeddingLayer
-import logging
 
 logger = logging.getLogger(__name__)
 

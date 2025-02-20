@@ -7,9 +7,9 @@ from numpy.typing import NDArray
 from torch import LongTensor, Tensor
 from torch.nn.functional import leaky_relu
 from torch_geometric.data import Batch, Data
-from torch_geometric.nn import AttentionalAggregation, MessagePassing, SumAggregation
+from torch_geometric.nn import (AttentionalAggregation, MessagePassing,
+                                SumAggregation)
 from torch_geometric.utils import softmax
-
 from wrappers.kg_wrapper import KGRDDLGraphWrapper
 
 activation_to_str: dict[type[nn.Module], str] = {

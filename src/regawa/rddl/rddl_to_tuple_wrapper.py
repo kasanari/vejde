@@ -1,8 +1,10 @@
+from functools import cache
 from typing import Any, TypeVar
+
 import gymnasium as gym
 from gymnasium import spaces
 from pyRDDLGym import RDDLEnv
-from functools import cache
+
 from .rddl_utils import rddl_ground_to_tuple
 
 ObsType = TypeVar("ObsType")

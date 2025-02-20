@@ -1,7 +1,6 @@
 import random
 
 import numpy as np
-
 from wrappers.parent_wrapper import RDDLGraphWrapper
 from wrappers.utils import generate_bipartite_obs
 

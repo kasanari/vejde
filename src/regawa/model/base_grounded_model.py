@@ -1,6 +1,7 @@
-from functools import cache, cached_property
 from abc import ABC, abstractmethod
+from functools import cache, cached_property
 from typing import Any
+
 from regawa.model import GroundValue
 
 

@@ -1,11 +1,9 @@
 import torch as th
 from torch import Tensor, nn
 
-from gnn_policy.functional import (
-    masked_entropy,  # type: ignore
-    node_probs,  # type: ignore
-    sample_node,  # type: ignore
-)
+from gnn_policy.functional import masked_entropy  # type: ignore
+from gnn_policy.functional import node_probs  # type: ignore
+from gnn_policy.functional import sample_node  # type: ignore
 from regawa.functional import num_graphs
 
 

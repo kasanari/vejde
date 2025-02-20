@@ -1,15 +1,15 @@
+import logging
+
 import gymnasium as gym
 import torch
 
-
 from regawa.gnn import GraphAgent, RecurrentGraphAgent
-
-import logging
 
 
 def test_rnn_agent():
-    from rddl import register_pomdp_env as register_env
     from test_imitation_lstm import evaluate, save_eval_data
+
+    from rddl import register_pomdp_env as register_env
 
     path = "blink_enough_bandit.pth"
     agent, config = RecurrentGraphAgent.load_agent(path)
@@ -31,8 +31,9 @@ def test_rnn_agent():
 
 
 def test_agent():
-    from regawa.rddl import register_env
     from test_imitation_mdp import evaluate, save_eval_data
+
+    from regawa.rddl import register_env
 
     logfile = open("test_trained_agent.log", "w")
 

@@ -1,8 +1,7 @@
 from collections import deque
+from copy import deepcopy
 from pprint import pprint
 from typing import Any, TypeVar
-from copy import deepcopy
-
 
 import gymnasium as gym
 

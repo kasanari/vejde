@@ -46,7 +46,7 @@ class RDDLConvertEnums(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActT
 
         action, *enum_value_index = action_with_enum.split("^^^")
 
-        value = 1 if len(enum_value_index) == 0 else int(enum_value_index[0])
+        value = True if len(enum_value_index) == 0 else int(enum_value_index[0])
 
         args = [a.replace("@", "") for a in args]
 

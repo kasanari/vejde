@@ -82,6 +82,26 @@ class PPOParams(NamedTuple):
     target_kl: float | None
 
 
+@torch.no_grad()
+def explained_variance(y_pred: Tensor, y_true: Tensor) -> float:
+    """
+    Computes fraction of variance that ypred explains about y.
+    Returns 1 - Var[y-ypred] / Var[y]
+
+    interpretation:
+        ev=0  =>  might as well have predicted zero
+        ev=1  =>  perfect prediction
+        ev<0  =>  worse than just predicting zero
+
+    :param y_pred: the prediction
+    :param y_true: the expected value
+    :return: explained variance of ypred and y
+    """
+    assert y_true.ndim == 1 and y_pred.ndim == 1
+    var_y = torch.var(y_true)
+    return torch.nan if var_y == 0 else float(1 - torch.var(y_true - y_pred) / var_y)
+
+
 class Agent(nn.Module):
     def __init__(
         self,
@@ -250,6 +270,8 @@ def iteration_step(
         b_returns = returns.reshape(-1)
         b_values = b.values.reshape(-1)
 
+        explained_var = explained_variance(b_values, b_returns)
+
         flattened_b = BatchData(
             b_actions,
             b_logprobs,
@@ -271,10 +293,6 @@ def iteration_step(
                 print(
                     f"Early stopping at step {epoch} due to reaching max kl: {u_datas[-1].approx_kl:.2f}"
                 )
-
-        y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()  # type: ignore
-        var_y = np.var(y_true)  # type: ignore
-        explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
         carry = IterationCarry(b, r_data.last_obs, r_data.last_done, r_data.global_step)
         return r_data, u_datas, explained_var, carry

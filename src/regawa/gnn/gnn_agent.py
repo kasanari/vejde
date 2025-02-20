@@ -4,8 +4,8 @@ from typing import Any, NamedTuple, TypeVar
 import torch
 import torch as th
 import torch.nn as nn
-from torch import Tensor, as_tensor
-
+from torch import Tensor, as_tensor, int64, concatenate
+from torch import Generator as Rngs
 from regawa.gnn.agent_utils import ActionMode, AgentConfig, GNNParams
 from regawa.gnn.node_then_action import NodeThenActionPolicy
 
@@ -78,8 +78,8 @@ def _embed(
         )
         if data.global_vals.shape[0] > 0
         else SparseTensor(
-            th.tensor([], device=data.global_vals.values.device),
-            th.tensor([], dtype=th.long, device=data.global_vals.values.device),
+            as_tensor([], device=data.global_vals.values.device),
+            as_tensor([], dtype=int64, device=data.global_vals.values.device),
         )
     )
 
@@ -99,18 +99,18 @@ def _embed(
 
 
 def cat(a: Tensor, b: Tensor) -> Tensor:
-    return th.cat((a, b))
+    return concatenate((a, b))
 
 
-@th.jit.script
+@torch.jit.script
 def concat_sparse(a: SparseTensor, b: SparseTensor) -> SparseTensor:
     return SparseTensor(
-        th.cat((a.values, b.values)),
-        th.cat((a.indices, b.indices)),
+        concatenate((a.values, b.values)),
+        concatenate((a.indices, b.indices)),
     )
 
 
-@th.jit.script
+@torch.jit.script
 def merge_graphs(
     boolean: EmbeddedTuple,
     numeric: EmbeddedTuple,
@@ -135,6 +135,7 @@ class GraphAgent(nn.Module):
     def __init__(
         self,
         config: AgentConfig,
+        rngs: Rngs,
     ):
         super().__init__()  # type: ignore
 
@@ -142,20 +143,21 @@ class GraphAgent(nn.Module):
         gnn_params = config.hyper_params
 
         self.factor_embedding = EmbeddingLayer(
-            config.num_object_classes, gnn_params.embedding_dim
+            config.num_object_classes, gnn_params.embedding_dim, rngs
         )
 
         self.predicate_embedding = EmbeddingLayer(
-            config.num_predicate_classes, gnn_params.embedding_dim
+            config.num_predicate_classes, gnn_params.embedding_dim, rngs
         )
 
         self.edge_attr_embedding = EmbeddingLayer(
-            config.arity, gnn_params.embedding_dim, use_padding=False
+            config.arity, gnn_params.embedding_dim, rngs, use_padding=False
         )
 
         self.boolean_embedder = BooleanEmbedder(
             gnn_params.embedding_dim,
             self.predicate_embedding,
+            rngs,
         )
 
         self.numeric_embedder = NumericEmbedder(
@@ -169,9 +171,10 @@ class GraphAgent(nn.Module):
             gnn_params.embedding_dim,
             gnn_params.aggregation,
             gnn_params.activation,
+            rngs,
         )
 
-        policy_args = (config.num_actions, gnn_params.embedding_dim)
+        policy_args = (config.num_actions, gnn_params.embedding_dim, rngs)
         self.policy = (
             ActionThenNodePolicy(*policy_args)
             if gnn_params.action_mode == ActionMode.ACTION_THEN_NODE
@@ -227,6 +230,7 @@ class RecurrentGraphAgent(nn.Module):
     def __init__(
         self,
         config: AgentConfig,
+        rngs: Rngs,
     ):
         super().__init__()  # type: ignore
 
@@ -236,11 +240,13 @@ class RecurrentGraphAgent(nn.Module):
         self.factor_embedding = EmbeddingLayer(
             config.num_object_classes,
             gnn_params.embedding_dim,
+            rngs,
         )
 
         self.predicate_embedding = EmbeddingLayer(
             config.num_predicate_classes,
             gnn_params.embedding_dim,
+            rngs,
         )
 
         boolean_embedder = BooleanEmbedder(
@@ -254,7 +260,7 @@ class RecurrentGraphAgent(nn.Module):
         )
 
         self.edge_attr_embedding = EmbeddingLayer(
-            config.arity, gnn_params.embedding_dim, use_padding=False
+            config.arity, gnn_params.embedding_dim, rngs, use_padding=False
         )
 
         numeric_embedder = NumericEmbedder(
@@ -332,14 +338,14 @@ def save_agent(agent: GraphAgent | RecurrentGraphAgent, config: AgentConfig, pat
     to_save: dict[str, Any] = {}
     to_save["config"] = asdict(config)
     to_save["state_dict"] = state_dict
-    th.save(to_save, path)  # type: ignore
+    torch.save(to_save, path)  # type: ignore
 
 
 T = TypeVar("T", bound=GraphAgent | RecurrentGraphAgent)
 
 
 def load_agent(cls: T, path: str) -> tuple[T, AgentConfig]:
-    data = th.load(path, weights_only=False)  # type: ignore
+    data = torch.load(path, weights_only=False)  # type: ignore
 
     data["config"]["hyper_params"] = GNNParams(**data["config"]["hyper_params"])
 

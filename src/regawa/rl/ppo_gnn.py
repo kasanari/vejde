@@ -14,8 +14,8 @@ import mlflow
 import mlflow.pytorch
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
+import npl.nn as nn
+import npl.optim as optim
 import tyro
 import wandb
 from gymnasium.spaces import Dict, MultiDiscrete
@@ -36,6 +36,9 @@ from regawa.gnn.gnn_agent import heterostatedata_to_tensors
 from regawa.rl.util import evaluate, save_eval_data
 
 logger = logging.getLogger(__name__)
+
+
+npl = torch
 
 
 class RolloutData(NamedTuple):
@@ -79,7 +82,7 @@ class PPOParams(NamedTuple):
     target_kl: float | None
 
 
-@torch.no_grad()
+@npl.no_grad()
 def explained_variance(y_pred: Tensor, y_true: Tensor) -> float:
     """
     Computes fraction of variance that ypred explains about y.
@@ -95,8 +98,8 @@ def explained_variance(y_pred: Tensor, y_true: Tensor) -> float:
     :return: explained variance of ypred and y
     """
     assert y_true.ndim == 1 and y_pred.ndim == 1
-    var_y = torch.var(y_true)
-    return torch.nan if var_y == 0 else float(1 - torch.var(y_true - y_pred) / var_y)
+    var_y = npl.var(y_true)
+    return npl.nan if var_y == 0 else float(1 - npl.var(y_true - y_pred) / var_y)
 
 
 class Agent(nn.Module):
@@ -149,7 +152,7 @@ class Agent(nn.Module):
 def minibatch_step(
     minibatch_size: int,
     update_func: Callable[[HeteroStateData, BatchData], UpdateData],
-    device: str | torch.device,
+    device: str | npl.device,
 ):
     def _minibatch_step(
         start: int,
@@ -215,7 +218,7 @@ def iteration_step(
     batch_size: int,
     update_epochs: int,
     envs: gym.vector.SyncVectorEnv,
-    optimizer: torch.optim.Optimizer,
+    optimizer: npl.optim.Optimizer,
     learning_rate: float,
     num_iterations: int,
     rollout_func: Callable[
@@ -247,7 +250,7 @@ def iteration_step(
         )
 
         # bootstrap value if not done
-        with torch.no_grad():
+        with npl.no_grad():
             next_obs_batch = heterostatedata_to_tensors(
                 heterostatedata(r_data.last_obs), device
             )
@@ -301,9 +304,9 @@ def gae(
     num_steps: int,
     gamma: float,
     gae_lambda: float,
-    device: torch.device | str,
+    device: npl.device | str,
 ):
-    @torch.inference_mode()
+    @npl.inference_mode()
     def _gae(
         rewards: Tensor,
         dones: Tensor,
@@ -311,7 +314,7 @@ def gae(
         next_value: Tensor,
         next_step_is_terminal: Tensor,  # env will autoreset on next call to step
     ) -> tuple[Tensor, Tensor]:
-        advantages = torch.zeros_like(rewards).to(device)
+        advantages = npl.zeros_like(rewards).to(device)
         last_gae_lam = 0
         for t in reversed(range(num_steps)):
             if t == num_steps - 1:
@@ -344,7 +347,7 @@ class Args:
     seed: int = 0
     """seed of the experiment"""
     torch_deterministic: bool = True
-    """if toggled, `torch.backends.cudnn.deterministic=False`"""
+    """if toggled, `npl.backends.cudnn.deterministic=False`"""
     cuda: bool = True
     """if toggled, cuda will be enabled by default"""
     track: bool = False
@@ -422,9 +425,9 @@ def rollout(
     envs: gym.vector.SyncVectorEnv,
     num_steps: int,
     num_envs: int,
-    device: torch.device | str,
+    device: npl.device | str,
 ):
-    @torch.inference_mode()
+    @npl.inference_mode()
     def _rollout(
         prev_obs: dict[str, list[ObsData]],
         prev_is_final: Tensor,
@@ -451,11 +454,11 @@ def rollout(
             next_is_final = np.logical_or(terminations, truncations)
             next_obs, next_is_final = (
                 batched_hetero_dict_to_hetero_obs_list(next_obs_dict),  # type: ignore
-                torch.Tensor(next_is_final).to(device),
+                npl.as_tensor(next_is_final).to(device),
             )
 
             # add data to buffer
-            b.rewards[step] = torch.tensor(reward).to(device).view(-1)
+            b.rewards[step] = npl.as_tensor(reward).to(device).view(-1)
             b.actions[step] = action
             b.values[step] = value.flatten()
             b.logprobs[step] = logprob
@@ -485,13 +488,13 @@ def rollout(
     return _rollout
 
 
-@torch.no_grad()
+@npl.no_grad()
 def approximate_kl(logprob_new: Tensor, logprob_old: Tensor) -> tuple[Tensor, Tensor]:
     # calculate approx_kl http://joschu.net/blog/kl-approx.html
     log_ratio = logprob_new - logprob_old
-    ratio = torch.exp(log_ratio)
-    old_approx_kl = torch.mean(-log_ratio)
-    approx_kl = torch.mean((ratio - 1) - log_ratio)
+    ratio = npl.exp(log_ratio)
+    old_approx_kl = npl.mean(-log_ratio)
+    approx_kl = npl.mean((ratio - 1) - log_ratio)
     return old_approx_kl, approx_kl
 
 
@@ -514,8 +517,8 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
         logprob_new, entropy, values_new = agent.evaluate_action_and_value(
             actions,
             s,
-            # torch.ones_like(obs.action_mask),
-            # torch.ones_like(obs.node_mask),
+            # npl.ones_like(obs.action_mask),
+            # npl.ones_like(obs.node_mask),
         )
         assert not logprob_new.isinf().any()
         assert logprob_new.dim() == 1
@@ -527,10 +530,10 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
             advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
         # Policy loss
-        ratio = torch.exp(logprob_new - logprob_old)
-        pg_loss1 = torch.mul(advantages, ratio)
-        pg_loss2 = advantages * torch.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
-        pg_loss = -torch.min(pg_loss1, pg_loss2).mean()
+        ratio = npl.exp(logprob_new - logprob_old)
+        pg_loss1 = npl.mul(advantages, ratio)
+        pg_loss2 = advantages * npl.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
+        pg_loss = -npl.min(pg_loss1, pg_loss2).mean()
         clipfrac = ((ratio - 1.0).abs() > clip_coef).float().mean().item()
 
         # Value loss
@@ -538,7 +541,7 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
             # No clipping
             values_pred = values_new
         else:
-            values_pred = values_old + torch.clamp(
+            values_pred = values_old + npl.clamp(
                 values_new - values_old, -clip_range_vf, clip_range_vf
             )
 
@@ -548,7 +551,7 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
         entropy_loss = entropy.mean()
         loss = pg_loss - ent_coef * entropy_loss + value_loss * vf_coef
 
-        assert not torch.isnan(loss).any(), loss
+        assert not npl.isnan(loss).any(), loss
 
         optimizer.zero_grad()
         loss.backward()  # type: ignore
@@ -604,10 +607,10 @@ def main(
     # TRY NOT TO MODIFY: seeding
     random.seed(args.seed)
     np.random.seed(args.seed)
-    torch.manual_seed(args.seed)  # type: ignore
-    torch.backends.cudnn.deterministic = args.torch_deterministic
+    npl.manual_seed(args.seed)  # type: ignore
+    npl.backends.cudnn.deterministic = args.torch_deterministic
 
-    device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
+    device = npl.device("cuda" if npl.cuda.is_available() and args.cuda else "cpu")
 
     # env setup
 
@@ -624,19 +627,19 @@ def main(
     )
 
     # ALGO Logic: Storage setup
-    actions = torch.zeros(
+    actions = npl.zeros(
         (args.num_steps, args.num_envs) + envs.single_action_space.shape  # type: ignore
     ).to(device)
-    logprobs = torch.zeros((args.num_steps, args.num_envs)).to(device)
-    rewards = torch.zeros((args.num_steps, args.num_envs)).to(device)
-    dones = torch.zeros((args.num_steps, args.num_envs)).to(device)
-    values = torch.zeros((args.num_steps, args.num_envs)).to(device)
+    logprobs = npl.zeros((args.num_steps, args.num_envs)).to(device)
+    rewards = npl.zeros((args.num_steps, args.num_envs)).to(device)
+    dones = npl.zeros((args.num_steps, args.num_envs)).to(device)
+    values = npl.zeros((args.num_steps, args.num_envs)).to(device)
 
     b = BatchData(
         actions,
         logprobs,
-        torch.zeros((args.num_steps, args.num_envs)).to(device),
-        torch.zeros((args.num_steps, args.num_envs)).to(device),
+        npl.zeros((args.num_steps, args.num_envs)).to(device),
+        npl.zeros((args.num_steps, args.num_envs)).to(device),
         values,
         rewards,
         dones,
@@ -682,7 +685,7 @@ def main(
     carry = IterationCarry(
         b,
         batched_hetero_dict_to_hetero_obs_list(next_obs),
-        torch.zeros(args.num_envs).to(device),
+        npl.zeros(args.num_envs).to(device),
         0,
     )
     for iteration in range(1, args.num_iterations + 1):
@@ -834,9 +837,7 @@ def setup(args: Args | None = None):
         )
 
         seeds = range(10)
-        device = torch.device(
-            "cuda" if torch.cuda.is_available() and args.cuda else "cpu"
-        )
+        device = npl.device("cuda" if npl.cuda.is_available() and args.cuda else "cpu")
         data = [
             evaluate(eval_env, agent.agent, seed, deterministic=False, device=device)
             for seed in seeds

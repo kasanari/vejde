@@ -94,24 +94,24 @@ def evaluate(
 
 @th.no_grad()  # type: ignore
 def grad_norm_(
-    parameters: th.Tensor | Iterable[th.Tensor],
+    parameters: Tensor | Iterable[Tensor],
     max_norm: float,
     norm_type: float = 2.0,
     error_if_nonfinite: bool = False,
-) -> th.Tensor:
-    if isinstance(parameters, th.Tensor):
+) -> Tensor:
+    if isinstance(parameters, Tensor):
         parameters = [parameters]
     grads = [p.grad for p in parameters if p.grad is not None]
     max_norm = float(max_norm)
     norm_type = float(norm_type)
     if len(grads) == 0:
-        return th.tensor(0.0)
+        return Tensor(0.0)
     first_device = grads[0].device
     grouped_grads: dict[
-        tuple[th.device, th.dtype], tuple[list[list[th.Tensor]], list[int]]
+        tuple[th.device, th.dtype], tuple[list[list[Tensor]], list[int]]
     ] = _group_tensors_by_device_and_dtype([grads])  # type: ignore[assignment]
 
-    norms: list[th.Tensor] = []
+    norms: list[Tensor] = []
     for (device, _), ([device_grads], _) in grouped_grads.items():  # type: ignore[assignment]
         norms.extend([th.linalg.vector_norm(g, norm_type) for g in device_grads])
 
@@ -210,7 +210,7 @@ def update(
     return loss.item(), grad_norm.item(), grad_norms
 
 
-def calc_loss(l2_norms: list[Tensor], logprob: Tensor) -> th.Tensor:
+def calc_loss(l2_norms: list[Tensor], logprob: Tensor) -> Tensor:
     l2_weight = 0.0
     l2_norm = sum(l2_norms) / 2  # divide by 2 to cancel with gradient of square
     l2_loss = l2_weight * l2_norm
@@ -249,7 +249,7 @@ def rollout(
 
 class Serializer(json.JSONEncoder):
     def default(self, o: Any) -> Any:
-        if isinstance(o, th.Tensor):
+        if isinstance(o, Tensor):
             return o.tolist()
         if isinstance(o, np.bool_):
             return bool(o)

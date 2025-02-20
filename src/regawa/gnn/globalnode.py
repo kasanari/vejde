@@ -13,6 +13,6 @@ class GlobalNode(nn.Module):
     def forward(self, nodes: SparseTensor, g_prev: Tensor) -> Tensor:
         x = self.attn(nodes)
         x = (x, g_prev)
-        x = torch.concatenate(x, axis=-1)
+        x = concatenate(x, axis=-1)
         x = g_prev + self.linear(x)
         return x

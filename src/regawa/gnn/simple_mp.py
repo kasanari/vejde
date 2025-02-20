@@ -2,6 +2,7 @@ import logging
 
 from torch import Tensor, concatenate, nn
 from torch_scatter import scatter  # type: ignore
+from torch import Generator as Rngs
 
 from regawa.gnn.gnn_classes import MLPLayer
 
@@ -15,9 +16,10 @@ class MessagePass(nn.Module):
         out_channels: int,
         aggregation: str,
         activation: nn.Module,
+        rngs: Rngs,
     ):
         super().__init__()  # type: ignore
-        self.message_func = MLPLayer(in_channels * 2, out_channels, activation)
+        self.message_func = MLPLayer(in_channels * 2, out_channels, activation, rngs)
         self.aggr = aggregation
 
     def forward(self, x_i: Tensor, x_j: Tensor, recipients: Tensor):

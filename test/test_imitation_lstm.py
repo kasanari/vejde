@@ -148,12 +148,7 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
         action_mode=action_mode,
     )
 
-    config = AgentConfig(
-        n_types,
-        n_relations,
-        n_actions,
-        params,
-    )
+    config = AgentConfig(n_types, n_relations, n_actions, params, arity=2)
 
     agent = RecurrentGraphAgent(config)
 

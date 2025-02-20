@@ -1,9 +1,10 @@
 import logging
 
-import torch as th
+
 import torch.nn as nn
 import torch.nn.init as init
-from torch import Tensor
+from torch import Tensor, zeros, cumsum, roll
+from torch import Generator as Rngs
 from torch.nn.utils.rnn import pack_padded_sequence
 
 from .gnn_classes import EmbeddingLayer
@@ -12,13 +13,13 @@ logger = logging.getLogger(__name__)
 
 
 def compress_time(recurrent: nn.GRU, h: Tensor, length: Tensor) -> Tensor:
-    padded = th.zeros(
+    padded = zeros(
         length.size(0),
         length.max().item(),
         h.size(-1),
     )
 
-    offsets = th.roll(th.cumsum(length, axis=0), 1, 0)
+    offsets = roll(cumsum(length, axis=0), 1, 0)
     offsets[0] = 0
     for i, node_l in enumerate(length):
         padded[i, : node_l.item()] = h[offsets[i] : offsets[i] + node_l.item()]
@@ -28,11 +29,12 @@ def compress_time(recurrent: nn.GRU, h: Tensor, length: Tensor) -> Tensor:
     return variables
 
 
-class BooleanEmbedder(th.jit.ScriptModule):
+class BooleanEmbedder(nn.Module):
     def __init__(
         self,
         embedding_dim: int,
         predicate_embedding: EmbeddingLayer,
+        rngs: Rngs,
     ):
         super().__init__()  # type: ignore
 
@@ -41,13 +43,14 @@ class BooleanEmbedder(th.jit.ScriptModule):
             "predicate_embedding:\n%s", predicate_embedding.transform[0].weight
         )
 
-        self.boolean_embedding = EmbeddingLayer(2, embedding_dim, use_padding=False)
+        self.boolean_embedding = EmbeddingLayer(
+            2, embedding_dim, rngs, use_padding=False
+        )
 
         logger.debug(
             "boolean_embedding:\n%s", self.boolean_embedding.transform[0].weight
         )
 
-    @th.jit.script_method
     def forward(
         self,
         var_val: Tensor,
@@ -61,7 +64,7 @@ class BooleanEmbedder(th.jit.ScriptModule):
         return h
 
 
-class NegativeBiasBooleanEmbedder(th.jit.ScriptModule):
+class NegativeBiasBooleanEmbedder(nn.Module):
     def __init__(
         self,
         embedding_dim: int,
@@ -74,9 +77,8 @@ class NegativeBiasBooleanEmbedder(th.jit.ScriptModule):
             "predicate_embedding:\n%s", predicate_embedding.transform[0].weight
         )
         num_predicates = predicate_embedding.transform[0].weight.size(0)
-        self.bias = nn.Parameter(th.zeros(num_predicates, embedding_dim))
+        self.bias = nn.Parameter(zeros(num_predicates, embedding_dim))
 
-    @th.jit.script_method
     def forward(
         self,
         var_val: Tensor,
@@ -90,11 +92,12 @@ class NegativeBiasBooleanEmbedder(th.jit.ScriptModule):
         return h
 
 
-class PositiveNegativeBooleanEmbedder(th.jit.ScriptModule):
+class PositiveNegativeBooleanEmbedder(nn.Module):
     def __init__(
         self,
         embedding_dim: int,
         predicate_embedding: EmbeddingLayer,
+        rngs: Rngs,
     ):
         super().__init__()  # type: ignore
 
@@ -103,9 +106,10 @@ class PositiveNegativeBooleanEmbedder(th.jit.ScriptModule):
             "predicate_embedding:\n%s", predicate_embedding.transform[0].weight
         )
         num_predicates = predicate_embedding.transform[0].weight.size(0)
-        self.neg_predicate_embedding = EmbeddingLayer(num_predicates, embedding_dim)
+        self.neg_predicate_embedding = EmbeddingLayer(
+            num_predicates, embedding_dim, rngs
+        )
 
-    @th.jit.script_method
     def forward(
         self,
         var_val: Tensor,
@@ -123,7 +127,7 @@ class PositiveNegativeBooleanEmbedder(th.jit.ScriptModule):
         return h
 
 
-class NumericEmbedder(th.jit.ScriptModule):
+class NumericEmbedder(nn.Module):
     def __init__(
         self,
         embedding_dim: int,
@@ -134,7 +138,6 @@ class NumericEmbedder(th.jit.ScriptModule):
 
         self.predicate_embedding = predicate_embedding
 
-    @th.jit.script_method
     def forward(
         self,
         var_val: Tensor,

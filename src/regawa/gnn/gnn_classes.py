@@ -2,11 +2,12 @@ from collections.abc import Callable
 from typing import Generic, NamedTuple, TypeVar
 
 import numpy as np
-import torch
 import torch.nn.init as init
 from numpy.typing import NDArray
-from torch import Tensor
+from torch import Tensor, concatenate
 from torch.nn import Embedding, LayerNorm, Linear, Module, Sequential
+from torch import Generator as Rngs
+
 
 V = TypeVar("V")
 
@@ -16,7 +17,7 @@ class SparseArray(NamedTuple, Generic[V]):
     indices: NDArray[np.int64]
 
     @property
-    def shape(self) -> torch.Size:
+    def shape(self):
         return self.values.shape
 
     def concat(self, other: "SparseTensor") -> "SparseTensor":
@@ -31,13 +32,13 @@ class SparseTensor(NamedTuple):
     indices: Tensor
 
     @property
-    def shape(self) -> torch.Size:
+    def shape(self):
         return self.values.shape
 
     def concat(self, other: "SparseTensor") -> "SparseTensor":
         return SparseTensor(
-            torch.cat((self.values, other.values)),
-            torch.cat((self.indices, other.indices)),
+            concatenate((self.values, other.values)),
+            concatenate((self.indices, other.indices)),
         )
 
 
@@ -55,6 +56,7 @@ class EmbeddingLayer(Module):
         self,
         num_embeddings: int,
         embedding_dim: int,
+        rngs: Rngs,
         use_layer_norm: bool = True,
         use_padding: bool = True,
     ):
@@ -88,6 +90,7 @@ class MLPLayer(Module):
         in_features: int,
         out_features: int,
         activation: Module,
+        rngs: Rngs,
         use_layer_norm: bool = False,
     ):
         super().__init__()  # type: ignore

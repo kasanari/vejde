@@ -5,6 +5,7 @@ from gnn_policy.functional import masked_entropy  # type: ignore
 from gnn_policy.functional import node_probs  # type: ignore
 from gnn_policy.functional import sample_node  # type: ignore
 from regawa.functional import num_graphs
+from torch import log
 
 
 class SingleActionGNNPolicy(nn.Module):
@@ -19,11 +20,11 @@ class SingleActionGNNPolicy(nn.Module):
         p = node_probs(node_logits, node_mask, batch_idx)  # type: ignore
         n_g = num_graphs(batch_idx)
         entropy = masked_entropy(p, node_mask, n_g)  # type: ignore
-        logprob = th.log(p[actions])  # type: ignore
+        logprob = log(p[actions])  # type: ignore
         return logprob, entropy  # type: ignore
 
     def sample(self, h: Tensor, batch_idx: Tensor) -> tuple[Tensor, Tensor, Tensor]:
         node_logits = self.node_prob(h).squeeze()
         actions, prob, entropy, *_ = sample_node(node_logits, node_mask, batch_idx)  # type: ignore
-        logprob = th.log(prob[actions])  # type: ignore
+        logprob = log(prob[actions])  # type: ignore
         return actions, logprob, entropy  # type: ignore

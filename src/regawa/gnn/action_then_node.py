@@ -2,6 +2,7 @@ from collections.abc import Callable
 from functools import partial
 
 from torch import Tensor, nn
+from torch import Generator as Rngs
 
 from gnn_policy.functional import (
     eval_action_then_node,
@@ -25,7 +26,9 @@ PolicyFunc = Callable[
 
 
 class ActionThenNodePolicy(nn.Module):
-    def __init__(self, num_actions: int, node_dim: int, critic_heads: int = 2):
+    def __init__(
+        self, num_actions: int, node_dim: int, rngs: Rngs, critic_heads: int = 2
+    ):
         super().__init__()  # type: ignore
 
         self.node_prob = nn.Linear(node_dim, 1, bias=False)

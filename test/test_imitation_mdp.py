@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 import torch as th
+import torch.optim as optim
 
 import regawa.wrappers.gym_utils as model_utils
 from regawa.gnn import ActionMode, AgentConfig, GraphAgent
@@ -97,19 +98,21 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
         arity=model_utils.max_arity(env.observation_space),
     )
 
+    rng = th.Generator()
+
     agent = GraphAgent(
         config,
+        rng,
     )
     vf_agent = GraphAgent(
         config,
+        rng,
     )
 
     # agent, config = agent.load_agent("conditional_bandit.pth")
 
-    optimizer = th.optim.AdamW(
-        agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.1
-    )
-    vf_optimizer = th.optim.AdamW(
+    optimizer = optim.AdamW(agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.1)
+    vf_optimizer = optim.AdamW(
         vf_agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.01
     )
 

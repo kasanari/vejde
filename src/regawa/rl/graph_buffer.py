@@ -2,7 +2,7 @@ from typing import Any, NamedTuple
 
 import numpy as np
 import numpy.typing as npt
-import torch as th
+from torch import Tensor, device, as_tensor
 from gymnasium import spaces
 
 from regawa.gnn.data import (
@@ -17,9 +17,9 @@ from regawa.wrappers.gym_utils import n_actions
 class ReplayBufferSamples(NamedTuple):
     observations: HeteroStateData
     next_observations: HeteroStateData
-    actions: th.Tensor
-    dones: th.Tensor
-    rewards: th.Tensor
+    actions: Tensor
+    dones: Tensor
+    rewards: Tensor
 
 
 def get_single_env(
@@ -48,7 +48,7 @@ class ReplayBuffer:
         buffer_size: int,
         observation_space: spaces.Dict,
         action_space: spaces.MultiDiscrete,
-        device: th.device | str = "auto",
+        device: device | str = "auto",
         n_envs: int = 1,
         optimize_memory_usage: bool = False,
     ):
@@ -147,10 +147,10 @@ class ReplayBuffer:
                 ]
             ),
             next_obs,
-            th.as_tensor(self.actions[batch_inds, env_indices, :]),
+            as_tensor(self.actions[batch_inds, env_indices, :]),
             # Only use dones that are not due to timeouts
             # deactivated by default (timeouts is initialized as an array of False)
-            th.as_tensor(self.dones[batch_inds, env_indices].reshape(-1, 1)),
-            th.as_tensor(self.rewards[batch_inds, env_indices].reshape(-1, 1)),
+            as_tensor(self.dones[batch_inds, env_indices].reshape(-1, 1)),
+            as_tensor(self.rewards[batch_inds, env_indices].reshape(-1, 1)),
         )
         return data

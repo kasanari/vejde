@@ -339,7 +339,7 @@ def gae(
 class Args:
     env_id: str
     domain: str
-    instance: str | int
+    instance: str | int | list[int]
     agent_config: GNNParams
     remove_false: bool = False
     debug: bool = False
@@ -766,7 +766,8 @@ def setup(args: Args | None = None):
 
     print("Attempting to connect to mlflow...")
     tracking_uri = "http://127.0.0.1:5000" if not args.debug else ""
-    mlflow.set_tracking_uri(uri=tracking_uri)
+    if args.track:
+        mlflow.set_tracking_uri(uri=tracking_uri)
     print(f"Connected to mlflow at {tracking_uri}")
 
     run_name = (

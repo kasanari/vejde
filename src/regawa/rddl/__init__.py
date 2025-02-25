@@ -10,10 +10,9 @@ from pyRDDLGym.core.parser.reader import RDDLReader
 from rddlrepository import RDDLRepoManager
 
 from regawa import GroundedGraphWrapper, StackingGroundedGraphWrapper
-from regawa.rddl.rddl_default_invalid_action_wrapper import \
-    RDDLDefaultInvalidActions
-from regawa.wrappers import (AddConstantsWrapper, IndexActionWrapper,
-                             StackingWrapper)
+from regawa.model.base_model import BaseModel
+from regawa.rddl.rddl_default_invalid_action_wrapper import RDDLDefaultInvalidActions
+from regawa.wrappers import AddConstantsWrapper, IndexActionWrapper, StackingWrapper
 from regawa.wrappers.remove_false_wrapper import RemoveFalseWrapper
 
 from .rddl_convert_enums_wrapper import RDDLConvertEnums
@@ -24,18 +23,25 @@ from .rddl_to_tuple_wrapper import RDDLToTuple
 
 
 def make_env(
-    domain, instance, model, enforce_action_constraints=False, has_enums=False
+    domain: str,
+    instance: str,
+    model: BaseModel,
+    has_enums: bool = False,
+    remove_false: bool = False,
 ):
-    env = pyRDDLGym.make(
-        domain,
-        instance,
-        enforce_action_constraints=enforce_action_constraints,
-    )  # type: ignore
-    env = AddConstantsWrapper(env)
+    env = pyRDDLGym.make(domain, str(instance), enforce_action_constraints=True)  # type: ignore
+    rddl_model = env.model
+    model = RDDLModel(rddl_model)
+    grounded_rddl_model = RDDLGroundedModel(rddl_model)
+    env = RDDLDefaultInvalidActions(env)
     env = RDDLToTuple(env)
+    if remove_false:
+        env = RemoveFalseWrapper(env)
+    env = AddConstantsWrapper(env, grounded_rddl_model)
     if has_enums:
         env = RDDLConvertEnums(env)
     env: gymnasium.Env[Dict, MultiDiscrete] = GroundedGraphWrapper(env, model=model)
+    env = IndexActionWrapper(env, model)
     return env
 
 
@@ -43,16 +49,16 @@ class RDDLShuffleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
     def __init__(
         self,
         domain: str,
-        instances: list[str],
-        seed: int,
-        enforce_action_constraints: bool = False,
+        instance: list[str],
+        seed: int = 0,
+        remove_false: bool = False,
     ) -> None:
         super().__init__()
 
         manager = RDDLRepoManager()
         problem = manager.get_problem(domain)
 
-        reader = RDDLReader(problem.get_domain(), problem.get_instance(instances[0]))
+        reader = RDDLReader(problem.get_domain(), problem.get_instance(instance[0]))
         parser = RDDLParser(lexer=None, verbose=False)
         parser.build()
         rddl = parser.parse(reader.rddltxt)
@@ -60,16 +66,18 @@ class RDDLShuffleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
 
         # define the RDDL model
 
+        has_enums = len(model.model.enum_types) > 0
+
         self.model = model
         self.domain = domain
         self.rng = np.random.default_rng(seed)
-        self.instances = instances
-        self.enforce_action_constraints = enforce_action_constraints
-        self.has_enums = len(self.model.model.enum_types) > 0
+        self.instances = instance
+        self.remove_false = remove_false
+        self.has_enums = has_enums
 
         # just to get the action and observation spaces
         self.env = make_env(
-            domain, instances[0], model, enforce_action_constraints, self.has_enums
+            domain, instance[0], model, has_enums, remove_false=remove_false
         )
 
     @property
@@ -96,8 +104,8 @@ class RDDLShuffleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
             self.domain,
             instance,
             self.model,
-            self.enforce_action_constraints,
             self.has_enums,
+            self.remove_false,
         )
 
         return self.env.reset(seed=seed, options=options)

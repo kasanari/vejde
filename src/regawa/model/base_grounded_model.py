@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from functools import cache, cached_property
 from typing import Any
 
-from regawa.model import GroundValue
+GroundValue = tuple[str, ...]
 
 
 class BaseGroundedModel(ABC):

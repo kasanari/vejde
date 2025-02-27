@@ -10,7 +10,12 @@ from regawa.gnn.agent_utils import ActionMode, AgentConfig, GNNParams
 from regawa.gnn.node_then_action import NodeThenActionPolicy
 
 from .action_then_node import ActionThenNodePolicy
-from .data import HeteroStateData, StateData
+from .data import (
+    HeteroStateData,
+    ObsData,
+    StateData,
+    single_obs_to_heterostatedata,
+)
 from .factorgraph_gnn import BipartiteGNN, FactorGraph
 from .gnn_classes import EmbeddingLayer, SparseArray, SparseTensor, sparsify
 from .gnn_embedder import BooleanEmbedder, NumericEmbedder, RecurrentEmbedder
@@ -136,6 +141,7 @@ class GraphAgent(nn.Module):
         self,
         config: AgentConfig,
         rngs: Rngs,
+        device: str = "cpu",
     ):
         super().__init__()  # type: ignore
 
@@ -180,6 +186,7 @@ class GraphAgent(nn.Module):
             if gnn_params.action_mode == ActionMode.ACTION_THEN_NODE
             else NodeThenActionPolicy(*policy_args)
         )
+        self.device = device
 
     def embed(self, data: HeteroStateData) -> FactorGraph:
         return self.p_gnn(
@@ -205,6 +212,11 @@ class GraphAgent(nn.Module):
         fg = self.embed(data)
         return self.policy(actions, fg.factors, fg.action_mask, fg.n_factor)
 
+    def sample_from_obs(self, obs: dict[str, list[ObsData] | tuple[ObsData, ...]]):
+        s = single_obs_to_heterostatedata(obs)
+        s = heterostatedata_to_tensors(s, device=self.device)
+        return self.sample(s)
+
     def sample(self, data: HeteroStateData, deterministic: bool = False):
         fg = self.embed(data)
         return self.policy.sample(
@@ -222,8 +234,10 @@ class GraphAgent(nn.Module):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
     @classmethod
-    def load_agent(cls, path: str) -> tuple["GraphAgent", AgentConfig]:
-        return load_agent(cls, path)  # type: ignore
+    def load_agent(
+        cls, path: str, device: str = "cpu"
+    ) -> tuple["GraphAgent", AgentConfig]:
+        return load_agent(cls, path, device)  # type: ignore
 
 
 class RecurrentGraphAgent(nn.Module):
@@ -344,13 +358,13 @@ def save_agent(agent: GraphAgent | RecurrentGraphAgent, config: AgentConfig, pat
 T = TypeVar("T", bound=GraphAgent | RecurrentGraphAgent)
 
 
-def load_agent(cls: T, path: str) -> tuple[T, AgentConfig]:
-    data = torch.load(path, weights_only=False)  # type: ignore
+def load_agent(cls: T, path: str, device: str = "cpu") -> tuple[T, AgentConfig]:
+    data = torch.load(path, weights_only=False, map_location=device)  # type: ignore
 
     data["config"]["hyper_params"] = GNNParams(**data["config"]["hyper_params"])
 
     config = AgentConfig(**data["config"])
-    agent = cls(config)
+    agent = cls(config, None)
     agent.load_state_dict(data["state_dict"])
 
     return agent, config

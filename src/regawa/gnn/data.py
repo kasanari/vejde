@@ -6,6 +6,7 @@ from typing import Generic, NamedTuple, TypeVar
 
 # import torch
 import numpy as np
+
 # import torch as th
 # from torch import NDArray
 from numpy import asarray, concatenate, cumsum, ones_like
@@ -316,5 +317,5 @@ def heterostatedata_from_obslist_alt(obs: list[dict[str, ObsData]]) -> HeteroSta
     )
 
 
-def heterodict_to_obsdata(obs: HeteroObsDict):
+def heterodict_to_obsdata(obs: HeteroObsDict) -> dict[str, tuple[ObsData, ...]]:
     return {k: (dict_to_obsdata(obs[k]),) for k in obs}

@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from typing import Any, NamedTuple, TypeVar
+from typing import Any, Mapping, NamedTuple, TypeVar
 
 import torch
 import torch.nn as nn
@@ -212,10 +212,14 @@ class GraphAgent(nn.Module):
         fg = self.embed(data)
         return self.policy(actions, fg.factors, fg.action_mask, fg.n_factor)
 
-    def sample_from_obs(self, obs: dict[str, list[ObsData] | tuple[ObsData, ...]]):
+    def sample_from_obs(
+        self,
+        obs: Mapping[str, (list[ObsData] | tuple[ObsData, ...])],
+        deterministic: bool = False,
+    ):
         s = single_obs_to_heterostatedata(obs)
         s = heterostatedata_to_tensors(s, device=self.device)
-        return self.sample(s)
+        return self.sample(s, deterministic=deterministic)
 
     def sample(self, data: HeteroStateData, deterministic: bool = False):
         fg = self.embed(data)

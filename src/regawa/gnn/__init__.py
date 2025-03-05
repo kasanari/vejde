@@ -6,17 +6,19 @@ from .data import (
 )
 from .gnn_agent import (
     ActionMode,
-    AgentConfig,
     GraphAgent,
     RecurrentGraphAgent,
     heterostatedata_to_tensors,
 )
+
+from .agent_utils import GNNParams, AgentConfig
 
 __all__ = [
     'AgentConfig',
     'RecurrentGraphAgent',
     'ActionMode',
     'GraphAgent',
+    'GNNParams',
     'StateData',
     'HeteroStateData',
     'heterostatedata_to_tensors',

@@ -6,7 +6,11 @@ import numpy as np
 from regawa.model import GroundValue
 from regawa.model.base_model import BaseModel
 from regawa.wrappers.grounding_utils import create_edges, objects
-from regawa.wrappers.util_types import FactorGraph, RenderGraph
+from regawa.wrappers.util_types import (
+    FactorGraph,
+    RenderGraph,
+    StackedFactorGraph,
+)
 from regawa.wrappers.utils import translate_edges
 
 
@@ -72,7 +76,8 @@ def to_graphviz(
 
 
 def create_render_graph(
-    bool_g: FactorGraph[bool], numeric_g: FactorGraph[float]
+    bool_g: FactorGraph[bool] | StackedFactorGraph[bool],
+    numeric_g: FactorGraph[float] | StackedFactorGraph[float],
 ) -> RenderGraph:
     def format_label(key: GroundValue) -> str:
         fluent, *args = key

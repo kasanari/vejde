@@ -11,7 +11,7 @@ WrapperObsType = dict[GroundValue, Any]
 WrapperActType = dict[GroundValue, Any]
 
 
-def add_constants(ground_model: BaseGroundedModel):
+def add_constants_fn(ground_model: BaseGroundedModel):
     constant_vals = {
         g: ground_model.constant_value(g)
         for g in ground_model.constant_groundings
@@ -34,7 +34,7 @@ class AddConstantsWrapper(
     ) -> None:
         super().__init__(env)
         self.only_add_on_reset = only_add_on_reset
-        self.transform = add_constants(ground_model)
+        self.transform = add_constants_fn(ground_model)
 
     def step(
         self,

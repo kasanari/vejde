@@ -102,11 +102,12 @@ class BipartiteGNNConvVariableToFactor(nn.Module):
         receivers = fg.receivers
         variables = fg.variables.values
         factors = fg.factors.values
+        edge_attr = fg.edge_attr
 
         x_i = factors[receivers]
         x_j = variables[senders]
 
-        aggr_m, m = self.mp(x_i, x_j, receivers)
+        aggr_m, m = self.mp(x_i, x_j, receivers, edge_attr)
 
         x = (factors, aggr_m) if aggr_m.shape[0] > 0 else (factors, zeros_like(factors))
         x = concatenate(x, axis=-1)
@@ -149,11 +150,12 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
         receivers = fg.receivers
         variables = fg.variables.values
         factors = fg.factors.values
+        edge_attr = fg.edge_attr
 
         x_i = variables[senders]
         x_j = factors[receivers]
 
-        aggr_m, m = self.mp(x_i, x_j, senders)
+        aggr_m, m = self.mp(x_i, x_j, senders, zeros_like(edge_attr))
         x = (variables, aggr_m)
         x = concatenate(x, axis=-1)
         x = self.combine(x)

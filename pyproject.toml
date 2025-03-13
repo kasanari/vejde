@@ -3,3 +3,55 @@
 name = "regawa"
 version = "0.1.0"
 requires-python = ">=3.11" 
+dependencies = [
+    "gnn-policy",
+    "gymnasium>=1.1.1",
+    "matplotlib>=3.10.1",
+    "pyrddlgym>=2.2",
+    "rddlrepository>=2.0",
+    "tqdm>=4.67.1",
+]
+
+[project.optional-dependencies]
+cpu = [
+  "torch==2.5.0",
+  "torch_scatter==2.1.2+pt25cpu"
+]
+cu118 = [
+  "torch==2.5.0",
+  "torch_scatter==2.1.2+pt25cu118"
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu118"
+url = "https://download.pytorch.org/whl/cu118"
+explicit = true
+
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu118", extra = "cu118" },
+]
+regawa = { workspace = true }
+gnn-policy = { git = "https://gitr.sys.kth.se/jaknyb/gnn_policy" }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "regawa",
+]
+
+[tool.uv]
+find-links = ["https://data.pyg.org/whl/torch-2.5.0+cu118.html", "https://data.pyg.org/whl/torch-2.5.0+cpu.html"]
+conflicts = [
+  [
+    { extra = "cpu" },
+    { extra = "cu118" },
+  ],
+]

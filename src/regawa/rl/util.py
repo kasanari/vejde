@@ -9,9 +9,13 @@ import torch as th
 from torch import Tensor
 from torch.utils._foreach_utils import _group_tensors_by_device_and_dtype
 
-from regawa.gnn.data import (HeteroStateData, Rollout, RolloutCollector,
-                             single_obs_to_heterostatedata)
-from regawa.gnn.gnn_agent import (GraphAgent, heterostatedata_to_tensors)
+from regawa.gnn.data import (
+    HeteroStateData,
+    Rollout,
+    RolloutCollector,
+    single_obs_to_heterostatedata,
+)
+from regawa.gnn.gnn_agent import GraphAgent, heterostatedata_to_tensors
 
 
 @th.no_grad()
@@ -252,9 +256,9 @@ class Serializer(json.JSONEncoder):
         return super().default(o)
 
 
-def save_eval_data(data, path: str = "evaluation.json"):
-    to_write = {
-        f"ep_{i}": [
+def writable_eval_data(data):
+    def from_episode(episode):
+        return [
             {
                 "reward": r,
                 "obs": {"_".join(k): v for k, v in s.items()},
@@ -264,10 +268,16 @@ def save_eval_data(data, path: str = "evaluation.json"):
             }
             for r, s, a, a_weight, o_weight in zip(*episode)
         ]
-        for i, episode in enumerate(data)
-    }
+
+    return json.dumps(
+        {f"ep_{i}": from_episode(episode) for i, episode in enumerate(data)},
+        cls=Serializer,
+        indent=2,
+    )
+
+
+def save_eval_data(data, path: str = "evaluation.json"):
+    to_write = writable_eval_data(data)
 
     with open(path, "w") as f:
-        import json
-
-        json.dump(to_write, f, cls=Serializer, indent=2)
+        f.write(to_write)

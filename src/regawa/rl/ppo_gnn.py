@@ -817,6 +817,8 @@ def setup(args: Args | None = None):
 
     mlflow.set_experiment(run_name)
 
+
+
     runs_folder = Path("runs")
     runs_folder.mkdir(exist_ok=True)
     run_folder = runs_folder / run_name
@@ -825,6 +827,7 @@ def setup(args: Args | None = None):
     logger.addHandler(logging.FileHandler(run_folder / f"{run_name}.log"))
 
     with mlflow.start_run():
+        mlflow.log_param("using_edge_attr", True)
         mlflow.log_params(logged_config)
         mlflow.log_artifact(__file__)
         agent = main(envs, run_name, args, agent_config)

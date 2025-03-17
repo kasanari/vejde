@@ -21,6 +21,11 @@ cu118 = [
   "torch==2.5.0",
   "torch_scatter==2.1.2+pt25cu118"
 ]
+jax = [
+  "jax",
+  "optax",
+  "flax",
+]
 
 [[tool.uv.index]]
 name = "pytorch-cpu"

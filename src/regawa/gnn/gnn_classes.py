@@ -66,7 +66,9 @@ class EmbeddingLayer(Module):
             else Embedding(num_embeddings, embedding_dim)
         )
         init.orthogonal_(embedding.weight)  # type: ignore
-        embedding._fill_padding_idx_with_zero()
+
+        if use_padding:
+            embedding._fill_padding_idx_with_zero()
         layer_norm = LayerNorm(embedding_dim, elementwise_affine=True)
         # init.ones_(self.embedding.weight)
 

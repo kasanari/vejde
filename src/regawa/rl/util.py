@@ -165,12 +165,12 @@ def update_vf_agent(
 def update(
     agent: GraphAgent,
     optimizer: th.optim.Optimizer,
-    actions: list[tuple[int, int]],
+    actions: Tensor,
     s: HeteroStateData,
     max_grad_norm: float = 100.0,
 ):
     # b = th.stack([d.var_value for d in obs])
-    actions = th.atleast_2d(th.as_tensor(actions, dtype=th.int64))
+
 
     logprob, *_ = agent.forward(
         actions,

@@ -1,5 +1,6 @@
 import json
 import pathlib
+from pathlib import Path
 import random
 from collections import deque
 from collections.abc import Callable
@@ -49,12 +50,13 @@ def save_sorted_losses(
     expert_actions: list[GroundAction],
     indexed_expert_obs: list[GroundObs],
     expert_obs: list[GroundObs],
+    device: str = "cpu",
 ):
     loss_per_obs = []
     for i, (expert_a, d, o) in enumerate(
         zip(expert_actions, indexed_expert_obs, expert_obs)
     ):
-        s = heterostatedata_to_tensors(heterostatedata_from_obslist([d]))
+        s = heterostatedata_to_tensors(heterostatedata_from_obslist([d]), device=device)
         g = to_graph(o, model)
         actions, logprob, _, _, p_a, p_n__a = agent.sample(s, deterministic=True)
         l2_norms = [th.sum(th.square(w)) for w in agent.parameters()]
@@ -65,7 +67,7 @@ def save_sorted_losses(
 
         model_a = from_index_action(actions[0], lambda x: objs[x], model)
 
-        factor_weights = p_n__a.T[actions[:, 0]].detach().squeeze().numpy()
+        factor_weights = p_n__a.T[actions[:, 0]].detach().squeeze().cpu().numpy()
 
         weight_by_factor = {
             k: f"{float(v):0.3f}"
@@ -77,7 +79,7 @@ def save_sorted_losses(
             k: f"{float(v):0.3f}"
             for k, v in zip(
                 model.action_fluents,
-                p_a.detach().squeeze().numpy(),
+                p_a.detach().squeeze().cpu().numpy(),
             )
             if v > 0.001
         }
@@ -200,7 +202,7 @@ def get_rnn_agent(model: BaseModel):
     return agent
 
 
-def get_agent(model: BaseModel):
+def get_agent(model: BaseModel, device: str = "cpu"):
     n_types = model.num_types
     n_relations = model.num_fluents
     n_actions = model.num_actions
@@ -209,7 +211,7 @@ def get_agent(model: BaseModel):
     params = GNNParams(
         layers=4,
         embedding_dim=32,
-        activation=th.nn.LeakyReLU(),
+        activation=th.nn.Mish(),
         aggregation="max",
         action_mode=ActionMode.ACTION_THEN_NODE,
     )
@@ -219,6 +221,7 @@ def get_agent(model: BaseModel):
     agent = GraphAgent(
         config,
         None,
+        device=device
     )
 
     return agent
@@ -283,11 +286,12 @@ def test_expert(
 
 
 def test_saved_data(domain: str):
-    datafile = f"/storage/GitHub/pyRDDLGym-rl/prost/{domain}/combined_data.json"
+    datafile = Path(f"~/pyRDDLGym-prost/output/{domain}/combined_data.json").expanduser()
     instance = 1
     use_rnn = False
     seed = 1
-    num_gradient_steps = 1
+    num_gradient_steps = 1000
+    device="cuda:0"
     env_id = register_pomdp_env() if use_rnn else register_env()
 
     output_dir = pathlib.Path("imitation_output")
@@ -302,15 +306,17 @@ def test_saved_data(domain: str):
     th.manual_seed(seed)
     random.seed(seed)
 
-    agent = get_rnn_agent(model) if use_rnn else get_agent(model)
+    #agent = get_rnn_agent(model) if use_rnn else get_agent(model, device)
+    agent, _ = GraphAgent.load_agent(str(domain_dir / "model.pth"))
+    agent = agent.to(device)
     optimizer = th.optim.AdamW(
-        agent.parameters(), lr=0.001, amsgrad=True, weight_decay=0.01
+        agent.parameters(), lr=0.0001, amsgrad=True, weight_decay=0.01
     )
 
     with open(datafile, "r") as f:
         expert_data = json.load(f)
 
-    data = [evaluate(env, agent, i, deterministic=True) for i in range(10)]
+    data = [evaluate(env, agent, i, deterministic=True, device=device) for i in range(10)]
     rewards, *_ = zip(*data)
 
     print(f"Learner average return: {np.mean([sum(r) for r in rewards])}")
@@ -335,7 +341,8 @@ def test_saved_data(domain: str):
         *[to_obsdata(o, a, model) for o, a in zip(expert_obs, expert_actions)]
     )
 
-    d = heterostatedata_to_tensors(heterostatedata_from_obslist(indexed_expert_obs))
+    d = heterostatedata_to_tensors(heterostatedata_from_obslist(indexed_expert_obs), device=device)
+    indexed_expert_action = th.as_tensor(indexed_expert_action, dtype=th.int64, device=device)
     avg_loss = 0.0
     avg_grad_norm = 0.0
     pbar = tqdm()
@@ -354,7 +361,7 @@ def test_saved_data(domain: str):
 
     pbar.close()
 
-    data = [evaluate(env, agent, i, deterministic=False) for i in range(10)]
+    data = [evaluate(env, agent, i, deterministic=False, device=device) for i in range(10)]
     rewards, *_ = zip(*data)
     save_eval_data(data, domain_dir / "eval_data.json")
 
@@ -370,7 +377,7 @@ def test_saved_data(domain: str):
     agent.save_agent(str(domain_dir / "model.pth"))
 
     sorted_losses = save_sorted_losses(
-        model, agent, expert_actions, indexed_expert_obs, expert_obs
+        model, agent, expert_actions, indexed_expert_obs, expert_obs, device=device
     )
     with open(domain_dir / "sorted_loss.json", "w") as f:
         json.dump(sorted_losses, f, indent=2)

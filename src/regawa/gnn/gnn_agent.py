@@ -121,9 +121,9 @@ def merge_graphs(
         # same factors for both boolean and numeric data, so we can use either
         boolean.factors,
         concat_sparse(boolean.globals, numeric.globals),
-        cat(boolean.senders, numeric.senders + sum(boolean.n_variable)),
+        cat(boolean.v_to_f, numeric.v_to_f + sum(boolean.n_variable)),
         # since factors are the same, we do not need to offset the receiver indices
-        cat(boolean.receivers, numeric.receivers),
+        cat(boolean.f_to_v, numeric.f_to_v),
         cat(boolean.edge_attr, numeric.edge_attr),
         boolean.n_variable + numeric.n_variable,
         boolean.n_factor,

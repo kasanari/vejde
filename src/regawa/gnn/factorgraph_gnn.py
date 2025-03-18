@@ -87,8 +87,8 @@ class BipartiteGNNConvVariableToFactor(nn.Module):
         edge_attr: Tensor of shape (num_edges,)
         """
 
-        senders = fg.senders
-        receivers = fg.receivers
+        senders = fg.v_to_f
+        receivers = fg.f_to_v
         variables = fg.variables.values
         factors = fg.factors.values
         edge_attr = fg.edge_attr
@@ -135,8 +135,8 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
         edge_attr: Tensor of shape (num_edges,)
         """
 
-        senders = fg.senders
-        receivers = fg.receivers
+        senders = fg.v_to_f
+        receivers = fg.f_to_v
         variables = fg.variables.values
         factors = fg.factors.values
         edge_attr = fg.edge_attr
@@ -187,8 +187,8 @@ class FactorGraphLayer(nn.Module):
             fg.variables,
             SparseTensor(n_h_f, fg.factors.indices),
             fg.globals,
-            fg.senders,
-            fg.receivers,
+            fg.v_to_f,
+            fg.f_to_v,
             fg.edge_attr,
             fg.n_variable,
             fg.n_factor,
@@ -238,8 +238,8 @@ class BipartiteGNN(nn.Module):
             fg.variables,
             factors,
             fg.globals,
-            fg.senders,
-            fg.receivers,
+            fg.v_to_f,
+            fg.f_to_v,
             fg.edge_attr,
             fg.n_variable,
             fg.n_factor,
@@ -250,7 +250,7 @@ class BipartiteGNN(nn.Module):
         logger.debug("Factor Graph")
         logger.debug("Factors:\n%s", fg.factors)
         # logger.debug("Variables:\n%s", variables)
-        logger.debug("Edge Index:\n%s", (fg.senders, fg.receivers))
+        logger.debug("Edge Index:\n%s", (fg.v_to_f, fg.f_to_v))
         logger.debug("----\n")
 
         for conv in self.convs:
@@ -260,8 +260,8 @@ class BipartiteGNN(nn.Module):
                 SparseTensor(variables, fg.variables.indices),
                 SparseTensor(factors, fg.factors.indices),
                 fg.globals,
-                fg.senders,
-                fg.receivers,
+                fg.v_to_f,
+                fg.f_to_v,
                 fg.edge_attr,
                 fg.n_variable,
                 fg.n_factor,

@@ -326,8 +326,8 @@ class FactorGraph(NamedTuple):
     variables: SparseTensor
     factors: SparseTensor
     globals: SparseTensor
-    senders: Tensor
-    receivers: Tensor
+    v_to_f: Tensor
+    f_to_v: Tensor
     edge_attr: Tensor
     n_variable: Tensor
     n_factor: Tensor

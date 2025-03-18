@@ -11,6 +11,26 @@ from torch.nn import Embedding, LayerNorm, Linear, Module, Sequential
 V = TypeVar("V")
 
 
+def plot_embeddings(num_embeddings: int, embedding: Embedding):
+    import matplotlib.pyplot as plt
+
+    for i in range(num_embeddings):
+        plt.scatter(embedding.weight[i][0].item(), embedding.weight[i][1].item())
+        # draw arrow from origin to point (x,y)
+        plt.arrow(
+            0,
+            0,
+            embedding.weight[i][0].item(),
+            embedding.weight[i][1].item(),
+            head_width=0.01,
+            head_length=0.01,
+            fc="r",
+            ec="r",
+        )
+    plt.savefig("embedding.png")
+    plt.close()
+
+
 class SparseArray(NamedTuple, Generic[V]):
     values: NDArray[V]
     indices: NDArray[np.int64]

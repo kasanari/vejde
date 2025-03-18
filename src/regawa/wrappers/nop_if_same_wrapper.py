@@ -3,7 +3,6 @@ from typing import Any, TypeVar
 import gymnasium as gym
 
 from regawa.model import GroundValue
-from regawa.model.base_grounded_model import BaseGroundedModel
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")

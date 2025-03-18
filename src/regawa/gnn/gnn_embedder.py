@@ -68,6 +68,7 @@ class NegativeBiasBooleanEmbedder(nn.Module):
         self,
         embedding_dim: int,
         predicate_embedding: EmbeddingLayer,
+        rngs: Rngs,
     ):
         super().__init__()  # type: ignore
 

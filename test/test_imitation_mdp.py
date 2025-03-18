@@ -14,15 +14,14 @@ from regawa.gnn import ActionMode, AgentConfig, GraphAgent
 from regawa.gnn.agent_utils import GNNParams
 from regawa.gnn.gnn_agent import heterostatedata_to_tensors
 from regawa.rddl import register_env
-from regawa.rl.util import (evaluate, rollout, save_eval_data, update,
-                            update_vf_agent)
+from regawa.rl.util import evaluate, rollout, save_eval_data, update, update_vf_agent
 
 
 def policy(state: dict[str, bool]) -> tuple[int, int]:
-    if state[("light", "r_m")]:
+    if state.get(("light", "r_m"), False):
         return (1, 4)
 
-    if state[("light", "g_m")]:
+    if state.get(("light", "g_m"), False):
         return (1, 2)
 
     return (0, 0)
@@ -75,7 +74,7 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
     render_logger.addHandler(render_logfile)
 
     env_id = register_env()
-    env: gym.Env = gym.make(env_id, domain=domain, instance=instance)
+    env: gym.Env = gym.make(env_id, domain=domain, instance=instance, remove_false=True)
 
     # n_objects = env.observation_space.spaces["factor"].shape[0]
     # n_vars = env.observation_space["var_value"].shape[0]

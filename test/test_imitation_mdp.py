@@ -62,8 +62,8 @@ def test_imitation(
     embedding_dim: int,
     remove_false: bool = False,
 ):
-    domain = "rddl/conditional_bandit.rddl"
-    instance = "rddl/conditional_bandit_i0.rddl"
+    domain = "rddl/conditional_bandit/domain.rddl"
+    instance = "rddl/conditional_bandit/instance_1.rddl"
 
     th.manual_seed(0)
     np.random.seed(0)

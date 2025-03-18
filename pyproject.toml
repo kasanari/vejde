@@ -7,8 +7,6 @@ dependencies = [
   "gnn-policy",
   "gymnasium>=1.1.1",
   "matplotlib>=3.10.1",
-  "pyrddlgym>=2.2",
-  "rddlrepository>=2.0",
   "tqdm>=4.67.1",
 ]
 
@@ -16,6 +14,7 @@ dependencies = [
 cpu = ["torch==2.5.0", "torch_scatter==2.1.2+pt25cpu"]
 cu118 = ["torch==2.5.0", "torch_scatter==2.1.2+pt25cu118"]
 jax = ["jax", "optax", "flax"]
+rddl = ["pyrddlgym>=2.2", "rddlrepository>=2.0"]
 
 [[tool.uv.index]]
 name = "pytorch-cpu"

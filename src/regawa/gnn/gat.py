@@ -18,28 +18,40 @@ class GraphAttention(nn.Module):
         self.heads = heads
         self.out_channels = out_channels
 
-    def forward(
+    def alpha(
         self,
-        x_i: Tensor,
-        x_j: Tensor,
-        edge_attribute: Tensor,
-        senders: Tensor,
         receivers: Tensor,
-    ):
+        senders: Tensor,
+        sender_idx: Tensor,
+        edge_attribute: Tensor,
+    ) -> tuple[Tensor, Tensor, Tensor]:
         c = self.out_channels
         h = self.heads
-        t = self.target(x_j).view(-1, h, c)
-        s = self.source(x_i).view(-1, h, c)
+        t = self.target(receivers).view(-1, h, c)
+        s = self.source(senders).view(-1, h, c)
         e = self.edge(edge_attribute).view(-1, h, c)
-        z = ((leaky_relu(s + t + e)) * self.attn).sum(axis=-1)
-        a = segment_softmax(
-            z,
-            senders,
-            num_graphs(senders),
-            axis=0,
-        ).squeeze(0)
+        z = ((leaky_relu(s + t + e)) * self.attn).sum(dim=-1)
+        return (
+            segment_softmax(
+                z,
+                sender_idx,
+                num_graphs(sender_idx),
+                dim=0,
+            ).squeeze(0),
+            t,
+            s,
+        )
+
+    def forward(
+        self,
+        receivers: Tensor,
+        senders: Tensor,
+        sender_idx: Tensor,
+        edge_attribute: Tensor,
+    ):
+        a, t = self.alpha(receivers, senders, sender_idx, edge_attribute)
         m = t * a.unsqueeze(-1)
-        aggr_m = scatter(m, receivers, axis=0, reduce="sum")
-        aggr_m = aggr_m.mean(axis=1)
-        m = m.mean(axis=1)
+        aggr_m = scatter(m, receivers, dim=0, reduce="sum")
+        aggr_m = aggr_m.mean(dim=1)  # average over heads
+        m = m.mean(dim=1)  # average over heads
         return aggr_m, m

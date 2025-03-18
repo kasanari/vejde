@@ -8,6 +8,7 @@ from torch.linalg import norm
 
 from regawa.gnn.attentional_aggregation import AttentionalAggregation
 from regawa.gnn.data import FactorGraph
+from regawa.gnn.mp_rendering import Lazy, to_graphviz
 from regawa.gnn.simple_mp import MessagePass
 
 from .gnn_classes import MLPLayer, SparseTensor
@@ -15,48 +16,6 @@ from .gnn_classes import MLPLayer, SparseTensor
 logger = logging.getLogger(__name__)
 
 render_logger = logging.getLogger("message_pass_render")
-
-
-class Lazy:
-    def __init__(self, func: Callable[[], str]):
-        self.func = func
-
-    def __str__(self) -> str:
-        return self.func()
-
-
-def to_graphviz(
-    messages: Tensor,
-    senders: Tensor,
-    receivers: Tensor,
-    variables: Tensor,
-    factors: Tensor,
-    reverse: bool = False,
-):
-    output = "digraph G {"
-
-    vnorm = lambda x: norm(x, ord=2, axis=-1)
-    ro = lambda x: round(x, decimals=2)
-
-    v_norm = vnorm(variables)
-    f_norm = vnorm(factors)
-    m_norm = vnorm(messages)
-
-    edge_string = (
-        lambda v, f: f'"{v}_v" -> "{f}_f"' if not reverse else f'"{f}_f" -> "{v}_v"'
-    )
-
-    for i, v in enumerate(v_norm):
-        output += f'"{i}_v" [label="{v:0.2f}", shape=ellipse, color=blue];'
-
-    for i, f in enumerate(f_norm):
-        output += f'"{i}_f" [label="{f:0.2f}", shape=rectangle, color=red];'
-
-    for s, r, m in zip(senders, receivers, m_norm):
-        output += f'{edge_string(s, r)} [label="{m:0.2f}"];'
-
-    output += "}"
-    return output
 
 
 class BipartiteGNNConvVariableToFactor(nn.Module):

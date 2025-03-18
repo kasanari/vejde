@@ -11,8 +11,9 @@ import numpy as np
 # from torch import NDArray
 from numpy import asarray, concatenate, cumsum, ones_like
 from numpy.typing import NDArray
+from torch import Tensor
 
-from regawa.gnn.gnn_classes import SparseArray
+from regawa.gnn.gnn_classes import SparseArray, SparseTensor
 
 ObsDict = dict[str, NDArray]
 BatchedObsDict = dict[str, tuple[NDArray]]
@@ -319,3 +320,15 @@ def heterostatedata_from_obslist_alt(obs: list[dict[str, ObsData]]) -> HeteroSta
 
 def heterodict_to_obsdata(obs: HeteroObsDict) -> dict[str, tuple[ObsData, ...]]:
     return {k: (dict_to_obsdata(obs[k]),) for k in obs}
+
+
+class FactorGraph(NamedTuple):
+    variables: SparseTensor
+    factors: SparseTensor
+    globals: SparseTensor
+    senders: Tensor
+    receivers: Tensor
+    edge_attr: Tensor
+    n_variable: Tensor
+    n_factor: Tensor
+    action_mask: Tensor

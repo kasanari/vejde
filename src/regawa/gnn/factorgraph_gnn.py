@@ -1,6 +1,5 @@
 import logging
 from collections.abc import Callable
-from typing import NamedTuple
 
 import torch.nn as nn
 from torch import Generator as Rngs
@@ -8,6 +7,7 @@ from torch import Tensor, concatenate, zeros, zeros_like
 from torch.linalg import norm
 
 from regawa.gnn.attentional_aggregation import AttentionalAggregation
+from regawa.gnn.data import FactorGraph
 from regawa.gnn.simple_mp import MessagePass
 
 from .gnn_classes import MLPLayer, SparseTensor
@@ -15,17 +15,6 @@ from .gnn_classes import MLPLayer, SparseTensor
 logger = logging.getLogger(__name__)
 
 render_logger = logging.getLogger("message_pass_render")
-
-
-class FactorGraph(NamedTuple):
-    variables: SparseTensor
-    factors: SparseTensor
-    senders: Tensor
-    receivers: Tensor
-    edge_attr: Tensor
-    n_factor: Tensor
-    globals_: SparseTensor
-    action_mask: Tensor
 
 
 class Lazy:
@@ -197,11 +186,12 @@ class FactorGraphLayer(nn.Module):
         new_fg = FactorGraph(
             fg.variables,
             SparseTensor(n_h_f, fg.factors.indices),
+            fg.globals,
             fg.senders,
             fg.receivers,
             fg.edge_attr,
+            fg.n_variable,
             fg.n_factor,
-            fg.globals_,
             fg.action_mask,
         )
 
@@ -239,7 +229,7 @@ class BipartiteGNN(nn.Module):
     ) -> FactorGraph:
         n_g = fg.n_factor.shape[0]
         g = zeros(n_g, self.hidden_size, device=fg.factors.values.device)
-        g = self.pre_aggr(fg.globals_, n_g) if fg.globals_.values.shape[0] > 0 else g
+        g = self.pre_aggr(fg.globals, n_g) if fg.globals.values.shape[0] > 0 else g
 
         factors = SparseTensor(
             fg.factors.values + g[fg.factors.indices], fg.factors.indices
@@ -247,11 +237,12 @@ class BipartiteGNN(nn.Module):
         fg = FactorGraph(
             fg.variables,
             factors,
+            fg.globals,
             fg.senders,
             fg.receivers,
             fg.edge_attr,
+            fg.n_variable,
             fg.n_factor,
-            fg.globals_,
             fg.action_mask,
         )
 
@@ -268,11 +259,12 @@ class BipartiteGNN(nn.Module):
             fg = FactorGraph(
                 SparseTensor(variables, fg.variables.indices),
                 SparseTensor(factors, fg.factors.indices),
+                fg.globals,
                 fg.senders,
                 fg.receivers,
                 fg.edge_attr,
+                fg.n_variable,
                 fg.n_factor,
-                fg.globals_,
                 fg.action_mask,
             )
             i += 1

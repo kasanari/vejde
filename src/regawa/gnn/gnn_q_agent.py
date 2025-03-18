@@ -5,8 +5,8 @@ from regawa.gnn.gnn_agent import _embed, merge_graphs
 from regawa.gnn.q_action_then_node import QActionThenNode
 from regawa.gnn.q_node_then_action import QNodeThenAction
 
-from .data import HeteroStateData
-from .factorgraph_gnn import BipartiteGNN, FactorGraph
+from .data import FactorGraph, HeteroStateData
+from .factorgraph_gnn import BipartiteGNN
 from .gnn_classes import EmbeddingLayer
 from .gnn_embedder import NegativeBiasBooleanEmbedder, NumericEmbedder
 

@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from typing import Any, Mapping, NamedTuple, TypeVar
+from typing import Any, Mapping, TypeVar
 
 import torch
 import torch.nn as nn
@@ -11,12 +11,13 @@ from regawa.gnn.node_then_action import NodeThenActionPolicy
 
 from .action_then_node import ActionThenNodePolicy
 from .data import (
+    FactorGraph,
     HeteroStateData,
     ObsData,
     StateData,
     single_obs_to_heterostatedata,
 )
-from .factorgraph_gnn import BipartiteGNN, FactorGraph
+from .factorgraph_gnn import BipartiteGNN
 from .gnn_classes import EmbeddingLayer, SparseArray, SparseTensor, sparsify
 from .gnn_embedder import (
     BooleanEmbedder,
@@ -24,18 +25,6 @@ from .gnn_embedder import (
     NumericEmbedder,
     RecurrentEmbedder,
 )
-
-
-class EmbeddedTuple(NamedTuple):
-    variables: SparseTensor
-    factors: SparseTensor
-    globals: SparseTensor
-    senders: Tensor
-    receivers: Tensor
-    edge_attr: Tensor
-    n_variable: Tensor
-    n_factor: Tensor
-    action_mask: Tensor
 
 
 def heterostatedata_to_tensors(
@@ -69,7 +58,7 @@ def _embed(
     factor_embedding: nn.Module,
     global_var_embedder: nn.Module,
     edge_attr_emb: nn.Module,
-) -> EmbeddedTuple:
+) -> FactorGraph:
     factors = sparsify(factor_embedding)(data.factor)
     variables = SparseTensor(
         var_embedder(
@@ -95,7 +84,7 @@ def _embed(
 
     embedd_edge_attr = edge_attr_emb(data.edge_attr)
 
-    return EmbeddedTuple(
+    return FactorGraph(
         variables,
         factors,
         globals_,
@@ -122,8 +111,8 @@ def concat_sparse(a: SparseTensor, b: SparseTensor) -> SparseTensor:
 
 @torch.jit.script
 def merge_graphs(
-    boolean: EmbeddedTuple,
-    numeric: EmbeddedTuple,
+    boolean: FactorGraph,
+    numeric: FactorGraph,
 ) -> FactorGraph:
     # this only refers to the factors, so we can use either boolean or numeric data
 
@@ -131,12 +120,13 @@ def merge_graphs(
         concat_sparse(boolean.variables, numeric.variables),
         # same factors for both boolean and numeric data, so we can use either
         boolean.factors,
+        concat_sparse(boolean.globals, numeric.globals),
         cat(boolean.senders, numeric.senders + sum(boolean.n_variable)),
         # since factors are the same, we do not need to offset the receiver indices
         cat(boolean.receivers, numeric.receivers),
         cat(boolean.edge_attr, numeric.edge_attr),
+        boolean.n_variable + numeric.n_variable,
         boolean.n_factor,
-        concat_sparse(boolean.globals, numeric.globals),
         boolean.action_mask,
     )
 

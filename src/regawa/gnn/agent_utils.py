@@ -26,6 +26,7 @@ class AgentConfig:
     num_object_classes: int
     num_predicate_classes: int
     num_actions: int
+    remove_false_fluents: bool
 
     # GNN parameters
     hyper_params: GNNParams

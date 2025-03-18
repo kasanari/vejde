@@ -18,7 +18,12 @@ from .data import (
 )
 from .factorgraph_gnn import BipartiteGNN, FactorGraph
 from .gnn_classes import EmbeddingLayer, SparseArray, SparseTensor, sparsify
-from .gnn_embedder import BooleanEmbedder, NumericEmbedder, RecurrentEmbedder
+from .gnn_embedder import (
+    BooleanEmbedder,
+    NegativeBiasBooleanEmbedder,
+    NumericEmbedder,
+    RecurrentEmbedder,
+)
 
 
 class EmbeddedTuple(NamedTuple):
@@ -160,10 +165,18 @@ class GraphAgent(nn.Module):
             config.arity, gnn_params.embedding_dim, rngs, use_padding=False
         )
 
-        self.boolean_embedder = BooleanEmbedder(
-            gnn_params.embedding_dim,
-            self.predicate_embedding,
-            rngs,
+        self.boolean_embedder = (
+            NegativeBiasBooleanEmbedder(
+                gnn_params.embedding_dim,
+                self.predicate_embedding,
+                rngs,
+            )
+            if config.remove_false_fluents
+            else BooleanEmbedder(
+                gnn_params.embedding_dim,
+                self.predicate_embedding,
+                rngs,
+            )
         )
 
         self.numeric_embedder = NumericEmbedder(

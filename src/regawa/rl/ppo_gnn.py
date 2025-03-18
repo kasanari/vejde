@@ -796,6 +796,7 @@ def setup(args: Args | None = None):
         n_types,
         n_relations,
         n_actions,
+        args.remove_false,
         args.agent_config,
         model_utils.max_arity(envs.single_observation_space),  # type: ignore
     )

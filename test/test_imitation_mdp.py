@@ -56,7 +56,12 @@ def plot_loses_grads(losses, norms, action_mode):
         (ActionMode.ACTION_THEN_NODE, 13, 16),
     ],
 )
-def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int):
+def test_imitation(
+    action_mode: ActionMode,
+    iterations: int,
+    embedding_dim: int,
+    remove_false: bool = False,
+):
     domain = "rddl/conditional_bandit.rddl"
     instance = "rddl/conditional_bandit_i0.rddl"
 
@@ -74,7 +79,9 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
     render_logger.addHandler(render_logfile)
 
     env_id = register_env()
-    env: gym.Env = gym.make(env_id, domain=domain, instance=instance, remove_false=True)
+    env: gym.Env = gym.make(
+        env_id, domain=domain, instance=instance, remove_false=remove_false
+    )
 
     # n_objects = env.observation_space.spaces["factor"].shape[0]
     # n_vars = env.observation_space["var_value"].shape[0]
@@ -94,8 +101,9 @@ def test_imitation(action_mode: ActionMode, iterations: int, embedding_dim: int)
         n_types,
         n_relations,
         n_actions,
-        params,
+        remove_false_fluents=remove_false,
         arity=model_utils.max_arity(env.observation_space),
+        hyper_params=params,
     )
 
     rng = th.Generator()

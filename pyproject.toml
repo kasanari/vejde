@@ -3,12 +3,11 @@
 name = "regawa"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = [
-  "gnn-policy",
-  "gymnasium>=1.1.1",
-  "matplotlib>=3.10.1",
-  "tqdm>=4.67.1",
-]
+dependencies = ["gnn-policy", "gymnasium>=1.1.1", "tqdm>=4.67.1"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project.optional-dependencies]
 cpu = ["torch==2.5.0", "torch_scatter==2.1.2+pt25cpu"]
@@ -36,7 +35,7 @@ regawa = { workspace = true }
 gnn-policy = { git = "git+ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy" }
 
 [dependency-groups]
-dev = ["pytest>=8.3.5", "regawa"]
+dev = ["pytest>=8.3.5", "regawa", "matplotlib>=3.10.1"]
 
 [tool.uv]
 find-links = [

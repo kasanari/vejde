@@ -1049,11 +1049,10 @@ wheels = [
 [[package]]
 name = "regawa"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "gnn-policy" },
     { name = "gymnasium" },
-    { name = "matplotlib" },
     { name = "tqdm" },
 ]
 
@@ -1079,6 +1078,7 @@ rddl = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "matplotlib" },
     { name = "pytest" },
     { name = "regawa" },
 ]
@@ -1089,7 +1089,6 @@ requires-dist = [
     { name = "gnn-policy", git = "ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy" },
     { name = "gymnasium", specifier = ">=1.1.1" },
     { name = "jax", marker = "extra == 'jax'" },
-    { name = "matplotlib", specifier = ">=3.10.1" },
     { name = "optax", marker = "extra == 'jax'" },
     { name = "pyrddlgym", marker = "extra == 'rddl'", specifier = ">=2.2" },
     { name = "rddlrepository", marker = "extra == 'rddl'", specifier = ">=2.0" },
@@ -1103,8 +1102,9 @@ provides-extras = ["cpu", "cu118", "jax", "rddl"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "matplotlib", specifier = ">=3.10.1" },
     { name = "pytest", specifier = ">=8.3.5" },
-    { name = "regawa", virtual = "." },
+    { name = "regawa", editable = "." },
 ]
 
 [[package]]

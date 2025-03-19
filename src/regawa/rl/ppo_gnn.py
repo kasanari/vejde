@@ -785,8 +785,6 @@ def setup(args: Args | None = None):
 
     mlflow.set_experiment(run_name)
 
-
-
     runs_folder = Path("runs")
     runs_folder.mkdir(exist_ok=True)
     run_folder = runs_folder / run_name
@@ -812,7 +810,7 @@ def setup(args: Args | None = None):
         seeds = range(10)
         device = npl.device("cuda" if npl.cuda.is_available() and args.cuda else "cpu")
         data = [
-            evaluate(eval_env, agent.agent, seed, deterministic=False, device=device)
+            evaluate(eval_env, agent.agent, seed, deterministic=True, device=device)
             for seed in seeds
         ]
         rewards, *_ = zip(*data)
@@ -823,11 +821,11 @@ def setup(args: Args | None = None):
         mlflow.log_metric("eval/mean_reward", avg_mean_reward)
 
         stats = {
-            "mean": np.mean(returns),
-            "median": np.median(returns),
-            "min": np.min(returns),
-            "max": np.max(returns),
-            "std": np.std(returns),
+            "mean": np.mean(returns).item(),
+            "median": np.median(returns).item(),
+            "min": np.min(returns).item(),
+            "max": np.max(returns).item(),
+            "std": np.std(returns).item(),
         }
 
         for k, v in stats.items():

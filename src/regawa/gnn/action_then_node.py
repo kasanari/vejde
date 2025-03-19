@@ -35,6 +35,8 @@ class ActionThenNodePolicy(nn.Module):
             node_dim, num_actions * critic_heads, bias=False
         )  # Q(n|a)
         self.critic_heads = critic_heads
+        
+        nn.init.constant_(self.q_node__action.weight, 0.0)
 
     def f(
         self,

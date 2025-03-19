@@ -499,7 +499,7 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
 
         # Policy loss
         ratio = npl.exp(logprob_new - logprob_old)
-        pg_loss1 = npl.mul(advantages, ratio)
+        pg_loss1 = advantages * ratio
         pg_loss2 = advantages * npl.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
         pg_loss = -npl.min(pg_loss1, pg_loss2).mean()
         clipfrac = ((ratio - 1.0).abs() > clip_coef).float().mean().item()

@@ -138,12 +138,13 @@ class StackingGroundedGraphWrapper(
 
         combined_g = create_render_graph(g.boolean, g.numeric)
 
-        info["state"] = g
+        info["state"] = combined_g
         info["rddl_state"] = (
             self.env.unwrapped.state if hasattr(self.env.unwrapped, "state") else {}
         )  # type: ignore
         info["rddl_obs"] = rddl_obs
         info["idx_to_object"] = g.boolean.factors
+        info["action_fluents"] = self.model.action_fluents
 
         self._object_to_type = {
             k: v for k, v in zip(g.boolean.factors, g.boolean.factor_types)
@@ -174,20 +175,23 @@ class StackingGroundedGraphWrapper(
 
         obs, g = self._create_obs(rddl_obs)
 
-        info["state"] = g
+        combined_g = create_render_graph(g.boolean, g.numeric)
+
+        info["state"] = combined_g
         info["rddl_state"] = (
             self.env.unwrapped.state if hasattr(self.env.unwrapped, "state") else {}
         )  # type: ignore
         info["rddl_obs"] = rddl_obs
         info["rddl_action"] = rddl_action
         info["idx_to_object"] = g.boolean.factors
+        info["action_fluents"] = self.model.action_fluents
 
         self._object_to_type = {
             k: v for k, v in zip(g.boolean.factors, g.boolean.factor_types)
         }
 
         self.last_obs = obs
-        self.last_g = create_render_graph(g.boolean, g.numeric)
+        self.last_g = combined_g
         self.last_rddl_obs = rddl_obs
         self.last_action = action
 

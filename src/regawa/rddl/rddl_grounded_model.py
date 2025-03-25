@@ -11,8 +11,9 @@ from .rddl_utils import get_groundings, rddl_ground_to_tuple
 
 
 class RDDLGroundedModel(BaseGroundedModel):
-    def __init__(self, model: RDDLLiftedModel) -> None:
+    def __init__(self, model: RDDLLiftedModel, all_non_fluents: bool = True) -> None:
         self.model = model
+        self.all_non_fluents = all_non_fluents
 
     @cached_property
     def groundings(self) -> tuple[GroundValue, ...]:
@@ -36,19 +37,38 @@ class RDDLGroundedModel(BaseGroundedModel):
 
     @cached_property
     def constant_groundings(self) -> tuple[GroundValue, ...]:
-        return tuple(self._non_fluent_vals.keys())
+        return (
+            tuple(self._all_non_fluent_vals.keys())
+            if self.all_non_fluents
+            else tuple(self._non_fluent_vals.keys())
+        )
 
     @cache
     def constant_value(self, constant_grounding: GroundValue) -> Any:
-        return self._non_fluent_vals[constant_grounding]
+        return (
+            self._all_non_fluent_vals[constant_grounding]
+            if self.all_non_fluents
+            else self._non_fluent_vals[constant_grounding]
+        )
 
     @cached_property
     def _non_fluents(self) -> list[tuple[str, Any]]:
+        """Non-fluents that are "observed" in the instance file."""
         return (
             self.model.ast.non_fluents.init_non_fluent  # type: ignore
             if hasattr(self.model.ast.non_fluents, "init_non_fluent")  # type: ignore
             else []
         )
+
+    @cached_property
+    def _all_non_fluent_vals(self) -> dict[GroundValue, Any]:
+        """All non-fluents, including those that are not observed in the instance file."""
+        return {
+            rddl_ground_to_tuple(g): v
+            for g, v in self.model.ground_vars_with_values(
+                self.model.non_fluents
+            ).items()
+        }
 
     @cached_property
     def _non_fluent_vals(self) -> dict[GroundValue, Any]:

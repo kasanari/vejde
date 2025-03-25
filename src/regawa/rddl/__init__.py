@@ -137,9 +137,9 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         grounded_rddl_model = RDDLGroundedModel(rddl_model)
         env = RDDLDefaultInvalidActions(env)
         env = RDDLToTuple(env)
+        env = AddConstantsWrapper(env, grounded_rddl_model)
         if remove_false:
             env = RemoveFalseWrapper(env)
-        env = AddConstantsWrapper(env, grounded_rddl_model)
         if len(model.model.enum_types) > 0:
             env = RDDLConvertEnums(env)
         env: gymnasium.Env[Dict, MultiDiscrete] = GroundedGraphWrapper(env, model=model)
@@ -169,13 +169,14 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
 
 
 class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
-    def __init__(self, domain: str, instance: str) -> None:
+    def __init__(self, domain: str, instance: str, remove_false: bool) -> None:
         super().__init__()
         env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
         model = RDDLModel(env.model)
         grounded_model = RDDLPOMDPGroundedModel(env.model)
         env = RDDLToTuple(env)
         env = AddConstantsWrapper(env, grounded_model, only_add_on_reset=True)
+        env = RemoveFalseWrapper(env) if remove_false else env
         if len(model.model.enum_types) > 0:
             env = RDDLConvertEnums(env)
         env = StackingWrapper(env)

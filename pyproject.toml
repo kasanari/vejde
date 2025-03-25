@@ -38,7 +38,13 @@ regawa = { workspace = true }
 gnn-policy = { git = "git+ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy" }
 
 [dependency-groups]
-dev = ["pytest>=8.3.5", "regawa", "matplotlib>=3.10.1", "graphviz>=0.20.3"]
+dev = [
+    "pytest>=8.3.5",
+ "regawa",
+ "matplotlib>=3.10.1",
+ "graphviz>=0.20.3",
+ "torchviz>=0.0.3",
+]
 rl = [
     "mlflow>=2.21.0",
     "tyro>=0.9.17",

@@ -2,6 +2,8 @@ import logging
 from collections import deque
 from collections.abc import Callable
 
+import numpy as np
+
 from regawa.model import GroundValue
 from regawa.wrappers.util_types import Edge, Object
 
@@ -52,11 +54,11 @@ def to_dict_action(
     action: GroundValue,
     obj_to_type: Callable[[str], str],
     fluent_params: Callable[[str], tuple[str, ...]],
-) -> dict[GroundValue, int]:
+) -> dict[GroundValue, np.bool_]:
     action_fluent = predicate(action)
     action_arity = len(fluent_params(action_fluent))
     if action_arity == 0:
-        return {} if action_fluent == "None" else {(action_fluent,): True}
+        return {} if action_fluent == "None" else {(action_fluent,): np.bool_(True)}
 
     has_valid_param = has_valid_parameters(action, obj_to_type, fluent_params)
     action_fluent = "None" if not has_valid_param else action_fluent
@@ -68,7 +70,7 @@ def to_dict_action(
 
     a = (action_fluent, *objects(action)[:num_params])
 
-    action_dict = {} if action_fluent == "None" else {a: True}
+    action_dict = {} if action_fluent == "None" else {a: np.bool_(True)}
 
     return action_dict
 

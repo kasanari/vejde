@@ -11,6 +11,7 @@ args = Args(
     domain="rddl/conditional_bandit/domain.rddl",
     instance="rddl/conditional_bandit/instance_1.rddl",
     remove_false=True,
+    debug=True,
     agent_config=GNNParams(
         layers=4,
         embedding_dim=16,

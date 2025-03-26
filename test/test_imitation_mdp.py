@@ -150,7 +150,7 @@ def test_imitation(
 
     print(f"Trainable Parameters: {agent.num_trainable_params()}")
 
-    render_logger.setLevel(logging.DEBUG)
+    # render_logger.setLevel(logging.DEBUG)
     data = [evaluate(env, agent, 0) for i in range(3)]
     rewards, *_ = zip(*data)
     avg_reward = np.mean(np.sum(rewards, axis=1))
@@ -174,15 +174,16 @@ def iteration(i, env, agent, optimizer, vf_agent, vf_optimizer, seed: int):
     # compare_rollouts(r, saved_r)
 
     b = heterostatedata_to_tensors(r.obs.batch)
-    loss, grad_norm, per_param_grad = update(agent, optimizer, r.actions, b)
+    actions = th.atleast_2d(th.as_tensor(r.actions, dtype=th.int64))
+    loss, grad_norm, per_param_grad = update(agent, optimizer, actions, b)
     vf_loss, vf_grad_norm = update_vf_agent(vf_agent, vf_optimizer, b, r.rewards)
     print(
-        f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}, VF Loss: {vf_loss:.3f}, VF Grad Norm: {vf_grad_norm:.3f}"
+        f"{i} Loss: {loss:.6f}, Grad Norm: {grad_norm:.3f}, Length: {length}, VF Loss: {vf_loss:.3f}, VF Grad Norm: {vf_grad_norm:.3f}"
     )
     return loss, grad_norm, per_param_grad
 
 
 if __name__ == "__main__":
     t = time.time()
-    test_imitation(ActionMode.ACTION_THEN_NODE, 30, 16)
+    test_imitation(ActionMode.ACTION_THEN_NODE, 17, 16)
     print("Time: ", time.time() - t)

@@ -23,6 +23,7 @@ from numpy.typing import NDArray
 from torch import Tensor
 from tqdm import tqdm
 
+from regawa.rl import lambda_return
 from regawa.rl.gae import gae
 import regawa.wrappers.gym_utils as model_utils
 from regawa import GNNParams
@@ -40,6 +41,19 @@ logger = logging.getLogger(__name__)
 
 
 npl = torch
+
+
+def symlog(x: Tensor):
+    # return x
+    return torch.sign(x) * torch.log(1 + torch.abs(x))
+
+
+def symexp(x: Tensor):
+    # return x
+    x = torch.clip(
+        x, -20, 20
+    )  # Clipped to prevent extremely rare occurence where critic throws a huge value
+    return torch.sign(x) * (torch.exp(torch.abs(x)) - 1)
 
 
 class RolloutData(NamedTuple):
@@ -121,13 +135,13 @@ class Agent(nn.Module):
         s: HeteroStateData,
     ):
         value = self.agent.value(s)
-        return value
+        return symexp(value)
 
     def sample_action_and_value(self, s: HeteroStateData):
         action, logprob, entropy, value, *_ = self.agent.sample(
             s,
         )
-        return action, logprob, entropy, value
+        return action, logprob, entropy, symexp(value)
 
     def evaluate_action_and_value(
         self,
@@ -232,7 +246,8 @@ def iteration_step(
         [HeteroGraphBuffer, BatchData, NDArray[np.int32]],
         tuple[list[UpdateData], bool],
     ],
-    device: str,
+    lambda_returns: Callable[[Tensor, Tensor, Tensor], Tensor],
+    device: str | npl.device,
 ):
     def _iteration_step(
         iteration: int,
@@ -272,7 +287,26 @@ def iteration_step(
         b_returns = returns.reshape(-1)
         b_values = b.values.reshape(-1)
 
-        explained_var = explained_variance(b_values, b_returns)
+        decay = 0.99
+        lambda_r = lambda_returns(b.rewards, b.values, b.dones)
+        s, low_ema, high_ema = lambda_return.return_scale(
+            lambda_r, carry.low_ema, carry.high_ema, decay
+        )
+        b_advantages = b_advantages / max(1.0, s.item())
+
+        # plot histogram of returns
+        # import matplotlib.pyplot as plt
+
+        # plt.hist(b_returns.cpu().numpy(), bins=100)
+        # plt.savefig("returns.png")
+        # plt.close()
+
+        b_returns = symlog(b_returns)
+        b_values = symlog(b_values)
+
+        # plt.hist(b_returns.cpu().numpy(), bins=100)
+        # plt.savefig("returns_symlog.png")
+        # plt.close()
 
         flattened_b = BatchData(
             b_actions,
@@ -288,6 +322,7 @@ def iteration_step(
 
         b_inds = np.arange(batch_size)
         u_datas: list[UpdateData] = []
+
         for epoch in range(update_epochs):
             u_data, stop_training = update_func(r_data.obs, flattened_b, b_inds)
             u_datas.extend(u_data)
@@ -296,8 +331,10 @@ def iteration_step(
                     f"Early stopping at step {epoch} due to reaching max kl: {u_datas[-1].approx_kl:.2f}"
                 )
 
-        carry = IterationCarry(b, r_data.last_obs, r_data.last_done, r_data.global_step)
-        return r_data, u_datas, explained_var, carry
+        carry = IterationCarry(
+            b, r_data.last_obs, r_data.last_done, r_data.global_step, low_ema, high_ema
+        )
+        return r_data, u_datas, explained_variance(b_values, b_returns), s, carry
 
     return _iteration_step
 
@@ -562,6 +599,8 @@ class IterationCarry(NamedTuple):
     next_obs: dict[str, list[ObsData]]
     next_done: Tensor
     global_step: int
+    low_ema: Tensor | None = None
+    high_ema: Tensor | None = None
 
 
 def main(
@@ -636,6 +675,7 @@ def main(
     mb_func = minibatch_step(args.minibatch_size, update_func, device)
     update_step_func = update_step(args.batch_size, args.minibatch_size, mb_func)
     gae_func = gae(args.num_steps, args.gamma, args.gae_lambda, device)
+    lambda_returns_func = lambda_return.lambda_returns(args.gamma, args.gae_lambda)
 
     iter_step_func = iteration_step(
         args.anneal_lr,
@@ -649,6 +689,7 @@ def main(
         rollout(agent, envs, args.num_steps, args.num_envs, device),
         gae_func,
         update_step_func,
+        lambda_returns_func,
         device,
     )
 
@@ -663,6 +704,7 @@ def main(
             r_data,
             u_data,
             explained_var,
+            return_scale,
             carry,
         ) = iter_step_func(iteration, carry)
 
@@ -684,6 +726,11 @@ def main(
         pbar.set_description(desc)
         pbar.update(1)
 
+        mlflow.log_metric("rollout/return_scale", return_scale.item(), global_step)
+        mlflow.log_metric("rollout/return_scale_low", carry.low_ema.item(), global_step)
+        mlflow.log_metric(
+            "rollout/return_scale_high", carry.high_ema.item(), global_step
+        )
         mlflow.log_metric("rollout/mean_reward", b.rewards.mean().item(), global_step)
         if r is not None:
             mlflow.log_metric("rollout/mean_episodic_return", r, global_step)  # type: ignore
@@ -735,15 +782,11 @@ def setup(args: Args | None = None):
 
     print("Attempting to connect to mlflow...")
     tracking_uri = "http://127.0.0.1:5000" if not args.debug else ""
-    if args.track:
-        mlflow.set_tracking_uri(uri=tracking_uri)
+    mlflow.set_tracking_uri(uri=tracking_uri)
     print(f"Connected to mlflow at {tracking_uri}")
 
-    run_name = (
-        f"{Path(args.domain).name}__{Path(str(args.instance)).name}__{args.exp_name}__{args.seed}"
-        if not args.debug
-        else "debug"
-    )
+    run_name = f"{Path(args.domain).name}__{Path(str(args.instance)).name}__{args.exp_name}__{args.seed}"
+    run_name = run_name + "__debug" if args.debug else run_name
 
     envs = gym.vector.SyncVectorEnv(
         [

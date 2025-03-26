@@ -188,6 +188,6 @@ class RecurrentEmbedder(nn.Module):
 
             logger.debug("variables:\n%s", variables)
 
-            return variables.squeeze()
+            return variables.squeeze(0)
 
         return _forward

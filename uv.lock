@@ -2,52 +2,55 @@ version = 1
 revision = 1
 requires-python = ">=3.11"
 resolution-markers = [
-    "python_full_version >= '3.13' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118'",
-    "python_full_version >= '3.13' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118'",
-    "python_full_version >= '3.13' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118'",
-    "python_full_version == '3.12.*' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118'",
-    "python_full_version == '3.12.*' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118'",
-    "python_full_version < '3.12' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118'",
-    "python_full_version < '3.12' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118'",
-    "python_full_version < '3.12' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118'",
-    "python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version >= '3.13' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version >= '3.13' and sys_platform == 'win32' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version < '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version < '3.12' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version < '3.12' and sys_platform == 'win32' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version >= '3.13' and sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version == '3.12.*' and sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version < '3.12' and sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version >= '3.13' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version >= '3.13' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version >= '3.13' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version == '3.12.*' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version == '3.12.*' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version < '3.12' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version < '3.12' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
-    "python_full_version < '3.12' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118'",
+    "python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124'",
+    "python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124'",
+    "python_full_version >= '3.13' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124'",
+    "python_full_version == '3.12.*' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124'",
+    "python_full_version >= '3.13' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124'",
+    "python_full_version < '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124'",
+    "python_full_version < '3.12' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124'",
+    "python_full_version < '3.12' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124'",
+    "python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124'",
+    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124'",
+    "python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124'",
+    "python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version >= '3.13' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version >= '3.13' and sys_platform == 'win32' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version < '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version < '3.12' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version < '3.12' and sys_platform == 'win32' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version >= '3.13' and sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version == '3.12.*' and sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version < '3.12' and sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version >= '3.13' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version == '3.12.*' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version >= '3.13' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version == '3.12.*' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version >= '3.13' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version < '3.12' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version < '3.12' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version < '3.12' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
 ]
 conflicts = [[
     { package = "regawa", extra = "cpu" },
-    { package = "regawa", extra = "cu118" },
+    { package = "regawa", extra = "cu124" },
 ]]
 
 [[package]]
 name = "absl-py"
-version = "2.1.0"
+version = "2.2.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/7a/8f/fc001b92ecc467cc32ab38398bd0bfb45df46e7523bf33c2ad22a505f06e/absl-py-2.1.0.tar.gz", hash = "sha256:7820790efbb316739cde8b4e19357243fc3608a152024288513dd968d7d959ff", size = 118055 }
+sdist = { url = "https://files.pythonhosted.org/packages/40/17/fa94446133df730f1a30f89ed9f3967d62ac0c0e535522ea4d46288924a5/absl_py-2.2.1.tar.gz", hash = "sha256:4c7bc50d42d021c12d4f31b7001167925e0bd71ade853069f64af410f5565ff9", size = 243555 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/ad/e0d3c824784ff121c03cc031f944bc7e139a8f1870ffd2845cc2dd76f6c4/absl_py-2.1.0-py3-none-any.whl", hash = "sha256:526a04eadab8b4ee719ce68f204172ead1027549089702d99b9059f129ff1308", size = 133706 },
+    { url = "https://files.pythonhosted.org/packages/98/5e/34ccb5bfb8dae555045c2dd13375e01ac8e2c1f200a4e4051e95fb9addf0/absl_py-2.2.1-py3-none-any.whl", hash = "sha256:ca8209abd5005ae6e700ef36e2edc84ad5338678f95625a3f15275410a89ffbc", size = 277287 },
 ]
 
 [[package]]
@@ -80,7 +83,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "idna" },
     { name = "sniffio" },
-    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/95/7d/4c1bd541d4dffa1b52bd83fb8527089e097a106fc90b467a7313b105f840/anyio-4.9.0.tar.gz", hash = "sha256:673c0c244e15788651a4ff38710fea9675823028a6f08a5eda409e0c9840a028", size = 190949 }
 wheels = [
@@ -171,7 +174,7 @@ dependencies = [
     { name = "jax" },
     { name = "jaxlib" },
     { name = "numpy" },
-    { name = "setuptools", marker = "python_full_version >= '3.12' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "setuptools", marker = "python_full_version >= '3.12' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
     { name = "toolz" },
     { name = "typing-extensions" },
 ]
@@ -185,7 +188,7 @@ name = "click"
 version = "8.1.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b9/2e/0090cbf739cee7d23781ad4b89a9894a41538e4fcf4c31dcdd705b78eb8b/click-8.1.8.tar.gz", hash = "sha256:ed53c9d8990d83c2a27deae68e4ee337473f6330c040a31d4225c9574d16096a", size = 226593 }
 wheels = [
@@ -272,15 +275,15 @@ wheels = [
 
 [[package]]
 name = "databricks-sdk"
-version = "0.47.0"
+version = "0.48.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-auth" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/62/af/90111d0bbf2b53e6c9daab2335816c1162bfc7be7a1e5a9e0802c6e1c47d/databricks_sdk-0.47.0.tar.gz", hash = "sha256:886b6acee402a27ef9b843becab97a2683b400387804d35b3bd009f4f8754395", size = 719364 }
+sdist = { url = "https://files.pythonhosted.org/packages/2b/05/470a91eb14c0b6cd16ecb50e3bf0fdcf04cc79e5f3518762bdf11861aa28/databricks_sdk-0.48.0.tar.gz", hash = "sha256:e7e634c31ad4df9157084a3d40732e9195f9b72bff5e6cdfb08bfa22aa31cf38", size = 716238 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d9/86/2af6728e5fd22722b24285b14855107323c77e9b9452dc0807bfad8d5ce2/databricks_sdk-0.47.0-py3-none-any.whl", hash = "sha256:ec2cf2a019dcff444d905c7f16b8dea41076c70ef7fcae9c3779efac119e0b1d", size = 681023 },
+    { url = "https://files.pythonhosted.org/packages/1f/94/322cece653864d2a514e65061c90b53b214d2bf8760d3ef26ccb3b9f4971/databricks_sdk-0.48.0-py3-none-any.whl", hash = "sha256:ef4a9253e8b1662ca596d09bfe97f27de44204fe2520e1a06bd4f947963794d8", size = 677627 },
 ]
 
 [[package]]
@@ -300,7 +303,7 @@ name = "docker"
 version = "7.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pywin32", marker = "sys_platform == 'win32' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "pywin32", marker = "sys_platform == 'win32' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
     { name = "requests" },
     { name = "urllib3" },
 ]
@@ -375,11 +378,11 @@ wheels = [
 
 [[package]]
 name = "filelock"
-version = "3.17.0"
+version = "3.18.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/dc/9c/0b15fb47b464e1b663b1acd1253a062aa5feecb07d4e597daea542ebd2b5/filelock-3.17.0.tar.gz", hash = "sha256:ee4e77401ef576ebb38cd7f13b9b28893194acc20a8e68e18730ba9c0e54660e", size = 18027 }
+sdist = { url = "https://files.pythonhosted.org/packages/0a/10/c23352565a6544bdc5353e0b15fc1c563352101f30e24bf500207a54df9a/filelock-3.18.0.tar.gz", hash = "sha256:adbc88eabb99d2fec8c9c1b229b171f18afa655400173ddc653d5d01501fb9f2", size = 18075 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/89/ec/00d68c4ddfedfe64159999e5f8a98fb8442729a63e2077eb9dcd89623d27/filelock-3.17.0-py3-none-any.whl", hash = "sha256:533dc2f7ba78dc2f0f531fc6c4940addf7b70a481e269a5a3b93be94ffbe8338", size = 16164 },
+    { url = "https://files.pythonhosted.org/packages/4d/36/2a115987e2d8c300a974597416d9de88f2444426de9571f4b59b2cca3acc/filelock-3.18.0-py3-none-any.whl", hash = "sha256:c401f4f8377c4464e6db25fff06205fd89bdd83b65eb0488ed1b160f780e21de", size = 16215 },
 ]
 
 [[package]]
@@ -488,7 +491,7 @@ wheels = [
 [[package]]
 name = "gnn-policy"
 version = "0.0.1"
-source = { git = "ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy#309ac9531029963fad7aff07c05fb691c432f01a" }
+source = { git = "ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy#a3e673909dbd4228e80313dd9391dcda5fc0094d" }
 
 [[package]]
 name = "google-auth"
@@ -596,7 +599,7 @@ name = "gunicorn"
 version = "23.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "packaging", marker = "sys_platform != 'win32' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "packaging", marker = "sys_platform != 'win32' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/34/72/9614c465dc206155d93eff0ca20d42e1e35afc533971379482de953521a4/gunicorn-23.0.0.tar.gz", hash = "sha256:f014447a0101dc57e294f6c18ca6b40227a4c90e9bdb586042628030cba004ec", size = 375031 }
 wheels = [
@@ -629,11 +632,11 @@ wheels = [
 
 [[package]]
 name = "humanize"
-version = "4.12.1"
+version = "4.12.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/5b/8c/4f2f0784d08a383b5de3d3b1d65a6f204cc5dc487621c91c550388d756af/humanize-4.12.1.tar.gz", hash = "sha256:1338ba97415c96556758a6e2f65977ed406dddf4620d4c6db9bbdfd07f0f1232", size = 80827 }
+sdist = { url = "https://files.pythonhosted.org/packages/e0/84/ae8e64a6ffe3291105e9688f4e28fa65eba7924e0fe6053d85ca00556385/humanize-4.12.2.tar.gz", hash = "sha256:ce0715740e9caacc982bb89098182cf8ded3552693a433311c6a4ce6f4e12a2c", size = 80871 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/32/30/5ef5994b090398f9284d2662f56853e5183ae2cb5d8e3db67e4f4cfea407/humanize-4.12.1-py3-none-any.whl", hash = "sha256:86014ca5c52675dffa1d404491952f1f5bf03b07c175a51891a343daebf01fea", size = 127409 },
+    { url = "https://files.pythonhosted.org/packages/55/c7/6f89082f619c76165feb633446bd0fee32b0e0cbad00d22480e5aea26ade/humanize-4.12.2-py3-none-any.whl", hash = "sha256:e4e44dced598b7e03487f3b1c6fd5b1146c30ea55a110e71d5d4bca3e094259e", size = 128305 },
 ]
 
 [[package]]
@@ -668,11 +671,11 @@ wheels = [
 
 [[package]]
 name = "iniconfig"
-version = "2.0.0"
+version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d7/4b/cbd8e699e64a6f16ca3a8220661b5f83792b3017d0f79807cb8708d33913/iniconfig-2.0.0.tar.gz", hash = "sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3", size = 4646 }
+sdist = { url = "https://files.pythonhosted.org/packages/f2/97/ebf4da567aa6827c909642694d71c9fcf53e5b504f2d96afea02718862f3/iniconfig-2.1.0.tar.gz", hash = "sha256:3abbd2e30b36733fee78f9c7f7308f2d0050e88f0087fd25c2645f63c773e1c7", size = 4793 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/a6/62565a6e1cf69e10f5727360368e451d4b7f58beeac6173dc9db836a5b46/iniconfig-2.0.0-py3-none-any.whl", hash = "sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374", size = 5892 },
+    { url = "https://files.pythonhosted.org/packages/2c/e1/e6716421ea10d38022b952c159d5161ca1193197fb744506875fbb87ea7b/iniconfig-2.1.0-py3-none-any.whl", hash = "sha256:9deba5723312380e77435581c6bf4935c94cbfab9b1ed33ef8d238ea168eb760", size = 6050 },
 ]
 
 [[package]]
@@ -686,7 +689,7 @@ wheels = [
 
 [[package]]
 name = "jax"
-version = "0.5.2"
+version = "0.5.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jaxlib" },
@@ -695,14 +698,61 @@ dependencies = [
     { name = "opt-einsum" },
     { name = "scipy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/30/a9/25416e7a89442598593076020e16391e258055ac47ae02b09ca7b15f5835/jax-0.5.2.tar.gz", hash = "sha256:2aef7d1912df329470c47ce8f2e6521c105e84aa620311494048c391235087c6", size = 2036694 }
+sdist = { url = "https://files.pythonhosted.org/packages/13/e5/dabb73ab10330e9535aba14fc668b04a46fcd8e78f06567c4f4f1adce340/jax-0.5.3.tar.gz", hash = "sha256:f17fcb0fd61dc289394af6ce4de2dada2312f2689bb0d73642c6f026a95fbb2c", size = 2072748 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/77/6f/0da6e0bc90e738fc63c584d65bef326f76a6550343ae1c243647bd1880fd/jax-0.5.2-py3-none-any.whl", hash = "sha256:d80954d90e2cce57498b6e9c23a6402c2c39edf86d4f808813ab1d1e97672e34", size = 2366814 },
+    { url = "https://files.pythonhosted.org/packages/86/bb/fdc6513a9aada13fd21e9860e2adee5f6eea2b4f0a145b219288875acb26/jax-0.5.3-py3-none-any.whl", hash = "sha256:1483dc237b4f47e41755d69429e8c3c138736716147cd43bb2b99b259d4e3c41", size = 2406371 },
+]
+
+[package.optional-dependencies]
+cuda12 = [
+    { name = "jax-cuda12-plugin", extra = ["with-cuda"] },
+    { name = "jaxlib" },
+]
+
+[[package]]
+name = "jax-cuda12-pjrt"
+version = "0.5.3"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3f/1f/016875cb4dd320fe0801b4a1bf132dd7ff9793d844aea659fe370c93d1b6/jax_cuda12_pjrt-0.5.3-py3-none-manylinux2014_aarch64.whl", hash = "sha256:04ee111eaf5fc2692978ad4a5c84d5925e42eb05c1701849ba3a53f6515400cc", size = 90705751 },
+    { url = "https://files.pythonhosted.org/packages/58/c4/a603473feae00cd1b20ba3829413da53fd48977af052491ea7dab16fa618/jax_cuda12_pjrt-0.5.3-py3-none-manylinux2014_x86_64.whl", hash = "sha256:c5378306568ba0c81b230a779dd3194c9dd10339ab6360ae80928108d37e7f75", size = 104655464 },
+]
+
+[[package]]
+name = "jax-cuda12-plugin"
+version = "0.5.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jax-cuda12-pjrt" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fd/8e/dd1f84222d680d4f50c05823d6dd6812f9550b8fd710d8f287829dcca4ea/jax_cuda12_plugin-0.5.3-cp311-cp311-manylinux2014_aarch64.whl", hash = "sha256:298d2d768f1029b74a0b1d01270e549349d2c37dc07658796542cda967eb7bd3", size = 16696091 },
+    { url = "https://files.pythonhosted.org/packages/bf/15/740d34283f041e1f28452eace1b25afc7cf65117e2011d3208330aa156f1/jax_cuda12_plugin-0.5.3-cp311-cp311-manylinux2014_x86_64.whl", hash = "sha256:aaa704a5ef547595d022db1c1e4878a0677116412a9360c115d67ff4b64e1596", size = 16699554 },
+    { url = "https://files.pythonhosted.org/packages/eb/b3/8e35a75362dbd4ad000ed50fa07ec2dfae512c03be35d33d7eb4e0d84fbc/jax_cuda12_plugin-0.5.3-cp312-cp312-manylinux2014_aarch64.whl", hash = "sha256:c2517a7c2186f8708894696e26cf96ebd60b7879ceca398b2c46abb28d2c96c8", size = 16691718 },
+    { url = "https://files.pythonhosted.org/packages/ee/8b/1b00720b693d29bf41491a099fb81fc9118f73e54696b507428e691bad0e/jax_cuda12_plugin-0.5.3-cp312-cp312-manylinux2014_x86_64.whl", hash = "sha256:2030cf1208ce4ea70ee56cac61ddd239f9798695fc39bb7739c50a25d6e9da44", size = 16696110 },
+    { url = "https://files.pythonhosted.org/packages/fa/38/d5debf1cc41722494d6f595eb42e9a4428d511a01a6d465e5ca6f7a198b7/jax_cuda12_plugin-0.5.3-cp313-cp313-manylinux2014_aarch64.whl", hash = "sha256:21fec1b56c98783ea0569b747a56751f1f9ff2187b48acc11c700d3bfc5e1a31", size = 16690773 },
+    { url = "https://files.pythonhosted.org/packages/34/a2/ffa883b05b8dedf98e513517ab92a79c69ce57233481b6a40c27c2fdcdc9/jax_cuda12_plugin-0.5.3-cp313-cp313-manylinux2014_x86_64.whl", hash = "sha256:1862595b2b6d815679d11e0e889e523185ee54a46d46e022689f70fc4554dd91", size = 16696010 },
+    { url = "https://files.pythonhosted.org/packages/93/14/13d77e20bb41ce3fac17a0f047954f378ad8f0ef36c1d652a3e804232454/jax_cuda12_plugin-0.5.3-cp313-cp313t-manylinux2014_aarch64.whl", hash = "sha256:6d43677f22f3be9544a205216cd6dac591335b1d9bbbed018cd17dbb1f3f4def", size = 16812249 },
+    { url = "https://files.pythonhosted.org/packages/43/7a/6badc42730609cc906a070ff1b39555b58b09ea0240b6115c2ce6fcf4973/jax_cuda12_plugin-0.5.3-cp313-cp313t-manylinux2014_x86_64.whl", hash = "sha256:5bb9ea0e68d72d44e57e4cb6a58a1a729fe3fe32e964f71e398d8a25c2103b19", size = 16902210 },
+]
+
+[package.optional-dependencies]
+with-cuda = [
+    { name = "nvidia-cublas-cu12" },
+    { name = "nvidia-cuda-cupti-cu12" },
+    { name = "nvidia-cuda-nvcc-cu12" },
+    { name = "nvidia-cuda-runtime-cu12" },
+    { name = "nvidia-cudnn-cu12" },
+    { name = "nvidia-cufft-cu12" },
+    { name = "nvidia-cusolver-cu12" },
+    { name = "nvidia-cusparse-cu12" },
+    { name = "nvidia-nccl-cu12" },
+    { name = "nvidia-nvjitlink-cu12" },
 ]
 
 [[package]]
 name = "jaxlib"
-version = "0.5.1"
+version = "0.5.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ml-dtypes" },
@@ -710,19 +760,19 @@ dependencies = [
     { name = "scipy" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e0/cc/02449de702763d2e80591ea8e856a4b7378d8eda323e8a5cbb7ffb06a040/jaxlib-0.5.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:334c49ad411f39a5055c23f139552ae32bd9afe696abbb1cadf9c44ebef607f7", size = 81123295 },
-    { url = "https://files.pythonhosted.org/packages/f1/e9/476d15858164c0e93529e695c8515b2bee354fe82cc80d7ca7965f546a39/jaxlib-0.5.1-cp311-cp311-manylinux2014_aarch64.whl", hash = "sha256:69f4b9e07ad074d441b9921b7a83aee4f4ffd3d542033fdec50be1456d0611c6", size = 96075312 },
-    { url = "https://files.pythonhosted.org/packages/71/19/d9934cefe3c3153e93e1285b761a1f75fd482501c73bd0d1b77a4c50c792/jaxlib-0.5.1-cp311-cp311-manylinux2014_x86_64.whl", hash = "sha256:80c0ed5446644b383caa3e617540803bb0ef36e5609cd7756d4d2913a8de512e", size = 105147520 },
-    { url = "https://files.pythonhosted.org/packages/43/42/f813a8ddcdce80ae9132f8062ad33a9bb7652a6e6b18e9965c7611e510db/jaxlib-0.5.1-cp311-cp311-win_amd64.whl", hash = "sha256:616b6f4d2ee338f1b7061b17b49b064eaace25666b8e0dc4fb48dfa478aa94f3", size = 65208198 },
-    { url = "https://files.pythonhosted.org/packages/a3/2e/aff76f86cc6a329e07d59060d123840d60d4af0ab4cb000ebd0257b8c6e2/jaxlib-0.5.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:ae3de28bf9b86781c30a32c88b7cbd1d3222a8c229aa96cbe21055dcd09eb889", size = 81125183 },
-    { url = "https://files.pythonhosted.org/packages/7c/e5/8f74cd0d12abd8380e83afc9885997b550fc9e83ad49605eb9d59283bbae/jaxlib-0.5.1-cp312-cp312-manylinux2014_aarch64.whl", hash = "sha256:5b4ba5aa3f59b5f2e37d525cedd6afe0feecb88416e5f43eb9a709cfded8b250", size = 96075932 },
-    { url = "https://files.pythonhosted.org/packages/43/d6/820870bf9ae596da8f975a4a841c8e6f71fc0e25b6b27c6a80d081b3ab6a/jaxlib-0.5.1-cp312-cp312-manylinux2014_x86_64.whl", hash = "sha256:51e7b59fc40bb270440c5049b3c82f9f7fdadae3199f16818620cfdb80b967af", size = 105155729 },
-    { url = "https://files.pythonhosted.org/packages/b8/3b/68981550dc34b86deb8e50b8cb14fd8bd620876276cfce2218ef7f11be90/jaxlib-0.5.1-cp312-cp312-win_amd64.whl", hash = "sha256:0ed6fc1fbee91be70979f05dd523f11ca9de2a14d81a7f7d5aa5e783580587c2", size = 65232481 },
-    { url = "https://files.pythonhosted.org/packages/7e/e9/e873f565a156888dc0f251bb05f7618c9ad74d2fb31da6ec12283e156111/jaxlib-0.5.1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:8c57fbbe79aa3ce3ac2ec657a7f17867b9b3c2cad885b2c8390567cc9738eee8", size = 81124027 },
-    { url = "https://files.pythonhosted.org/packages/ea/6b/27b9f651645035b627baf6346a86bbe87ed3a5fc579ef51dc90cdbb2f013/jaxlib-0.5.1-cp313-cp313-manylinux2014_aarch64.whl", hash = "sha256:df3704f135cff87fd9d41930248925f2f163beed6efeaaabccd97401580dcfd8", size = 96073191 },
-    { url = "https://files.pythonhosted.org/packages/03/1c/fa80844bb93c739c8277bb9ba9813f5d9be1565eb97b6a998cd29f9fb671/jaxlib-0.5.1-cp313-cp313-manylinux2014_x86_64.whl", hash = "sha256:dc109ffa6873640226c360da793a8a7beaf8c48751ac3fdb29fa6b337901e186", size = 105157418 },
-    { url = "https://files.pythonhosted.org/packages/72/34/566d5a2450d8e7319111dbb8903135f13186766152504805bbea5dfdcdd5/jaxlib-0.5.1-cp313-cp313-win_amd64.whl", hash = "sha256:3f4f500cd899e437a505dfe8df4f09e45f160163cd44dea12e0b37145656897b", size = 65233244 },
-    { url = "https://files.pythonhosted.org/packages/65/83/0dd8bdaeca93106c4c6d25c9f8921877d8494a4699f2218ede9bd460d02d/jaxlib-0.5.1-cp313-cp313t-manylinux2014_x86_64.whl", hash = "sha256:26ae319630e72b252e97c103ef071496abd5c4794494d9cc063feabad265567a", size = 105356836 },
+    { url = "https://files.pythonhosted.org/packages/c2/f2/d9397f264141f2289e229b2faf3b3ddb6397b014a09abe234367814f9697/jaxlib-0.5.3-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:b62bd8b29e5a4f9bfaa57c8daf6e04820b2c994f448f3dec602d64255545e9f2", size = 63696815 },
+    { url = "https://files.pythonhosted.org/packages/e8/91/04bf391a21ccfb299b9952f91d5c082e5f9877221e5d98592875af4a50e4/jaxlib-0.5.3-cp311-cp311-manylinux2014_aarch64.whl", hash = "sha256:a4666f81d72c060ed3e581ded116a9caa9b0a70a148a54cb12a1d3afca3624b5", size = 95770114 },
+    { url = "https://files.pythonhosted.org/packages/67/de/50debb40944baa5ba459604578f8c721be9f38c78ef9e8902895566e6a66/jaxlib-0.5.3-cp311-cp311-manylinux2014_x86_64.whl", hash = "sha256:29e1530fc81833216f1e28b578d0c59697654f72ee31c7a44ed7753baf5ac466", size = 105119259 },
+    { url = "https://files.pythonhosted.org/packages/20/91/d73c842d1e5cc6b914bb521006d668fbfda4c53cd4424ce9c3a097f6c071/jaxlib-0.5.3-cp311-cp311-win_amd64.whl", hash = "sha256:8eb54e38d789557579f900ea3d70f104a440f8555a9681ed45f4a122dcbfd92e", size = 65765739 },
+    { url = "https://files.pythonhosted.org/packages/d5/a5/646af791ccf75641b4df84fb6cb6e3914b0df87ec5fa5f82397fd5dc30ee/jaxlib-0.5.3-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:d394dbde4a1c6bd67501cfb29d3819a10b900cb534cc0fc603319f7092f24cfa", size = 63711839 },
+    { url = "https://files.pythonhosted.org/packages/53/8c/cbd861e40f0efe7923962ade21919fddcea43fae2794634833e800009b14/jaxlib-0.5.3-cp312-cp312-manylinux2014_aarch64.whl", hash = "sha256:bddf6360377aa1c792e47fd87f307c342e331e5ff3582f940b1bca00f6b4bc73", size = 95764647 },
+    { url = "https://files.pythonhosted.org/packages/3e/03/bace4acec295febca9329b3d2dd927b8ac74841e620e0d675f76109b805b/jaxlib-0.5.3-cp312-cp312-manylinux2014_x86_64.whl", hash = "sha256:5a5e88ab1cd6fdf78d69abe3544e8f09cce200dd339bb85fbe3c2ea67f2a5e68", size = 105132789 },
+    { url = "https://files.pythonhosted.org/packages/79/f8/34568ec75f53d55b68649b6e1d6befd976fb9646e607954477264f5379ce/jaxlib-0.5.3-cp312-cp312-win_amd64.whl", hash = "sha256:520665929649f29f7d948d4070dbaf3e032a4c1f7c11f2863eac73320fcee784", size = 65789714 },
+    { url = "https://files.pythonhosted.org/packages/b4/d0/ed6007cd17dc0f37f950f89e785092d9f0541f3fa6021d029657955206b5/jaxlib-0.5.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:31321c25282a06a6dfc940507bc14d0a0ac838d8ced6c07aa00a7fae34ce7b3f", size = 63710483 },
+    { url = "https://files.pythonhosted.org/packages/36/8f/cafdf24170084de897ffe2a030241c2ba72d12eede85b940a81a94cab156/jaxlib-0.5.3-cp313-cp313-manylinux2014_aarch64.whl", hash = "sha256:e904b92dedfbc7e545725a8d7676987030ae9c069001d94701bc109c6dab4100", size = 95765995 },
+    { url = "https://files.pythonhosted.org/packages/86/c7/fc0755ebd999c7c66ac4203d99f958d5ffc0a34eb270f57932ca0213bb54/jaxlib-0.5.3-cp313-cp313-manylinux2014_x86_64.whl", hash = "sha256:bb7593cb7fffcb13963f22fa5229ed960b8fb4ae5ec3b0820048cbd67f1e8e31", size = 105130796 },
+    { url = "https://files.pythonhosted.org/packages/83/98/e32da21a490dc408d172ba246d6c47428482fe50d771c3f813e5fc063781/jaxlib-0.5.3-cp313-cp313-win_amd64.whl", hash = "sha256:8019f73a10b1290f988dd3768c684f3a8a147239091c3b790ce7e47e3bbc00bd", size = 65792205 },
+    { url = "https://files.pythonhosted.org/packages/88/c6/0d69ed0d408c811959a471563afa99baecacdc56ed1799002e309520b565/jaxlib-0.5.3-cp313-cp313t-manylinux2014_x86_64.whl", hash = "sha256:4c9a9d4cda091a3ef068ace8379fff9e98eea2fc51dbdd7c3386144a1bdf715d", size = 105318736 },
 ]
 
 [[package]]
@@ -980,7 +1030,7 @@ dependencies = [
     { name = "docker" },
     { name = "flask" },
     { name = "graphene" },
-    { name = "gunicorn", marker = "sys_platform != 'win32' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "gunicorn", marker = "sys_platform != 'win32' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
     { name = "jinja2" },
     { name = "markdown" },
     { name = "matplotlib" },
@@ -991,7 +1041,7 @@ dependencies = [
     { name = "scikit-learn" },
     { name = "scipy" },
     { name = "sqlalchemy" },
-    { name = "waitress", marker = "sys_platform == 'win32' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "waitress", marker = "sys_platform == 'win32' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/63/ed/c6b0d24610b51fcea2200f5e091a7b33674d1351959478c398822afed255/mlflow-2.21.2.tar.gz", hash = "sha256:ea6beaaa6cdf296db0c961f7269e6be90d409f5d48be743ecdce4b608d88297e", size = 27620389 }
 wheels = [
@@ -1096,142 +1146,100 @@ wheels = [
 
 [[package]]
 name = "numpy"
-version = "2.2.3"
+version = "2.2.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fb/90/8956572f5c4ae52201fdec7ba2044b2c882832dcec7d5d0922c9e9acf2de/numpy-2.2.3.tar.gz", hash = "sha256:dbdc15f0c81611925f382dfa97b3bd0bc2c1ce19d4fe50482cb0ddc12ba30020", size = 20262700 }
+sdist = { url = "https://files.pythonhosted.org/packages/e1/78/31103410a57bc2c2b93a3597340a8119588571f6a4539067546cb9a0bfac/numpy-2.2.4.tar.gz", hash = "sha256:9ba03692a45d3eef66559efe1d1096c4b9b75c0986b5dff5530c378fb8331d4f", size = 20270701 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/96/86/453aa3949eab6ff54e2405f9cb0c01f756f031c3dc2a6d60a1d40cba5488/numpy-2.2.3-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:16372619ee728ed67a2a606a614f56d3eabc5b86f8b615c79d01957062826ca8", size = 21237256 },
-    { url = "https://files.pythonhosted.org/packages/20/c3/93ecceadf3e155d6a9e4464dd2392d8d80cf436084c714dc8535121c83e8/numpy-2.2.3-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:5521a06a3148686d9269c53b09f7d399a5725c47bbb5b35747e1cb76326b714b", size = 14408049 },
-    { url = "https://files.pythonhosted.org/packages/8d/29/076999b69bd9264b8df5e56f2be18da2de6b2a2d0e10737e5307592e01de/numpy-2.2.3-cp311-cp311-macosx_14_0_arm64.whl", hash = "sha256:7c8dde0ca2f77828815fd1aedfdf52e59071a5bae30dac3b4da2a335c672149a", size = 5408655 },
-    { url = "https://files.pythonhosted.org/packages/e2/a7/b14f0a73eb0fe77cb9bd5b44534c183b23d4229c099e339c522724b02678/numpy-2.2.3-cp311-cp311-macosx_14_0_x86_64.whl", hash = "sha256:77974aba6c1bc26e3c205c2214f0d5b4305bdc719268b93e768ddb17e3fdd636", size = 6949996 },
-    { url = "https://files.pythonhosted.org/packages/72/2f/8063da0616bb0f414b66dccead503bd96e33e43685c820e78a61a214c098/numpy-2.2.3-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d42f9c36d06440e34226e8bd65ff065ca0963aeecada587b937011efa02cdc9d", size = 14355789 },
-    { url = "https://files.pythonhosted.org/packages/e6/d7/3cd47b00b8ea95ab358c376cf5602ad21871410950bc754cf3284771f8b6/numpy-2.2.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f2712c5179f40af9ddc8f6727f2bd910ea0eb50206daea75f58ddd9fa3f715bb", size = 16411356 },
-    { url = "https://files.pythonhosted.org/packages/27/c0/a2379e202acbb70b85b41483a422c1e697ff7eee74db642ca478de4ba89f/numpy-2.2.3-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:c8b0451d2ec95010d1db8ca733afc41f659f425b7f608af569711097fd6014e2", size = 15576770 },
-    { url = "https://files.pythonhosted.org/packages/bc/63/a13ee650f27b7999e5b9e1964ae942af50bb25606d088df4229283eda779/numpy-2.2.3-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:d9b4a8148c57ecac25a16b0e11798cbe88edf5237b0df99973687dd866f05e1b", size = 18200483 },
-    { url = "https://files.pythonhosted.org/packages/4c/87/e71f89935e09e8161ac9c590c82f66d2321eb163893a94af749dfa8a3cf8/numpy-2.2.3-cp311-cp311-win32.whl", hash = "sha256:1f45315b2dc58d8a3e7754fe4e38b6fce132dab284a92851e41b2b344f6441c5", size = 6588415 },
-    { url = "https://files.pythonhosted.org/packages/b9/c6/cd4298729826af9979c5f9ab02fcaa344b82621e7c49322cd2d210483d3f/numpy-2.2.3-cp311-cp311-win_amd64.whl", hash = "sha256:9f48ba6f6c13e5e49f3d3efb1b51c8193215c42ac82610a04624906a9270be6f", size = 12929604 },
-    { url = "https://files.pythonhosted.org/packages/43/ec/43628dcf98466e087812142eec6d1c1a6c6bdfdad30a0aa07b872dc01f6f/numpy-2.2.3-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:12c045f43b1d2915eca6b880a7f4a256f59d62df4f044788c8ba67709412128d", size = 20929458 },
-    { url = "https://files.pythonhosted.org/packages/9b/c0/2f4225073e99a5c12350954949ed19b5d4a738f541d33e6f7439e33e98e4/numpy-2.2.3-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:87eed225fd415bbae787f93a457af7f5990b92a334e346f72070bf569b9c9c95", size = 14115299 },
-    { url = "https://files.pythonhosted.org/packages/ca/fa/d2c5575d9c734a7376cc1592fae50257ec95d061b27ee3dbdb0b3b551eb2/numpy-2.2.3-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:712a64103d97c404e87d4d7c47fb0c7ff9acccc625ca2002848e0d53288b90ea", size = 5145723 },
-    { url = "https://files.pythonhosted.org/packages/eb/dc/023dad5b268a7895e58e791f28dc1c60eb7b6c06fcbc2af8538ad069d5f3/numpy-2.2.3-cp312-cp312-macosx_14_0_x86_64.whl", hash = "sha256:a5ae282abe60a2db0fd407072aff4599c279bcd6e9a2475500fc35b00a57c532", size = 6678797 },
-    { url = "https://files.pythonhosted.org/packages/3f/19/bcd641ccf19ac25abb6fb1dcd7744840c11f9d62519d7057b6ab2096eb60/numpy-2.2.3-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5266de33d4c3420973cf9ae3b98b54a2a6d53a559310e3236c4b2b06b9c07d4e", size = 14067362 },
-    { url = "https://files.pythonhosted.org/packages/39/04/78d2e7402fb479d893953fb78fa7045f7deb635ec095b6b4f0260223091a/numpy-2.2.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3b787adbf04b0db1967798dba8da1af07e387908ed1553a0d6e74c084d1ceafe", size = 16116679 },
-    { url = "https://files.pythonhosted.org/packages/d0/a1/e90f7aa66512be3150cb9d27f3d9995db330ad1b2046474a13b7040dfd92/numpy-2.2.3-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:34c1b7e83f94f3b564b35f480f5652a47007dd91f7c839f404d03279cc8dd021", size = 15264272 },
-    { url = "https://files.pythonhosted.org/packages/dc/b6/50bd027cca494de4fa1fc7bf1662983d0ba5f256fa0ece2c376b5eb9b3f0/numpy-2.2.3-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:4d8335b5f1b6e2bce120d55fb17064b0262ff29b459e8493d1785c18ae2553b8", size = 17880549 },
-    { url = "https://files.pythonhosted.org/packages/96/30/f7bf4acb5f8db10a96f73896bdeed7a63373137b131ca18bd3dab889db3b/numpy-2.2.3-cp312-cp312-win32.whl", hash = "sha256:4d9828d25fb246bedd31e04c9e75714a4087211ac348cb39c8c5f99dbb6683fe", size = 6293394 },
-    { url = "https://files.pythonhosted.org/packages/42/6e/55580a538116d16ae7c9aa17d4edd56e83f42126cb1dfe7a684da7925d2c/numpy-2.2.3-cp312-cp312-win_amd64.whl", hash = "sha256:83807d445817326b4bcdaaaf8e8e9f1753da04341eceec705c001ff342002e5d", size = 12626357 },
-    { url = "https://files.pythonhosted.org/packages/0e/8b/88b98ed534d6a03ba8cddb316950fe80842885709b58501233c29dfa24a9/numpy-2.2.3-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:7bfdb06b395385ea9b91bf55c1adf1b297c9fdb531552845ff1d3ea6e40d5aba", size = 20916001 },
-    { url = "https://files.pythonhosted.org/packages/d9/b4/def6ec32c725cc5fbd8bdf8af80f616acf075fe752d8a23e895da8c67b70/numpy-2.2.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:23c9f4edbf4c065fddb10a4f6e8b6a244342d95966a48820c614891e5059bb50", size = 14130721 },
-    { url = "https://files.pythonhosted.org/packages/20/60/70af0acc86495b25b672d403e12cb25448d79a2b9658f4fc45e845c397a8/numpy-2.2.3-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:a0c03b6be48aaf92525cccf393265e02773be8fd9551a2f9adbe7db1fa2b60f1", size = 5130999 },
-    { url = "https://files.pythonhosted.org/packages/2e/69/d96c006fb73c9a47bcb3611417cf178049aae159afae47c48bd66df9c536/numpy-2.2.3-cp313-cp313-macosx_14_0_x86_64.whl", hash = "sha256:2376e317111daa0a6739e50f7ee2a6353f768489102308b0d98fcf4a04f7f3b5", size = 6665299 },
-    { url = "https://files.pythonhosted.org/packages/5a/3f/d8a877b6e48103733ac224ffa26b30887dc9944ff95dffdfa6c4ce3d7df3/numpy-2.2.3-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8fb62fe3d206d72fe1cfe31c4a1106ad2b136fcc1606093aeab314f02930fdf2", size = 14064096 },
-    { url = "https://files.pythonhosted.org/packages/e4/43/619c2c7a0665aafc80efca465ddb1f260287266bdbdce517396f2f145d49/numpy-2.2.3-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:52659ad2534427dffcc36aac76bebdd02b67e3b7a619ac67543bc9bfe6b7cdb1", size = 16114758 },
-    { url = "https://files.pythonhosted.org/packages/d9/79/ee4fe4f60967ccd3897aa71ae14cdee9e3c097e3256975cc9575d393cb42/numpy-2.2.3-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:1b416af7d0ed3271cad0f0a0d0bee0911ed7eba23e66f8424d9f3dfcdcae1304", size = 15259880 },
-    { url = "https://files.pythonhosted.org/packages/fb/c8/8b55cf05db6d85b7a7d414b3d1bd5a740706df00bfa0824a08bf041e52ee/numpy-2.2.3-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:1402da8e0f435991983d0a9708b779f95a8c98c6b18a171b9f1be09005e64d9d", size = 17876721 },
-    { url = "https://files.pythonhosted.org/packages/21/d6/b4c2f0564b7dcc413117b0ffbb818d837e4b29996b9234e38b2025ed24e7/numpy-2.2.3-cp313-cp313-win32.whl", hash = "sha256:136553f123ee2951bfcfbc264acd34a2fc2f29d7cdf610ce7daf672b6fbaa693", size = 6290195 },
-    { url = "https://files.pythonhosted.org/packages/97/e7/7d55a86719d0de7a6a597949f3febefb1009435b79ba510ff32f05a8c1d7/numpy-2.2.3-cp313-cp313-win_amd64.whl", hash = "sha256:5b732c8beef1d7bc2d9e476dbba20aaff6167bf205ad9aa8d30913859e82884b", size = 12619013 },
-    { url = "https://files.pythonhosted.org/packages/a6/1f/0b863d5528b9048fd486a56e0b97c18bf705e88736c8cea7239012119a54/numpy-2.2.3-cp313-cp313t-macosx_10_13_x86_64.whl", hash = "sha256:435e7a933b9fda8126130b046975a968cc2d833b505475e588339e09f7672890", size = 20944621 },
-    { url = "https://files.pythonhosted.org/packages/aa/99/b478c384f7a0a2e0736177aafc97dc9152fc036a3fdb13f5a3ab225f1494/numpy-2.2.3-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:7678556eeb0152cbd1522b684dcd215250885993dd00adb93679ec3c0e6e091c", size = 14142502 },
-    { url = "https://files.pythonhosted.org/packages/fb/61/2d9a694a0f9cd0a839501d362de2a18de75e3004576a3008e56bdd60fcdb/numpy-2.2.3-cp313-cp313t-macosx_14_0_arm64.whl", hash = "sha256:2e8da03bd561504d9b20e7a12340870dfc206c64ea59b4cfee9fceb95070ee94", size = 5176293 },
-    { url = "https://files.pythonhosted.org/packages/33/35/51e94011b23e753fa33f891f601e5c1c9a3d515448659b06df9d40c0aa6e/numpy-2.2.3-cp313-cp313t-macosx_14_0_x86_64.whl", hash = "sha256:c9aa4496fd0e17e3843399f533d62857cef5900facf93e735ef65aa4bbc90ef0", size = 6691874 },
-    { url = "https://files.pythonhosted.org/packages/ff/cf/06e37619aad98a9d03bd8d65b8e3041c3a639be0f5f6b0a0e2da544538d4/numpy-2.2.3-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f4ca91d61a4bf61b0f2228f24bbfa6a9facd5f8af03759fe2a655c50ae2c6610", size = 14036826 },
-    { url = "https://files.pythonhosted.org/packages/0c/93/5d7d19955abd4d6099ef4a8ee006f9ce258166c38af259f9e5558a172e3e/numpy-2.2.3-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:deaa09cd492e24fd9b15296844c0ad1b3c976da7907e1c1ed3a0ad21dded6f76", size = 16096567 },
-    { url = "https://files.pythonhosted.org/packages/af/53/d1c599acf7732d81f46a93621dab6aa8daad914b502a7a115b3f17288ab2/numpy-2.2.3-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:246535e2f7496b7ac85deffe932896a3577be7af8fb7eebe7146444680297e9a", size = 15242514 },
-    { url = "https://files.pythonhosted.org/packages/53/43/c0f5411c7b3ea90adf341d05ace762dad8cb9819ef26093e27b15dd121ac/numpy-2.2.3-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:daf43a3d1ea699402c5a850e5313680ac355b4adc9770cd5cfc2940e7861f1bf", size = 17872920 },
-    { url = "https://files.pythonhosted.org/packages/5b/57/6dbdd45ab277aff62021cafa1e15f9644a52f5b5fc840bc7591b4079fb58/numpy-2.2.3-cp313-cp313t-win32.whl", hash = "sha256:cf802eef1f0134afb81fef94020351be4fe1d6681aadf9c5e862af6602af64ef", size = 6346584 },
-    { url = "https://files.pythonhosted.org/packages/97/9b/484f7d04b537d0a1202a5ba81c6f53f1846ae6c63c2127f8df869ed31342/numpy-2.2.3-cp313-cp313t-win_amd64.whl", hash = "sha256:aee2512827ceb6d7f517c8b85aa5d3923afe8fc7a57d028cffcd522f1c6fd082", size = 12706784 },
-]
-
-[[package]]
-name = "nvidia-cublas-cu11"
-version = "11.11.3.6"
-source = { registry = "https://pypi.org/simple" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/46/be/c222e33e60d28ecd496a46fc4d78ccae0ee28e1fd7dc705b6288b4cad27e/nvidia_cublas_cu11-11.11.3.6-py3-none-manylinux1_x86_64.whl", hash = "sha256:39fb40e8f486dd8a2ddb8fdeefe1d5b28f5b99df01c87ab3676f057a74a5a6f3", size = 417870452 },
-    { url = "https://files.pythonhosted.org/packages/96/df/c5ac9ac5096355c47c606e613ecc7aa50fbccf5e0145df857d11da6464b1/nvidia_cublas_cu11-11.11.3.6-py3-none-manylinux2014_aarch64.whl", hash = "sha256:5ccae9e069a2c6be9af9cb5a0b0c6928c19c7915e390d15f598a1eead2a01a7a", size = 291428448 },
-    { url = "https://files.pythonhosted.org/packages/ea/2e/9d99c60771d275ecf6c914a612e9a577f740a615bc826bec132368e1d3ae/nvidia_cublas_cu11-11.11.3.6-py3-none-manylinux2014_x86_64.whl", hash = "sha256:60252822adea5d0b10cd990a7dc7bedf7435f30ae40083c7a624a85a43225abc", size = 417870460 },
-    { url = "https://files.pythonhosted.org/packages/0b/1d/7a78cd36fd5e3da4021b3ac2c2c8b2651dd72345b7c3ecc0d3e051884f50/nvidia_cublas_cu11-11.11.3.6-py3-none-win_amd64.whl", hash = "sha256:6ab12b1302bef8ac1ff4414edd1c059e57f4833abef9151683fb8f4de25900be", size = 427234740 },
+    { url = "https://files.pythonhosted.org/packages/16/fb/09e778ee3a8ea0d4dc8329cca0a9c9e65fed847d08e37eba74cb7ed4b252/numpy-2.2.4-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:e9e0a277bb2eb5d8a7407e14688b85fd8ad628ee4e0c7930415687b6564207a4", size = 21254989 },
+    { url = "https://files.pythonhosted.org/packages/a2/0a/1212befdbecab5d80eca3cde47d304cad986ad4eec7d85a42e0b6d2cc2ef/numpy-2.2.4-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:9eeea959168ea555e556b8188da5fa7831e21d91ce031e95ce23747b7609f8a4", size = 14425910 },
+    { url = "https://files.pythonhosted.org/packages/2b/3e/e7247c1d4f15086bb106c8d43c925b0b2ea20270224f5186fa48d4fb5cbd/numpy-2.2.4-cp311-cp311-macosx_14_0_arm64.whl", hash = "sha256:bd3ad3b0a40e713fc68f99ecfd07124195333f1e689387c180813f0e94309d6f", size = 5426490 },
+    { url = "https://files.pythonhosted.org/packages/5d/fa/aa7cd6be51419b894c5787a8a93c3302a1ed4f82d35beb0613ec15bdd0e2/numpy-2.2.4-cp311-cp311-macosx_14_0_x86_64.whl", hash = "sha256:cf28633d64294969c019c6df4ff37f5698e8326db68cc2b66576a51fad634880", size = 6967754 },
+    { url = "https://files.pythonhosted.org/packages/d5/ee/96457c943265de9fadeb3d2ffdbab003f7fba13d971084a9876affcda095/numpy-2.2.4-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:2fa8fa7697ad1646b5c93de1719965844e004fcad23c91228aca1cf0800044a1", size = 14373079 },
+    { url = "https://files.pythonhosted.org/packages/c5/5c/ceefca458559f0ccc7a982319f37ed07b0d7b526964ae6cc61f8ad1b6119/numpy-2.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f4162988a360a29af158aeb4a2f4f09ffed6a969c9776f8f3bdee9b06a8ab7e5", size = 16428819 },
+    { url = "https://files.pythonhosted.org/packages/22/31/9b2ac8eee99e001eb6add9fa27514ef5e9faf176169057a12860af52704c/numpy-2.2.4-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:892c10d6a73e0f14935c31229e03325a7b3093fafd6ce0af704be7f894d95687", size = 15881470 },
+    { url = "https://files.pythonhosted.org/packages/f0/dc/8569b5f25ff30484b555ad8a3f537e0225d091abec386c9420cf5f7a2976/numpy-2.2.4-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:db1f1c22173ac1c58db249ae48aa7ead29f534b9a948bc56828337aa84a32ed6", size = 18218144 },
+    { url = "https://files.pythonhosted.org/packages/5e/05/463c023a39bdeb9bb43a99e7dee2c664cb68d5bb87d14f92482b9f6011cc/numpy-2.2.4-cp311-cp311-win32.whl", hash = "sha256:ea2bb7e2ae9e37d96835b3576a4fa4b3a97592fbea8ef7c3587078b0068b8f09", size = 6606368 },
+    { url = "https://files.pythonhosted.org/packages/8b/72/10c1d2d82101c468a28adc35de6c77b308f288cfd0b88e1070f15b98e00c/numpy-2.2.4-cp311-cp311-win_amd64.whl", hash = "sha256:f7de08cbe5551911886d1ab60de58448c6df0f67d9feb7d1fb21e9875ef95e91", size = 12947526 },
+    { url = "https://files.pythonhosted.org/packages/a2/30/182db21d4f2a95904cec1a6f779479ea1ac07c0647f064dea454ec650c42/numpy-2.2.4-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:a7b9084668aa0f64e64bd00d27ba5146ef1c3a8835f3bd912e7a9e01326804c4", size = 20947156 },
+    { url = "https://files.pythonhosted.org/packages/24/6d/9483566acfbda6c62c6bc74b6e981c777229d2af93c8eb2469b26ac1b7bc/numpy-2.2.4-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:dbe512c511956b893d2dacd007d955a3f03d555ae05cfa3ff1c1ff6df8851854", size = 14133092 },
+    { url = "https://files.pythonhosted.org/packages/27/f6/dba8a258acbf9d2bed2525cdcbb9493ef9bae5199d7a9cb92ee7e9b2aea6/numpy-2.2.4-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:bb649f8b207ab07caebba230d851b579a3c8711a851d29efe15008e31bb4de24", size = 5163515 },
+    { url = "https://files.pythonhosted.org/packages/62/30/82116199d1c249446723c68f2c9da40d7f062551036f50b8c4caa42ae252/numpy-2.2.4-cp312-cp312-macosx_14_0_x86_64.whl", hash = "sha256:f34dc300df798742b3d06515aa2a0aee20941c13579d7a2f2e10af01ae4901ee", size = 6696558 },
+    { url = "https://files.pythonhosted.org/packages/0e/b2/54122b3c6df5df3e87582b2e9430f1bdb63af4023c739ba300164c9ae503/numpy-2.2.4-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c3f7ac96b16955634e223b579a3e5798df59007ca43e8d451a0e6a50f6bfdfba", size = 14084742 },
+    { url = "https://files.pythonhosted.org/packages/02/e2/e2cbb8d634151aab9528ef7b8bab52ee4ab10e076509285602c2a3a686e0/numpy-2.2.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4f92084defa704deadd4e0a5ab1dc52d8ac9e8a8ef617f3fbb853e79b0ea3592", size = 16134051 },
+    { url = "https://files.pythonhosted.org/packages/8e/21/efd47800e4affc993e8be50c1b768de038363dd88865920439ef7b422c60/numpy-2.2.4-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:7a4e84a6283b36632e2a5b56e121961f6542ab886bc9e12f8f9818b3c266bfbb", size = 15578972 },
+    { url = "https://files.pythonhosted.org/packages/04/1e/f8bb88f6157045dd5d9b27ccf433d016981032690969aa5c19e332b138c0/numpy-2.2.4-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:11c43995255eb4127115956495f43e9343736edb7fcdb0d973defd9de14cd84f", size = 17898106 },
+    { url = "https://files.pythonhosted.org/packages/2b/93/df59a5a3897c1f036ae8ff845e45f4081bb06943039ae28a3c1c7c780f22/numpy-2.2.4-cp312-cp312-win32.whl", hash = "sha256:65ef3468b53269eb5fdb3a5c09508c032b793da03251d5f8722b1194f1790c00", size = 6311190 },
+    { url = "https://files.pythonhosted.org/packages/46/69/8c4f928741c2a8efa255fdc7e9097527c6dc4e4df147e3cadc5d9357ce85/numpy-2.2.4-cp312-cp312-win_amd64.whl", hash = "sha256:2aad3c17ed2ff455b8eaafe06bcdae0062a1db77cb99f4b9cbb5f4ecb13c5146", size = 12644305 },
+    { url = "https://files.pythonhosted.org/packages/2a/d0/bd5ad792e78017f5decfb2ecc947422a3669a34f775679a76317af671ffc/numpy-2.2.4-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:1cf4e5c6a278d620dee9ddeb487dc6a860f9b199eadeecc567f777daace1e9e7", size = 20933623 },
+    { url = "https://files.pythonhosted.org/packages/c3/bc/2b3545766337b95409868f8e62053135bdc7fa2ce630aba983a2aa60b559/numpy-2.2.4-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:1974afec0b479e50438fc3648974268f972e2d908ddb6d7fb634598cdb8260a0", size = 14148681 },
+    { url = "https://files.pythonhosted.org/packages/6a/70/67b24d68a56551d43a6ec9fe8c5f91b526d4c1a46a6387b956bf2d64744e/numpy-2.2.4-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:79bd5f0a02aa16808fcbc79a9a376a147cc1045f7dfe44c6e7d53fa8b8a79392", size = 5148759 },
+    { url = "https://files.pythonhosted.org/packages/1c/8b/e2fc8a75fcb7be12d90b31477c9356c0cbb44abce7ffb36be39a0017afad/numpy-2.2.4-cp313-cp313-macosx_14_0_x86_64.whl", hash = "sha256:3387dd7232804b341165cedcb90694565a6015433ee076c6754775e85d86f1fc", size = 6683092 },
+    { url = "https://files.pythonhosted.org/packages/13/73/41b7b27f169ecf368b52533edb72e56a133f9e86256e809e169362553b49/numpy-2.2.4-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6f527d8fdb0286fd2fd97a2a96c6be17ba4232da346931d967a0630050dfd298", size = 14081422 },
+    { url = "https://files.pythonhosted.org/packages/4b/04/e208ff3ae3ddfbafc05910f89546382f15a3f10186b1f56bd99f159689c2/numpy-2.2.4-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bce43e386c16898b91e162e5baaad90c4b06f9dcbe36282490032cec98dc8ae7", size = 16132202 },
+    { url = "https://files.pythonhosted.org/packages/fe/bc/2218160574d862d5e55f803d88ddcad88beff94791f9c5f86d67bd8fbf1c/numpy-2.2.4-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:31504f970f563d99f71a3512d0c01a645b692b12a63630d6aafa0939e52361e6", size = 15573131 },
+    { url = "https://files.pythonhosted.org/packages/a5/78/97c775bc4f05abc8a8426436b7cb1be806a02a2994b195945600855e3a25/numpy-2.2.4-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:81413336ef121a6ba746892fad881a83351ee3e1e4011f52e97fba79233611fd", size = 17894270 },
+    { url = "https://files.pythonhosted.org/packages/b9/eb/38c06217a5f6de27dcb41524ca95a44e395e6a1decdc0c99fec0832ce6ae/numpy-2.2.4-cp313-cp313-win32.whl", hash = "sha256:f486038e44caa08dbd97275a9a35a283a8f1d2f0ee60ac260a1790e76660833c", size = 6308141 },
+    { url = "https://files.pythonhosted.org/packages/52/17/d0dd10ab6d125c6d11ffb6dfa3423c3571befab8358d4f85cd4471964fcd/numpy-2.2.4-cp313-cp313-win_amd64.whl", hash = "sha256:207a2b8441cc8b6a2a78c9ddc64d00d20c303d79fba08c577752f080c4007ee3", size = 12636885 },
+    { url = "https://files.pythonhosted.org/packages/fa/e2/793288ede17a0fdc921172916efb40f3cbc2aa97e76c5c84aba6dc7e8747/numpy-2.2.4-cp313-cp313t-macosx_10_13_x86_64.whl", hash = "sha256:8120575cb4882318c791f839a4fd66161a6fa46f3f0a5e613071aae35b5dd8f8", size = 20961829 },
+    { url = "https://files.pythonhosted.org/packages/3a/75/bb4573f6c462afd1ea5cbedcc362fe3e9bdbcc57aefd37c681be1155fbaa/numpy-2.2.4-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:a761ba0fa886a7bb33c6c8f6f20213735cb19642c580a931c625ee377ee8bd39", size = 14161419 },
+    { url = "https://files.pythonhosted.org/packages/03/68/07b4cd01090ca46c7a336958b413cdbe75002286295f2addea767b7f16c9/numpy-2.2.4-cp313-cp313t-macosx_14_0_arm64.whl", hash = "sha256:ac0280f1ba4a4bfff363a99a6aceed4f8e123f8a9b234c89140f5e894e452ecd", size = 5196414 },
+    { url = "https://files.pythonhosted.org/packages/a5/fd/d4a29478d622fedff5c4b4b4cedfc37a00691079623c0575978d2446db9e/numpy-2.2.4-cp313-cp313t-macosx_14_0_x86_64.whl", hash = "sha256:879cf3a9a2b53a4672a168c21375166171bc3932b7e21f622201811c43cdd3b0", size = 6709379 },
+    { url = "https://files.pythonhosted.org/packages/41/78/96dddb75bb9be730b87c72f30ffdd62611aba234e4e460576a068c98eff6/numpy-2.2.4-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f05d4198c1bacc9124018109c5fba2f3201dbe7ab6e92ff100494f236209c960", size = 14051725 },
+    { url = "https://files.pythonhosted.org/packages/00/06/5306b8199bffac2a29d9119c11f457f6c7d41115a335b78d3f86fad4dbe8/numpy-2.2.4-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e2f085ce2e813a50dfd0e01fbfc0c12bbe5d2063d99f8b29da30e544fb6483b8", size = 16101638 },
+    { url = "https://files.pythonhosted.org/packages/fa/03/74c5b631ee1ded596945c12027649e6344614144369fd3ec1aaced782882/numpy-2.2.4-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:92bda934a791c01d6d9d8e038363c50918ef7c40601552a58ac84c9613a665bc", size = 15571717 },
+    { url = "https://files.pythonhosted.org/packages/cb/dc/4fc7c0283abe0981e3b89f9b332a134e237dd476b0c018e1e21083310c31/numpy-2.2.4-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:ee4d528022f4c5ff67332469e10efe06a267e32f4067dc76bb7e2cddf3cd25ff", size = 17879998 },
+    { url = "https://files.pythonhosted.org/packages/e5/2b/878576190c5cfa29ed896b518cc516aecc7c98a919e20706c12480465f43/numpy-2.2.4-cp313-cp313t-win32.whl", hash = "sha256:05c076d531e9998e7e694c36e8b349969c56eadd2cdcd07242958489d79a7286", size = 6366896 },
+    { url = "https://files.pythonhosted.org/packages/3e/05/eb7eec66b95cf697f08c754ef26c3549d03ebd682819f794cb039574a0a6/numpy-2.2.4-cp313-cp313t-win_amd64.whl", hash = "sha256:188dcbca89834cc2e14eb2f106c96d6d46f200fe0200310fc29089657379c58d", size = 12739119 },
 ]
 
 [[package]]
 name = "nvidia-cublas-cu12"
-version = "12.1.3.1"
+version = "12.4.5.8"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/37/6d/121efd7382d5b0284239f4ab1fc1590d86d34ed4a4a2fdb13b30ca8e5740/nvidia_cublas_cu12-12.1.3.1-py3-none-manylinux1_x86_64.whl", hash = "sha256:ee53ccca76a6fc08fb9701aa95b6ceb242cdaab118c3bb152af4e579af792728", size = 410594774 },
-    { url = "https://files.pythonhosted.org/packages/c5/ef/32a375b74bea706c93deea5613552f7c9104f961b21df423f5887eca713b/nvidia_cublas_cu12-12.1.3.1-py3-none-win_amd64.whl", hash = "sha256:2b964d60e8cf11b5e1073d179d85fa340c120e99b3067558f3cf98dd69d02906", size = 439918445 },
-]
-
-[[package]]
-name = "nvidia-cuda-cupti-cu11"
-version = "11.8.87"
-source = { registry = "https://pypi.org/simple" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/27/c9/b4b15f709a694ea9f84871c6c4fbeeb54bab225962d852665a2c6f77f90d/nvidia_cuda_cupti_cu11-11.8.87-py3-none-manylinux1_x86_64.whl", hash = "sha256:0e50c707df56c75a2c0703dc6b886f3c97a22f37d6f63839f75b7418ba672a8d", size = 13093657 },
-    { url = "https://files.pythonhosted.org/packages/1e/5a/fb7e315aaa9d2bb28d3f2d9127375823c43646e07db4fe1b08746626e677/nvidia_cuda_cupti_cu11-11.8.87-py3-none-manylinux2014_aarch64.whl", hash = "sha256:9aaa638963a8271df26b6ee0d93b781730b7acc6581ff700bd023d7934e4385e", size = 11687484 },
-    { url = "https://files.pythonhosted.org/packages/74/42/9f5c5cc084ce6f3073048c4f6806f45ba4c8c73f227c9587215d9c372e05/nvidia_cuda_cupti_cu11-11.8.87-py3-none-manylinux2014_x86_64.whl", hash = "sha256:4191a17913a706b5098681280cd089cd7d8d3df209a6f5cb79384974a96d24f2", size = 13093662 },
-    { url = "https://files.pythonhosted.org/packages/9c/b9/371cff81be29e008a69f1681f468a2b428fa4ea03842196c178cb4cf1991/nvidia_cuda_cupti_cu11-11.8.87-py3-none-win_amd64.whl", hash = "sha256:4332d8550ad5f5b673f98d08e4e4f82030cb604c66d8d5ee919399ea01312e58", size = 9952361 },
+    { url = "https://files.pythonhosted.org/packages/7f/7f/7fbae15a3982dc9595e49ce0f19332423b260045d0a6afe93cdbe2f1f624/nvidia_cublas_cu12-12.4.5.8-py3-none-manylinux2014_aarch64.whl", hash = "sha256:0f8aa1706812e00b9f19dfe0cdb3999b092ccb8ca168c0db5b8ea712456fd9b3", size = 363333771 },
+    { url = "https://files.pythonhosted.org/packages/ae/71/1c91302526c45ab494c23f61c7a84aa568b8c1f9d196efa5993957faf906/nvidia_cublas_cu12-12.4.5.8-py3-none-manylinux2014_x86_64.whl", hash = "sha256:2fc8da60df463fdefa81e323eef2e36489e1c94335b5358bcb38360adf75ac9b", size = 363438805 },
+    { url = "https://files.pythonhosted.org/packages/e2/2a/4f27ca96232e8b5269074a72e03b4e0d43aa68c9b965058b1684d07c6ff8/nvidia_cublas_cu12-12.4.5.8-py3-none-win_amd64.whl", hash = "sha256:5a796786da89203a0657eda402bcdcec6180254a8ac22d72213abc42069522dc", size = 396895858 },
 ]
 
 [[package]]
 name = "nvidia-cuda-cupti-cu12"
-version = "12.1.105"
+version = "12.4.127"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7e/00/6b218edd739ecfc60524e585ba8e6b00554dd908de2c9c66c1af3e44e18d/nvidia_cuda_cupti_cu12-12.1.105-py3-none-manylinux1_x86_64.whl", hash = "sha256:e54fde3983165c624cb79254ae9818a456eb6e87a7fd4d56a2352c24ee542d7e", size = 14109015 },
-    { url = "https://files.pythonhosted.org/packages/d0/56/0021e32ea2848c24242f6b56790bd0ccc8bf99f973ca790569c6ca028107/nvidia_cuda_cupti_cu12-12.1.105-py3-none-win_amd64.whl", hash = "sha256:bea8236d13a0ac7190bd2919c3e8e6ce1e402104276e6f9694479e48bb0eb2a4", size = 10154340 },
+    { url = "https://files.pythonhosted.org/packages/93/b5/9fb3d00386d3361b03874246190dfec7b206fd74e6e287b26a8fcb359d95/nvidia_cuda_cupti_cu12-12.4.127-py3-none-manylinux2014_aarch64.whl", hash = "sha256:79279b35cf6f91da114182a5ce1864997fd52294a87a16179ce275773799458a", size = 12354556 },
+    { url = "https://files.pythonhosted.org/packages/67/42/f4f60238e8194a3106d06a058d494b18e006c10bb2b915655bd9f6ea4cb1/nvidia_cuda_cupti_cu12-12.4.127-py3-none-manylinux2014_x86_64.whl", hash = "sha256:9dec60f5ac126f7bb551c055072b69d85392b13311fcc1bcda2202d172df30fb", size = 13813957 },
+    { url = "https://files.pythonhosted.org/packages/f3/79/8cf313ec17c58ccebc965568e5bcb265cdab0a1df99c4e674bb7a3b99bfe/nvidia_cuda_cupti_cu12-12.4.127-py3-none-win_amd64.whl", hash = "sha256:5688d203301ab051449a2b1cb6690fbe90d2b372f411521c86018b950f3d7922", size = 9938035 },
 ]
 
 [[package]]
-name = "nvidia-cuda-nvrtc-cu11"
-version = "11.8.89"
+name = "nvidia-cuda-nvcc-cu12"
+version = "12.8.93"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/83/08/a9833e4e9f9165bedb7f36033b47aa399b053b9cb2eaf7b84d1e28705cf7/nvidia_cuda_nvrtc_cu11-11.8.89-py3-none-manylinux1_x86_64.whl", hash = "sha256:1f27d67b0f72902e9065ae568b4f6268dfe49ba3ed269c9a3da99bb86d1d2008", size = 23173264 },
-    { url = "https://files.pythonhosted.org/packages/1d/ad/58a9f86b0280190582691b1141ac3678c08f698d3d6161eed5cbe4e43b46/nvidia_cuda_nvrtc_cu11-11.8.89-py3-none-manylinux2014_aarch64.whl", hash = "sha256:8ab17ed51e7c4928f7170a0551e3e3b42f89d973bd267ced9688c238b3e10aef", size = 22671777 },
-    { url = "https://files.pythonhosted.org/packages/60/44/202e027c224c26e15a53f01c5c7604c7f6b4fd368882d3164ea08fead207/nvidia_cuda_nvrtc_cu11-11.8.89-py3-none-manylinux2014_x86_64.whl", hash = "sha256:a8d02f3cba345be56b1ffc3e74d8f61f02bb758dd31b0f20e12277a5a244f756", size = 23173745 },
-    { url = "https://files.pythonhosted.org/packages/c9/19/17745076214b0cc985cfdbabe2b3108f1237704985dab5b748e48432aca1/nvidia_cuda_nvrtc_cu11-11.8.89-py3-none-win_amd64.whl", hash = "sha256:e18a23a8f4064664a6f1c4a64f38c581cbebfb5935280e94a4943ea8ae3791b1", size = 19034935 },
+    { url = "https://files.pythonhosted.org/packages/86/0a/962e9c861541b08d62ee38a9e9776a46f75b979c75e7236fa7e09b024470/nvidia_cuda_nvcc_cu12-12.8.93-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl", hash = "sha256:2d6dc36fb7cb5ac9c0b8825bc13d193c35487a315664007287d0126531238011", size = 40128098 },
+    { url = "https://files.pythonhosted.org/packages/df/26/38b9f7d19a1d4bc7bc5988aa07c8c7ab8fb20f5a2d92018fd037eaff4eb7/nvidia_cuda_nvcc_cu12-12.8.93-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:2b35ada240938d19398119ca596faaf626ba5e729511be9715842a29d112926d", size = 38021796 },
+    { url = "https://files.pythonhosted.org/packages/05/e9/0adfcf7b228413645b41b0fafaa0b93a71dfe8f23cb15591a0f7fe6c3f63/nvidia_cuda_nvcc_cu12-12.8.93-py3-none-win_amd64.whl", hash = "sha256:bb9dc7c291cd105d14f9b220bdcdf6ce6063c2d6ff01a505e358471530a8d226", size = 33424101 },
 ]
 
 [[package]]
 name = "nvidia-cuda-nvrtc-cu12"
-version = "12.1.105"
+version = "12.4.127"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/9f/c64c03f49d6fbc56196664d05dba14e3a561038a81a638eeb47f4d4cfd48/nvidia_cuda_nvrtc_cu12-12.1.105-py3-none-manylinux1_x86_64.whl", hash = "sha256:339b385f50c309763ca65456ec75e17bbefcbbf2893f462cb8b90584cd27a1c2", size = 23671734 },
-    { url = "https://files.pythonhosted.org/packages/ad/1d/f76987c4f454eb86e0b9a0e4f57c3bf1ac1d13ad13cd1a4da4eb0e0c0ce9/nvidia_cuda_nvrtc_cu12-12.1.105-py3-none-win_amd64.whl", hash = "sha256:0a98a522d9ff138b96c010a65e145dc1b4850e9ecb75a0172371793752fd46ed", size = 19331863 },
-]
-
-[[package]]
-name = "nvidia-cuda-runtime-cu11"
-version = "11.8.89"
-source = { registry = "https://pypi.org/simple" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/45/3e/84db02be49fe6d6df6e42f69fd64501c22d0f9ada9c9877f885612085d20/nvidia_cuda_runtime_cu11-11.8.89-py3-none-manylinux1_x86_64.whl", hash = "sha256:f587bd726eb2f7612cf77ce38a2c1e65cf23251ff49437f6161ce0d647f64f7c", size = 875585 },
-    { url = "https://files.pythonhosted.org/packages/da/16/86d6f3f25c1d69cfcaa01c9a9704b7e946387b7aa13cc2f385b50eb46da5/nvidia_cuda_runtime_cu11-11.8.89-py3-none-manylinux2014_aarch64.whl", hash = "sha256:e53bf160b6b660819cb6e4a9da2cc89e6aa2329858299780a2459780a2b8d012", size = 805995 },
-    { url = "https://files.pythonhosted.org/packages/a6/ec/a540f28b31de7bc1ed49eecc72035d4cb77db88ead1d42f7bfa5ae407ac6/nvidia_cuda_runtime_cu11-11.8.89-py3-none-manylinux2014_x86_64.whl", hash = "sha256:92d04069a987e1fbc9213f8376d265df0f7bb42617d44f5eda1f496acea7f2d1", size = 875592 },
-    { url = "https://files.pythonhosted.org/packages/48/ae/09f335dfbca630ae213e53d2a9294540620453fe2b37e7489ff05817a525/nvidia_cuda_runtime_cu11-11.8.89-py3-none-win_amd64.whl", hash = "sha256:f60c9fdaed8065b38de8097867240efc5556a8a710007146daeb9082334a6e63", size = 1021163 },
+    { url = "https://files.pythonhosted.org/packages/77/aa/083b01c427e963ad0b314040565ea396f914349914c298556484f799e61b/nvidia_cuda_nvrtc_cu12-12.4.127-py3-none-manylinux2014_aarch64.whl", hash = "sha256:0eedf14185e04b76aa05b1fea04133e59f465b6f960c0cbf4e37c3cb6b0ea198", size = 24133372 },
+    { url = "https://files.pythonhosted.org/packages/2c/14/91ae57cd4db3f9ef7aa99f4019cfa8d54cb4caa7e00975df6467e9725a9f/nvidia_cuda_nvrtc_cu12-12.4.127-py3-none-manylinux2014_x86_64.whl", hash = "sha256:a178759ebb095827bd30ef56598ec182b85547f1508941a3d560eb7ea1fbf338", size = 24640306 },
+    { url = "https://files.pythonhosted.org/packages/7c/30/8c844bfb770f045bcd8b2c83455c5afb45983e1a8abf0c4e5297b481b6a5/nvidia_cuda_nvrtc_cu12-12.4.127-py3-none-win_amd64.whl", hash = "sha256:a961b2f1d5f17b14867c619ceb99ef6fcec12e46612711bcec78eb05068a60ec", size = 19751955 },
 ]
 
 [[package]]
 name = "nvidia-cuda-runtime-cu12"
-version = "12.1.105"
+version = "12.4.127"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/eb/d5/c68b1d2cdfcc59e72e8a5949a37ddb22ae6cade80cd4a57a84d4c8b55472/nvidia_cuda_runtime_cu12-12.1.105-py3-none-manylinux1_x86_64.whl", hash = "sha256:6e258468ddf5796e25f1dc591a31029fa317d97a0a94ed93468fc86301d61e40", size = 823596 },
-    { url = "https://files.pythonhosted.org/packages/9f/e2/7a2b4b5064af56ea8ea2d8b2776c0f2960d95c88716138806121ae52a9c9/nvidia_cuda_runtime_cu12-12.1.105-py3-none-win_amd64.whl", hash = "sha256:dfb46ef84d73fababab44cf03e3b83f80700d27ca300e537f85f636fac474344", size = 821226 },
-]
-
-[[package]]
-name = "nvidia-cudnn-cu11"
-version = "9.1.0.70"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "nvidia-cublas-cu11", marker = "extra == 'extra-6-regawa-cu118'" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/00/3b/0b776f04e364cd99e4cf152c2a9eadb5934c67c9a91429da55169a9447fd/nvidia_cudnn_cu11-9.1.0.70-py3-none-manylinux2014_x86_64.whl", hash = "sha256:e6135ac63fe9d5b0b89cfb35c3fc1c1349f2b995becadf2e9dc21bca89d9633d", size = 663919573 },
-    { url = "https://files.pythonhosted.org/packages/8f/66/c0d600fa64b65e474eced8f07c4a6e9441aacf746f800fd12fe395dd09db/nvidia_cudnn_cu11-9.1.0.70-py3-none-win_amd64.whl", hash = "sha256:32f6a2fe80b4b7ebc5f9c4cb403c4c381eca99e6daa3cf38241047b3d3e14daa", size = 680107132 },
+    { url = "https://files.pythonhosted.org/packages/a1/aa/b656d755f474e2084971e9a297def515938d56b466ab39624012070cb773/nvidia_cuda_runtime_cu12-12.4.127-py3-none-manylinux2014_aarch64.whl", hash = "sha256:961fe0e2e716a2a1d967aab7caee97512f71767f852f67432d572e36cb3a11f3", size = 894177 },
+    { url = "https://files.pythonhosted.org/packages/ea/27/1795d86fe88ef397885f2e580ac37628ed058a92ed2c39dc8eac3adf0619/nvidia_cuda_runtime_cu12-12.4.127-py3-none-manylinux2014_x86_64.whl", hash = "sha256:64403288fa2136ee8e467cdc9c9427e0434110899d07c779f25b5c068934faa5", size = 883737 },
+    { url = "https://files.pythonhosted.org/packages/a8/8b/450e93fab75d85a69b50ea2d5fdd4ff44541e0138db16f9cd90123ef4de4/nvidia_cuda_runtime_cu12-12.4.127-py3-none-win_amd64.whl", hash = "sha256:09c2e35f48359752dfa822c09918211844a3d93c100a715d79b59591130c5e1e", size = 878808 },
 ]
 
 [[package]]
@@ -1239,7 +1247,7 @@ name = "nvidia-cudnn-cu12"
 version = "9.1.0.70"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas-cu12", marker = "(sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "nvidia-cublas-cu12" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9f/fd/713452cd72343f682b1c7b9321e23829f00b842ceaedcda96e742ea0b0b3/nvidia_cudnn_cu12-9.1.0.70-py3-none-manylinux2014_x86_64.whl", hash = "sha256:165764f44ef8c61fcdfdfdbe769d687e06374059fbb388b6c89ecb0e28793a6f", size = 664752741 },
@@ -1247,102 +1255,54 @@ wheels = [
 ]
 
 [[package]]
-name = "nvidia-cufft-cu11"
-version = "10.9.0.58"
-source = { registry = "https://pypi.org/simple" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/74/79/b912a77e38e41f15a0581a59f5c3548d1ddfdda3225936fb67c342719e7a/nvidia_cufft_cu11-10.9.0.58-py3-none-manylinux1_x86_64.whl", hash = "sha256:222f9da70c80384632fd6035e4c3f16762d64ea7a843829cb278f98b3cb7dd81", size = 168405414 },
-    { url = "https://files.pythonhosted.org/packages/71/7a/a2ad9951d57c3cc23f4fa6d84b146afd9f375ffbc744b38935930ac4393f/nvidia_cufft_cu11-10.9.0.58-py3-none-manylinux2014_aarch64.whl", hash = "sha256:34b7315104e615b230dc3c2d1861f13bff9ec465c5d3b4bb65b4986d03a1d8d4", size = 111231060 },
-    { url = "https://files.pythonhosted.org/packages/64/c8/133717b43182ba063803e983e7680a94826a9f4ff5734af0ca315803f1b3/nvidia_cufft_cu11-10.9.0.58-py3-none-manylinux2014_x86_64.whl", hash = "sha256:e21037259995243cc370dd63c430d77ae9280bedb68d5b5a18226bfc92e5d748", size = 168405419 },
-    { url = "https://files.pythonhosted.org/packages/f8/b4/e432a74f8db0e84f734dc14d36c0e529225132bf7e239da21f55893351a6/nvidia_cufft_cu11-10.9.0.58-py3-none-win_amd64.whl", hash = "sha256:c4d316f17c745ec9c728e30409612eaf77a8404c3733cdf6c9c1569634d1ca03", size = 172237004 },
-]
-
-[[package]]
 name = "nvidia-cufft-cu12"
-version = "11.0.2.54"
+version = "11.2.1.3"
 source = { registry = "https://pypi.org/simple" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/86/94/eb540db023ce1d162e7bea9f8f5aa781d57c65aed513c33ee9a5123ead4d/nvidia_cufft_cu12-11.0.2.54-py3-none-manylinux1_x86_64.whl", hash = "sha256:794e3948a1aa71fd817c3775866943936774d1c14e7628c74f6f7417224cdf56", size = 121635161 },
-    { url = "https://files.pythonhosted.org/packages/f7/57/7927a3aa0e19927dfed30256d1c854caf991655d847a4e7c01fe87e3d4ac/nvidia_cufft_cu12-11.0.2.54-py3-none-win_amd64.whl", hash = "sha256:d9ac353f78ff89951da4af698f80870b1534ed69993f10a4cf1d96f21357e253", size = 121344196 },
+dependencies = [
+    { name = "nvidia-nvjitlink-cu12" },
 ]
-
-[[package]]
-name = "nvidia-curand-cu11"
-version = "10.3.0.86"
-source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/28/c47f8e2439ddbcbeae3cf74d43ed572b651d630ea72863d5357f3759eb66/nvidia_curand_cu11-10.3.0.86-py3-none-manylinux1_x86_64.whl", hash = "sha256:ac439548c88580269a1eb6aeb602a5aed32f0dbb20809a31d9ed7d01d77f6bf5", size = 58124493 },
-    { url = "https://files.pythonhosted.org/packages/5d/c0/aec095de6cb3b07197042f9ff8958eda2a5eaaefabc8db2e3bfa32aafb97/nvidia_curand_cu11-10.3.0.86-py3-none-manylinux2014_aarch64.whl", hash = "sha256:64defc3016d8c1de351a764617818c2961210430f12476faee10084b269b188c", size = 58134524 },
-    { url = "https://files.pythonhosted.org/packages/58/e5/ce5806afc48a6e4e0dddd25316ac60b6fa94fd1791bdbf4ca17bf52696ea/nvidia_curand_cu11-10.3.0.86-py3-none-manylinux2014_x86_64.whl", hash = "sha256:cd4cffbf78bb06580206b4814d5dc696d1161c902aae37b2bba00056832379e6", size = 58124497 },
-    { url = "https://files.pythonhosted.org/packages/ae/e0/a68e20f37512c2ff22c1b2707383faec80acc20c39727e4007065ed284ea/nvidia_curand_cu11-10.3.0.86-py3-none-win_amd64.whl", hash = "sha256:8fa8365065fc3e3760d7437b08f164a6bcf8f7124f3b544d2463ded01e6bdc70", size = 57597791 },
+    { url = "https://files.pythonhosted.org/packages/7a/8a/0e728f749baca3fbeffad762738276e5df60851958be7783af121a7221e7/nvidia_cufft_cu12-11.2.1.3-py3-none-manylinux2014_aarch64.whl", hash = "sha256:5dad8008fc7f92f5ddfa2101430917ce2ffacd86824914c82e28990ad7f00399", size = 211422548 },
+    { url = "https://files.pythonhosted.org/packages/27/94/3266821f65b92b3138631e9c8e7fe1fb513804ac934485a8d05776e1dd43/nvidia_cufft_cu12-11.2.1.3-py3-none-manylinux2014_x86_64.whl", hash = "sha256:f083fc24912aa410be21fa16d157fed2055dab1cc4b6934a0e03cba69eb242b9", size = 211459117 },
+    { url = "https://files.pythonhosted.org/packages/f6/ee/3f3f8e9874f0be5bbba8fb4b62b3de050156d159f8b6edc42d6f1074113b/nvidia_cufft_cu12-11.2.1.3-py3-none-win_amd64.whl", hash = "sha256:d802f4954291101186078ccbe22fc285a902136f974d369540fd4a5333d1440b", size = 210576476 },
 ]
 
 [[package]]
 name = "nvidia-curand-cu12"
-version = "10.3.2.106"
+version = "10.3.5.147"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/44/31/4890b1c9abc496303412947fc7dcea3d14861720642b49e8ceed89636705/nvidia_curand_cu12-10.3.2.106-py3-none-manylinux1_x86_64.whl", hash = "sha256:9d264c5036dde4e64f1de8c50ae753237c12e0b1348738169cd0f8a536c0e1e0", size = 56467784 },
-    { url = "https://files.pythonhosted.org/packages/5c/97/4c9c7c79efcdf5b70374241d48cf03b94ef6707fd18ea0c0f53684931d0b/nvidia_curand_cu12-10.3.2.106-py3-none-win_amd64.whl", hash = "sha256:75b6b0c574c0037839121317e17fd01f8a69fd2ef8e25853d826fec30bdba74a", size = 55995813 },
-]
-
-[[package]]
-name = "nvidia-cusolver-cu11"
-version = "11.4.1.48"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "nvidia-cublas-cu11", marker = "extra == 'extra-6-regawa-cu118'" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/55/ee/939ff0104991dd7bdabb4c9767994c612ba0e1c9a55672a1ddd42f5e5b16/nvidia_cusolver_cu11-11.4.1.48-py3-none-manylinux1_x86_64.whl", hash = "sha256:ca538f545645b7e6629140786d3127fe067b3d5a085bd794cde5bfe877c8926f", size = 128240842 },
-    { url = "https://files.pythonhosted.org/packages/d8/32/676f0cfea4ff5bbc6dcfe00b5f385ba49d322dc8e9ff1ef864b570e27e9e/nvidia_cusolver_cu11-11.4.1.48-py3-none-manylinux2014_aarch64.whl", hash = "sha256:1a96acb05768610bc414dbef5b25ebd2d820fc8a1e8c72097f41f53d80934d61", size = 127903177 },
-    { url = "https://files.pythonhosted.org/packages/52/fe/866e87e6e6a1b0a5fcf8524a058042656702f2057e22bfdb8899a7c38e10/nvidia_cusolver_cu11-11.4.1.48-py3-none-manylinux2014_x86_64.whl", hash = "sha256:ea9fb1ad8c644ca9ed55af13cc39af3b7ba4c3eb5aef18471fe1fe77d94383cb", size = 128246438 },
-    { url = "https://files.pythonhosted.org/packages/1e/94/4fd658d09776307b98411eca09dd77773d8c3bdc484b186a2084038b75e2/nvidia_cusolver_cu11-11.4.1.48-py3-none-win_amd64.whl", hash = "sha256:7efe43b113495a64e2cf9a0b4365bd53b0a82afb2e2cf91e9f993c9ef5e69ee8", size = 125732382 },
+    { url = "https://files.pythonhosted.org/packages/80/9c/a79180e4d70995fdf030c6946991d0171555c6edf95c265c6b2bf7011112/nvidia_curand_cu12-10.3.5.147-py3-none-manylinux2014_aarch64.whl", hash = "sha256:1f173f09e3e3c76ab084aba0de819c49e56614feae5c12f69883f4ae9bb5fad9", size = 56314811 },
+    { url = "https://files.pythonhosted.org/packages/8a/6d/44ad094874c6f1b9c654f8ed939590bdc408349f137f9b98a3a23ccec411/nvidia_curand_cu12-10.3.5.147-py3-none-manylinux2014_x86_64.whl", hash = "sha256:a88f583d4e0bb643c49743469964103aa59f7f708d862c3ddb0fc07f851e3b8b", size = 56305206 },
+    { url = "https://files.pythonhosted.org/packages/1c/22/2573503d0d4e45673c263a313f79410e110eb562636b0617856fdb2ff5f6/nvidia_curand_cu12-10.3.5.147-py3-none-win_amd64.whl", hash = "sha256:f307cc191f96efe9e8f05a87096abc20d08845a841889ef78cb06924437f6771", size = 55799918 },
 ]
 
 [[package]]
 name = "nvidia-cusolver-cu12"
-version = "11.4.5.107"
+version = "11.6.1.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas-cu12", marker = "(sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-cusparse-cu12", marker = "(sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-nvjitlink-cu12", marker = "(sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "nvidia-cublas-cu12" },
+    { name = "nvidia-cusparse-cu12" },
+    { name = "nvidia-nvjitlink-cu12" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bc/1d/8de1e5c67099015c834315e333911273a8c6aaba78923dd1d1e25fc5f217/nvidia_cusolver_cu12-11.4.5.107-py3-none-manylinux1_x86_64.whl", hash = "sha256:8a7ec542f0412294b15072fa7dab71d31334014a69f953004ea7a118206fe0dd", size = 124161928 },
-    { url = "https://files.pythonhosted.org/packages/b8/80/8fca0bf819122a631c3976b6fc517c1b10741b643b94046bd8dd451522c5/nvidia_cusolver_cu12-11.4.5.107-py3-none-win_amd64.whl", hash = "sha256:74e0c3a24c78612192a74fcd90dd117f1cf21dea4822e66d89e8ea80e3cd2da5", size = 121643081 },
-]
-
-[[package]]
-name = "nvidia-cusparse-cu11"
-version = "11.7.5.86"
-source = { registry = "https://pypi.org/simple" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c1/e0/21b829c535d569831835a4ca5d049a19ba00d3e91f3e12ab4ad27bd7385f/nvidia_cusparse_cu11-11.7.5.86-py3-none-manylinux1_x86_64.whl", hash = "sha256:4ae709fe78d3f23f60acaba8c54b8ad556cf16ca486e0cc1aa92dca7555d2d2b", size = 204126221 },
-    { url = "https://files.pythonhosted.org/packages/a2/6e/4eb2842e7ab1804072bca43030a8b92731e5a35f6a4a1b8f1aa8fa5f411c/nvidia_cusparse_cu11-11.7.5.86-py3-none-manylinux2014_aarch64.whl", hash = "sha256:6c7da46abee7567e619d4aa2e90a1b032cfcbd1211d429853b1a6e87514a14b2", size = 203917797 },
-    { url = "https://files.pythonhosted.org/packages/ed/5c/b0333b07c51ced77397c2fb0d9826072cea0da9d421aa7e792aa0f8ecc72/nvidia_cusparse_cu11-11.7.5.86-py3-none-manylinux2014_x86_64.whl", hash = "sha256:8d7cf1628fd8d462b5d2ba6678fae34733a48ecb80495b9c68672ec6a6dde5ef", size = 204126227 },
-    { url = "https://files.pythonhosted.org/packages/b8/36/a670e8ca1deccd3c63be4d0286491cf5c6375253f0d948e7cc5167fe1da9/nvidia_cusparse_cu11-11.7.5.86-py3-none-win_amd64.whl", hash = "sha256:a0f6ee81cd91be606fc2f55992d06b09cd4e86d74b6ae5e8dd1631cf7f5a8706", size = 203420667 },
+    { url = "https://files.pythonhosted.org/packages/46/6b/a5c33cf16af09166845345275c34ad2190944bcc6026797a39f8e0a282e0/nvidia_cusolver_cu12-11.6.1.9-py3-none-manylinux2014_aarch64.whl", hash = "sha256:d338f155f174f90724bbde3758b7ac375a70ce8e706d70b018dd3375545fc84e", size = 127634111 },
+    { url = "https://files.pythonhosted.org/packages/3a/e1/5b9089a4b2a4790dfdea8b3a006052cfecff58139d5a4e34cb1a51df8d6f/nvidia_cusolver_cu12-11.6.1.9-py3-none-manylinux2014_x86_64.whl", hash = "sha256:19e33fa442bcfd085b3086c4ebf7e8debc07cfe01e11513cc6d332fd918ac260", size = 127936057 },
+    { url = "https://files.pythonhosted.org/packages/f2/be/d435b7b020e854d5d5a682eb5de4328fd62f6182507406f2818280e206e2/nvidia_cusolver_cu12-11.6.1.9-py3-none-win_amd64.whl", hash = "sha256:e77314c9d7b694fcebc84f58989f3aa4fb4cb442f12ca1a9bde50f5e8f6d1b9c", size = 125224015 },
 ]
 
 [[package]]
 name = "nvidia-cusparse-cu12"
-version = "12.1.0.106"
+version = "12.3.1.170"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-nvjitlink-cu12", marker = "(sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "nvidia-nvjitlink-cu12" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/65/5b/cfaeebf25cd9fdec14338ccb16f6b2c4c7fa9163aefcf057d86b9cc248bb/nvidia_cusparse_cu12-12.1.0.106-py3-none-manylinux1_x86_64.whl", hash = "sha256:f3b50f42cf363f86ab21f720998517a659a48131e8d538dc02f8768237bd884c", size = 195958278 },
-    { url = "https://files.pythonhosted.org/packages/0f/95/48fdbba24c93614d1ecd35bc6bdc6087bd17cbacc3abc4b05a9c2a1ca232/nvidia_cusparse_cu12-12.1.0.106-py3-none-win_amd64.whl", hash = "sha256:b798237e81b9719373e8fae8d4f091b70a0cf09d9d85c95a557e11df2d8e9a5a", size = 195414588 },
-]
-
-[[package]]
-name = "nvidia-nccl-cu11"
-version = "2.21.5"
-source = { registry = "https://pypi.org/simple" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ac/9a/8b6a28b3b87d5fddab0e92cd835339eb8fbddaa71ae67518c8c1b3d05bae/nvidia_nccl_cu11-2.21.5-py3-none-manylinux2014_x86_64.whl", hash = "sha256:49d8350629c7888701d1fd200934942671cb5c728f49acc5a0b3a768820bed29", size = 147811630 },
+    { url = "https://files.pythonhosted.org/packages/96/a9/c0d2f83a53d40a4a41be14cea6a0bf9e668ffcf8b004bd65633f433050c0/nvidia_cusparse_cu12-12.3.1.170-py3-none-manylinux2014_aarch64.whl", hash = "sha256:9d32f62896231ebe0480efd8a7f702e143c98cfaa0e8a76df3386c1ba2b54df3", size = 207381987 },
+    { url = "https://files.pythonhosted.org/packages/db/f7/97a9ea26ed4bbbfc2d470994b8b4f338ef663be97b8f677519ac195e113d/nvidia_cusparse_cu12-12.3.1.170-py3-none-manylinux2014_x86_64.whl", hash = "sha256:ea4f11a2904e2a8dc4b1833cc1b5181cde564edd0d5cd33e3c168eff2d1863f1", size = 207454763 },
+    { url = "https://files.pythonhosted.org/packages/a2/e0/3155ca539760a8118ec94cc279b34293309bcd14011fc724f87f31988843/nvidia_cusparse_cu12-12.3.1.170-py3-none-win_amd64.whl", hash = "sha256:9bc90fb087bc7b4c15641521f31c0371e9a612fc2ba12c338d3ae032e6b6797f", size = 204684315 },
 ]
 
 [[package]]
@@ -1355,32 +1315,22 @@ wheels = [
 
 [[package]]
 name = "nvidia-nvjitlink-cu12"
-version = "12.8.93"
+version = "12.4.127"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f6/74/86a07f1d0f42998ca31312f998bd3b9a7eff7f52378f4f270c8679c77fb9/nvidia_nvjitlink_cu12-12.8.93-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl", hash = "sha256:81ff63371a7ebd6e6451970684f916be2eab07321b73c9d244dc2b4da7f73b88", size = 39254836 },
-    { url = "https://files.pythonhosted.org/packages/2a/a2/8cee5da30d13430e87bf99bb33455d2724d0a4a9cb5d7926d80ccb96d008/nvidia_nvjitlink_cu12-12.8.93-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:adccd7161ace7261e01bb91e44e88da350895c270d23f744f0820c818b7229e7", size = 38386204 },
-    { url = "https://files.pythonhosted.org/packages/ed/d7/34f02dad2e30c31b10a51f6b04e025e5dd60e5f936af9045a9b858a05383/nvidia_nvjitlink_cu12-12.8.93-py3-none-win_amd64.whl", hash = "sha256:bd93fbeeee850917903583587f4fc3a4eafa022e34572251368238ab5e6bd67f", size = 268553710 },
-]
-
-[[package]]
-name = "nvidia-nvtx-cu11"
-version = "11.8.86"
-source = { registry = "https://pypi.org/simple" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d5/a2/23214c23118784dc2189ac2d2e48190df3e4206e2f73eb17d47140797a2b/nvidia_nvtx_cu11-11.8.86-py3-none-manylinux1_x86_64.whl", hash = "sha256:890656d8bd9b4e280231c832e1f0d03459200ba4824ddda3dcb59b1e1989b9f5", size = 99125 },
-    { url = "https://files.pythonhosted.org/packages/42/b9/385e4323646d21f9aedb9e953e5c778311cd8df32eb2237f1ce242c58572/nvidia_nvtx_cu11-11.8.86-py3-none-manylinux2014_aarch64.whl", hash = "sha256:5e84b97062eb102b45a8a9172a06cfe28b239b1635075a13d6474e91295e0468", size = 100401 },
-    { url = "https://files.pythonhosted.org/packages/b5/ad/973a187b137a3d45dc3faac421ef1275fb41fc169fd3889e2d5ceb0daa54/nvidia_nvtx_cu11-11.8.86-py3-none-manylinux2014_x86_64.whl", hash = "sha256:979f5b2aef5da164c5c53c64c85c3dfa61b8b4704f4f963bb568bf98fa8472e8", size = 99130 },
-    { url = "https://files.pythonhosted.org/packages/3f/3f/0e1dd2bc4d89f838b86c76956ffa514307d3be4d8b5ee0da4e9d12a8b54b/nvidia_nvtx_cu11-11.8.86-py3-none-win_amd64.whl", hash = "sha256:54031010ee38d774b2991004d88f90bbd7bbc1458a96bbc4b42662756508c252", size = 66297 },
+    { url = "https://files.pythonhosted.org/packages/02/45/239d52c05074898a80a900f49b1615d81c07fceadd5ad6c4f86a987c0bc4/nvidia_nvjitlink_cu12-12.4.127-py3-none-manylinux2014_aarch64.whl", hash = "sha256:4abe7fef64914ccfa909bc2ba39739670ecc9e820c83ccc7a6ed414122599b83", size = 20552510 },
+    { url = "https://files.pythonhosted.org/packages/ff/ff/847841bacfbefc97a00036e0fce5a0f086b640756dc38caea5e1bb002655/nvidia_nvjitlink_cu12-12.4.127-py3-none-manylinux2014_x86_64.whl", hash = "sha256:06b3b9b25bf3f8af351d664978ca26a16d2c5127dbd53c0497e28d1fb9611d57", size = 21066810 },
+    { url = "https://files.pythonhosted.org/packages/81/19/0babc919031bee42620257b9a911c528f05fb2688520dcd9ca59159ffea8/nvidia_nvjitlink_cu12-12.4.127-py3-none-win_amd64.whl", hash = "sha256:fd9020c501d27d135f983c6d3e244b197a7ccad769e34df53a42e276b0e25fa1", size = 95336325 },
 ]
 
 [[package]]
 name = "nvidia-nvtx-cu12"
-version = "12.1.105"
+version = "12.4.127"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/da/d3/8057f0587683ed2fcd4dbfbdfdfa807b9160b809976099d36b8f60d08f03/nvidia_nvtx_cu12-12.1.105-py3-none-manylinux1_x86_64.whl", hash = "sha256:dc21cf308ca5691e7c04d962e213f8a4aa9bbfa23d95412f452254c2caeb09e5", size = 99138 },
-    { url = "https://files.pythonhosted.org/packages/b8/d7/bd7cb2d95ac6ac6e8d05bfa96cdce69619f1ef2808e072919044c2d47a8c/nvidia_nvtx_cu12-12.1.105-py3-none-win_amd64.whl", hash = "sha256:65f4d98982b31b60026e0e6de73fbdfc09d08a96f4656dd3665ca616a11e1e82", size = 66307 },
+    { url = "https://files.pythonhosted.org/packages/06/39/471f581edbb7804b39e8063d92fc8305bdc7a80ae5c07dbe6ea5c50d14a5/nvidia_nvtx_cu12-12.4.127-py3-none-manylinux2014_aarch64.whl", hash = "sha256:7959ad635db13edf4fc65c06a6e9f9e55fc2f92596db928d169c0bb031e88ef3", size = 100417 },
+    { url = "https://files.pythonhosted.org/packages/87/20/199b8713428322a2f22b722c62b8cc278cc53dffa9705d744484b5035ee9/nvidia_nvtx_cu12-12.4.127-py3-none-manylinux2014_x86_64.whl", hash = "sha256:781e950d9b9f60d8241ccea575b32f5105a5baf4c2351cab5256a24869f12a1a", size = 99144 },
+    { url = "https://files.pythonhosted.org/packages/54/1b/f77674fbb73af98843be25803bbd3b9a4f0a96c75b8d33a2854a5c7d2d77/nvidia_nvtx_cu12-12.4.127-py3-none-win_amd64.whl", hash = "sha256:641dccaaa1139f3ffb0d3164b4b84f9d253397e38246a4f2f36728b48566d485", size = 66307 },
 ]
 
 [[package]]
@@ -1451,7 +1401,7 @@ wheels = [
 
 [[package]]
 name = "orbax-checkpoint"
-version = "0.11.9"
+version = "0.11.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "absl-py" },
@@ -1467,9 +1417,9 @@ dependencies = [
     { name = "tensorstore" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e6/5b/ba638eb4b64e64e06a3c9aade6e5244a5e9e90bc771446db62590efacc78/orbax_checkpoint-0.11.9.tar.gz", hash = "sha256:cc1805c773213ab19d0d6a3ef6373b4eda152942eef5830eaa34df75a2b39cab", size = 272881 }
+sdist = { url = "https://files.pythonhosted.org/packages/c8/67/656c4164bd9405e70c83f7d39d7a4c51804b60ccba66ea7992de42d33afe/orbax_checkpoint-0.11.10.tar.gz", hash = "sha256:9e415b0d041b4c256ff2e126df9c6b056f0155f322de0a69befd73d1657fb9e5", size = 273808 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/52/ef/03e387e7a2e600996783bd7aec876e6b253778f6488a50728efc50ac7aa2/orbax_checkpoint-0.11.9-py3-none-any.whl", hash = "sha256:1997735e525909617089872ac439c3ff66b00e2f8d5d9d9376a04003d56d5bf0", size = 375848 },
+    { url = "https://files.pythonhosted.org/packages/85/86/f09c5097272d6c834f95a1eff5d001923d29734b19f187d2cea78c5e1948/orbax_checkpoint-0.11.10-py3-none-any.whl", hash = "sha256:11e20aa97a3b0ddef79a24cf192fd997298604ab5541dc4f3ec7512ecbe94bdf", size = 376881 },
 ]
 
 [[package]]
@@ -1790,11 +1740,11 @@ wheels = [
 
 [[package]]
 name = "pyparsing"
-version = "3.2.1"
+version = "3.2.3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/8b/1a/3544f4f299a47911c2ab3710f534e52fea62a633c96806995da5d25be4b2/pyparsing-3.2.1.tar.gz", hash = "sha256:61980854fd66de3a90028d679a954d5f2623e83144b5afe5ee86f43d762e5f0a", size = 1067694 }
+sdist = { url = "https://files.pythonhosted.org/packages/bb/22/f1129e69d94ffff626bdb5c835506b3a5b4f3d070f17ea295e12c2c6f60f/pyparsing-3.2.3.tar.gz", hash = "sha256:b9c13f1ab8b3b542f72e28f634bad4de758ab3ce4546e4301970ad6fa77c38be", size = 1088608 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1c/a7/c8a2d361bf89c0d9577c934ebb7421b25dc84bf3a8e3ac0a40aed9acc547/pyparsing-3.2.1-py3-none-any.whl", hash = "sha256:506ff4f4386c4cec0590ec19e6302d3aedb992fdc02c761e90416f158dacf8e1", size = 107716 },
+    { url = "https://files.pythonhosted.org/packages/05/e7/df2285f3d08fee213f2d041540fa4fc9ca6c2d44cf36d3a035bf2a8d2bcc/pyparsing-3.2.3-py3-none-any.whl", hash = "sha256:a749938e02d6fd0b59b356ca504a24982314bb090c383e3cf201c95ef7e2bfcf", size = 111120 },
 ]
 
 [[package]]
@@ -1820,7 +1770,7 @@ name = "pytest"
 version = "8.3.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
     { name = "iniconfig" },
     { name = "packaging" },
     { name = "pluggy" },
@@ -1926,17 +1876,23 @@ dependencies = [
 
 [package.optional-dependencies]
 cpu = [
-    { name = "torch", version = "2.5.0", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "torch", version = "2.5.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "torch", version = "2.5.0", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "torch", version = "2.5.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
     { name = "torch-scatter", version = "2.1.2+pt25cpu", source = { registry = "https://data.pyg.org/whl/torch-2.5.0+cpu.html" } },
 ]
-cu118 = [
-    { name = "torch", version = "2.5.0+cu118", source = { registry = "https://download.pytorch.org/whl/cu118" } },
-    { name = "torch-scatter", version = "2.1.2+pt25cu118", source = { registry = "https://data.pyg.org/whl/torch-2.5.0+cu118.html" } },
+cu124 = [
+    { name = "torch", version = "2.5.0", source = { registry = "https://download.pytorch.org/whl/cu124" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "torch", version = "2.5.0+cu124", source = { registry = "https://download.pytorch.org/whl/cu124" }, marker = "(platform_machine != 'aarch64' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cu124') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "torch-scatter", version = "2.1.2+pt25cu124", source = { registry = "https://data.pyg.org/whl/torch-2.5.0+cu124.html" } },
 ]
-jax = [
+jax-cpu = [
     { name = "flax" },
     { name = "jax" },
+    { name = "optax" },
+]
+jax-gpu = [
+    { name = "flax" },
+    { name = "jax", extra = ["cuda12"] },
     { name = "optax" },
 ]
 rddl = [
@@ -1960,20 +1916,23 @@ rl = [
 
 [package.metadata]
 requires-dist = [
-    { name = "flax", marker = "extra == 'jax'" },
+    { name = "flax", marker = "extra == 'jax-cpu'" },
+    { name = "flax", marker = "extra == 'jax-gpu'" },
     { name = "gnn-policy", git = "ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy" },
     { name = "gymnasium", specifier = ">=1.1.1" },
-    { name = "jax", marker = "extra == 'jax'" },
-    { name = "optax", marker = "extra == 'jax'" },
+    { name = "jax", marker = "extra == 'jax-cpu'" },
+    { name = "jax", extras = ["cuda12"], marker = "extra == 'jax-gpu'" },
+    { name = "optax", marker = "extra == 'jax-cpu'" },
+    { name = "optax", marker = "extra == 'jax-gpu'" },
     { name = "pyrddlgym", marker = "extra == 'rddl'", specifier = ">=2.2" },
     { name = "rddlrepository", marker = "extra == 'rddl'", specifier = ">=2.0" },
     { name = "torch", marker = "extra == 'cpu'", specifier = "==2.5.0", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "regawa", extra = "cpu" } },
-    { name = "torch", marker = "extra == 'cu118'", specifier = "==2.5.0", index = "https://download.pytorch.org/whl/cu118", conflict = { package = "regawa", extra = "cu118" } },
+    { name = "torch", marker = "extra == 'cu124'", specifier = "==2.5.0", index = "https://download.pytorch.org/whl/cu124", conflict = { package = "regawa", extra = "cu124" } },
     { name = "torch-scatter", marker = "extra == 'cpu'", specifier = "==2.1.2+pt25cpu" },
-    { name = "torch-scatter", marker = "extra == 'cu118'", specifier = "==2.1.2+pt25cu118" },
+    { name = "torch-scatter", marker = "extra == 'cu124'", specifier = "==2.1.2+pt25cu124" },
     { name = "tqdm", specifier = ">=4.67.1" },
 ]
-provides-extras = ["cpu", "cu118", "jax", "rddl"]
+provides-extras = ["cpu", "cu124", "jax-cpu", "jax-gpu", "rddl"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -2168,11 +2127,11 @@ wheels = [
 
 [[package]]
 name = "setuptools"
-version = "76.0.0"
+version = "78.1.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/32/d2/7b171caf085ba0d40d8391f54e1c75a1cda9255f542becf84575cfd8a732/setuptools-76.0.0.tar.gz", hash = "sha256:43b4ee60e10b0d0ee98ad11918e114c70701bc6051662a9a675a0496c1a158f4", size = 1349387 }
+sdist = { url = "https://files.pythonhosted.org/packages/a9/5a/0db4da3bc908df06e5efae42b44e75c81dd52716e10192ff36d0c1c8e379/setuptools-78.1.0.tar.gz", hash = "sha256:18fd474d4a82a5f83dac888df697af65afa82dec7323d09c3e37d1f14288da54", size = 1367827 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/37/66/d2d7e6ad554f3a7c7297c3f8ef6e22643ad3d35ef5c63bf488bc89f32f31/setuptools-76.0.0-py3-none-any.whl", hash = "sha256:199466a166ff664970d0ee145839f5582cb9bca7a0a3a2e795b6a9cb2308e9c6", size = 1236106 },
+    { url = "https://files.pythonhosted.org/packages/54/21/f43f0a1fa8b06b32812e0975981f4677d28e0f3271601dc88ac5a5b83220/setuptools-78.1.0-py3-none-any.whl", hash = "sha256:3e386e96793c8702ae83d17b853fb93d3e09ef82ec62722e61da5cd22376dcd8", size = 1256108 },
 ]
 
 [[package]]
@@ -2264,7 +2223,7 @@ name = "sqlalchemy"
 version = "2.0.39"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "greenlet", marker = "(python_full_version < '3.14' and platform_machine == 'AMD64') or (python_full_version < '3.14' and platform_machine == 'WIN32') or (python_full_version < '3.14' and platform_machine == 'aarch64') or (python_full_version < '3.14' and platform_machine == 'amd64') or (python_full_version < '3.14' and platform_machine == 'ppc64le') or (python_full_version < '3.14' and platform_machine == 'win32') or (python_full_version < '3.14' and platform_machine == 'x86_64') or (platform_machine != 'AMD64' and platform_machine != 'WIN32' and platform_machine != 'aarch64' and platform_machine != 'amd64' and platform_machine != 'ppc64le' and platform_machine != 'win32' and platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (platform_machine == 'AMD64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (platform_machine == 'WIN32' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (platform_machine == 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (platform_machine == 'amd64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (platform_machine == 'ppc64le' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (platform_machine == 'win32' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (platform_machine == 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "greenlet", marker = "(python_full_version < '3.14' and platform_machine == 'AMD64') or (python_full_version < '3.14' and platform_machine == 'WIN32') or (python_full_version < '3.14' and platform_machine == 'aarch64') or (python_full_version < '3.14' and platform_machine == 'amd64') or (python_full_version < '3.14' and platform_machine == 'ppc64le') or (python_full_version < '3.14' and platform_machine == 'win32') or (python_full_version < '3.14' and platform_machine == 'x86_64') or (platform_machine != 'AMD64' and platform_machine != 'WIN32' and platform_machine != 'aarch64' and platform_machine != 'amd64' and platform_machine != 'ppc64le' and platform_machine != 'win32' and platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (platform_machine == 'AMD64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (platform_machine == 'WIN32' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (platform_machine == 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (platform_machine == 'amd64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (platform_machine == 'ppc64le' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (platform_machine == 'win32' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (platform_machine == 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
     { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/00/8e/e77fcaa67f8b9f504b4764570191e291524575ddbfe78a90fc656d671fdc/sqlalchemy-2.0.39.tar.gz", hash = "sha256:5d2d1fe548def3267b4c70a8568f108d1fed7cbbeccb9cc166e05af2abc25c22", size = 9644602 }
@@ -2389,20 +2348,20 @@ version = "2.5.0"
 source = { registry = "https://download.pytorch.org/whl/cpu" }
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux'",
-    "python_full_version >= '3.13' and sys_platform == 'darwin'",
     "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version >= '3.13' and sys_platform == 'darwin'",
     "python_full_version == '3.12.*' and sys_platform == 'darwin'",
     "python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "python_full_version < '3.12' and sys_platform == 'darwin'",
 ]
 dependencies = [
-    { name = "filelock", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "fsspec", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "jinja2", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "networkx", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "setuptools", marker = "(python_full_version >= '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (python_full_version >= '3.12' and sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (python_full_version < '3.12' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "sympy", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "typing-extensions", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "filelock", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "fsspec", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "jinja2", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "networkx", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "setuptools", marker = "(python_full_version >= '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (python_full_version >= '3.12' and sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (python_full_version < '3.12' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "sympy", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "typing-extensions", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
 ]
 wheels = [
     { url = "https://download.pytorch.org/whl/cpu/torch-2.5.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:205a0ecbf85f4c7857cfdf4f6b0e07316bd929ed92482569e8f4524400559884" },
@@ -2414,37 +2373,49 @@ wheels = [
 [[package]]
 name = "torch"
 version = "2.5.0"
+source = { registry = "https://download.pytorch.org/whl/cu124" }
+resolution-markers = [
+    "python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+]
+dependencies = [
+    { name = "filelock", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "fsspec", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "jinja2", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "networkx", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "setuptools", marker = "(python_full_version >= '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (python_full_version < '3.12' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "sympy", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "typing-extensions", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+]
+wheels = [
+    { url = "https://download.pytorch.org/whl/cu124/torch-2.5.0-cp311-cp311-linux_aarch64.whl", hash = "sha256:c9598921094edd103d605d8097eb102746f5631068444a04654729a69c5c51d0" },
+    { url = "https://download.pytorch.org/whl/cu124/torch-2.5.0-cp312-cp312-linux_aarch64.whl", hash = "sha256:807c3824c1090625bf800c74984903bc36cc5e72a40ce3b3378ae622859c597b" },
+]
+
+[[package]]
+name = "torch"
+version = "2.5.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.13' and sys_platform == 'linux'",
-    "python_full_version >= '3.13' and sys_platform != 'linux' and sys_platform != 'win32'",
-    "python_full_version >= '3.13' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'linux'",
+    "python_full_version >= '3.13' and sys_platform != 'linux' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'linux' and sys_platform != 'win32'",
+    "python_full_version >= '3.13' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version < '3.12' and sys_platform == 'linux'",
     "python_full_version < '3.12' and sys_platform != 'linux' and sys_platform != 'win32'",
     "python_full_version < '3.12' and sys_platform == 'win32'",
 ]
 dependencies = [
-    { name = "filelock", marker = "(extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118')" },
-    { name = "fsspec", marker = "(extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118')" },
-    { name = "jinja2", marker = "(extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118')" },
-    { name = "networkx", marker = "(extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118')" },
-    { name = "nvidia-cublas-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-cuda-cupti-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-cuda-nvrtc-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-cuda-runtime-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-cudnn-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-cufft-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-curand-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-cusolver-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-cusparse-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-nccl-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-nvtx-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "setuptools", marker = "(python_full_version >= '3.12' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "sympy", marker = "(extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118')" },
-    { name = "typing-extensions", marker = "(extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118')" },
+    { name = "filelock", marker = "(extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124')" },
+    { name = "fsspec", marker = "(extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124')" },
+    { name = "jinja2", marker = "(extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124')" },
+    { name = "networkx", marker = "(extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124')" },
+    { name = "setuptools", marker = "(python_full_version >= '3.12' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "sympy", marker = "(extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124')" },
+    { name = "typing-extensions", marker = "(extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/75/9f/cde8b71ccca65d68a3733c5c9decef9adefcfaa692f8ab03afbb5de09daa/torch-2.5.0-cp311-cp311-manylinux1_x86_64.whl", hash = "sha256:499a68a756d3b30d10f7e0f6214dc3767b130b797265db3b1c02e9094e2a07be", size = 906478039 },
@@ -2464,23 +2435,23 @@ version = "2.5.0+cpu"
 source = { registry = "https://download.pytorch.org/whl/cpu" }
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux'",
-    "python_full_version >= '3.13' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
-    "python_full_version >= '3.13' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux'",
+    "python_full_version >= '3.13' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
+    "python_full_version >= '3.13' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version < '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux'",
     "python_full_version < '3.12' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
     "python_full_version < '3.12' and sys_platform == 'win32'",
 ]
 dependencies = [
-    { name = "filelock", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "fsspec", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "jinja2", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "networkx", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "setuptools", marker = "(python_full_version >= '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (python_full_version < '3.12' and platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (python_full_version >= '3.12' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (python_full_version < '3.12' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "sympy", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "typing-extensions", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "filelock", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "fsspec", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "jinja2", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "networkx", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "setuptools", marker = "(python_full_version >= '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (python_full_version < '3.12' and platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (python_full_version >= '3.12' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (python_full_version < '3.12' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "sympy", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "typing-extensions", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
 ]
 wheels = [
     { url = "https://download.pytorch.org/whl/cpu/torch-2.5.0%2Bcpu-cp311-cp311-linux_x86_64.whl", hash = "sha256:217b7de83d1cc71f1de2eae4288cb25a8210a109424a0c1fdde640e3778747d7" },
@@ -2492,46 +2463,47 @@ wheels = [
 
 [[package]]
 name = "torch"
-version = "2.5.0+cu118"
-source = { registry = "https://download.pytorch.org/whl/cu118" }
+version = "2.5.0+cu124"
+source = { registry = "https://download.pytorch.org/whl/cu124" }
 resolution-markers = [
-    "python_full_version >= '3.13' and sys_platform == 'linux'",
+    "python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and sys_platform != 'linux' and sys_platform != 'win32'",
-    "python_full_version >= '3.13' and sys_platform == 'win32'",
-    "python_full_version == '3.12.*' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and sys_platform != 'linux' and sys_platform != 'win32'",
+    "python_full_version >= '3.13' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version < '3.12' and sys_platform == 'linux'",
+    "python_full_version < '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux'",
     "python_full_version < '3.12' and sys_platform != 'linux' and sys_platform != 'win32'",
     "python_full_version < '3.12' and sys_platform == 'win32'",
 ]
 dependencies = [
-    { name = "filelock", marker = "extra == 'extra-6-regawa-cu118'" },
-    { name = "fsspec", marker = "extra == 'extra-6-regawa-cu118'" },
-    { name = "jinja2", marker = "extra == 'extra-6-regawa-cu118'" },
-    { name = "networkx", marker = "extra == 'extra-6-regawa-cu118'" },
-    { name = "nvidia-cublas-cu11", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu118') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-cuda-cupti-cu11", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu118') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-cuda-nvrtc-cu11", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu118') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-cuda-runtime-cu11", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu118') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-cudnn-cu11", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu118') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-cufft-cu11", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu118') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-curand-cu11", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu118') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-cusolver-cu11", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu118') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-cusparse-cu11", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu118') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-nccl-cu11", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu118') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "nvidia-nvtx-cu11", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu118') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "setuptools", marker = "(python_full_version >= '3.12' and extra == 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "sympy", marker = "extra == 'extra-6-regawa-cu118'" },
-    { name = "triton", marker = "(python_full_version < '3.13' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu118') or (python_full_version >= '3.13' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "typing-extensions", marker = "extra == 'extra-6-regawa-cu118'" },
+    { name = "filelock", marker = "(platform_machine != 'aarch64' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cu124') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "fsspec", marker = "(platform_machine != 'aarch64' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cu124') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "jinja2", marker = "(platform_machine != 'aarch64' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cu124') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "networkx", marker = "(platform_machine != 'aarch64' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cu124') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "nvidia-cublas-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "nvidia-cuda-cupti-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "nvidia-cuda-nvrtc-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "nvidia-cuda-runtime-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "nvidia-cudnn-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "nvidia-cufft-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "nvidia-curand-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "nvidia-cusolver-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "nvidia-cusparse-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "nvidia-nccl-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "nvidia-nvtx-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "setuptools", marker = "(python_full_version >= '3.12' and platform_machine != 'aarch64' and extra == 'extra-6-regawa-cu124') or (python_full_version < '3.12' and platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (python_full_version >= '3.12' and sys_platform != 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine == 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "sympy", marker = "(platform_machine != 'aarch64' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cu124') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "triton", marker = "(python_full_version < '3.13' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (python_full_version >= '3.13' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'x86_64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "typing-extensions", marker = "(platform_machine != 'aarch64' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cu124') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/cu118/torch-2.5.0%2Bcu118-cp311-cp311-linux_x86_64.whl", hash = "sha256:94e914f11253ade7d190133baa784e9dc5f078554978cef6216c898a1b1fac65" },
-    { url = "https://download.pytorch.org/whl/cu118/torch-2.5.0%2Bcu118-cp311-cp311-win_amd64.whl", hash = "sha256:e107f98dc4f4638c54f1bfdc18441766edf712571da86c6eb8e3ffb947fa2859" },
-    { url = "https://download.pytorch.org/whl/cu118/torch-2.5.0%2Bcu118-cp312-cp312-linux_x86_64.whl", hash = "sha256:4fb215ca92e340da55eb6e309c4ccf301159bbdab0bad88e20e6b507905acc7c" },
-    { url = "https://download.pytorch.org/whl/cu118/torch-2.5.0%2Bcu118-cp312-cp312-win_amd64.whl", hash = "sha256:fd9541dce6bd704b83172b688fdec01fa700edd3e7b4e2a20a83e05666c69ac4" },
-    { url = "https://download.pytorch.org/whl/cu118/torch-2.5.0%2Bcu118-cp313-cp313-linux_x86_64.whl", hash = "sha256:1b547519a1c7145c7a4613b9bb361312be53cdcfc35ce4c179f62590e4761876" },
+    { url = "https://download.pytorch.org/whl/cu124/torch-2.5.0%2Bcu124-cp311-cp311-linux_x86_64.whl", hash = "sha256:5e3f4a7ba812517c2c1659857b5195f287a288fbd050a5abf9311e03dbe1a28b" },
+    { url = "https://download.pytorch.org/whl/cu124/torch-2.5.0%2Bcu124-cp311-cp311-win_amd64.whl", hash = "sha256:270e004f028b2fc6886388ca01b5f22389f3a7babbd2004a1eec82aa7f669c12" },
+    { url = "https://download.pytorch.org/whl/cu124/torch-2.5.0%2Bcu124-cp312-cp312-linux_x86_64.whl", hash = "sha256:11c281d9688c36eded06ae8f60d6b97e010831efaea4a4b2244ad4367e232ed7" },
+    { url = "https://download.pytorch.org/whl/cu124/torch-2.5.0%2Bcu124-cp312-cp312-win_amd64.whl", hash = "sha256:cc08ff3a26dbba92b4d9ae007a64da294270abe662fdac197f1e0a4880afe3bd" },
+    { url = "https://download.pytorch.org/whl/cu124/torch-2.5.0%2Bcu124-cp313-cp313-linux_x86_64.whl", hash = "sha256:ad9c7bb5b0921e3fa9e62ac0107f5602d6fae8e2a89258fcc30baf10a9d8444d" },
 ]
 
 [[package]]
@@ -2540,17 +2512,17 @@ version = "2.1.2+pt25cpu"
 source = { registry = "https://data.pyg.org/whl/torch-2.5.0+cpu.html" }
 resolution-markers = [
     "python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux'",
-    "python_full_version >= '3.13' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
-    "python_full_version >= '3.13' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux'",
+    "python_full_version >= '3.13' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
+    "python_full_version >= '3.13' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
     "python_full_version < '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux'",
     "python_full_version < '3.12' and sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32'",
     "python_full_version < '3.12' and sys_platform == 'win32'",
     "python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux'",
-    "python_full_version >= '3.13' and sys_platform == 'darwin'",
     "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version >= '3.13' and sys_platform == 'darwin'",
     "python_full_version == '3.12.*' and sys_platform == 'darwin'",
     "python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "python_full_version < '3.12' and sys_platform == 'darwin'",
@@ -2564,24 +2536,27 @@ wheels = [
 
 [[package]]
 name = "torch-scatter"
-version = "2.1.2+pt25cu118"
-source = { registry = "https://data.pyg.org/whl/torch-2.5.0+cu118.html" }
+version = "2.1.2+pt25cu124"
+source = { registry = "https://data.pyg.org/whl/torch-2.5.0+cu124.html" }
 resolution-markers = [
-    "python_full_version >= '3.13' and sys_platform == 'linux'",
+    "python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and sys_platform != 'linux' and sys_platform != 'win32'",
-    "python_full_version >= '3.13' and sys_platform == 'win32'",
-    "python_full_version == '3.12.*' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and sys_platform != 'linux' and sys_platform != 'win32'",
+    "python_full_version >= '3.13' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version < '3.12' and sys_platform == 'linux'",
+    "python_full_version < '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux'",
     "python_full_version < '3.12' and sys_platform != 'linux' and sys_platform != 'win32'",
     "python_full_version < '3.12' and sys_platform == 'win32'",
+    "python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux'",
 ]
 wheels = [
-    { url = "https://data.pyg.org/whl/torch-2.5.0%2Bcu118/torch_scatter-2.1.2%2Bpt25cu118-cp311-cp311-linux_x86_64.whl" },
-    { url = "https://data.pyg.org/whl/torch-2.5.0%2Bcu118/torch_scatter-2.1.2%2Bpt25cu118-cp311-cp311-win_amd64.whl" },
-    { url = "https://data.pyg.org/whl/torch-2.5.0%2Bcu118/torch_scatter-2.1.2%2Bpt25cu118-cp312-cp312-linux_x86_64.whl" },
-    { url = "https://data.pyg.org/whl/torch-2.5.0%2Bcu118/torch_scatter-2.1.2%2Bpt25cu118-cp312-cp312-win_amd64.whl" },
+    { url = "https://data.pyg.org/whl/torch-2.5.0%2Bcu124/torch_scatter-2.1.2%2Bpt25cu124-cp311-cp311-linux_x86_64.whl" },
+    { url = "https://data.pyg.org/whl/torch-2.5.0%2Bcu124/torch_scatter-2.1.2%2Bpt25cu124-cp311-cp311-win_amd64.whl" },
+    { url = "https://data.pyg.org/whl/torch-2.5.0%2Bcu124/torch_scatter-2.1.2%2Bpt25cu124-cp312-cp312-linux_x86_64.whl" },
+    { url = "https://data.pyg.org/whl/torch-2.5.0%2Bcu124/torch_scatter-2.1.2%2Bpt25cu124-cp312-cp312-win_amd64.whl" },
 ]
 
 [[package]]
@@ -2590,10 +2565,11 @@ version = "0.0.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "graphviz" },
-    { name = "torch", version = "2.5.0", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "torch", version = "2.5.0", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu118')" },
-    { name = "torch", version = "2.5.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118') or (sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
-    { name = "torch", version = "2.5.0+cu118", source = { registry = "https://download.pytorch.org/whl/cu118" }, marker = "extra == 'extra-6-regawa-cu118'" },
+    { name = "torch", version = "2.5.0", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "torch", version = "2.5.0", source = { registry = "https://download.pytorch.org/whl/cu124" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "torch", version = "2.5.0", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124')" },
+    { name = "torch", version = "2.5.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'extra-6-regawa-cpu') or (sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "torch", version = "2.5.0+cu124", source = { registry = "https://download.pytorch.org/whl/cu124" }, marker = "(platform_machine != 'aarch64' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cu124') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/5c/80/a84e0e8877630262c3f4c8d2e7fd0647c6751afeca301cfc04a1b65ac820/torchviz-0.0.3.tar.gz", hash = "sha256:2e95f2fea7a31ec9549f2d6bbf446d75aeb6a9880fcf13e7dd843fdcdb4a3725", size = 5705 }
 wheels = [
@@ -2605,7 +2581,7 @@ name = "tqdm"
 version = "4.67.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a8/4b/29b4ef32e036bb34e4ab51796dd745cdba7ed47ad142a9f4a1eb8e0c744d/tqdm-4.67.1.tar.gz", hash = "sha256:f8aef9c52c08c13a65f30ea34f4e5aac3fd1a34959879d7e59e63027286627f2", size = 169737 }
 wheels = [
@@ -2629,7 +2605,7 @@ name = "triton"
 version = "3.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "filelock", marker = "(python_full_version < '3.13' and extra == 'extra-6-regawa-cu118') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "filelock", marker = "(platform_machine != 'aarch64' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cu124') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/86/17/d9a5cf4fcf46291856d1e90762e36cbabd2a56c7265da0d1d9508c8e3943/triton-3.1.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0f34f6e7885d1bf0eaaf7ba875a5f0ce6f3c13ba98f9503651c1e6dc6757ed5c", size = 209506424 },
@@ -2650,11 +2626,11 @@ wheels = [
 
 [[package]]
 name = "typing-extensions"
-version = "4.12.2"
+version = "4.13.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/df/db/f35a00659bc03fec321ba8bce9420de607a1d37f8342eee1863174c69557/typing_extensions-4.12.2.tar.gz", hash = "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8", size = 85321 }
+sdist = { url = "https://files.pythonhosted.org/packages/0e/3e/b00a62db91a83fff600de219b6ea9908e6918664899a2d85db222f4fbf19/typing_extensions-4.13.0.tar.gz", hash = "sha256:0a4ac55a5820789d87e297727d229866c9650f6521b64206413c4fbada24d95b", size = 106520 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/26/9f/ad63fc0248c5379346306f8668cda6e2e2e9c95e01216d2b8ffd9ff037d0/typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d", size = 37438 },
+    { url = "https://files.pythonhosted.org/packages/e0/86/39b65d676ec5732de17b7e3c476e45bb80ec64eb50737a8dce1a4178aba1/typing_extensions-4.13.0-py3-none-any.whl", hash = "sha256:c8dd92cc0d6425a97c18fbb9d1954e5ff92c1ca881a309c45f06ebc0b79058e5", size = 45683 },
 ]
 
 [[package]]
@@ -2662,7 +2638,7 @@ name = "tyro"
 version = "0.9.17"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
     { name = "docstring-parser" },
     { name = "rich" },
     { name = "shtab" },
@@ -2731,7 +2707,7 @@ dependencies = [
     { name = "sentry-sdk" },
     { name = "setproctitle" },
     { name = "setuptools" },
-    { name = "typing-extensions", marker = "python_full_version < '3.12' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu118')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.12' or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/22/f2/001aee271c0665afc7424c14ea2fa6fd9987d9d4e186d187cd0bac2d11db/wandb-0.19.8.tar.gz", hash = "sha256:3a4844bb38758657b94b090e72ee355fe5b926e3a048232f0ca4248f801d8d80", size = 39244743 }
 wheels = [

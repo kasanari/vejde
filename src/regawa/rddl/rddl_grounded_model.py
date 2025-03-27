@@ -1,6 +1,7 @@
 from functools import cache, cached_property
 from typing import Any
 
+import numpy as np
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 from pyRDDLGym.core.compiler.model import RDDLPlanningModel  # type: ignore
 
@@ -11,9 +12,15 @@ from .rddl_utils import get_groundings, rddl_ground_to_tuple
 
 
 class RDDLGroundedModel(BaseGroundedModel):
-    def __init__(self, model: RDDLLiftedModel, all_non_fluents: bool = True) -> None:
+    def __init__(
+        self,
+        model: RDDLLiftedModel,
+        all_non_fluents: bool = True,
+        remove_false: bool = False,
+    ) -> None:
         self.model = model
         self.all_non_fluents = all_non_fluents
+        self.remove_false = remove_false
 
     @cached_property
     def groundings(self) -> tuple[GroundValue, ...]:
@@ -63,12 +70,22 @@ class RDDLGroundedModel(BaseGroundedModel):
     @cached_property
     def _all_non_fluent_vals(self) -> dict[GroundValue, Any]:
         """All non-fluents, including those that are not observed in the instance file."""
-        return {
-            rddl_ground_to_tuple(g): v
-            for g, v in self.model.ground_vars_with_values(
-                self.model.non_fluents
-            ).items()
-        }
+        return (
+            {
+                rddl_ground_to_tuple(g): v
+                for g, v in self.model.ground_vars_with_values(
+                    self.model.non_fluents
+                ).items()
+            }
+            if not self.remove_false
+            else {
+                rddl_ground_to_tuple(g): v
+                for g, v in self.model.ground_vars_with_values(
+                    self.model.non_fluents
+                ).items()
+                if v != np.bool_(False)
+            }
+        )
 
     @cached_property
     def _non_fluent_vals(self) -> dict[GroundValue, Any]:

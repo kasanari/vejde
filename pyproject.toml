@@ -14,7 +14,7 @@ dependencies = ["gnn-policy", "gymnasium>=1.1.1", "tqdm>=4.67.1"]
 
 [project.optional-dependencies]
 cpu = ["torch==2.5.0", "torch_scatter==2.1.2+pt25cpu"]
-cu126 = ["torch==2.5.0", "torch_scatter==2.1.2+pt25cu126"]
+cu124 = ["torch==2.5.0", "torch_scatter==2.1.2+pt25cu124"]
 jax_cpu = ["jax", "optax", "flax"]
 jax_gpu = ["jax[cuda12]", "optax", "flax"]
 rddl = ["pyrddlgym>=2.2", "rddlrepository>=2.0"]
@@ -25,15 +25,15 @@ url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
 [[tool.uv.index]]
-name = "pytorch-cu126"
-url = "https://download.pytorch.org/whl/cu126"
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
 explicit = true
 
 
 [tool.uv.sources]
 torch = [
   { index = "pytorch-cpu", extra = "cpu" },
-  { index = "pytorch-cu126", extra = "cu126" },
+  { index = "pytorch-cu124", extra = "cu124" },
 ]
 regawa = { workspace = true }
 gnn-policy = { git = "git+ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy" }
@@ -50,7 +50,7 @@ rl = ["mlflow>=2.21.0", "tyro>=0.9.17", "wandb>=0.19.8"]
 
 [tool.uv]
 find-links = [
-  "https://data.pyg.org/whl/torch-2.5.0+cu126.html",
+  "https://data.pyg.org/whl/torch-2.5.0+cu124.html",
   "https://data.pyg.org/whl/torch-2.5.0+cpu.html",
 ]
-conflicts = [[{ extra = "cpu" }, { extra = "cu126" }]]
+conflicts = [[{ extra = "cpu" }, { extra = "cu124" }]]

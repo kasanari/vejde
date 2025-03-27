@@ -194,10 +194,10 @@ def register_env():
 
 
 def register_shuffle_env():
-    env_id = "RDDLShuffleInstancesEnv-v0"
+    env_id = "RDDLCycleInstancesEnv-v0"
     gymnasium.register(
         id=env_id,
-        entry_point="regawa.rddl:RDDLShuffleInstancesEnv",
+        entry_point="regawa.rddl:RDDLCycleInstancesEnv",
     )
     return env_id
 

@@ -37,24 +37,27 @@ def make_env(
     model: BaseModel,
     has_enums: bool = False,
     remove_false: bool = False,
+    stacking: bool = False,
 ):
-    env = pyRDDLGym.make(domain, str(instance), enforce_action_constraints=True)  # type: ignore
+    env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
     rddl_model = env.model
-    model = RDDLModel(rddl_model)
-    grounded_rddl_model = RDDLGroundedModel(rddl_model)
+    grounded_rddl_model = RDDLGroundedModel(rddl_model, remove_false=remove_false)
     env = RDDLDefaultInvalidActions(env)
     env = RDDLToTuple(env)
-    if remove_false:
-        env = RemoveFalseWrapper(env)
-    env = AddConstantsWrapper(env, grounded_rddl_model)
-    if has_enums:
-        env = RDDLConvertEnums(env)
-    env: gymnasium.Env[Dict, MultiDiscrete] = GroundedGraphWrapper(env, model=model)
+    env = AddConstantsWrapper(env, grounded_rddl_model, only_add_on_reset=stacking)
+    env = RemoveFalseWrapper(env) if remove_false else env
+    env = RDDLConvertEnums(env) if has_enums else env
+    env = StackingWrapper(env) if stacking else env
+    env = (
+        GroundedGraphWrapper(env, model=model)
+        if not stacking
+        else StackingGroundedGraphWrapper(env, model=model)
+    )
     env = IndexActionWrapper(env, model)
-    return env
+    return env, grounded_rddl_model
 
 
-class RDDLShuffleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
+class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
     def __init__(
         self,
         domain: str,
@@ -66,17 +69,13 @@ class RDDLShuffleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
 
         manager = RDDLRepoManager()
         problem = manager.get_problem(domain)
-
         reader = RDDLReader(problem.get_domain(), problem.get_instance(instance[0]))
         parser = RDDLParser(lexer=None, verbose=False)
         parser.build()
         rddl = parser.parse(reader.rddltxt)
         model = RDDLModel(RDDLLiftedModel(rddl))
 
-        # define the RDDL model
-
         has_enums = len(model.model.enum_types) > 0
-
         self.model = model
         self.domain = domain
         self.rng = np.random.default_rng(seed)
@@ -84,10 +83,16 @@ class RDDLShuffleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         self.remove_false = remove_false
         self.has_enums = has_enums
 
+        self.envs = [
+            make_env(domain, i, model, has_enums, remove_false=remove_false)[0]
+            for i in instance
+        ]
+
+        current_instance = 0
+
         # just to get the action and observation spaces
-        self.env = make_env(
-            domain, instance[0], model, has_enums, remove_false=remove_false
-        )
+        self.env = self.envs[current_instance]
+        self.current_instance: int = current_instance
 
     @property
     def action_space(self):
@@ -107,15 +112,10 @@ class RDDLShuffleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
     ) -> tuple[Dict, dict[str, Any]]:
         super().reset(seed=seed)
 
-        instance = self.rng.choice(self.instances)
+        current_instance = (self.current_instance + 1) % len(self.instances)
 
-        self.env = make_env(
-            self.domain,
-            instance,
-            self.model,
-            self.has_enums,
-            self.remove_false,
-        )
+        self.env = self.envs[current_instance]
+        self.current_instance = current_instance
 
         return self.env.reset(seed=seed, options=options)
 
@@ -134,20 +134,13 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
         rddl_model = env.model
         model = RDDLModel(rddl_model)
-        grounded_rddl_model = RDDLGroundedModel(rddl_model)
-        env = RDDLDefaultInvalidActions(env)
-        env = RDDLToTuple(env)
-        env = AddConstantsWrapper(env, grounded_rddl_model)
-        if remove_false:
-            env = RemoveFalseWrapper(env)
-        if len(model.model.enum_types) > 0:
-            env = RDDLConvertEnums(env)
-        env: gymnasium.Env[Dict, MultiDiscrete] = GroundedGraphWrapper(env, model=model)
-        env = IndexActionWrapper(env, model)
+        env, grounded_model = make_env(
+            domain, instance, model, remove_false=remove_false
+        )
         self.env = env
         self.observation_space = env.observation_space
         self.model = model
-        self.grounded_model = grounded_rddl_model
+        self.grounded_model = grounded_model
 
     @property
     def action_space(self):
@@ -173,20 +166,14 @@ class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         super().__init__()
         env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
         model = RDDLModel(env.model)
-        grounded_model = RDDLPOMDPGroundedModel(env.model)
-        env = RDDLToTuple(env)
-        env = AddConstantsWrapper(env, grounded_model, only_add_on_reset=True)
-        env = RemoveFalseWrapper(env) if remove_false else env
-        if len(model.model.enum_types) > 0:
-            env = RDDLConvertEnums(env)
-        env = StackingWrapper(env)
-        env: gymnasium.Env[Dict, MultiDiscrete] = StackingGroundedGraphWrapper(
-            env, model=model
+        env, grounded_model = make_env(
+            domain, instance, model, remove_false=remove_false, stacking=True
         )
-        env = IndexActionWrapper(env, model)
         self.env = env
         self.observation_space = env.observation_space
         self.action_space = env.action_space
+        self.model = model
+        self.grounded_model = grounded_model
 
     def step(
         self, action: MultiDiscrete

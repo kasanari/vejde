@@ -210,19 +210,24 @@ def get_agent(model: BaseModel, device: str = "cpu"):
 
     params = GNNParams(
         layers=4,
-        embedding_dim=32,
+        embedding_dim=16,
         activation=th.nn.Mish(),
         aggregation="max",
         action_mode=ActionMode.ACTION_THEN_NODE,
     )
 
-    config = AgentConfig(n_types, n_relations, n_actions, params, arity)
-
-    agent = GraphAgent(
-        config,
-        None,
-        device=device
+    config = AgentConfig(
+        n_types,
+        n_relations,
+        n_actions,
+        hyper_params=params,
+        arity=arity,
+        remove_false_fluents=True,
     )
+
+    agent = GraphAgent(config, None)
+
+    agent = agent.to(device)
 
     return agent
 
@@ -286,12 +291,14 @@ def test_expert(
 
 
 def test_saved_data(domain: str):
-    datafile = Path(f"~/pyRDDLGym-prost/output/{domain}/combined_data.json").expanduser()
+    datafile = Path(
+        f"/storage/GitHub/pyRDDLGym-rl/prost/{domain}/combined_data.json"
+    ).expanduser()
     instance = 1
     use_rnn = False
     seed = 1
+    device = "cuda" if th.cuda.is_available() else "cpu"
     num_gradient_steps = 1000
-    device="cuda:0"
     env_id = register_pomdp_env() if use_rnn else register_env()
 
     output_dir = pathlib.Path("imitation_output")
@@ -306,9 +313,7 @@ def test_saved_data(domain: str):
     th.manual_seed(seed)
     random.seed(seed)
 
-    #agent = get_rnn_agent(model) if use_rnn else get_agent(model, device)
-    agent, _ = GraphAgent.load_agent(str(domain_dir / "model.pth"))
-    agent = agent.to(device)
+    agent = get_rnn_agent(model) if use_rnn else get_agent(model)
     optimizer = th.optim.AdamW(
         agent.parameters(), lr=0.0001, amsgrad=True, weight_decay=0.01
     )
@@ -316,7 +321,9 @@ def test_saved_data(domain: str):
     with open(datafile, "r") as f:
         expert_data = json.load(f)
 
-    data = [evaluate(env, agent, i, deterministic=True, device=device) for i in range(10)]
+    data = [
+        evaluate(env, agent, i, deterministic=True, device=device) for i in range(10)
+    ]
     rewards, *_ = zip(*data)
 
     print(f"Learner average return: {np.mean([sum(r) for r in rewards])}")
@@ -341,8 +348,12 @@ def test_saved_data(domain: str):
         *[to_obsdata(o, a, model) for o, a in zip(expert_obs, expert_actions)]
     )
 
-    d = heterostatedata_to_tensors(heterostatedata_from_obslist(indexed_expert_obs), device=device)
-    indexed_expert_action = th.as_tensor(indexed_expert_action, dtype=th.int64, device=device)
+    d = heterostatedata_to_tensors(
+        heterostatedata_from_obslist(indexed_expert_obs), device=device
+    )
+    indexed_expert_action = th.as_tensor(
+        indexed_expert_action, dtype=th.int64, device=device
+    )
     avg_loss = 0.0
     avg_grad_norm = 0.0
     pbar = tqdm()
@@ -361,7 +372,9 @@ def test_saved_data(domain: str):
 
     pbar.close()
 
-    data = [evaluate(env, agent, i, deterministic=False, device=device) for i in range(10)]
+    data = [
+        evaluate(env, agent, i, deterministic=True, device=device) for i in range(10)
+    ]
     rewards, *_ = zip(*data)
     save_eval_data(data, domain_dir / "eval_data.json")
 
@@ -386,9 +399,11 @@ def test_saved_data(domain: str):
 
 
 if __name__ == "__main__":
-    domains = "Navigation_MDP_ippc2011 TriangleTireworld_MDP_ippc2014 Elevators_MDP_ippc2014 SysAdmin_MDP_ippc2011 Traffic_MDP_ippc2014 SkillTeaching_MDP_ippc2014 AcademicAdvising_MDP_ippc2014 CrossingTraffic_MDP_ippc2014 Tamarisk_MDP_ippc2014"
-    domains = domains.split()
-    # domains = ["Elevators_MDP_ippc2014"]
+    # domains = "Navigation_MDP_ippc2011 TriangleTireworld_MDP_ippc2014 Elevators_MDP_ippc2014 SysAdmin_MDP_ippc2011 Traffic_MDP_ippc2014 SkillTeaching_MDP_ippc2014 AcademicAdvising_MDP_ippc2014 CrossingTraffic_MDP_ippc2014 Tamarisk_MDP_ippc2014"
+    # domains = domains.split()
+    domains = ["Elevators_MDP_ippc2014"]
+    # domains = ["SysAdmin_MDP_ippc2011"]
+    # domains = ["Tamarisk_MDP_ippc2014"]
     for domain in domains:
         print(f"Testing {domain}")
         test_saved_data(domain)

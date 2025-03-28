@@ -836,10 +836,11 @@ def setup(args: Args | None = None):
     run_folder.mkdir(exist_ok=True)
 
     logger.addHandler(logging.FileHandler(run_folder / f"{run_name}.log"))
-    tags = {"debug": args.debug}
-    with mlflow.start_run(tags=tags) as run:
+
+    with mlflow.start_run():
         mlflow.log_param("using_edge_attr", True)
         mlflow.log_param("using_scaling", True)
+        mlflow.log_param("using_new_mp", True)
         mlflow.log_params(logged_config)
         mlflow.log_artifact(__file__)
         if Path("uv.lock").exists():

@@ -330,6 +330,8 @@ class Args:
     """total timesteps of the experiments"""
     learning_rate: float = 1.0e-2
     """the learning rate of the optimizer"""
+    weight_decay: float = 0.1
+    """the weight decay of the optimizer"""
     num_envs: int = 5
     """the number of parallel game environments"""
     num_steps: int = 20
@@ -591,7 +593,7 @@ def main(
         lr=args.learning_rate,
         eps=1e-5,
         amsgrad=True,
-        weight_decay=0.1,
+        weight_decay=args.weight_decay,
     )
 
     # ALGO Logic: Storage setup

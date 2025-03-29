@@ -805,6 +805,7 @@ def setup(args: Args | None = None):
             args.env_id,
             domain=args.domain,
             instance=args.instance,
+            remove_false=args.remove_false,
         )
 
         seeds = range(10)

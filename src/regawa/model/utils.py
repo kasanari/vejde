@@ -47,6 +47,7 @@ def valid_action_fluents(model: BaseModel):
             == "None"  # Assume "None" is a valid object type for 0-arity fluents
         )
 
+    @cache
     def f(obj_type: str) -> tuple[bool, ...]:
         return tuple(is_valid(fluent, obj_type) for fluent in model.action_fluents)
 

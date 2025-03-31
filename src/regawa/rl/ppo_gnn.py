@@ -840,7 +840,6 @@ def setup(args: Args | None = None):
     with mlflow.start_run():
         mlflow.log_param("using_edge_attr", True)
         mlflow.log_param("using_scaling", True)
-        mlflow.log_param("using_new_mp", True)
         mlflow.log_params(logged_config)
         mlflow.log_artifact(__file__)
         if Path("uv.lock").exists():

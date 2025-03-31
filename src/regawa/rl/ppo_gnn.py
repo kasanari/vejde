@@ -459,13 +459,11 @@ def rollout(
                 action.cpu().numpy()  # type: ignore
             )
             next_is_final = np.logical_or(terminations, truncations)
-            next_obs, next_is_final = (
-                batched_hetero_dict_to_hetero_obs_list(next_obs_dict),  # type: ignore
-                npl.as_tensor(next_is_final).to(device),
-            )
+
+            next_obs = batched_hetero_dict_to_hetero_obs_list(next_obs_dict)  # type: ignore
 
             # add data to buffer
-            b.rewards[step] = npl.as_tensor(reward).to(device).view(-1)
+            b.rewards[step].copy_(npl.as_tensor(reward.reshape(-1)))
             b.actions[step] = action
             b.values[step] = value.flatten()
             b.logprobs[step] = logprob
@@ -474,13 +472,13 @@ def rollout(
             global_step += num_envs
 
             obs = next_obs
-            is_final = next_is_final
+            is_final.copy_(npl.as_tensor(next_is_final))
 
             if "episode" in infos:
-                for next_is_final, r, l in zip(
+                for f, r, l in zip(
                     infos["_episode"], infos["episode"]["r"], infos["episode"]["l"]
                 ):
-                    if next_is_final:
+                    if f:
                         returns.append(r)
                         lengths.append(l)
         return RolloutData(

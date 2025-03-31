@@ -2,11 +2,10 @@ import logging
 import random
 from collections.abc import Callable
 from itertools import chain
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Generic
 
 import numpy as np
 from gymnasium.spaces import Dict
-from numpy import asarray
 from numpy.typing import NDArray
 
 from regawa.model import GroundValue
@@ -28,13 +27,19 @@ from regawa.wrappers.util_types import (
 
 logger = logging.getLogger(__name__)
 
-
 V = TypeVar("V")
+T = TypeVar(
+    "T",
+    FactorGraph[bool],
+    StackedFactorGraph[bool],
+    FactorGraph[float],
+    StackedFactorGraph[float],
+)
 
 
 def map_graph_to_idx(
-    vars: Variables[V],
-    global_vars: Variables[V],
+    variables: Variables[V],
+    global_variables: Variables[V],
     senders: NDArray[np.int64],
     receivers: NDArray[np.int64],
     edge_attributes: list[int],
@@ -44,25 +49,29 @@ def map_graph_to_idx(
     type_to_idx: Callable[[str], int],
     var_val_dtype: type,
 ) -> IdxFactorGraph[V]:
-    factor_type_idx = [type_to_idx(object) for object in factor_types]
-    idx_global_vars = [rel_to_idx(p) for p in global_vars.types]
-    idx_vars = [rel_to_idx(p) for p in vars.types]
+    arr = np.asarray
+    factor_type_idx = arr(
+        [type_to_idx(f_type) for f_type in factor_types], dtype=np.int64
+    )
+    idx_global_vars = arr(
+        [rel_to_idx(p) for p in global_variables.types], dtype=np.int64
+    )
+    idx_vars = arr([rel_to_idx(p) for p in variables.types], dtype=np.int64)
 
-    arr = asarray
     return IdxFactorGraph(
         Variables(
-            arr(idx_vars, dtype=np.int64),
-            arr(vars.values, dtype=var_val_dtype),
-            arr(vars.lengths),
+            idx_vars,
+            arr(variables.values, dtype=var_val_dtype),
+            arr(variables.lengths),
         ),
-        arr(factor_type_idx, dtype=np.int64),
+        factor_type_idx,
         senders,
         receivers,
-        np.asarray(edge_attributes, dtype=np.int64),
+        arr(edge_attributes, dtype=np.int64),
         Variables(
-            arr(idx_global_vars, dtype=np.int64),
-            arr(global_vars.values, dtype=var_val_dtype),
-            arr(global_vars.lengths),
+            idx_global_vars,
+            arr(global_variables.values, dtype=var_val_dtype),
+            arr(global_variables.lengths),
         ),
         arr(action_mask),
     )
@@ -73,7 +82,9 @@ def from_dict_action(
     action_to_idx: Callable[[str], int],
     obj_to_idx: Callable[[str], int],
 ) -> tuple[int, ...]:
-    return tuple([action_to_idx(action[0])] + [obj_to_idx(obj) for obj in action[1:]])
+    action_idx = action_to_idx(action[0])
+    object_idxs = [obj_to_idx(obj) for obj in action[1:]]
+    return (action_idx, *object_idxs)
 
 
 def idx_action_to_ground_value(
@@ -81,17 +92,15 @@ def idx_action_to_ground_value(
     idx_to_action: Callable[[int], str],
     idx_to_obj: Callable[[int], str],
 ) -> GroundValue:
-    return (idx_to_action(action[0]),) + tuple(
-        [idx_to_obj(obj) for obj in action[1:] if obj != 0]
-    )
+    action_name = idx_to_action(action[0])
+    objects = tuple(idx_to_obj(obj_idx) for obj_idx in action[1:] if obj_idx != 0)
+    return (action_name, *objects)
 
 
 def sample_action(action_space: Dict) -> dict[str, int]:
     action = action_space.sample()  # type: ignore
-
-    action: tuple[str, int] = random.choice(list(action.items()))  # type: ignore
-    a = {action[0]: action[1]}
-    return a
+    chosen_action, value = random.choice(list(action.items()))  # type: ignore
+    return {chosen_action: value}
 
 
 def translate_edges(
@@ -99,101 +108,82 @@ def translate_edges(
     target_to_index: Callable[[str], int],
     edges: list[Edge],
 ) -> tuple[NDArray[np.int64], NDArray[np.int64]]:
-    return (
-        np.asarray(
-            [source_to_index(key[0]) for key in edges],
-            dtype=np.int64,
-        ),
-        np.asarray([target_to_index(key[1]) for key in edges], dtype=np.int64),
-    )
+    senders = np.asarray([source_to_index(edge[0]) for edge in edges], dtype=np.int64)
+    receivers = np.asarray([target_to_index(edge[1]) for edge in edges], dtype=np.int64)
+    return senders, receivers
 
 
-def edge_attr(edges: set[Edge]) -> np.ndarray[np.uint, Any]:
-    return np.array([key[2] for key in edges], dtype=np.int64)
+def edge_attr(edges: set[Edge]) -> NDArray[np.int64]:
+    return np.array([edge[2] for edge in edges], dtype=np.int64)
 
 
 def object_list(
-    keys: list[GroundValue], relation_to_types: Callable[[str, int], str]
+    obs_keys: list[GroundValue], relation_to_types: Callable[[str, int], str]
 ) -> list[Object]:
     objects_with_type = objects_with_type_func(relation_to_types)
-    obs_objects: set[Object] = set(o for key in keys for o in objects_with_type(key))
-    object_list = sorted(obs_objects)
-    object_list = [Object("None", "None")] + object_list
-    return object_list
+    unique_objects = {obj for key in obs_keys for obj in objects_with_type(key)}
+    sorted_objects = sorted(unique_objects)
+    return [Object("None", "None")] + sorted_objects
 
 
 def object_list_from_groundings(groundings: list[GroundValue]) -> list[str]:
-    return sorted(set(chain(*[objects(g) for g in groundings])))
+    return sorted({obj for grounding in groundings for obj in objects(grounding)})
 
 
 def predicate_list_from_groundings(groundings: list[GroundValue]) -> list[str]:
-    return sorted(set(chain(*[predicate(g) for g in groundings])))
-
-
-T = TypeVar(
-    "T",
-    type[FactorGraph[bool]],
-    type[StackedFactorGraph[bool]],
-    type[FactorGraph[float]],
-    type[StackedFactorGraph[float]],
-)
+    return sorted({predicate(g) for g in groundings})
 
 
 def generate_bipartite_obs(
-    cls: T,
-    obs: dict[GroundValue, bool | float],
+    cls: type[T],
+    observations: dict[GroundValue, bool | float],
     groundings: list[GroundValue],
     relation_to_types: Callable[[str, int], str],
     action_fluent_mask: Callable[[str], tuple[bool, ...]],
     num_actions: int,
-    # variable_ranges: dict[str, str],
 ) -> T:
     nullary_groundings = [g for g in groundings if arity(g) == 0]
     non_nullary_groundings = {
-        g: i for i, g in enumerate(filter(lambda x: arity(x) > 0, groundings))
+        g: idx for idx, g in enumerate(g for g in groundings if arity(g) > 0)
     }
 
     edges = create_edges(non_nullary_groundings.keys())
 
-    obj_list = object_list(
-        list(obs.keys()), relation_to_types
-    )  # NOTE: this makes factors common between boolean and numeric
+    object_nodes = object_list(list(observations.keys()), relation_to_types)
+    object_names = [obj.name for obj in object_nodes]
+    object_types = [obj.type for obj in object_nodes]
 
-    object_types = [object.type for object in obj_list]
+    factor_node_values = [observations[g] for g in non_nullary_groundings]
+    factor_node_predicates = [predicate(g) for g in non_nullary_groundings]
 
-    fact_node_values = [obs[key] for key in non_nullary_groundings]
-
-    fact_node_predicate = [predicate(key) for key in non_nullary_groundings]
-
-    obj_names = {object.name: i for i, object in enumerate(obj_list)}
+    object_indices = {name: idx for idx, name in enumerate(object_names)}
 
     senders, receivers = translate_edges(
-        lambda x: non_nullary_groundings[x], lambda x: obj_names[x], edges
-    )  # edges are (var, factor)
+        lambda x: non_nullary_groundings[x], lambda x: object_indices[x], edges
+    )
 
-    edge_attributes = [key[2] for key in edges]
+    edge_attributes = edge_attr(edges)
 
-    global_variables = [predicate(key) for key in nullary_groundings]
-    global_variable_values = [obs[key] for key in nullary_groundings]
+    global_variables = [predicate(g) for g in nullary_groundings]
+    global_variable_values = [observations[g] for g in nullary_groundings]
 
-    action_mask = [action_fluent_mask(o) for o in object_types]
+    action_masks = [action_fluent_mask(obj_type) for obj_type in object_types]
 
     if edges:
-        assert max(senders) < len(fact_node_values)
-        assert max(senders) < len(fact_node_predicate)
-        assert max(receivers) < len(object_types)
+        assert senders.max() < len(factor_node_values), "Senders index out of bounds."
+        assert receivers.max() < len(object_types), "Receivers index out of bounds."
 
     return cls(
-        fact_node_predicate,
-        fact_node_values,  # type: ignore
-        list(obj_names.keys()),
+        factor_node_predicates,
+        factor_node_values,
+        object_names,
         object_types,
         senders,
         receivers,
         edge_attributes,
         global_variables,
-        global_variable_values,  # type: ignore
-        action_mask,
+        global_variable_values,
+        action_masks,
         non_nullary_groundings,
         nullary_groundings,
     )

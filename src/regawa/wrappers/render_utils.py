@@ -96,7 +96,9 @@ def create_render_graph(
 
     factor_labels = [f"{key}" for key in bool_g.factors]
 
-    edge_attributes = bool_g.edge_attributes + numeric_g.edge_attributes
+    edge_attributes = np.concatenate(
+        (bool_g.edge_attributes, numeric_g.edge_attributes)
+    )
 
     senders = np.concatenate(
         [bool_g.senders, numeric_g.senders + len(bool_g.variables)]

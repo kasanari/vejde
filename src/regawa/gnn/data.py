@@ -67,7 +67,7 @@ class StateData(NamedTuple, Generic[V]):
     global_vars: SparseArray[np.int64]
     global_vals: SparseArray[V]
     global_length: NDArray[np.int64]
-    action_mask: NDArray[np.int8]
+    action_mask: NDArray[np.bool_]
 
 
 class HeteroStateData(NamedTuple):
@@ -177,51 +177,75 @@ class RolloutCollector:
         return returns
 
 
-def batch(graphs: list[ObsData] | tuple[ObsData, ...]) -> StateData:
-    """Returns batched graph given a list of graphs and a numpy-like module."""
-    # Calculates offsets for sender and receiver NDArrays, caused by concatenating
-    # the nodes NDArrays.
-    factor_offsets = cumsum(
-        asarray([0] + [g.n_factor for g in graphs[:-1]]),
-        axis=0,
-    )
-    factor_batch = concatenate([ones_like(g.factor) * i for i, g in enumerate(graphs)])
-    receivers = concatenate([g.receivers + o for g, o in zip(graphs, factor_offsets)])
+def batch(graphs: list[ObsData]) -> StateData:
+    num_graphs = len(graphs)
+    total_factors = sum(g.n_factor for g in graphs)
+    total_variables = sum(g.n_variable for g in graphs)
+    total_edges = sum(g.senders.size for g in graphs)
+    total_globals = sum(g.global_vars.size for g in graphs)
 
-    variable_offsets = cumsum(
-        asarray([0] + [g.n_variable for g in graphs[:-1]]),
-        axis=0,
-    )
-    var_batch = concatenate(
-        [np.ones(g.n_variable, dtype=np.int64) * i for i, g in enumerate(graphs)]
-    )
-    senders = concatenate([g.senders + o for g, o in zip(graphs, variable_offsets)])
+    g0 = graphs[0]
 
-    global_vars = np.concatenate([g.global_vars for g in graphs])
-    global_vals = np.concatenate([g.global_vals for g in graphs])
-    global_batch = np.concatenate(
-        [ones_like(g.global_vars) * i for i, g in enumerate(graphs)]
-    )
+    var_value = np.empty((total_variables,), dtype=g0.var_value.dtype)
+    var_type = np.empty((total_variables,), dtype=np.int64)
+    var_batch = np.empty((total_variables,), dtype=np.int64)
+    factor = np.empty((total_factors,), dtype=np.int64)
+    factor_batch = np.empty((total_factors,), dtype=np.int64)
+    senders = np.empty((total_edges,), dtype=np.int64)
+    receivers = np.empty((total_edges,), dtype=np.int64)
+    edge_attr = np.empty((total_edges,), dtype=np.int64)
+    n_factor = np.empty((num_graphs,), dtype=np.int64)
+    n_variable = np.empty((num_graphs,), dtype=np.int64)
+    length = np.empty((total_variables,), dtype=np.int64)
+    global_vars = np.empty((total_globals,), dtype=np.int64)
+    global_vals = np.empty((total_globals,), dtype=g0.global_vals.dtype)
+    global_length = np.empty((total_globals,), dtype=np.int64)
+    global_batch = np.empty((total_globals,), dtype=np.int64)
+    action_mask = np.empty((total_factors, g0.action_mask.shape[1]), dtype=np.bool_)
 
-    var_vals = concatenate([g.var_value for g in graphs])
+    factor_offsets, variable_offsets, globals_offset = 0, 0, 0
+    edge_offsets = 0
+    for i, g in enumerate(graphs):
+        var_len = g.n_variable
+        fac_len = g.n_factor
+        edge_len = g.senders.size
+        globals_len = g.global_vars.size
+        var_value[variable_offsets : variable_offsets + var_len] = g.var_value
+        var_type[variable_offsets : variable_offsets + var_len] = g.var_type
+        var_batch[variable_offsets : variable_offsets + var_len] = i
+        length[variable_offsets : variable_offsets + var_len] = g.length
+        factor[factor_offsets : factor_offsets + fac_len] = g.factor
+        factor_batch[factor_offsets : factor_offsets + fac_len] = i
+        senders[edge_offsets : edge_offsets + edge_len] = g.senders + variable_offsets
+        receivers[edge_offsets : edge_offsets + edge_len] = g.receivers + factor_offsets
+        edge_attr[edge_offsets : edge_offsets + edge_len] = g.edge_attr
+        global_vars[globals_offset : globals_offset + globals_len] = g.global_vars
+        global_vals[globals_offset : globals_offset + globals_len] = g.global_vals
+        global_length[globals_offset : globals_offset + globals_len] = g.global_length
+        global_batch[globals_offset : globals_offset + globals_len] = i
+        action_mask[factor_offsets : factor_offsets + fac_len] = g.action_mask
+        n_factor[i] = fac_len
+        n_variable[i] = var_len
 
-    action_mask = concatenate([g.action_mask for g in graphs])
+        factor_offsets += fac_len
+        variable_offsets += var_len
+        edge_offsets += edge_len
+        globals_offset += globals_len
 
     return StateData(
-        # n_node=stack([g.n_node for g in graphs]),
-        var_value=SparseArray(var_vals, var_batch),
-        var_type=SparseArray(concatenate([g.var_type for g in graphs]), var_batch),
-        factor=SparseArray(concatenate([g.factor for g in graphs]), factor_batch),
-        edge_attr=concatenate([g.edge_attr for g in graphs]),
+        var_value=SparseArray(var_value, var_batch),
+        var_type=SparseArray(var_type, var_batch),
+        factor=SparseArray(factor, factor_batch),
+        edge_attr=edge_attr,
         senders=senders,
         receivers=receivers,
-        n_factor=asarray([g.n_factor for g in graphs]),
-        n_variable=asarray([g.n_variable for g in graphs]),
-        n_graphs=len(graphs),
-        length=concatenate([g.length for g in graphs]),
+        n_factor=n_factor,
+        n_variable=n_variable,
+        n_graphs=num_graphs,
+        length=length,
         global_vars=SparseArray(global_vars, global_batch),
         global_vals=SparseArray(global_vals, global_batch),
-        global_length=concatenate([g.global_length for g in graphs]),
+        global_length=global_length,
         action_mask=action_mask,
     )
 

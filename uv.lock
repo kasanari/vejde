@@ -1899,6 +1899,11 @@ rddl = [
     { name = "pyrddlgym" },
     { name = "rddlrepository" },
 ]
+rl = [
+    { name = "mlflow" },
+    { name = "tyro" },
+    { name = "wandb" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -1907,11 +1912,6 @@ dev = [
     { name = "pytest" },
     { name = "regawa" },
     { name = "torchviz" },
-]
-rl = [
-    { name = "mlflow" },
-    { name = "tyro" },
-    { name = "wandb" },
 ]
 
 [package.metadata]
@@ -1922,6 +1922,7 @@ requires-dist = [
     { name = "gymnasium", specifier = ">=1.1.1" },
     { name = "jax", marker = "extra == 'jax-cpu'" },
     { name = "jax", extras = ["cuda12"], marker = "extra == 'jax-gpu'" },
+    { name = "mlflow", marker = "extra == 'rl'", specifier = ">=2.21.0" },
     { name = "optax", marker = "extra == 'jax-cpu'" },
     { name = "optax", marker = "extra == 'jax-gpu'" },
     { name = "pyrddlgym", marker = "extra == 'rddl'", specifier = ">=2.2" },
@@ -1931,8 +1932,10 @@ requires-dist = [
     { name = "torch-scatter", marker = "extra == 'cpu'", specifier = "==2.1.2+pt25cpu" },
     { name = "torch-scatter", marker = "extra == 'cu124'", specifier = "==2.1.2+pt25cu124" },
     { name = "tqdm", specifier = ">=4.67.1" },
+    { name = "tyro", marker = "extra == 'rl'", specifier = ">=0.9.17" },
+    { name = "wandb", marker = "extra == 'rl'", specifier = ">=0.19.8" },
 ]
-provides-extras = ["cpu", "cu124", "jax-cpu", "jax-gpu", "rddl"]
+provides-extras = ["cpu", "cu124", "jax-cpu", "jax-gpu", "rddl", "rl"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1941,11 +1944,6 @@ dev = [
     { name = "pytest", specifier = ">=8.3.5" },
     { name = "regawa", editable = "." },
     { name = "torchviz", specifier = ">=0.0.3" },
-]
-rl = [
-    { name = "mlflow", specifier = ">=2.21.0" },
-    { name = "tyro", specifier = ">=0.9.17" },
-    { name = "wandb", specifier = ">=0.19.8" },
 ]
 
 [[package]]
@@ -2605,7 +2603,7 @@ name = "triton"
 version = "3.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "filelock", marker = "(platform_machine != 'aarch64' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cu124') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "filelock", marker = "(python_full_version < '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (python_full_version >= '3.13' and platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (platform_machine == 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/86/17/d9a5cf4fcf46291856d1e90762e36cbabd2a56c7265da0d1d9508c8e3943/triton-3.1.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0f34f6e7885d1bf0eaaf7ba875a5f0ce6f3c13ba98f9503651c1e6dc6757ed5c", size = 209506424 },

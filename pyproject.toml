@@ -18,6 +18,7 @@ cu124 = ["torch==2.5.0", "torch_scatter==2.1.2+pt25cu124"]
 jax_cpu = ["jax", "optax", "flax"]
 jax_gpu = ["jax[cuda12]", "optax", "flax"]
 rddl = ["pyrddlgym>=2.2", "rddlrepository>=2.0"]
+rl = ["mlflow>=2.21.0", "tyro>=0.9.17", "wandb>=0.19.8"]
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
@@ -46,7 +47,7 @@ dev = [
   "graphviz>=0.20.3",
   "torchviz>=0.0.3",
 ]
-rl = ["mlflow>=2.21.0", "tyro>=0.9.17", "wandb>=0.19.8"]
+
 
 [tool.uv]
 find-links = [

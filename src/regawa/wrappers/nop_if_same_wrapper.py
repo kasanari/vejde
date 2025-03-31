@@ -34,9 +34,11 @@ class NoOpIfSameWrapper(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, Act
     def __init__(
         self,
         env: gym.Env[ObsType, ActType],
+        discount: float = 1.0,
     ) -> None:
         super().__init__(env)
         self.last_obs = None
+        self.discount = discount
 
     def step(
         self,
@@ -54,7 +56,7 @@ class NoOpIfSameWrapper(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, Act
 
         while check_if_equal(obs, self.last_obs):
             obs, reward, terminated, truncated, info = self.env.step({})
-            accumulated_reward += reward
+            accumulated_reward += self.discount * reward
             if terminated or truncated:
                 break
 

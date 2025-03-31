@@ -6,7 +6,11 @@ import numpy as np
 from regawa import BaseModel
 from regawa.model import GroundValue
 from regawa.model.utils import valid_action_fluents
-from regawa.wrappers.grounding_utils import bool_groundings, numeric_groundings
+from regawa.wrappers.grounding_utils import (
+    bool_groundings,
+    is_numeric_func,
+    numeric_groundings,
+)
 from regawa.wrappers.gym_utils import graph_to_dict
 from regawa.wrappers.util_types import FactorGraph, HeteroGraph, Variables
 from regawa.wrappers.utils import generate_bipartite_obs, map_graph_to_idx
@@ -89,7 +93,7 @@ def create_graphs(
         model.num_actions,
     )
 
-    n_g = numeric_groundings(filtered_groundings, model.fluent_range)
+    n_g = numeric_groundings(filtered_groundings, is_numeric_func(model.fluent_range))
 
     numeric_g = generate_bipartite_obs(
         FactorGraph[float],

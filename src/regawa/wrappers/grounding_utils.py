@@ -11,10 +11,12 @@ from regawa.wrappers.util_types import Edge, Object
 logger = logging.getLogger(__name__)
 
 
+@cache
 def objects(key: GroundValue) -> tuple[str, ...]:
     return key[1:]
 
 
+@cache
 def predicate(key: GroundValue) -> str:
     return key[0]
 
@@ -31,6 +33,7 @@ def objects_with_type_func(relation_to_types: Callable[[str, int], str]):
     return objects_with_type
 
 
+@cache
 def arity(grounding: GroundValue) -> int:
     o = objects(grounding)
     return len(o)
@@ -94,14 +97,18 @@ def num_edges(groundings: list[GroundValue], arities: Callable[[str], int]) -> i
     return sum(arities(predicate(g)) for g in groundings)
 
 
+def is_numeric_func(fluent_range: Callable[[str], type]):
+    @cache
+    def is_numeric(g: GroundValue):
+        return fluent_range(predicate(g)) is float or fluent_range(predicate(g)) is int
+
+    return is_numeric
+
+
 def numeric_groundings(
-    groundings: list[GroundValue], fluent_range: Callable[[str], type]
+    groundings: list[GroundValue], is_numeric: Callable[[GroundValue], bool]
 ) -> list[GroundValue]:
-    return [
-        g
-        for g in groundings
-        if (fluent_range(predicate(g)) is float or fluent_range(predicate(g)) is int)
-    ]
+    return [g for g in groundings if is_numeric(g)]
 
 
 def bool_groundings(

@@ -12,4 +12,4 @@
   - `rl` - PPO and other methods for reinforcement learning.
   - `wrappers` - Functions to transform and filter observations to the graph format used by the GNNs.  
 
-- `tests` - Scripts and actual tests to run various parts of the library.
+- `test` - Scripts and actual tests to run various parts of the library.

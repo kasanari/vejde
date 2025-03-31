@@ -95,14 +95,16 @@ def sample_action(action_space: Dict) -> dict[str, int]:
 
 
 def translate_edges(
-    source_symbols: list[GroundValue], target_symbols: list[str], edges: list[Edge]
-):
+    source_to_index: Callable[[GroundValue], int],
+    target_to_index: Callable[[str], int],
+    edges: list[Edge],
+) -> tuple[NDArray[np.int64], NDArray[np.int64]]:
     return (
-        np.array(
-            [source_symbols.index(key[0]) for key in edges],
+        np.asarray(
+            [source_to_index(key[0]) for key in edges],
             dtype=np.int64,
         ),
-        np.array([target_symbols.index(key[1]) for key in edges], dtype=np.int64),
+        np.asarray([target_to_index(key[1]) for key in edges], dtype=np.int64),
     )
 
 
@@ -147,9 +149,11 @@ def generate_bipartite_obs(
     # variable_ranges: dict[str, str],
 ) -> T:
     nullary_groundings = [g for g in groundings if arity(g) == 0]
-    non_nullary_groundings = [g for g in groundings if arity(g) > 0]
+    non_nullary_groundings = {
+        g: i for i, g in enumerate(filter(lambda x: arity(x) > 0, groundings))
+    }
 
-    edges = create_edges(non_nullary_groundings)
+    edges = create_edges(non_nullary_groundings.keys())
 
     obj_list = object_list(
         list(obs.keys()), relation_to_types
@@ -161,10 +165,10 @@ def generate_bipartite_obs(
 
     fact_node_predicate = [predicate(key) for key in non_nullary_groundings]
 
-    obj_names = [object.name for object in obj_list]
+    obj_names = {object.name: i for i, object in enumerate(obj_list)}
 
     senders, receivers = translate_edges(
-        non_nullary_groundings, obj_names, edges
+        lambda x: non_nullary_groundings[x], lambda x: obj_names[x], edges
     )  # edges are (var, factor)
 
     edge_attributes = [key[2] for key in edges]
@@ -182,7 +186,7 @@ def generate_bipartite_obs(
     return cls(
         fact_node_predicate,
         fact_node_values,  # type: ignore
-        obj_names,
+        list(obj_names.keys()),
         object_types,
         senders,
         receivers,

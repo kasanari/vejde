@@ -798,6 +798,10 @@ def setup(args: Args | None = None):
         mlflow.log_param("using_edge_attr", True)
         mlflow.log_params(logged_config)
         mlflow.log_artifact(__file__)
+        if Path("uv.lock").exists():
+            mlflow.log_artifact("uv.lock")
+        if Path("pyproject.toml").exists():
+            mlflow.log_artifact("pyproject.toml")
         agent = main(envs, run_name, args, agent_config)
 
         agent.agent.save_agent(run_folder / f"{run_name}.pth")

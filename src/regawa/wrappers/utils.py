@@ -10,10 +10,21 @@ from numpy import asarray
 from numpy.typing import NDArray
 
 from regawa.model import GroundValue
-from regawa.wrappers.grounding_utils import (arity, create_edges, objects,
-                                             objects_with_type, predicate)
-from regawa.wrappers.util_types import (Edge, FactorGraph, IdxFactorGraph,
-                                        Object, StackedFactorGraph, Variables)
+from regawa.wrappers.grounding_utils import (
+    arity,
+    create_edges,
+    objects,
+    objects_with_type_func,
+    predicate,
+)
+from regawa.wrappers.util_types import (
+    Edge,
+    FactorGraph,
+    IdxFactorGraph,
+    Object,
+    StackedFactorGraph,
+    Variables,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -102,10 +113,8 @@ def edge_attr(edges: set[Edge]) -> np.ndarray[np.uint, Any]:
 def object_list(
     keys: list[GroundValue], relation_to_types: Callable[[str, int], str]
 ) -> list[Object]:
-    obs_objects: set[Object] = set()
-    for key in keys:
-        for object in objects_with_type(key, relation_to_types):
-            obs_objects.add(object)
+    objects_with_type = objects_with_type_func(relation_to_types)
+    obs_objects: set[Object] = set(o for key in keys for o in objects_with_type(key))
     object_list = sorted(obs_objects)
     object_list = [Object("None", "None")] + object_list
     return object_list

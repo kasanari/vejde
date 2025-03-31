@@ -38,6 +38,7 @@ def fluents_of_arity(model: BaseModel):
 
 
 def valid_action_fluents(model: BaseModel):
+    @cache
     def is_valid(fluent: str, o_t: str) -> bool:
         return (
             o_t in model.fluent_params(fluent)

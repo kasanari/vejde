@@ -1,3 +1,4 @@
+from functools import cache
 import logging
 from collections import deque
 from collections.abc import Callable
@@ -18,12 +19,16 @@ def predicate(key: GroundValue) -> str:
     return key[0]
 
 
-def objects_with_type(
-    key: GroundValue, relation_to_types: Callable[[str, int], str]
-) -> list[Object]:
-    p = predicate(key)
-    os = objects(key)
-    return [Object(o, relation_to_types(p, i)) for i, o in enumerate(os)]
+def objects_with_type_func(relation_to_types: Callable[[str, int], str]):
+    @cache
+    def objects_with_type(
+        key: GroundValue,
+    ) -> list[Object]:
+        p = predicate(key)
+        os = objects(key)
+        return [Object(o, relation_to_types(p, i)) for i, o in enumerate(os)]
+
+    return objects_with_type
 
 
 def arity(grounding: GroundValue) -> int:

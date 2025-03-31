@@ -34,13 +34,13 @@ def model_from_domain(problem: str, instance: str) -> RDDLModel:
 def make_env(
     domain: str,
     instance: str,
-    model: BaseModel,
     has_enums: bool = False,
     remove_false: bool = False,
     stacking: bool = False,
 ):
-    env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
+    env = pyRDDLGym.make(domain, str(instance), enforce_action_constraints=True)  # type: ignore
     rddl_model = env.model
+    model = RDDLModel(rddl_model)
     grounded_rddl_model = RDDLGroundedModel(rddl_model, remove_false=remove_false)
     env = RDDLDefaultInvalidActions(env)
     env = RDDLToTuple(env)
@@ -54,7 +54,7 @@ def make_env(
         else StackingGroundedGraphWrapper(env, model=model)
     )
     env = IndexActionWrapper(env, model)
-    return env, grounded_rddl_model
+    return env, grounded_rddl_model, model
 
 
 class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
@@ -74,9 +74,9 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         parser.build()
         rddl = parser.parse(reader.rddltxt)
         model = RDDLModel(RDDLLiftedModel(rddl))
+        current_instance = 0
 
         has_enums = len(model.model.enum_types) > 0
-        self.model = model
         self.domain = domain
         self.rng = np.random.default_rng(seed)
         self.instances = instance
@@ -84,15 +84,14 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         self.has_enums = has_enums
 
         self.envs = [
-            make_env(domain, i, model, has_enums, remove_false=remove_false)[0]
+            make_env(domain, str(i), has_enums, remove_false=remove_false)[0]
             for i in instance
         ]
-
-        current_instance = 0
 
         # just to get the action and observation spaces
         self.env = self.envs[current_instance]
         self.current_instance: int = current_instance
+        self.model = model
 
     @property
     def action_space(self):
@@ -131,11 +130,8 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         remove_false: bool = False,
     ) -> None:
         super().__init__()
-        env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
-        rddl_model = env.model
-        model = RDDLModel(rddl_model)
-        env, grounded_model = make_env(
-            domain, instance, model, remove_false=remove_false
+        env, grounded_model, model = make_env(
+            domain, instance, remove_false=remove_false
         )
         self.env = env
         self.observation_space = env.observation_space
@@ -164,10 +160,8 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
 class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
     def __init__(self, domain: str, instance: str, remove_false: bool) -> None:
         super().__init__()
-        env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
-        model = RDDLModel(env.model)
-        env, grounded_model = make_env(
-            domain, instance, model, remove_false=remove_false, stacking=True
+        env, model, grounded_model = make_env(
+            domain, instance, remove_false=remove_false, stacking=True
         )
         self.env = env
         self.observation_space = env.observation_space

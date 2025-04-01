@@ -346,6 +346,8 @@ class Args:
     instance: str | int | list[int]
     agent_config: GNNParams
     remove_false: bool = False
+    resume_from: str | None = None
+    """path to a model checkpoint to resume from"""
     debug: bool = False
     exp_name: str = os.path.basename(__file__)[: -len(".py")]
     """the name of this experiment"""
@@ -606,6 +608,8 @@ def main(
     run_name: str,
     args: Args,
     agent_config: AgentConfig,
+    device: str | npl.device,
+    loaded_agent: GraphAgent | None = None,
 ):
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
@@ -617,11 +621,10 @@ def main(
     npl.manual_seed(args.seed)  # type: ignore
     npl.backends.cudnn.deterministic = args.torch_deterministic
 
-    device = npl.device("cuda" if npl.cuda.is_available() and args.cuda else "cpu")
-
     # env setup
 
-    agent = Agent(agent_config).to(device)
+    agent = Agent(agent_config) if loaded_agent is None else loaded_agent
+    agent = agent.to(device)
 
     if args.track:
         wandb.watch(agent, log_freq=10, log="all")  # type: ignore
@@ -785,6 +788,7 @@ def setup(args: Args | None = None, batch_id: str | None = None):
 
     run_name = f"{Path(args.domain).name}__{Path(str(args.instance)).name}__{args.exp_name}__{args.seed}"
     run_name = run_name + "__debug" if args.debug else run_name
+    device = npl.device("cuda:0" if npl.cuda.is_available() and args.cuda else "cpu")
 
     envs = gym.vector.SyncVectorEnv(
         [
@@ -810,6 +814,13 @@ def setup(args: Args | None = None, batch_id: str | None = None):
         args.agent_config,
         model_utils.max_arity(envs.single_observation_space),  # type: ignore
     )
+
+    if args.resume_from:
+        loaded_agent, agent_config = GraphAgent.load_agent(
+            args.resume_from, device=device
+        )
+    else:
+        loaded_agent = None
 
     logged_config = vars(args) | asdict(agent_config)
     if args.track:
@@ -846,7 +857,7 @@ def setup(args: Args | None = None, batch_id: str | None = None):
             mlflow.log_artifact("pyproject.toml")
         if batch_id:
             mlflow.log_param("batch_id", batch_id)
-        agent = main(envs, run_name, args, agent_config)
+        agent = main(envs, run_name, args, agent_config, device, loaded_agent)
 
         agent.agent.save_agent(run_folder / f"{run_name}.pth")
         mlflow.log_artifact(run_folder / f"{run_name}.pth")

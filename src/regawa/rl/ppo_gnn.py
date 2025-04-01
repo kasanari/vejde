@@ -775,7 +775,7 @@ def main(
     return agent
 
 
-def setup(args: Args | None = None):
+def setup(args: Args | None = None, batch_id: str | None = None):
     args = tyro.cli(Args) if args is None else args
 
     print("Attempting to connect to mlflow...")
@@ -844,6 +844,8 @@ def setup(args: Args | None = None):
             mlflow.log_artifact("uv.lock")
         if Path("pyproject.toml").exists():
             mlflow.log_artifact("pyproject.toml")
+        if batch_id:
+            mlflow.log_param("batch_id", batch_id)
         agent = main(envs, run_name, args, agent_config)
 
         agent.agent.save_agent(run_folder / f"{run_name}.pth")

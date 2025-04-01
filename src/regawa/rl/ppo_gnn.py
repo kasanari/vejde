@@ -121,13 +121,18 @@ class Agent(nn.Module):
     def __init__(
         self,
         config: AgentConfig,
+        loaded_agent: GraphAgent | None = None,
         **kwargs: dict[str, Any],
     ):
         super().__init__()  # type: ignore
 
-        self.agent = GraphAgent(
-            config,
-            None,
+        self.agent = (
+            GraphAgent(
+                config,
+                None,
+            )
+            if loaded_agent is None
+            else loaded_agent
         )
 
     def get_value(
@@ -623,7 +628,7 @@ def main(
 
     # env setup
 
-    agent = Agent(agent_config) if loaded_agent is None else loaded_agent
+    agent = Agent(agent_config, loaded_agent)
     agent = agent.to(device)
 
     if args.track:

@@ -33,7 +33,7 @@ class ActionThenNodePolicy(nn.Module):
 
         self.node_prob = nn.Linear(node_dim, 1, bias=False)
         self.action_given_node_prob = nn.Linear(node_dim, num_actions, bias=False)
-        self.node_given_action_prob = nn.Linear(node_dim, num_actions)
+        self.node_given_action_prob = nn.Linear(node_dim, num_actions, bias=False)
 
         self.num_actions = num_actions
         self.sample_func = sample_action_then_node  # type: ignore

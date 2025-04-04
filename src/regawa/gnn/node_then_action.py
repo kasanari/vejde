@@ -25,12 +25,14 @@ class NodeThenActionPolicy(nn.Module):
         super().__init__()  # type: ignore
 
         self.node_prob = nn.Linear(node_dim, 1, bias=False)
-        self.action_given_node_prob = nn.Linear(node_dim, num_actions)
+        self.action_given_node_prob = nn.Linear(node_dim, num_actions, bias=False)
 
         self.num_actions = num_actions
         self.sample_func = sample_node_then_action  # type: ignore
         self.eval_func = eval_node_then_action  # type: ignore
-        self.q_action__node = nn.Linear(node_dim, num_actions * critic_heads)  # Q(a|n)
+        self.q_action__node = nn.Linear(
+            node_dim, num_actions * critic_heads, bias=False
+        )  # Q(a|n)
         self.critic_heads = critic_heads
 
     def f(

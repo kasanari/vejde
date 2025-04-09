@@ -210,7 +210,7 @@ def get_agent(model: BaseModel, device: str = "cpu"):
 
     params = GNNParams(
         layers=4,
-        embedding_dim=16,
+        embedding_dim=32,
         activation=th.nn.Tanh(),
         aggregation="max",
         action_mode=ActionMode.ACTION_THEN_NODE,
@@ -290,14 +290,14 @@ def test_expert(
     return rewards
 
 
-def test_saved_data(domain: str):
+def test_saved_data(domain: str, data_path: str):
     datafile = Path(
-        f"/storage/GitHub/pyRDDLGym-rl/prost/{domain}/combined_data.json"
+        f"{data_path}/{domain}/combined_data.json"
     ).expanduser()
     instance = 1
     use_rnn = False
     seed = 1
-    device = "cuda" if th.cuda.is_available() else "cpu"
+    device = "cuda:0" if th.cuda.is_available() else "cpu"
     num_gradient_steps = 1000
     env_id = register_pomdp_env() if use_rnn else register_env()
 
@@ -313,8 +313,10 @@ def test_saved_data(domain: str):
     th.manual_seed(seed)
     random.seed(seed)
 
-    agent = get_rnn_agent(model) if use_rnn else get_agent(model)
-    optimizer = th.optim.AdamW(agent.parameters(), lr=0.001, amsgrad=True)
+    agent = get_rnn_agent(model) if use_rnn else get_agent(model, device)
+    optimizer = th.optim.AdamW(
+        agent.parameters(), lr=0.001, amsgrad=True, weight_decay=0.0
+    )
 
     with open(datafile, "r") as f:
         expert_data = json.load(f)
@@ -397,11 +399,13 @@ def test_saved_data(domain: str):
 
 
 if __name__ == "__main__":
-    # domains = "Navigation_MDP_ippc2011 TriangleTireworld_MDP_ippc2014 Elevators_MDP_ippc2014 SysAdmin_MDP_ippc2011 Traffic_MDP_ippc2014 SkillTeaching_MDP_ippc2014 AcademicAdvising_MDP_ippc2014 CrossingTraffic_MDP_ippc2014 Tamarisk_MDP_ippc2014"
-    # domains = domains.split()
-    domains = ["Elevators_MDP_ippc2014"]
+    domains = "Navigation_MDP_ippc2011 TriangleTireworld_MDP_ippc2014 Elevators_MDP_ippc2014 SysAdmin_MDP_ippc2011 Traffic_MDP_ippc2014 SkillTeaching_MDP_ippc2014 AcademicAdvising_MDP_ippc2014 CrossingTraffic_MDP_ippc2014 Tamarisk_MDP_ippc2014"
+    domains = domains.split()
+    #domains = ["Elevators_MDP_ippc2014"]
+    import sys
+    data_path = sys.argv[1]
     # domains = ["SysAdmin_MDP_ippc2011"]
     # domains = ["Tamarisk_MDP_ippc2014"]
     for domain in domains:
         print(f"Testing {domain}")
-        test_saved_data(domain)
+        test_saved_data(domain, data_path)

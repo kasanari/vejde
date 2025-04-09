@@ -106,6 +106,7 @@ class GroundedGraphWrapper(
             "state": combined_graph,
             "rddl_state": rddl_obs,
             "idx_to_object": graph.boolean.factors,
+            "object_to_type": object_to_type,
             "action_fluents": self.model.action_fluents,
             "rddl_action": rddl_action,
         }

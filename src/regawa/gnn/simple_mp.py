@@ -22,10 +22,17 @@ class MessagePass(nn.Module):
         self.message_func = MLPLayer(in_channels * 3, out_channels, activation, rngs)
         self.aggr = aggregation
 
-    def forward(self, x_i: Tensor, x_j: Tensor, recipients: Tensor, edge_attr: Tensor):
+    def forward(
+        self,
+        x_i: Tensor,
+        x_j: Tensor,
+        recipients: Tensor,
+        edge_attr: Tensor,
+        num_segments: int,
+    ):
         x = concatenate((x_i, x_j, edge_attr), dim=-1)
         m = self.message_func(x)
-        aggr_m = scatter(m, recipients, dim=0, reduce=self.aggr)
+        aggr_m = scatter(m, recipients, dim=0, reduce=self.aggr, dim_size=num_segments)
         logger.debug("X_j\n%s", x_j)
         logger.debug("X_i\n%s", x_i)
         logger.debug("Messages\n%s", m)

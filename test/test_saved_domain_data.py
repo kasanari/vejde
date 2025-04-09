@@ -211,7 +211,7 @@ def get_agent(model: BaseModel, device: str = "cpu"):
     params = GNNParams(
         layers=4,
         embedding_dim=16,
-        activation=th.nn.Mish(),
+        activation=th.nn.Tanh(),
         aggregation="max",
         action_mode=ActionMode.ACTION_THEN_NODE,
     )
@@ -314,9 +314,7 @@ def test_saved_data(domain: str):
     random.seed(seed)
 
     agent = get_rnn_agent(model) if use_rnn else get_agent(model)
-    optimizer = th.optim.AdamW(
-        agent.parameters(), lr=0.0001, amsgrad=True, weight_decay=0.01
-    )
+    optimizer = th.optim.AdamW(agent.parameters(), lr=0.001, amsgrad=True)
 
     with open(datafile, "r") as f:
         expert_data = json.load(f)

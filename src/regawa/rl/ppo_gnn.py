@@ -786,11 +786,9 @@ def main(
 
 def setup(args: Args | None = None, batch_id: str | None = None):
     args = tyro.cli(Args) if args is None else args
-
-    print("Attempting to connect to mlflow...")
+    logger.info("Attempting to connect to mlflow...")
     tracking_uri = "http://127.0.0.1:5000" if not args.debug else ""
     mlflow.set_tracking_uri(uri=tracking_uri)
-    print(f"Connected to mlflow at {tracking_uri}")
 
     run_name = f"{Path(args.domain).name}__{Path(str(args.instance)).name}__{args.exp_name}__{args.seed}"
     run_name = run_name + "__debug" if args.debug else run_name
@@ -853,6 +851,7 @@ def setup(args: Args | None = None, batch_id: str | None = None):
     logger.addHandler(logging.FileHandler(run_folder / f"{run_name}.log"))
 
     with mlflow.start_run():
+        logger.info(f"Connected to mlflow at {tracking_uri}")
         mlflow.log_param("using_edge_attr", True)
         mlflow.log_param("using_scaling", True)
         mlflow.log_params(logged_config)

@@ -350,6 +350,7 @@ class Args:
     domain: str
     instance: str | int | list[int]
     agent_config: GNNParams
+    eval_instance: str | int | list[int] | None = None
     remove_false: bool = False
     resume_from: str | None = None
     """path to a model checkpoint to resume from"""
@@ -864,13 +865,16 @@ def setup(args: Args | None = None, batch_id: str | None = None):
             mlflow.log_param("batch_id", batch_id)
         agent = main(envs, run_name, args, agent_config, device, loaded_agent)
 
+        run_id = mlflow.active_run().info.run_id
+
         agent.agent.save_agent(run_folder / f"{run_name}.pth")
         mlflow.log_artifact(run_folder / f"{run_name}.pth")
 
+        eval_instances = args.eval_instance or args.instance
         eval_env = gym.make(
             args.env_id,
             domain=args.domain,
-            instance=args.instance,
+            instance=eval_instances,
             remove_false=args.remove_false,
         )
 
@@ -882,7 +886,7 @@ def setup(args: Args | None = None, batch_id: str | None = None):
         ]
         rewards, *_ = zip(*data)
         avg_mean_reward = np.mean([np.mean(r) for r in rewards])
-        returns = [np.sum(r) for r in rewards]
+        returns = [np.sum(r).item() for r in rewards]
         save_eval_data(data, run_folder / f"{run_name}.json")
 
         mlflow.log_metric("eval/mean_reward", avg_mean_reward)
@@ -898,7 +902,11 @@ def setup(args: Args | None = None, batch_id: str | None = None):
         for k, v in stats.items():
             mlflow.log_metric(f"eval/return_{k}", v)
 
+    # print(f"avg_reward: {avg_mean_reward}")
+
+    stats["batch_id"] = batch_id
+    stats["run_id"] = run_id
+    stats["returns"] = returns
     print(stats)
-    print(f"avg_reward: {avg_mean_reward}")
 
     return stats, agent

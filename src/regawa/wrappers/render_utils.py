@@ -47,30 +47,37 @@ def to_graphviz_alt(
 def to_graphviz(
     fg: RenderGraph,
     scaling: int = -20,
+    pprint: bool = False,
     # numeric,
 ):
     colors = ["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]
-    graph = "graph G {\n"
-    graph += "overlap=false\n"
+    graph = "graph G {"
+    graph += "\n" if pprint else " "
+    graph += "overlap=false"
+    graph += "\n" if pprint else " "
     first_mapping = {}
     second_mapping = {}
     global_idx = 0
     for idx, label in enumerate(fg.variable_labels):
-        graph += f'"{global_idx}" [label="{label}"]\n'
+        graph += f'"{global_idx}" [label="{label}"]'
+        graph += "\n" if pprint else " "
         first_mapping[idx] = global_idx
         global_idx += 1
     for idx, label in enumerate(fg.factor_labels):
-        graph += f'"{global_idx}" [label="{label}", shape=box]\n'
+        graph += f'"{global_idx}" [label="{label}", shape=box]'
+        graph += "\n" if pprint else " "
         second_mapping[idx] = global_idx
         global_idx += 1
     for idx, label in enumerate(fg.global_variables):
-        graph += f'"{global_idx}" [label="{label}", shape=diamond]\n'
+        graph += f'"{global_idx}" [label="{label}", shape=diamond]'
+        graph += "\n" if pprint else " "
         global_idx += 1
 
     for attribute, sender, receiver in zip(
         fg.edge_attributes, fg.senders, fg.receivers
     ):
-        graph += f'"{first_mapping[sender]}" -- "{second_mapping[receiver]}" [color="{colors[int(attribute)]}"]\n'
+        graph += f'"{first_mapping[sender]}" -- "{second_mapping[receiver]}" [color="{colors[int(attribute)]}"]'
+        graph += "\n" if pprint else " "
     graph += "}"
     return graph
 

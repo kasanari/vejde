@@ -122,8 +122,8 @@ def object_list(
     objects_with_type: Callable[[GroundValue], list[Object]],
 ) -> list[Object]:
     unique_objects = {obj for key in obs_keys for obj in objects_with_type(key)}
-    sorted_objects = sorted(unique_objects)
-    return [Object("None", "None")] + sorted_objects
+    # sorted_objects = unique_objects
+    return [Object("None", "None")] + list(unique_objects)
 
 
 def object_list_from_groundings(groundings: list[GroundValue]) -> list[str]:

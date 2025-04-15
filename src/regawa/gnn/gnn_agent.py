@@ -8,6 +8,7 @@ from torch import Tensor, as_tensor, concatenate, int64
 
 from regawa.gnn.agent_utils import ActionMode, AgentConfig, GNNParams
 from regawa.gnn.node_then_action import NodeThenActionPolicy
+from regawa.model.base_model import BaseModel
 
 from .action_then_node import ActionThenNodePolicy
 from .data import (
@@ -140,9 +141,9 @@ class GraphAgent(nn.Module):
     ):
         super().__init__()  # type: ignore
 
-        self.config = config
         gnn_params = config.hyper_params
 
+        self.config = config
         self.factor_embedding = EmbeddingLayer(
             config.num_object_classes, gnn_params.embedding_dim, rngs
         )
@@ -239,6 +240,23 @@ class GraphAgent(nn.Module):
 
     def num_trainable_params(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+    def check_compatability(self, model: BaseModel):
+        assert (
+            self.config.num_object_classes == model.num_types
+        ), "Mismatch in number of variable types, agent expects {}, model has {}".format(
+            self.config.num_object_classes, model.num_types
+        )
+        assert (
+            self.config.num_predicate_classes == model.num_fluents
+        ), "Mismatch in number of predicates, agent expects {}, model has {}".format(
+            self.config.num_predicate_classes, model.num_fluents
+        )
+        assert (
+            self.config.num_actions == model.num_actions
+        ), "Mismatch in number of action types, agent expects {}, model has {}".format(
+            self.config.num_actions, model.num_actions
+        )
 
     @classmethod
     def load_agent(

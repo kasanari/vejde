@@ -15,6 +15,7 @@ from regawa.gnn.agent_utils import GNNParams
 from regawa.gnn.gnn_agent import heterostatedata_to_tensors
 from regawa.rddl import register_env
 from regawa.rl.util import evaluate, rollout, save_eval_data, update, update_vf_agent
+from regawa import agent_from_env
 
 
 def policy(state: dict[str, bool]) -> tuple[int, int]:
@@ -83,12 +84,6 @@ def test_imitation(
         env_id, domain=domain, instance=instance, remove_false=remove_false
     )
 
-    # n_objects = env.observation_space.spaces["factor"].shape[0]
-    # n_vars = env.observation_space["var_value"].shape[0]
-    n_types = model_utils.n_types(env.observation_space)
-    n_relations = model_utils.n_relations(env.observation_space)
-    n_actions = model_utils.n_actions(env.action_space)
-
     params = GNNParams(
         layers=4,
         embedding_dim=embedding_dim,
@@ -97,25 +92,8 @@ def test_imitation(
         action_mode=action_mode,
     )
 
-    config = AgentConfig(
-        n_types,
-        n_relations,
-        n_actions,
-        remove_false_fluents=remove_false,
-        arity=model_utils.max_arity(env.observation_space),
-        hyper_params=params,
-    )
-
-    rng = th.Generator()
-
-    agent = GraphAgent(
-        config,
-        rng,
-    )
-    vf_agent = GraphAgent(
-        config,
-        rng,
-    )
+    agent = agent_from_env(env, params)
+    vf_agent = agent_from_env(env, params)
 
     # agent, config = agent.load_agent("conditional_bandit.pth")
 

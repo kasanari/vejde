@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import logging
 import random
 import time
@@ -18,12 +19,14 @@ from regawa.rl.util import evaluate, rollout, save_eval_data, update, update_vf_
 from regawa import agent_from_env
 
 
-def policy(state: dict[str, bool]) -> tuple[int, int]:
+def policy(
+    state: dict[str, bool], object_to_idx: Callable[[str], int]
+) -> tuple[int, int]:
     if state.get(("light", "r_m"), False):
-        return (1, 4)
+        return (1, object_to_idx("red"))
 
     if state.get(("light", "g_m"), False):
-        return (1, 2)
+        return (1, object_to_idx("green"))
 
     return (0, 0)
 

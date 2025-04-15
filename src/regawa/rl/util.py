@@ -171,7 +171,6 @@ def update(
 ):
     # b = th.stack([d.var_value for d in obs])
 
-
     logprob, *_ = agent.forward(
         actions,
         s,
@@ -225,7 +224,9 @@ def rollout(
     time = 0
     collector = RolloutCollector()
     while not done:
-        action = expert_policy(info["rddl_state"])
+        action = expert_policy(
+            info["rddl_state"], lambda x: info["idx_to_object"].index(x)
+        )
         next_obs, reward, terminated, truncated, info = env.step(action)
 
         done = terminated or truncated

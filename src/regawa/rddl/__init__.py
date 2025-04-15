@@ -37,6 +37,7 @@ def make_env(
     has_enums: bool = False,
     remove_false: bool = False,
     stacking: bool = False,
+    add_render_graph_to_info: bool = True,
 ):
     env = pyRDDLGym.make(domain, str(instance), enforce_action_constraints=True)  # type: ignore
     rddl_model = env.model
@@ -49,7 +50,9 @@ def make_env(
     env = RDDLConvertEnums(env) if has_enums else env
     env = StackingWrapper(env) if stacking else env
     env = (
-        GroundedGraphWrapper(env, model=model)
+        GroundedGraphWrapper(
+            env, model=model, add_render_graph_to_info=add_render_graph_to_info
+        )
         if not stacking
         else StackingGroundedGraphWrapper(env, model=model)
     )
@@ -64,6 +67,7 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         instance: list[str],
         seed: int = 0,
         remove_false: bool = False,
+        optimize: bool = False,
     ) -> None:
         super().__init__()
 
@@ -84,7 +88,13 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         self.has_enums = has_enums
 
         self.envs = [
-            make_env(domain, str(i), has_enums, remove_false=remove_false)[0]
+            make_env(
+                domain,
+                str(i),
+                has_enums,
+                remove_false=remove_false,
+                add_render_graph_to_info=(not optimize),
+            )[0]
             for i in instance
         ]
 
@@ -128,10 +138,14 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         domain: str,
         instance: str,
         remove_false: bool = False,
+        optimize: bool = False,
     ) -> None:
         super().__init__()
         env, grounded_model, model = make_env(
-            domain, instance, remove_false=remove_false
+            domain,
+            instance,
+            remove_false=remove_false,
+            add_render_graph_to_info=(not optimize),
         )
         self.env = env
         self.observation_space = env.observation_space

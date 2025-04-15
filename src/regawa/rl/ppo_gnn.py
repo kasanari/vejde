@@ -427,6 +427,7 @@ def make_env(
             domain=domain,
             instance=instance,
             remove_false=remove_false,
+            optimize=True,
             # add_inverse_relations=False,
         )
         env = gym.wrappers.RecordEpisodeStatistics(env)

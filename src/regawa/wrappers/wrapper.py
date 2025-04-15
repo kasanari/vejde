@@ -29,6 +29,7 @@ class GroundedGraphWrapper(
         env: gym.Env[dict[str, Any], dict[str, int]],
         model: BaseModel,
         render_mode: str = "human",
+        add_render_graph_to_info: bool = True,
     ) -> None:
         super().__init__(env)
         self.model = model
@@ -38,6 +39,7 @@ class GroundedGraphWrapper(
         self._object_to_type: dict[str, str] = {"None": "None"}
         self.create_graphs = create_graphs_func(model)
         self.create_obs_dict = create_obs_dict_func(model)
+        self.add_render_graph_to_info = add_render_graph_to_info
 
     @property
     def action_space(self) -> MultiDiscrete:
@@ -101,8 +103,13 @@ class GroundedGraphWrapper(
         rddl_obs: dict[GroundValue, Any],
         graph: HeteroGraph,
         rddl_action: dict[GroundValue, Any],
+        add_render_graph_to_info: bool = False,
     ) -> tuple[dict[str, Any], RenderGraph, dict[str, str]]:
-        combined_graph = create_render_graph(graph.boolean, graph.numeric)
+        combined_graph = (
+            create_render_graph(graph.boolean, graph.numeric)
+            if add_render_graph_to_info
+            else None
+        )
         object_to_type = dict(zip(graph.boolean.factors, graph.boolean.factor_types))
         info: dict[str, Any] = {
             "state": combined_graph,
@@ -122,7 +129,7 @@ class GroundedGraphWrapper(
 
         obs, graph = self._create_obs(rddl_obs)
         info_update, combined_graph, object_to_type = self._prepare_info(
-            rddl_obs, graph, {}
+            rddl_obs, graph, {}, self.add_render_graph_to_info
         )
         info.update(info_update)
 
@@ -151,7 +158,7 @@ class GroundedGraphWrapper(
 
         obs, graph = self._create_obs(rddl_obs)
         info_update, combined_graph, object_to_type = self._prepare_info(
-            rddl_obs, graph, rddl_action
+            rddl_obs, graph, rddl_action, self.add_render_graph_to_info
         )
         info.update(info_update)
         self._object_to_type = object_to_type

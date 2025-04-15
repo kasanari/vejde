@@ -8,6 +8,7 @@ from regawa.model import GroundValue
 from regawa.model.utils import valid_action_fluents
 from regawa.wrappers.grounding_utils import (
     bool_groundings,
+    is_bool_func,
     is_numeric_func,
     numeric_groundings,
     objects_with_type_func,
@@ -75,6 +76,7 @@ def create_graphs_func(
     model: BaseModel,
 ):
     is_numeric = is_numeric_func(model.fluent_range)
+    is_bool = is_bool_func(model.fluent_range)
     valid_actions = valid_action_fluents(model)
     objects_with_type = objects_with_type_func(model.fluent_param)
 
@@ -91,7 +93,7 @@ def create_graphs_func(
             k: rddl_obs[k] for k in filtered_groundings
         }
 
-        bool_ground = bool_groundings(filtered_groundings, model.fluent_range)
+        bool_ground = bool_groundings(filtered_groundings, is_bool)
 
         bool_g = generate_bipartite_obs(
             FactorGraph[bool],

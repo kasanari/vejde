@@ -112,7 +112,15 @@ def numeric_groundings(
     return [g for g in groundings if is_numeric(g)]
 
 
+def is_bool_func(fluent_range: Callable[[str], type]):
+    @cache
+    def is_bool(g: GroundValue):
+        return fluent_range(predicate(g)) is bool
+
+    return is_bool
+
+
 def bool_groundings(
-    groundings: list[GroundValue], fluent_range: Callable[[str], type]
+    groundings: list[GroundValue], is_bool: Callable[[GroundValue], bool]
 ) -> list[GroundValue]:
-    return [g for g in groundings if fluent_range(predicate(g)) is bool]
+    return [g for g in groundings if is_bool(g)]

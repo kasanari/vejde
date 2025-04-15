@@ -10,7 +10,7 @@ from gymnasium.spaces import Box, Dict, Discrete, MultiDiscrete
 from regawa import BaseModel
 from regawa.model import GroundValue
 
-from .graph_utils import create_graphs, create_obs_dict
+from .graph_utils import create_graphs_func, create_obs_dict_func
 from .grounding_utils import to_dict_action
 from .gym_utils import action_space, obs_space
 from .render_utils import create_render_graph, to_graphviz, to_graphviz_alt
@@ -36,6 +36,8 @@ class GroundedGraphWrapper(
         self.last_action: GroundValue | None = None
         self.last_g: RenderGraph | None = None
         self._object_to_type: dict[str, str] = {"None": "None"}
+        self.create_graphs = create_graphs_func(model)
+        self.create_obs_dict = create_obs_dict_func(model)
 
     @property
     def action_space(self) -> MultiDiscrete:
@@ -90,8 +92,8 @@ class GroundedGraphWrapper(
     def _create_obs(
         self, rddl_observation: dict[GroundValue, Any]
     ) -> tuple[dict[str, Any], HeteroGraph]:
-        graph, _ = create_graphs(rddl_observation, self.model)
-        obs_dict = create_obs_dict(graph, self.model)
+        graph, _ = self.create_graphs(rddl_observation)
+        obs_dict = self.create_obs_dict(graph)
         return obs_dict, graph
 
     def _prepare_info(

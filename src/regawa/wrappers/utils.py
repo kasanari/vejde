@@ -118,9 +118,9 @@ def edge_attr(edges: set[Edge]) -> NDArray[np.int64]:
 
 
 def object_list(
-    obs_keys: list[GroundValue], relation_to_types: Callable[[str, int], str]
+    obs_keys: list[GroundValue],
+    objects_with_type: Callable[[GroundValue], list[Object]],
 ) -> list[Object]:
-    objects_with_type = objects_with_type_func(relation_to_types)
     unique_objects = {obj for key in obs_keys for obj in objects_with_type(key)}
     sorted_objects = sorted(unique_objects)
     return [Object("None", "None")] + sorted_objects
@@ -138,7 +138,7 @@ def generate_bipartite_obs(
     cls: type[T],
     observations: dict[GroundValue, bool | float],
     groundings: list[GroundValue],
-    relation_to_types: Callable[[str, int], str],
+    objects_with_type: Callable[[GroundValue], list[Object]],
     action_fluent_mask: Callable[[str], tuple[bool, ...]],
     num_actions: int,
 ) -> T:
@@ -149,7 +149,7 @@ def generate_bipartite_obs(
 
     edges = create_edges(non_nullary_groundings.keys())
 
-    object_nodes = object_list(list(observations.keys()), relation_to_types)
+    object_nodes = object_list(list(observations.keys()), objects_with_type)
     object_names = [obj.name for obj in object_nodes]
     object_types = [obj.type for obj in object_nodes]
 

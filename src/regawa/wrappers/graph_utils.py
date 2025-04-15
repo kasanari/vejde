@@ -10,6 +10,7 @@ from regawa.wrappers.grounding_utils import (
     bool_groundings,
     is_numeric_func,
     numeric_groundings,
+    objects_with_type_func,
 )
 from regawa.wrappers.gym_utils import graph_to_dict
 from regawa.wrappers.util_types import FactorGraph, HeteroGraph, Variables
@@ -48,63 +49,73 @@ def _map_graph_to_idx(
     )
 
 
-def create_obs_dict(
-    heterogenous_graph: HeteroGraph,
-    model: BaseModel,
-) -> dict[str, Any]:
-    return {
-        k: graph_to_dict(
-            _map_graph_to_idx(
-                v,  # type: ignore
-                model.fluent_to_idx,
-                model.type_to_idx,
-                dtype,
-            ),
-        )
-        for k, v, dtype in [
-            ("bool", heterogenous_graph.boolean, np.int8),
-            ("float", heterogenous_graph.numeric, np.float32),
-        ]
-    }
-
-
-def create_graphs(
-    rddl_obs: dict[GroundValue, Any],
+def create_obs_dict_func(
     model: BaseModel,
 ):
-    filtered_groundings = sorted(
-        [
-            g
-            for g in rddl_obs
-            if rddl_obs[g] is not None  # type: ignore
-        ]
-    )
+    def f(heterogenous_graph: HeteroGraph) -> dict[str, Any]:
+        return {
+            k: graph_to_dict(
+                _map_graph_to_idx(
+                    v,  # type: ignore
+                    model.fluent_to_idx,
+                    model.type_to_idx,
+                    dtype,
+                ),
+            )
+            for k, v, dtype in [
+                ("bool", heterogenous_graph.boolean, np.int8),
+                ("float", heterogenous_graph.numeric, np.float32),
+            ]
+        }
 
-    filtered_obs: dict[GroundValue, Any] = {k: rddl_obs[k] for k in filtered_groundings}
+    return f
 
-    bool_ground = bool_groundings(filtered_groundings, model.fluent_range)
 
-    bool_g = generate_bipartite_obs(
-        FactorGraph[bool],
-        filtered_obs,
-        bool_ground,
-        model.fluent_param,
-        valid_action_fluents(model),
-        model.num_actions,
-    )
+def create_graphs_func(
+    model: BaseModel,
+):
+    is_numeric = is_numeric_func(model.fluent_range)
+    valid_actions = valid_action_fluents(model)
+    objects_with_type = objects_with_type_func(model.fluent_param)
 
-    n_g = numeric_groundings(filtered_groundings, is_numeric_func(model.fluent_range))
+    def f(rddl_obs: dict[GroundValue, Any]):
+        filtered_groundings = sorted(
+            [
+                g
+                for g in rddl_obs
+                if rddl_obs[g] is not None  # type: ignore
+            ]
+        )
 
-    numeric_g = generate_bipartite_obs(
-        FactorGraph[float],
-        filtered_obs,
-        n_g,
-        model.fluent_param,
-        valid_action_fluents(model),
-        model.num_actions,
-    )
+        filtered_obs: dict[GroundValue, Any] = {
+            k: rddl_obs[k] for k in filtered_groundings
+        }
 
-    assert isinstance(bool_g, FactorGraph)
-    assert isinstance(numeric_g, FactorGraph)
-    # hetero_g = HeteroGraph(numeric_g, bool_g)
-    return HeteroGraph(numeric_g, bool_g), filtered_groundings
+        bool_ground = bool_groundings(filtered_groundings, model.fluent_range)
+
+        bool_g = generate_bipartite_obs(
+            FactorGraph[bool],
+            filtered_obs,
+            bool_ground,
+            objects_with_type,
+            valid_actions,
+            model.num_actions,
+        )
+
+        n_g = numeric_groundings(filtered_groundings, is_numeric)
+
+        numeric_g = generate_bipartite_obs(
+            FactorGraph[float],
+            filtered_obs,
+            n_g,
+            objects_with_type,
+            valid_actions,
+            model.num_actions,
+        )
+
+        assert isinstance(bool_g, FactorGraph)
+        assert isinstance(numeric_g, FactorGraph)
+        # hetero_g = HeteroGraph(numeric_g, bool_g)
+        return HeteroGraph(numeric_g, bool_g), filtered_groundings
+
+    return f

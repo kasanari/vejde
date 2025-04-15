@@ -58,16 +58,17 @@ class NoOpIfSameWrapper(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, Act
 
         accumulated_reward = reward
 
-        skipped_steps = 1
+        skipped_steps = 0
         while check_if_equal(obs, self.last_obs):
+            skipped_steps += 1
             obs, reward, terminated, truncated, info = self.env.step({})
             accumulated_reward += (self.discount**skipped_steps) * reward
             if terminated or truncated:
                 logger.debug(f"Terminated or truncated after {skipped_steps} steps")
                 break
 
-            skipped_steps += 1
-            self.last_obs = obs
+        self.last_obs = obs
+        if skipped_steps > 1:
             logger.debug(f"Skipped steps: {skipped_steps}")
 
         return obs, accumulated_reward, terminated, truncated, info

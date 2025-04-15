@@ -1,13 +1,15 @@
 from typing import Any, TypeVar
 
 import gymnasium as gym
-
+import logging
 from regawa.model import GroundValue
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
 WrapperObsType = dict[GroundValue, Any]
 WrapperActType = dict[GroundValue, Any]
+
+logger = logging.getLogger(__name__)
 
 
 def check_if_equal(obs1: WrapperObsType, obs2: WrapperObsType) -> bool:
@@ -18,6 +20,8 @@ def check_if_equal(obs1: WrapperObsType, obs2: WrapperObsType) -> bool:
     # Check if all keys are the same
     keys1 = set(obs1.keys())
     keys2 = set(obs2.keys())
+    # diff = keys1.symmetric_difference(keys2)
+    # logger.debug(f"Keys in obs1 but not in obs2: {diff}")
     equal_keys = keys1 == keys2
     if not equal_keys:
         return False
@@ -59,9 +63,12 @@ class NoOpIfSameWrapper(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, Act
             obs, reward, terminated, truncated, info = self.env.step({})
             accumulated_reward += (self.discount**skipped_steps) * reward
             if terminated or truncated:
+                logger.debug(f"Terminated or truncated after {skipped_steps} steps")
                 break
 
-        self.last_obs = obs
+            skipped_steps += 1
+            self.last_obs = obs
+            logger.debug(f"Skipped steps: {skipped_steps}")
 
         return obs, accumulated_reward, terminated, truncated, info
 

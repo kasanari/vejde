@@ -9,8 +9,7 @@ from regawa.model import GroundValue
 from regawa.model.utils import valid_action_fluents
 from regawa.wrappers.grounding_utils import bool_groundings, numeric_groundings
 from regawa.wrappers.gym_utils import graph_to_dict
-from regawa.wrappers.util_types import (HeteroGraph, StackedFactorGraph,
-                                        Variables)
+from regawa.wrappers.util_types import HeteroGraph, StackedFactorGraph, Variables
 from regawa.wrappers.utils import generate_bipartite_obs, map_graph_to_idx
 
 V = TypeVar("V")
@@ -77,13 +76,11 @@ def create_graphs(
     rddl_obs: dict[GroundValue, Any],
     model: BaseModel,
 ):
-    filtered_groundings = sorted(
-        [
-            g
-            for g in rddl_obs
-            if rddl_obs[g] is not None  # type: ignore
-        ]
-    )
+    filtered_groundings = [
+        g
+        for g in rddl_obs
+        if rddl_obs[g] is not None  # type: ignore
+    ]
 
     filtered_obs: dict[GroundValue, Any] = {k: rddl_obs[k] for k in filtered_groundings}
 

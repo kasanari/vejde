@@ -126,14 +126,6 @@ def object_list(
     return [Object("None", "None")] + list(unique_objects)
 
 
-def object_list_from_groundings(groundings: list[GroundValue]) -> list[str]:
-    return sorted({obj for grounding in groundings for obj in objects(grounding)})
-
-
-def predicate_list_from_groundings(groundings: list[GroundValue]) -> list[str]:
-    return sorted({predicate(g) for g in groundings})
-
-
 def generate_bipartite_obs(
     cls: type[T],
     observations: dict[GroundValue, bool | float],
@@ -141,6 +133,7 @@ def generate_bipartite_obs(
     objects_with_type: Callable[[GroundValue], list[Object]],
     action_fluent_mask: Callable[[str], tuple[bool, ...]],
     num_actions: int,
+    object_nodes: list[Object],
 ) -> T:
     nullary_groundings = [g for g in groundings if arity(g) == 0]
     non_nullary_groundings = {
@@ -149,7 +142,6 @@ def generate_bipartite_obs(
 
     edges = create_edges(non_nullary_groundings.keys())
 
-    object_nodes = object_list(list(observations.keys()), objects_with_type)
     object_names = [obj.name for obj in object_nodes]
     object_types = [obj.type for obj in object_nodes]
 

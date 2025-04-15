@@ -15,7 +15,7 @@ from regawa.wrappers.grounding_utils import (
 )
 from regawa.wrappers.gym_utils import graph_to_dict
 from regawa.wrappers.util_types import FactorGraph, HeteroGraph, Variables
-from regawa.wrappers.utils import generate_bipartite_obs, map_graph_to_idx
+from regawa.wrappers.utils import generate_bipartite_obs, map_graph_to_idx, object_list
 
 V = TypeVar("V")
 
@@ -81,19 +81,19 @@ def create_graphs_func(
     objects_with_type = objects_with_type_func(model.fluent_param)
 
     def f(rddl_obs: dict[GroundValue, Any]):
-        filtered_groundings = sorted(
-            [
-                g
-                for g in rddl_obs
-                if rddl_obs[g] is not None  # type: ignore
-            ]
-        )
+        filtered_groundings = [
+            g
+            for g in rddl_obs
+            if rddl_obs[g] is not None  # type: ignore
+        ]
 
         filtered_obs: dict[GroundValue, Any] = {
             k: rddl_obs[k] for k in filtered_groundings
         }
 
         bool_ground = bool_groundings(filtered_groundings, is_bool)
+
+        object_nodes = object_list(list(filtered_obs.keys()), objects_with_type)
 
         bool_g = generate_bipartite_obs(
             FactorGraph[bool],
@@ -102,6 +102,7 @@ def create_graphs_func(
             objects_with_type,
             valid_actions,
             model.num_actions,
+            object_nodes,
         )
 
         n_g = numeric_groundings(filtered_groundings, is_numeric)
@@ -113,6 +114,7 @@ def create_graphs_func(
             objects_with_type,
             valid_actions,
             model.num_actions,
+            object_nodes,
         )
 
         assert isinstance(bool_g, FactorGraph)

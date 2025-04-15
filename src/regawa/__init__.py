@@ -11,7 +11,7 @@ from .model.utils import max_arity
 import gymnasium as gym
 
 
-def agent_from_env(env: gym.Env, params: GNNParams):
+def agent_from_env(env: gym.Env, params: GNNParams, device: str = "cpu"):
     n_types = gym_utils.n_types(env.observation_space)
     n_relations = gym_utils.n_relations(env.observation_space)
     n_actions = gym_utils.n_actions(env.action_space)
@@ -27,13 +27,10 @@ def agent_from_env(env: gym.Env, params: GNNParams):
 
     rng = Generator()
 
-    return GraphAgent(
-        config,
-        rng,
-    )
+    return GraphAgent(config, rng, device)
 
 
-def agent_from_model(model: BaseModel, params: GNNParams):
+def agent_from_model(model: BaseModel, params: GNNParams, device: str = "cpu"):
     n_types = model.num_types
     n_relations = model.num_fluents
     n_actions = model.num_actions
@@ -50,10 +47,7 @@ def agent_from_model(model: BaseModel, params: GNNParams):
 
     rng = Generator()
 
-    return GraphAgent(
-        config,
-        rng,
-    )
+    return GraphAgent(config, rng, device)
 
 
 __all__ = [

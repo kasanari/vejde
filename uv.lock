@@ -491,7 +491,7 @@ wheels = [
 [[package]]
 name = "gnn-policy"
 version = "0.0.1"
-source = { git = "ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy#357db8cb217c41b31937b29c4cc7c2120e10dd49" }
+source = { git = "ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy#d9fe7ab83e05cfffd0a3cd087bc5f668b5af0380" }
 
 [[package]]
 name = "google-auth"

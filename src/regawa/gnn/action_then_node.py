@@ -53,7 +53,7 @@ class ActionThenNodePolicy(nn.Module):
         n_nodes: Tensor,
         x: PolicyFunc,
     ):
-        node_logits = self.node_prob(h.values).squeeze()  # ~ln(p(n))
+        node_logits = self.node_prob(h.values).squeeze(-1)  # ~ln(p(n))
         action_given_node_logits = self.action_given_node_prob(h.values)  # ~ln(p(a|n))
         node_given_action_logits = self.node_given_action_prob(h.values)  # ~ln(p(n|a))
         mask_actions = predicate_mask(action_mask, h.indices, n_nodes.shape[0])
@@ -111,7 +111,7 @@ class ActionThenNodePolicy(nn.Module):
         return self.f(h, action_mask, n_nodes, p_func)
 
     def value(self, h: SparseTensor, n_nodes: Tensor, action_mask: Tensor) -> Tensor:
-        node_logits = self.node_prob(h.values).squeeze()  # ~ln(p(n))
+        node_logits = self.node_prob(h.values).squeeze(-1)  # ~ln(p(n))
         action_given_node_logits = self.action_given_node_prob(h.values)
         node_given_action_logits = self.node_given_action_prob(h.values)
 

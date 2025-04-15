@@ -38,7 +38,7 @@ class NodeThenActionPolicy(nn.Module):
     def f(
         self, h: SparseTensor, action_mask: Tensor, n_nodes: Tensor, x: PolicyFunc
     ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
-        node_logits = self.node_prob(h.values).squeeze()  # ~ln(p(n))
+        node_logits = self.node_prob(h.values).squeeze(-1)  # ~ln(p(n))
         action_given_node_logits = self.action_given_node_prob(h.values)  # ~ln(p(a|n))
         n_g = n_nodes.shape[0]
 
@@ -98,7 +98,7 @@ class NodeThenActionPolicy(nn.Module):
     ) -> Tensor:
         m_n = node_mask(action_mask)
         n_g = n_nodes.shape[0]
-        node_logits = self.node_prob(h.values).squeeze()  # ~ln(p(n))
+        node_logits = self.node_prob(h.values).squeeze(-1)  # ~ln(p(n))
         action_given_node_logits = self.action_given_node_prob(h.values)
         p_n = segmented_softmax(mask_logits(node_logits, m_n), h.indices, n_g)
         p_a__n = softmax(mask_logits(action_given_node_logits, action_mask))  # type: ignore

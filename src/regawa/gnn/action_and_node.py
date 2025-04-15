@@ -3,10 +3,12 @@ from functools import partial
 
 from torch import Tensor, nn
 
-from gnn_policy.functional import (eval_action_and_node,
-                                   sample_action_and_node, segment_sum)
-from regawa.functional import (action_and_node_value_estimate, num_graphs,
-                               predicate_mask)
+from gnn_policy.functional import (
+    eval_action_and_node,
+    sample_action_and_node,
+    segment_sum,
+)
+from regawa.functional import action_and_node_value_estimate, num_graphs, predicate_mask
 from regawa.gnn.gnn_classes import SparseTensor
 
 PolicyFunc = Callable[
@@ -31,7 +33,7 @@ class ActionThenNodePolicy(nn.Module):
         self.q_node = nn.Linear(node_dim, 1)  # Q(n)
 
     def f(self, h: SparseTensor, action_mask: Tensor, n_nodes: Tensor, x: PolicyFunc):
-        node_logits = self.node_prob(h.values).squeeze()  # ~ln(p(n))
+        node_logits = self.node_prob(h.values).squeeze(-1)  # ~ln(p(n))
         action_given_node_logits = self.action_given_node_prob(h.values)  # ~ln(p(a|n))
         node_given_action_logits = self.node_given_action_prob(h.values)  # ~ln(p(n|a))
         mask_actions = predicate_mask(action_mask, h.indices, n_nodes.shape[0])

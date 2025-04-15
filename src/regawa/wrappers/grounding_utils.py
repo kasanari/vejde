@@ -1,4 +1,5 @@
 from functools import cache
+import itertools
 import logging
 from collections import deque
 from collections.abc import Callable
@@ -83,14 +84,14 @@ def to_dict_action(
     return action_dict
 
 
+@cache
+def get_edges(key: GroundValue) -> list[Edge]:
+    return [Edge(key, object, pos) for pos, object in enumerate(objects(key))]
+
+
 def create_edges(d: list[GroundValue]) -> list[Edge]:
-    edges: deque[Edge] = deque()
-    keys = sorted(d)
-    for key in keys:
-        for pos, object in enumerate(objects(key)):
-            new_key = Edge(key, object, pos)
-            edges.append(new_key)
-    return list(edges)
+    edges = [get_edges(key) for key in d]
+    return list(itertools.chain(*edges))
 
 
 def num_edges(groundings: list[GroundValue], arities: Callable[[str], int]) -> int:

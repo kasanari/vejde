@@ -353,6 +353,7 @@ class Args:
     eval_instance: str | int | list[int] | None = None
     remove_false: bool = False
     resume_from: str | None = None
+    multiprocess: bool = False
     """path to a model checkpoint to resume from"""
     debug: bool = False
     exp_name: str = os.path.basename(__file__)[: -len(".py")]
@@ -795,16 +796,31 @@ def setup(args: Args | None = None, batch_id: str | None = None):
     run_name = run_name + "__debug" if args.debug else run_name
     device = npl.device("cuda:0" if npl.cuda.is_available() and args.cuda else "cpu")
 
-    envs = gym.vector.SyncVectorEnv(
-        [
-            make_env(
-                args.env_id,
-                args.domain,
-                args.instance,
-                args.remove_false,
-            )
-            for _ in range(args.num_envs)
-        ],
+    envs = (
+        gym.vector.AsyncVectorEnv(
+            [
+                make_env(
+                    args.env_id,
+                    args.domain,
+                    args.instance,
+                    args.remove_false,
+                )
+                for _ in range(args.num_envs)
+            ],
+            shared_memory=False,
+        )
+        if args.multiprocess
+        else gym.vector.SyncVectorEnv(
+            [
+                make_env(
+                    args.env_id,
+                    args.domain,
+                    args.instance,
+                    args.remove_false,
+                )
+                for _ in range(args.num_envs)
+            ]
+        )
     )
 
     n_types = model_utils.n_types(envs.single_observation_space)  # type: ignore

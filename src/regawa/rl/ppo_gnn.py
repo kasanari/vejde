@@ -332,7 +332,7 @@ def iteration_step(
             u_data, stop_training = update_func(r_data.obs, flattened_b, b_inds)
             u_datas.extend(u_data)
             if stop_training:
-                print(
+                logger.info(
                     f"Early stopping at step {epoch} due to reaching max kl: {u_datas[-1].approx_kl:.2f}"
                 )
 

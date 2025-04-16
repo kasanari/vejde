@@ -407,14 +407,6 @@ class Args:
     target_kl: float | None = None
     """the target KL divergence threshold"""
 
-    # to be filled in runtime
-    batch_size: int = 0
-    """the batch size (computed in runtime)"""
-    minibatch_size: int = 0
-    """the mini-batch size (computed in runtime)"""
-    num_iterations: int = 0
-    """the number of iterations (computed in runtime)"""
-
 
 def make_env(
     env_id: str,
@@ -619,9 +611,17 @@ def main(
     device: str | npl.device,
     loaded_agent: GraphAgent | None = None,
 ):
-    args.batch_size = int(args.num_envs * args.num_steps)
-    args.minibatch_size = int(args.batch_size // args.num_minibatches)
-    args.num_iterations = args.total_timesteps // args.batch_size
+    batch_size = int(args.num_envs * args.num_steps)
+    minibatch_size = int(batch_size // args.num_minibatches)
+    num_iterations = args.total_timesteps // batch_size
+
+    mlflow.log_params(
+        {
+            "batch_size": batch_size,
+            "minibatch_size": minibatch_size,
+            "num_iterations": num_iterations,
+        }
+    )
 
     # TRY NOT TO MODIFY: seeding
     random.seed(args.seed)
@@ -678,23 +678,23 @@ def main(
         args.target_kl,
     )
 
-    pbar = tqdm(total=args.num_iterations)
+    pbar = tqdm(total=num_iterations)
 
     update_func = update(agent, optimizer, ppo_params)
-    mb_func = minibatch_step(args.minibatch_size, update_func, device)
-    update_step_func = update_step(args.batch_size, args.minibatch_size, mb_func)
+    mb_func = minibatch_step(minibatch_size, update_func, device)
+    update_step_func = update_step(batch_size, minibatch_size, mb_func)
     gae_func = gae(args.num_steps, args.gamma, args.gae_lambda, device)
     lambda_returns_func = lambda_return.lambda_returns(args.gamma, args.gae_lambda)
 
     iter_step_func = iteration_step(
         args.anneal_lr,
         agent,
-        args.batch_size,
+        batch_size,
         args.update_epochs,
         envs,
         optimizer,
         args.learning_rate,
-        args.num_iterations,
+        num_iterations,
         rollout(agent, envs, args.num_steps, args.num_envs, device),
         gae_func,
         update_step_func,
@@ -708,7 +708,7 @@ def main(
         npl.zeros(args.num_envs).to(device),
         0,
     )
-    for iteration in range(1, args.num_iterations + 1):
+    for iteration in range(1, num_iterations + 1):
         (
             r_data,
             u_data,

@@ -1,11 +1,10 @@
 from collections.abc import Callable
 from regawa.gnn.gnn_agent import GraphAgent
 from regawa.model.base_model import BaseModel
-from functools import partial
 from typing import Any, NamedTuple
 from torch import Tensor
 from regawa import GroundValue
-from regawa.wrappers.graph_utils import create_graphs, create_obs_dict
+from regawa.wrappers.graph_utils import create_graphs_func, create_obs_dict_func
 from regawa.wrappers.render_utils import create_render_graph
 from regawa.wrappers.util_types import HeteroGraph, RenderGraph
 import torch
@@ -28,7 +27,7 @@ def groundobs_to_graph(
     model: BaseModel,
     wrapper_func: Callable[[GroundObs], GroundObs],
 ):
-    create_graph_fn = partial(create_graphs, model=model)
+    create_graph_fn = create_graphs_func(model)
 
     def f(obs: GroundObs):
         return create_graph_fn(wrapper_func(obs))[0]
@@ -37,7 +36,7 @@ def groundobs_to_graph(
 
 
 def graph_to_obsdata(model: BaseModel):
-    create_obs_dict_fn = partial(create_obs_dict, model=model)
+    create_obs_dict_fn = create_obs_dict_func(model)
 
     def f(g: HeteroGraph):
         return create_obs_dict_fn(g)

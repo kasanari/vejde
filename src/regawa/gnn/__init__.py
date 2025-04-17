@@ -1,7 +1,6 @@
 from .data import (
     HeteroStateData,
     StateData,
-    heterodict_to_obsdata,
     heterostatedata_from_obslist,
 )
 from .gnn_agent import (
@@ -14,14 +13,13 @@ from .gnn_agent import (
 from .agent_utils import GNNParams, AgentConfig
 
 __all__ = [
-    'AgentConfig',
-    'RecurrentGraphAgent',
-    'ActionMode',
-    'GraphAgent',
-    'GNNParams',
-    'StateData',
-    'HeteroStateData',
-    'heterostatedata_to_tensors',
-    'heterodict_to_obsdata',
-    'heterostatedata_from_obslist',
+    "AgentConfig",
+    "RecurrentGraphAgent",
+    "ActionMode",
+    "GraphAgent",
+    "GNNParams",
+    "StateData",
+    "HeteroStateData",
+    "heterostatedata_to_tensors",
+    "heterostatedata_from_obslist",
 ]

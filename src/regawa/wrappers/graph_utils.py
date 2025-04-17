@@ -4,6 +4,7 @@ from typing import Any, TypeVar
 import numpy as np
 
 from regawa import BaseModel
+from regawa.gnn.data import HeteroObs
 from regawa.model import GroundValue
 from regawa.model.utils import valid_action_fluents
 from regawa.wrappers.grounding_utils import (
@@ -54,20 +55,24 @@ def create_obs_dict_func(
     model: BaseModel,
 ):
     def f(heterogenous_graph: HeteroGraph) -> dict[str, Any]:
-        return {
-            k: graph_to_dict(
+        return HeteroObs(
+            bool=graph_to_dict(
                 _map_graph_to_idx(
-                    v,  # type: ignore
+                    heterogenous_graph.boolean,  # type: ignore
                     model.fluent_to_idx,
                     model.type_to_idx,
-                    dtype,
+                    np.int8,
                 ),
-            )
-            for k, v, dtype in [
-                ("bool", heterogenous_graph.boolean, np.int8),
-                ("float", heterogenous_graph.numeric, np.float32),
-            ]
-        }
+            ),
+            float=graph_to_dict(
+                _map_graph_to_idx(
+                    heterogenous_graph.numeric,  # type: ignore
+                    model.fluent_to_idx,
+                    model.type_to_idx,
+                    np.float32,
+                ),
+            ),
+        )
 
     return f
 

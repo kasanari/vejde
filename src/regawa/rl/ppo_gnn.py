@@ -457,12 +457,10 @@ def rollout(
             assert action.shape[0] == num_envs
             assert logprob.dim() == 1
 
-            next_obs_dict, reward, terminations, truncations, infos = envs.step(  # type: ignore
+            next_obs, reward, terminations, truncations, infos = envs.step(  # type: ignore
                 action.cpu().numpy()  # type: ignore
             )
             next_is_final = np.logical_or(terminations, truncations)
-
-            next_obs = batched_hetero_dict_to_hetero_obs_list(next_obs_dict)  # type: ignore
 
             # add data to buffer
             b.rewards[step].copy_(npl.as_tensor(reward.reshape(-1)))
@@ -704,7 +702,7 @@ def main(
 
     carry = IterationCarry(
         b,
-        batched_hetero_dict_to_hetero_obs_list(next_obs),
+        next_obs,
         npl.zeros(args.num_envs).to(device),
         0,
     )

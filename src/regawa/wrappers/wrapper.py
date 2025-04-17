@@ -3,16 +3,15 @@ from functools import cached_property
 from typing import Any, SupportsFloat
 
 import gymnasium as gym
-import numpy as np
-from gymnasium import spaces
-from gymnasium.spaces import Box, Dict, Discrete, MultiDiscrete
+from gymnasium.spaces import Dict, MultiDiscrete
 
 from regawa import BaseModel
+from regawa.gnn.space import HeteroStateSpace
 from regawa.model import GroundValue
 
 from .graph_utils import create_graphs_func, create_obs_dict_func
 from .grounding_utils import to_dict_action
-from .gym_utils import action_space, obs_space
+from .gym_utils import action_space
 from .render_utils import create_render_graph, to_graphviz, to_graphviz_alt
 from .util_types import HeteroGraph, RenderGraph
 
@@ -20,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class GroundedGraphWrapper(
-    gym.Wrapper[dict[GroundValue, Any], MultiDiscrete, Dict, Dict]
+    gym.Wrapper[HeteroStateSpace, MultiDiscrete, dict[GroundValue, Any], Dict]
 ):
     metadata: dict[str, Any] = {"render_modes": ["human", "idx"]}
 
@@ -67,28 +66,17 @@ class GroundedGraphWrapper(
         return to_graphviz(self.last_g, scaling=10)
 
     @cached_property
-    def observation_space(self) -> Dict:
+    def observation_space(self) -> HeteroStateSpace:
         num_types = self.model.num_types
         num_relations = self.model.num_fluents
         max_arity = max(self.model.arity(r) for r in self.model.fluents)
         num_actions = self.model.num_actions
 
-        bool_space = Discrete(2)
-        number_space = Box(
-            low=np.finfo(np.float32).min,
-            high=np.finfo(np.float32).max,
-            shape=(),
-        )
-
-        return Dict(
-            {
-                "bool": obs_space(
-                    num_relations, num_types, max_arity, num_actions, bool_space
-                ),
-                "float": obs_space(
-                    num_relations, num_types, max_arity, num_actions, number_space
-                ),
-            }
+        return HeteroStateSpace(
+            num_types,
+            num_relations,
+            max_arity,
+            num_actions,
         )
 
     def _create_obs(

@@ -1,6 +1,6 @@
-# RDDLGraphWrapper
+# Relational Reinforcement Learning Wrapper
 
-Disclaimer: This library has been designed to be somewhat user friendly, but it is still a research project aimed towards researchers. You will have to dig into the code in order to make this work for your problems, but the classes should make the process fairly straightforward.
+*Disclaimer*: This library has been designed to be somewhat user friendly, but it is still a research project aimed towards researchers. You will have to dig into the code in order to make this work for your problems, but the classes should make the process fairly straightforward.
 
 ## How to use
 

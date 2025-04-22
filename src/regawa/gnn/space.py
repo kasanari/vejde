@@ -37,6 +37,44 @@ class FactorGraphSpace(Space[ObsData]):
         self.global_length = Sequence(Discrete(big_number), stack=True)
         super().__init__(None, None, seed)
 
+    def __eq__(self, other: Any) -> bool:
+        """Check whether `other` is equivalent to this instance. Doesn't check dtype equivalence."""
+        if not isinstance(other, FactorGraphSpace):
+            return False
+
+        return (
+            self.var_type == other.var_type
+            and self.var_value == other.var_value
+            and self.factor == other.factor
+            and self.action_mask == other.action_mask
+            and self.senders == other.senders
+            and self.receivers == other.receivers
+            and self.edge_attr == other.edge_attr
+            and self.length == other.length
+            and self.global_vars == other.global_vars
+            and self.global_vals == other.global_vals
+            and self.global_length == other.global_length
+        )
+
+    def __contains__(self, item: ObsData) -> bool:
+        """Check whether `item` is in this space."""
+        if not isinstance(item, ObsData):
+            return False
+
+        return (
+            item.var_type in self.var_type
+            and item.var_value in self.var_value
+            and item.factor in self.factor
+            and item.action_mask in self.action_mask
+            and item.senders in self.senders
+            and item.receivers in self.receivers
+            and item.edge_attr in self.edge_attr
+            and item.length in self.length
+            and item.global_vars in self.global_vars
+            and item.global_vals in self.global_vals
+            and item.global_length in self.global_length
+        )
+
 
 class HeteroStateSpace(Space[HeteroObs]):
     def __init__(
@@ -74,6 +112,13 @@ class HeteroStateSpace(Space[HeteroObs]):
             and self.float.var_value == other.float.var_value
             and self.float.factor == other.float.factor
         )
+
+    def __contains__(self, item: HeteroObs) -> bool:
+        """Check whether `item` is in this space."""
+        if not isinstance(item, HeteroObs):
+            return False
+
+        return item.bool in self.bool and item.float in self.float
 
 
 @batch_differing_spaces.register(HeteroStateSpace)

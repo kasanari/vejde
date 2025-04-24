@@ -303,8 +303,8 @@ def heterostatedata_from_buffer(
 
 
 def heterostatedata_from_obslist(obs: list[HeteroObs]) -> HeteroStateData:
-    boolean_data = list(chain(*[d.bool for d in obs]))
-    numeric_data = list(chain(*[d.float for d in obs]))
+    boolean_data = list([d.bool for d in obs])
+    numeric_data = list([d.float for d in obs])
 
     return HeteroStateData(
         boolean=batch(boolean_data),

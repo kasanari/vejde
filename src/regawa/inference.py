@@ -66,10 +66,13 @@ def get_agent_output_fn(
         )
         action = action.squeeze().detach().cpu().numpy()  # type: ignore
 
-        factor_weights = tensor_to_list(p_n__a[:, action[0]])
-
         weight_by_factor = {
-            k: float(v) for k, v in zip(objs, factor_weights) if v > 0.0
+            a: {
+                k: float(v)
+                for k, v in zip(objs, tensor_to_list(p_n__a[:, i]))
+                if v > 0.0
+            }
+            for i, a in enumerate(model.action_fluents)
         }
 
         weight_by_action = {

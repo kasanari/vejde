@@ -65,9 +65,9 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         self,
         domain: str,
         instance: list[str],
-        seed: int = 0,
         remove_false: bool = False,
         optimize: bool = False,
+        seed: int | None = None,
     ) -> None:
         super().__init__()
 
@@ -78,14 +78,18 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         parser.build()
         rddl = parser.parse(reader.rddltxt)
         model = RDDLModel(RDDLLiftedModel(rddl))
-        current_instance = 0
+        current_idx = -1
 
         has_enums = len(model.model.enum_types) > 0
         self.domain = domain
-        self.rng = np.random.default_rng(seed)
+        self.rng = (
+            np.random.default_rng(seed) if seed is not None else np.random.default_rng()
+        )
         self.instances = instance
         self.remove_false = remove_false
         self.has_enums = has_enums
+
+        order = list(range(len(instance)))
 
         self.envs = [
             make_env(
@@ -99,9 +103,12 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         ]
 
         # just to get the action and observation spaces
+        current_instance = order[current_idx]
         self.env = self.envs[current_instance]
-        self.current_instance: int = current_instance
+        self.index: int = current_idx
         self.model = model
+        self.order = order
+        self.current_instance = current_instance
 
     @property
     def action_space(self):
@@ -121,10 +128,15 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
     ) -> tuple[Dict, dict[str, Any]]:
         super().reset(seed=seed)
 
-        current_instance = (self.current_instance + 1) % len(self.instances)
+        current_idx = (self.index + 1) % len(self.instances)
+        if current_idx == 0:
+            self.rng.shuffle(self.order)
+
+        current_instance = self.order[current_idx]
 
         self.env = self.envs[current_instance]
         self.current_instance = current_instance
+        self.index = current_idx
 
         return self.env.reset(seed=seed, options=options)
 

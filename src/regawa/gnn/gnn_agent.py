@@ -94,7 +94,6 @@ def _embed(
         embedd_edge_attr,
         data.n_variable,
         data.n_factor,
-        data.action_mask,
     )
 
 
@@ -128,7 +127,6 @@ def merge_graphs(
         cat(boolean.edge_attr, numeric.edge_attr),
         boolean.n_variable + numeric.n_variable,
         boolean.n_factor,
-        boolean.action_mask,
     )
 
 
@@ -214,7 +212,13 @@ class GraphAgent(nn.Module):
 
     def forward(self, actions: Tensor, data: HeteroStateData):
         fg = self.embed(data)
-        return self.policy(actions, fg.factors, fg.action_mask, fg.n_factor)
+        return self.policy(
+            actions,
+            fg.factors,
+            data.boolean.action_type_mask,
+            data.boolean.action_arity_mask,
+            fg.n_factor,
+        )
 
     def sample_from_obs(
         self,
@@ -228,12 +232,21 @@ class GraphAgent(nn.Module):
     def sample(self, data: HeteroStateData, deterministic: bool = False):
         fg = self.embed(data)
         return self.policy.sample(
-            fg.factors, fg.n_factor, fg.action_mask, deterministic
+            fg.factors,
+            fg.n_factor,
+            data.boolean.action_type_mask,
+            data.boolean.action_arity_mask,
+            deterministic,
         )
 
     def value(self, data: HeteroStateData):
         fg = self.embed(data)
-        return self.policy.value(fg.factors, fg.n_factor, fg.action_mask)
+        return self.policy.value(
+            fg.factors,
+            fg.n_factor,
+            data.boolean.action_type_mask,
+            data.boolean.action_arity_mask,
+        )
 
     def save_agent(self, path: str):
         save_agent(self, self.config, path)

@@ -54,7 +54,6 @@ class BipartiteGNN(nn.Module):
             fg.edge_attr,
             fg.n_variable,
             fg.n_factor,
-            fg.action_mask,
         )
 
         i = 0
@@ -76,7 +75,6 @@ class BipartiteGNN(nn.Module):
                 fg.edge_attr,
                 fg.n_variable,
                 fg.n_factor,
-                fg.action_mask,
             )
             i += 1
 

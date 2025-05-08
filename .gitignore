@@ -12,7 +12,6 @@ mlartifacts
 *.txt
 *.json
 *.md
-gnn_policy
 *.yml
 build
 render

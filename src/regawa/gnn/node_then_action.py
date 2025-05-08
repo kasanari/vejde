@@ -36,18 +36,24 @@ class NodeThenActionPolicy(nn.Module):
         self.critic_heads = critic_heads
 
     def f(
-        self, h: SparseTensor, action_mask: Tensor, n_nodes: Tensor, x: PolicyFunc
+        self,
+        h: SparseTensor,
+        action_type_mask: Tensor,
+        action_arity_mask: Tensor,
+        n_nodes: Tensor,
+        x: PolicyFunc,
     ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
+        action_given_node_mask = action_type_mask
+        node_given_action_mask = action_arity_mask.logical_and(action_type_mask)
         node_logits = self.node_prob(h.values).squeeze(-1)  # ~ln(p(n))
         action_given_node_logits = self.action_given_node_prob(h.values)  # ~ln(p(a|n))
         n_g = n_nodes.shape[0]
 
-        mask_nodes = node_mask(action_mask)
         actions, logprob, entropy, _, p_n = x(  # type: ignore
             action_given_node_logits,
             node_logits,
-            mask_nodes,
-            action_mask,
+            action_given_node_mask,
+            node_given_action_mask,
             h.indices,
             n_nodes,
         )
@@ -56,7 +62,7 @@ class NodeThenActionPolicy(nn.Module):
         q = q.view(-1, self.critic_heads, self.num_actions)
         q = q.mean(axis=1)
 
-        p_a__n = softmax(mask_logits(action_given_node_logits, action_mask))  # type: ignore
+        p_a__n = softmax(mask_logits(action_given_node_logits, action_given_node_mask))  # type: ignore
 
         # action then node
         value = node_then_action_value_estimate(
@@ -72,36 +78,39 @@ class NodeThenActionPolicy(nn.Module):
         self,
         a: Tensor,
         h: SparseTensor,
-        action_mask: Tensor,
+        action_type_mask: Tensor,
+        action_arity_mask: Tensor,
         n_nodes: Tensor,
     ):
         def p_func(*args):  # type: ignore
             return a, *self.eval_func(a, *args)  # type: ignore
 
-        return self.f(h, action_mask, n_nodes, p_func)[1:]  # type: ignore
+        return self.f(h, action_type_mask, action_arity_mask, n_nodes, p_func)[1:]  # type: ignore
 
     def sample(
         self,
         h: SparseTensor,
         n_nodes: Tensor,
-        action_mask: Tensor,
+        action_type_mask: Tensor,
+        action_arity_mask: Tensor,
         deterministic: bool = False,
     ):
         p_func = partial(self.sample_func, deterministic=deterministic)  # type: ignore
-        return self.f(h, action_mask, n_nodes, p_func)  # type: ignore
+        return self.f(h, action_type_mask, action_arity_mask, n_nodes, p_func)  # type: ignore
 
     def value(
         self,
         h: SparseTensor,
         n_nodes: Tensor,
-        action_mask: Tensor,
+        action_type_mask: Tensor,
+        action_arity_mask: Tensor,
     ) -> Tensor:
-        m_n = node_mask(action_mask)
         n_g = n_nodes.shape[0]
+
         node_logits = self.node_prob(h.values).squeeze(-1)  # ~ln(p(n))
         action_given_node_logits = self.action_given_node_prob(h.values)
-        p_n = segmented_softmax(mask_logits(node_logits, m_n), h.indices, n_g)
-        p_a__n = softmax(mask_logits(action_given_node_logits, action_mask))  # type: ignore
+        p_n = segmented_softmax(node_logits, h.indices, n_g)
+        p_a__n = softmax(mask_logits(action_given_node_logits, action_type_mask))  # type: ignore
 
         q = self.q_action__node(h.values)
         q = q.view(-1, self.critic_heads, self.num_actions)

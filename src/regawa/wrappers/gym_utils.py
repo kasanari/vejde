@@ -85,7 +85,8 @@ def graph_to_dict(idx_g: IdxFactorGraph[V]) -> ObsData:
         global_vars=idx_g.global_vars.types,
         global_vals=idx_g.global_vars.values,
         global_length=idx_g.global_vars.lengths,
-        action_mask=idx_g.action_mask,
+        action_arity_mask=idx_g.action_arity_mask,
+        action_type_mask=idx_g.action_type_mask,
         n_factor=idx_g.factors.shape[0],  # + obs["var_value"].shape[0]
         n_variable=idx_g.variables.lengths.shape[0],
     )

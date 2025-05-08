@@ -40,7 +40,8 @@ class IdxFactorGraph(NamedTuple, Generic[V]):
     receivers: np.ndarray[np.int64, Any]
     edge_attributes: np.ndarray[np.int64, Any]
     global_vars: Variables[V]
-    action_mask: np.ndarray[np.bool_, Any]
+    action_type_mask: np.ndarray[np.bool_, Any]
+    action_arity_mask: np.ndarray[np.bool_, Any]
 
 
 class FactorGraph(NamedTuple, Generic[V]):
@@ -53,7 +54,8 @@ class FactorGraph(NamedTuple, Generic[V]):
     edge_attributes: list[int]
     global_variables: list[str]
     global_variable_values: list[V]
-    action_mask: list[tuple[bool, ...]]
+    action_type_mask: list[tuple[bool, ...]]
+    action_arity_mask: list[tuple[bool, ...]]
     groundings: list[GroundValue]
     global_groundings: list[GroundValue]
 

@@ -49,28 +49,32 @@ class ActionThenNodePolicy(nn.Module):
     def f(
         self,
         h: SparseTensor,
-        action_mask: Tensor,
+        action_type_mask: Tensor,
+        action_arity_mask: Tensor,
         n_nodes: Tensor,
         x: PolicyFunc,
     ):
         node_logits = self.node_prob(h.values).squeeze(-1)  # ~ln(p(n))
         action_given_node_logits = self.action_given_node_prob(h.values)  # ~ln(p(a|n))
         node_given_action_logits = self.node_given_action_prob(h.values)  # ~ln(p(n|a))
-        mask_actions = predicate_mask(action_mask, h.indices, n_nodes.shape[0])
         n_g = num_graphs(h.indices)
+        action_given_node_mask = action_type_mask
+        node_given_action_mask = action_arity_mask.logical_and(action_type_mask)
 
         actions, logprob, entropy, p_a, _ = x(
             node_logits,
             action_given_node_logits,
             node_given_action_logits,
-            mask_actions,
-            action_mask,
+            action_given_node_mask,
+            node_given_action_mask,
             h.indices,
             n_nodes,
         )
 
         p_n__a = segment_softmax(  # type: ignore
-            mask_logits(node_given_action_logits, action_mask), h.indices, n_g
+            mask_logits(node_given_action_logits, node_given_action_mask),
+            h.indices,
+            n_g,
         )
         segsum = partial(segment_sum, index=h.indices, num_segments=n_g)  # type: ignore
 
@@ -92,36 +96,52 @@ class ActionThenNodePolicy(nn.Module):
         self,
         a: Tensor,
         h: SparseTensor,
-        action_mask: Tensor,
+        action_type_mask: Tensor,
+        action_arity_mask: Tensor,
         n_nodes: Tensor,
     ):
         def p_func(*args):  # type: ignore
             return a, *self.eval_func(a, *args)  # type: ignore
 
-        return self.f(h, action_mask, n_nodes, p_func)[1:]  # type: ignore
+        return self.f(h, action_type_mask, action_arity_mask, n_nodes, p_func)[1:]  # type: ignore
 
     def sample(
         self,
         h: SparseTensor,
         n_nodes: Tensor,
-        action_mask: Tensor,
+        action_type_mask: Tensor,
+        action_arity_mask: Tensor,
         deterministic: bool = False,
     ):
         p_func = partial(self.sample_func, deterministic=deterministic)  # type: ignore
-        return self.f(h, action_mask, n_nodes, p_func)
+        return self.f(h, action_type_mask, action_arity_mask, n_nodes, p_func)
 
-    def value(self, h: SparseTensor, n_nodes: Tensor, action_mask: Tensor) -> Tensor:
+    def value(
+        self,
+        h: SparseTensor,
+        n_nodes: Tensor,
+        action_type_mask: Tensor,
+        action_arity_mask: Tensor,
+    ) -> Tensor:
         node_logits = self.node_prob(h.values).squeeze(-1)  # ~ln(p(n))
         action_given_node_logits = self.action_given_node_prob(h.values)
         node_given_action_logits = self.node_given_action_prob(h.values)
 
-        n_g = n_nodes.shape[0]
-        p_a = marginalize(node_logits, action_given_node_logits, h.indices, n_g)
+        action_given_node_mask = action_type_mask
+        node_given_action_mask = action_arity_mask.logical_and(action_type_mask)
 
-        p_a = p_a * predicate_mask(action_mask, h.indices, n_g)
+        n_g = n_nodes.shape[0]
+        p_a = marginalize(
+            node_logits,
+            mask_logits(action_given_node_logits, action_given_node_mask),
+            h.indices,
+            n_g,
+        )
 
         p_n__a = segment_softmax(  # type: ignore
-            mask_logits(node_given_action_logits, action_mask), h.indices, n_g
+            mask_logits(node_given_action_logits, node_given_action_mask),
+            h.indices,
+            n_g,
         )
         segsum = partial(segment_sum, index=h.indices, num_segments=n_g)  # type: ignore
 

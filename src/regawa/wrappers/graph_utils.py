@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from functools import partial
 from typing import Any, TypeVar
 
 import numpy as np
@@ -6,7 +7,10 @@ import numpy as np
 from regawa import BaseModel
 from regawa.gnn.data import HeteroObs
 from regawa.model import GroundValue
-from regawa.model.utils import valid_action_fluents
+from regawa.model.utils import (
+    valid_action_fluents_given_arity,
+    valid_action_fluents_given_type,
+)
 from regawa.wrappers.grounding_utils import (
     bool_groundings,
     is_bool_func,
@@ -16,7 +20,11 @@ from regawa.wrappers.grounding_utils import (
 )
 from regawa.wrappers.gym_utils import graph_to_dict
 from regawa.wrappers.util_types import FactorGraph, HeteroGraph, Variables
-from regawa.wrappers.utils import generate_bipartite_obs, map_graph_to_idx, object_list
+from regawa.wrappers.utils import (
+    generate_bipartite_obs_func,
+    map_graph_to_idx,
+    object_list,
+)
 
 V = TypeVar("V")
 
@@ -43,7 +51,8 @@ def _map_graph_to_idx(
         factorgraph.senders,
         factorgraph.receivers,
         factorgraph.edge_attributes,
-        factorgraph.action_mask,
+        factorgraph.action_type_mask,
+        factorgraph.action_arity_mask,
         factorgraph.factor_types,
         rel_to_idx,
         type_to_idx,
@@ -80,10 +89,37 @@ def create_obs_dict_func(
 def create_graphs_func(
     model: BaseModel,
 ):
-    is_numeric = is_numeric_func(model.fluent_range)
-    is_bool = is_bool_func(model.fluent_range)
-    valid_actions = valid_action_fluents(model)
     objects_with_type = objects_with_type_func(model.fluent_param)
+    is_numeric, is_bool = (
+        is_numeric_func(model.fluent_range),
+        is_bool_func(model.fluent_range),
+    )
+    valid_action_type_func, valid_action_arity_func = (
+        valid_action_fluents_given_type(model),
+        valid_action_fluents_given_arity(model),
+    )
+    generate_bipartite_obs_bool, generate_bipartite_obs_numeric = (
+        generate_bipartite_obs_func(
+            FactorGraph[bool],
+            valid_action_type_func,
+            valid_action_arity_func,
+        ),
+        generate_bipartite_obs_func(
+            FactorGraph[float],
+            valid_action_type_func,
+            valid_action_arity_func,
+        ),
+    )
+    b_g, n_g = (
+        partial(
+            bool_groundings,
+            is_bool=is_bool,
+        ),
+        partial(
+            numeric_groundings,
+            is_numeric=is_numeric,
+        ),
+    )
 
     def f(rddl_obs: dict[GroundValue, Any]):
         filtered_groundings = [
@@ -96,35 +132,23 @@ def create_graphs_func(
             k: rddl_obs[k] for k in filtered_groundings
         }
 
-        bool_ground = bool_groundings(filtered_groundings, is_bool)
-
         object_nodes = object_list(list(filtered_obs.keys()), objects_with_type)
 
-        bool_g = generate_bipartite_obs(
-            FactorGraph[bool],
-            filtered_obs,
-            bool_ground,
-            objects_with_type,
-            valid_actions,
-            model.num_actions,
-            object_nodes,
-        )
-
-        n_g = numeric_groundings(filtered_groundings, is_numeric)
-
-        numeric_g = generate_bipartite_obs(
-            FactorGraph[float],
-            filtered_obs,
-            n_g,
-            objects_with_type,
-            valid_actions,
-            model.num_actions,
-            object_nodes,
+        bool_g, numeric_g = (
+            generate_bipartite_obs_bool(
+                filtered_obs,
+                b_g(filtered_groundings),
+                object_nodes,
+            ),
+            generate_bipartite_obs_numeric(
+                filtered_obs,
+                n_g(filtered_groundings),
+                object_nodes,
+            ),
         )
 
         assert isinstance(bool_g, FactorGraph)
         assert isinstance(numeric_g, FactorGraph)
-        # hetero_g = HeteroGraph(numeric_g, bool_g)
         return HeteroGraph(numeric_g, bool_g), filtered_groundings
 
     return f

@@ -43,7 +43,8 @@ def map_graph_to_idx(
     senders: NDArray[np.int64],
     receivers: NDArray[np.int64],
     edge_attributes: list[int],
-    action_mask: list[tuple[bool, ...]],
+    action_type_mask: list[tuple[bool, ...]],
+    action_arity_mask: list[tuple[bool, ...]],
     factor_types: list[str],
     rel_to_idx: Callable[[str], int],
     type_to_idx: Callable[[str], int],
@@ -73,7 +74,8 @@ def map_graph_to_idx(
             arr(global_variables.values, dtype=var_val_dtype),
             arr(global_variables.lengths),
         ),
-        arr(action_mask),
+        arr(action_type_mask, dtype=np.bool_),
+        arr(action_arity_mask, dtype=np.bool_),
     )
 
 
@@ -126,56 +128,67 @@ def object_list(
     return [Object("None", "None")] + list(unique_objects)
 
 
-def generate_bipartite_obs(
+def generate_bipartite_obs_func(
     cls: type[T],
-    observations: dict[GroundValue, bool | float],
-    groundings: list[GroundValue],
-    objects_with_type: Callable[[GroundValue], list[Object]],
-    action_fluent_mask: Callable[[str], tuple[bool, ...]],
-    num_actions: int,
-    object_nodes: list[Object],
-) -> T:
-    nullary_groundings = [g for g in groundings if arity(g) == 0]
-    non_nullary_groundings = {
-        g: idx for idx, g in enumerate(g for g in groundings if arity(g) > 0)
-    }
+    action_fluent_type_mask: Callable[[str], tuple[bool, ...]],
+    action_fluent_arity_mask: Callable[[str], tuple[bool, ...]],
+):
+    def f(
+        observations: dict[GroundValue, T],
+        groundings: list[GroundValue],
+        object_nodes: list[Object],
+    ) -> T:
+        nullary_groundings = [g for g in groundings if arity(g) == 0]
+        non_nullary_groundings = {
+            g: idx for idx, g in enumerate(g for g in groundings if arity(g) > 0)
+        }
 
-    edges = create_edges(non_nullary_groundings.keys())
+        edges = create_edges(non_nullary_groundings.keys())
 
-    object_names = [obj.name for obj in object_nodes]
-    object_types = [obj.type for obj in object_nodes]
+        object_names = [obj.name for obj in object_nodes]
+        object_types = [obj.type for obj in object_nodes]
 
-    factor_node_values = [observations[g] for g in non_nullary_groundings]
-    factor_node_predicates = [predicate(g) for g in non_nullary_groundings]
+        factor_node_values = [observations[g] for g in non_nullary_groundings]
+        factor_node_predicates = [predicate(g) for g in non_nullary_groundings]
 
-    object_indices = {name: idx for idx, name in enumerate(object_names)}
+        object_indices = {name: idx for idx, name in enumerate(object_names)}
 
-    senders, receivers = translate_edges(
-        lambda x: non_nullary_groundings[x], lambda x: object_indices[x], edges
-    )
+        senders, receivers = translate_edges(
+            lambda x: non_nullary_groundings[x], lambda x: object_indices[x], edges
+        )
 
-    edge_attributes = edge_attr(edges)
+        edge_attributes = edge_attr(edges)
 
-    global_variables = [predicate(g) for g in nullary_groundings]
-    global_variable_values = [observations[g] for g in nullary_groundings]
+        global_variables = [predicate(g) for g in nullary_groundings]
+        global_variable_values = [observations[g] for g in nullary_groundings]
 
-    action_masks = [action_fluent_mask(obj_type) for obj_type in object_types]
+        action_type_mask = [
+            action_fluent_type_mask(obj_type) for obj_type in object_types
+        ]
+        action_arity_mask = [
+            action_fluent_arity_mask(obj_type) for obj_type in object_types
+        ]
 
-    if edges:
-        assert senders.max() < len(factor_node_values), "Senders index out of bounds."
-        assert receivers.max() < len(object_types), "Receivers index out of bounds."
+        if edges:
+            assert senders.max() < len(
+                factor_node_values
+            ), "Senders index out of bounds."
+            assert receivers.max() < len(object_types), "Receivers index out of bounds."
 
-    return cls(
-        factor_node_predicates,
-        factor_node_values,
-        object_names,
-        object_types,
-        senders,
-        receivers,
-        edge_attributes,
-        global_variables,
-        global_variable_values,
-        action_masks,
-        non_nullary_groundings,
-        nullary_groundings,
-    )
+        return cls(
+            factor_node_predicates,
+            factor_node_values,
+            object_names,
+            object_types,
+            senders,
+            receivers,
+            edge_attributes,
+            global_variables,
+            global_variable_values,
+            action_type_mask,
+            action_arity_mask,
+            non_nullary_groundings,
+            nullary_groundings,
+        )
+
+    return f

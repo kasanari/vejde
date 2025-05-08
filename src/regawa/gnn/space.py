@@ -27,7 +27,8 @@ class FactorGraphSpace(Space[ObsData]):
             ),
             stack=True,
         )
-        self.action_mask = Sequence(Box(0, 1, (num_actions,)), stack=True)
+        self.action_arity_mask = Sequence(Box(0, 1, (num_actions,)), stack=True)
+        self.action_type_mask = Sequence(Box(0, 1, (num_actions,)), stack=True)
         self.senders = Sequence(Discrete(big_number), stack=True)
         self.receivers = Sequence(Discrete(big_number), stack=True)
         self.edge_attr = Sequence(Discrete(max_arity + 1), stack=True)
@@ -46,7 +47,8 @@ class FactorGraphSpace(Space[ObsData]):
             self.var_type == other.var_type
             and self.var_value == other.var_value
             and self.factor == other.factor
-            and self.action_mask == other.action_mask
+            and self.action_arity_mask == other.action_arity_mask
+            and self.action_type_mask == other.action_type_mask
             and self.senders == other.senders
             and self.receivers == other.receivers
             and self.edge_attr == other.edge_attr
@@ -65,7 +67,8 @@ class FactorGraphSpace(Space[ObsData]):
             item.var_type in self.var_type
             and item.var_value in self.var_value
             and item.factor in self.factor
-            and item.action_mask in self.action_mask
+            and item.action_arity_mask in self.action_arity_mask
+            and item.action_type_mask in self.action_type_mask
             and item.senders in self.senders
             and item.receivers in self.receivers
             and item.edge_attr in self.edge_attr

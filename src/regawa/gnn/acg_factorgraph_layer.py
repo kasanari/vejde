@@ -152,7 +152,6 @@ class FactorGraphLayer(nn.Module):
             fg.edge_attr,
             fg.n_variable,
             fg.n_factor,
-            fg.action_mask,
         )
 
         n_h_v = self.factor2var(

@@ -26,29 +26,30 @@ class Serializer(json.JSONEncoder):
         return super().default(obj)
 
 
-class ObsData(NamedTuple):
-    var_value: NDArray
-    var_type: NDArray
-    factor: NDArray
-    senders: NDArray
-    receivers: NDArray
-    edge_attr: NDArray
-    length: NDArray
+V = TypeVar("V", np.float32, np.bool_)
+
+
+class ObsData(NamedTuple, Generic[V]):
+    var_value: NDArray[V]
+    var_type: NDArray[V]
+    factor: NDArray[V]
+    senders: NDArray[V]
+    receivers: NDArray[V]
+    edge_attr: NDArray[V]
+    length: NDArray[V]
     # globals: NDArray
     n_factor: int
     n_variable: int
-    global_vars: NDArray
-    global_vals: NDArray
-    global_length: NDArray
-    action_mask: NDArray
+    global_vars: NDArray[V]
+    global_vals: NDArray[V]
+    global_length: NDArray[V]
+    action_type_mask: NDArray[V]
+    action_arity_mask: NDArray[V]
 
 
 class HeteroObs(NamedTuple):
     bool: ObsData
     float: ObsData
-
-
-V = TypeVar("V", np.float32, np.bool_)
 
 
 class StateData(NamedTuple, Generic[V]):
@@ -65,7 +66,8 @@ class StateData(NamedTuple, Generic[V]):
     global_vars: SparseArray[np.int64]
     global_vals: SparseArray[V]
     global_length: NDArray[np.int64]
-    action_mask: NDArray[np.bool_]
+    action_arity_mask: NDArray[np.bool_]
+    action_type_mask: NDArray[np.bool_]
 
 
 class HeteroStateData(NamedTuple):
@@ -180,7 +182,7 @@ class RolloutCollector:
         return returns
 
 
-def batch(graphs: list[ObsData]) -> StateData:
+def batch(graphs: list[ObsData[V]]) -> StateData[V]:
     num_graphs = len(graphs)
     total_factors = sum(g.n_factor for g in graphs)
     total_variables = sum(g.n_variable for g in graphs)
@@ -204,7 +206,12 @@ def batch(graphs: list[ObsData]) -> StateData:
     global_vals = np.empty((total_globals,), dtype=g0.global_vals.dtype)
     global_length = np.empty((total_globals,), dtype=np.int64)
     global_batch = np.empty((total_globals,), dtype=np.int64)
-    action_mask = np.empty((total_factors, g0.action_mask.shape[1]), dtype=np.bool_)
+    action_arity_mask = np.empty(
+        (total_factors, g0.action_arity_mask.shape[1]), dtype=np.bool_
+    )
+    action_type_mask = np.empty(
+        (total_factors, g0.action_type_mask.shape[1]), dtype=np.bool_
+    )
 
     factor_offsets, variable_offsets, globals_offset = 0, 0, 0
     edge_offsets = 0
@@ -226,7 +233,10 @@ def batch(graphs: list[ObsData]) -> StateData:
         global_vals[globals_offset : globals_offset + globals_len] = g.global_vals
         global_length[globals_offset : globals_offset + globals_len] = g.global_length
         global_batch[globals_offset : globals_offset + globals_len] = i
-        action_mask[factor_offsets : factor_offsets + fac_len] = g.action_mask
+        action_arity_mask[factor_offsets : factor_offsets + fac_len] = (
+            g.action_arity_mask
+        )
+        action_type_mask[factor_offsets : factor_offsets + fac_len] = g.action_type_mask
         n_factor[i] = fac_len
         n_variable[i] = var_len
 
@@ -249,7 +259,8 @@ def batch(graphs: list[ObsData]) -> StateData:
         global_vars=SparseArray(global_vars, global_batch),
         global_vals=SparseArray(global_vals, global_batch),
         global_length=global_length,
-        action_mask=action_mask,
+        action_arity_mask=action_arity_mask,
+        action_type_mask=action_type_mask,
     )
 
 
@@ -331,4 +342,3 @@ class FactorGraph(NamedTuple):
     edge_attr: Tensor
     n_variable: Tensor
     n_factor: Tensor
-    action_mask: Tensor

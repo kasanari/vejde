@@ -406,6 +406,8 @@ class Args:
     """the maximum norm for the gradient clipping"""
     target_kl: float | None = None
     """the target KL divergence threshold"""
+    checkpoint_period: int = 0
+    """period in number of iterations to save a checkpoint, 0 means no checkpoint"""
 
 
 def make_env(
@@ -613,6 +615,8 @@ def main(
     minibatch_size = int(batch_size // args.num_minibatches)
     num_iterations = args.total_timesteps // batch_size
 
+    checkpoint_period = args.checkpoint_period // batch_size
+
     mlflow.log_params(
         {
             "batch_size": batch_size,
@@ -714,6 +718,15 @@ def main(
             return_scale,
             carry,
         ) = iter_step_func(iteration, carry)
+
+        if checkpoint_period > 0 and iteration % checkpoint_period == 0:
+            agent.agent.save_agent(
+                f"runs/{run_name}/checkpoint_{iteration*batch_size}.pth",
+            )
+            mlflow.log_artifact(
+                f"runs/{run_name}/checkpoint_{iteration*batch_size}.pth",
+                artifact_path="checkpoints",
+            )
 
         r = np.mean(r_data.returns) if r_data.returns else None
         length = np.mean(r_data.lengths) if r_data.lengths else None

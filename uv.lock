@@ -29,15 +29,21 @@ resolution-markers = [
     "python_full_version == '3.12.*' and sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
     "python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
     "python_full_version < '3.12' and sys_platform == 'darwin' and extra == 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
-    "python_full_version >= '3.13' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
-    "python_full_version == '3.12.*' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version >= '3.13' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version >= '3.13' and platform_machine != 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version == '3.12.*' and platform_machine != 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
     "python_full_version >= '3.13' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
     "python_full_version == '3.12.*' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
-    "python_full_version >= '3.13' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
-    "python_full_version < '3.12' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version >= '3.13' and platform_machine == 'x86_64' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version >= '3.13' and platform_machine != 'x86_64' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version == '3.12.*' and platform_machine != 'x86_64' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version < '3.12' and platform_machine != 'x86_64' and sys_platform == 'linux' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
     "python_full_version < '3.12' and sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
-    "python_full_version < '3.12' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
+    "python_full_version < '3.12' and platform_machine != 'x86_64' and sys_platform == 'win32' and extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124'",
 ]
 conflicts = [[
     { package = "regawa", extra = "cpu" },
@@ -491,7 +497,7 @@ wheels = [
 [[package]]
 name = "gnn-policy"
 version = "0.0.1"
-source = { git = "ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy#d9fe7ab83e05cfffd0a3cd087bc5f668b5af0380" }
+source = { git = "ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy#d1e438426387736ff0ad85c1cfe491603322200a" }
 
 [[package]]
 name = "google-auth"
@@ -1884,6 +1890,7 @@ source = { editable = "." }
 dependencies = [
     { name = "gnn-policy" },
     { name = "gymnasium" },
+    { name = "psutil" },
     { name = "tqdm" },
 ]
 
@@ -1938,6 +1945,7 @@ requires-dist = [
     { name = "mlflow", marker = "extra == 'rl'", specifier = ">=2.21.0" },
     { name = "optax", marker = "extra == 'jax-cpu'" },
     { name = "optax", marker = "extra == 'jax-gpu'" },
+    { name = "psutil", specifier = ">=7.0.0" },
     { name = "pyrddlgym", marker = "extra == 'rddl'", specifier = ">=2.2" },
     { name = "rddlrepository", marker = "extra == 'rddl'", specifier = ">=2.0" },
     { name = "torch", marker = "extra == 'cpu'", specifier = "==2.5.0", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "regawa", extra = "cpu" } },
@@ -2409,15 +2417,21 @@ name = "torch"
 version = "2.5.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.13' and sys_platform == 'linux'",
-    "python_full_version == '3.12.*' and sys_platform == 'linux'",
+    "python_full_version >= '3.13' and platform_machine == 'x86_64' and sys_platform == 'linux'",
+    "python_full_version >= '3.13' and platform_machine != 'x86_64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine != 'x86_64' and sys_platform == 'linux'",
     "python_full_version >= '3.13' and sys_platform != 'linux' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'linux' and sys_platform != 'win32'",
-    "python_full_version >= '3.13' and sys_platform == 'win32'",
-    "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version < '3.12' and sys_platform == 'linux'",
+    "python_full_version >= '3.13' and platform_machine == 'x86_64' and sys_platform == 'win32'",
+    "python_full_version >= '3.13' and platform_machine != 'x86_64' and sys_platform == 'win32'",
+    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'win32'",
+    "python_full_version == '3.12.*' and platform_machine != 'x86_64' and sys_platform == 'win32'",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux'",
+    "python_full_version < '3.12' and platform_machine != 'x86_64' and sys_platform == 'linux'",
     "python_full_version < '3.12' and sys_platform != 'linux' and sys_platform != 'win32'",
-    "python_full_version < '3.12' and sys_platform == 'win32'",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'win32'",
+    "python_full_version < '3.12' and platform_machine != 'x86_64' and sys_platform == 'win32'",
 ]
 dependencies = [
     { name = "filelock", marker = "(extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (extra != 'extra-6-regawa-cpu' and extra != 'extra-6-regawa-cu124')" },
@@ -2616,7 +2630,7 @@ name = "triton"
 version = "3.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "filelock", marker = "(platform_machine != 'aarch64' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cu124') or (extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
+    { name = "filelock", marker = "(python_full_version < '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'extra-6-regawa-cu124') or (python_full_version >= '3.13' and platform_machine != 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (platform_machine == 'aarch64' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124') or (sys_platform != 'linux' and extra == 'extra-6-regawa-cpu' and extra == 'extra-6-regawa-cu124')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/86/17/d9a5cf4fcf46291856d1e90762e36cbabd2a56c7265da0d1d9508c8e3943/triton-3.1.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0f34f6e7885d1bf0eaaf7ba875a5f0ce6f3c13ba98f9503651c1e6dc6757ed5c", size = 209506424 },

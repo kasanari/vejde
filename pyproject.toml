@@ -9,12 +9,17 @@ build-backend = "hatchling.build"
 name = "regawa"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["gnn-policy", "gymnasium>=1.1.1", "tqdm>=4.67.1"]
+dependencies = [
+  "gnn-policy",
+  "gymnasium>=1.1.1",
+  "psutil>=7.0.0",
+  "tqdm>=4.67.1",
+]
 
 
 [project.optional-dependencies]
 cpu = ["torch==2.5.0", "torch_scatter==2.1.2+pt25cpu"]
-cu124 = ["torch==2.5.0", "torch_scatter==2.1.2+pt25cu124"]
+cu124 = ["torch==2.5.0", "torch_scatter==2.1.2+pt25cu124", "pynvml"]
 jax_cpu = ["jax", "optax", "flax"]
 jax_gpu = ["jax[cuda12]", "optax", "flax"]
 rddl = ["pyrddlgym>=2.2", "rddlrepository>=2.0"]

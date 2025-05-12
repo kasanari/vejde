@@ -806,7 +806,7 @@ def setup(args: Args | None = None, batch_id: str | None = None):
     run_name = f"{Path(args.domain).name}__{Path(str(args.instance)).name}__{args.exp_name}__{args.seed}"
     run_name = run_name + "__debug" if args.debug else run_name
     device = npl.device("cuda:0" if npl.cuda.is_available() and args.cuda else "cpu")
-
+    mlflow.enable_system_metrics_logging()
     envs = (
         gym.vector.AsyncVectorEnv(
             [

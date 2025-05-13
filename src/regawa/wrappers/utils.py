@@ -93,8 +93,8 @@ def idx_action_to_ground_value(
     idx_to_obj: Callable[[int], str],
 ) -> GroundValue:
     action_name = idx_to_action(action[0])
-    objects = tuple(idx_to_obj(obj_idx) for obj_idx in action[1:] if obj_idx != 0)
-    return (action_name, *objects)
+    o = tuple(idx_to_obj(obj_idx) for obj_idx in action[1:] if obj_idx != 0)
+    return (action_name, *o)
 
 
 def sample_action(action_space: Dict) -> dict[str, int]:

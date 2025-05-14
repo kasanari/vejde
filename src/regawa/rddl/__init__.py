@@ -22,13 +22,16 @@ from .rddl_pomdp_model import RDDLPOMDPGroundedModel
 from .rddl_to_tuple_wrapper import RDDLToTuple
 
 
-def model_from_domain(problem: str, instance: str) -> RDDLModel:
+def model_from_domain(
+    problem: str, instance: str | None = None
+) -> tuple[RDDLModel, RDDLGroundedModel]:
     reader = RDDLReader(problem, instance)
     parser = RDDLParser(lexer=None, verbose=False)
     parser.build()
-    rddl = parser.parse(reader.rddltxt)
+    rddl: RDDLLiftedModel = parser.parse(reader.rddltxt)
     model = RDDLModel(RDDLLiftedModel(rddl))
-    return model
+    grounded_model = RDDLGroundedModel(rddl)
+    return model, grounded_model
 
 
 def make_env(

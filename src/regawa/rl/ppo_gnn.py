@@ -803,7 +803,8 @@ def setup(args: Args | None = None, batch_id: str | None = None):
     tracking_uri = "http://127.0.0.1:5000" if not args.debug else ""
     mlflow.set_tracking_uri(uri=tracking_uri)
 
-    run_name = f"{Path(args.domain).name}__{Path(str(args.instance)).name}__{args.exp_name}__{args.seed}"
+    instance_str = ", ".join(list(map(lambda x: Path(str(x)).name, args.instance)))
+    run_name = f"{Path(args.domain).name}__[{instance_str}]__{args.exp_name}__{args.seed}"
     run_name = run_name + "__debug" if args.debug else run_name
     device = npl.device("cuda:0" if npl.cuda.is_available() and args.cuda else "cpu")
     mlflow.enable_system_metrics_logging()

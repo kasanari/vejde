@@ -5,7 +5,7 @@ from regawa.gnn.gnn_agent import _embed, merge_graphs
 from regawa.gnn.q_action_then_node import QActionThenNode
 from regawa.gnn.q_node_then_action import QNodeThenAction
 
-from .data import FactorGraph, HeteroStateData
+from .data import FactorGraph, HeteroBatchData
 from .factorgraph_gnn import BipartiteGNN
 from .gnn_classes import EmbeddingLayer
 from .gnn_embedder import NegativeBiasBooleanEmbedder, NumericEmbedder
@@ -53,7 +53,7 @@ class GraphQAgent(nn.Module):
         )
         self.qfunc = qfunc(config.num_actions, config.embedding_dim)
 
-    def embed(self, data: HeteroStateData) -> FactorGraph:
+    def embed(self, data: HeteroBatchData) -> FactorGraph:
         return self.p_gnn(
             merge_graphs(
                 _embed(
@@ -71,7 +71,7 @@ class GraphQAgent(nn.Module):
             )
         )
 
-    def forward(self, data: HeteroStateData):
+    def forward(self, data: HeteroBatchData):
         return self.qfunc.forward(self.embed(data).factors)
 
     def save_agent(self, path: str):

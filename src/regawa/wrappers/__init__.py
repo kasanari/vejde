@@ -5,8 +5,8 @@ from .pomdp_wrapper import StackingGroundedGraphWrapper
 from .remove_false_wrapper import RemoveFalseWrapper, remove_false
 from .stacking_wrapper import StackingWrapper
 from .wrapper import GroundedGraphWrapper
-from .graph_utils import create_graphs_func
-from .graph_utils import create_obs_dict_func
+from .graph_utils import fn_obsdict_to_graph
+from .graph_utils import fn_heterograph_to_heteroobs
 from .render_utils import create_render_graph, to_graphviz
 
 __all__ = [
@@ -16,8 +16,8 @@ __all__ = [
     "StackingWrapper",
     "AddConstantsWrapper",
     "RemoveFalseWrapper",
-    "create_graphs_func",
-    "create_obs_dict_func",
+    "fn_obsdict_to_graph",
+    "fn_heterograph_to_heteroobs",
     "create_render_graph",
     "from_dict_action",
     "object_list",

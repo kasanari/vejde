@@ -13,7 +13,7 @@ from regawa.wrappers.grounding_utils import (
     arity,
     create_edges,
     objects,
-    objects_with_type_func,
+    fn_objects_with_type,
     predicate,
 )
 from regawa.wrappers.util_types import (

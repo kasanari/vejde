@@ -73,7 +73,7 @@ def n_actions(action_space: MultiDiscrete):
     return int(action_space.nvec[0])  # type: ignore
 
 
-def graph_to_dict(idx_g: IdxFactorGraph[V]) -> ObsData:
+def idxgraph_to_obsdata(idx_g: IdxFactorGraph[V]):
     return ObsData(
         var_type=idx_g.variables.types,
         var_value=idx_g.variables.values,

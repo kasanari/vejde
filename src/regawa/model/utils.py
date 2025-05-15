@@ -7,7 +7,7 @@ def max_arity(model: BaseModel):
     return max(model.arity(fluent) for fluent in model.fluents)  # type: ignore
 
 
-def type_attributes(model: BaseModel):
+def fn_type_attributes(model: BaseModel):
     vp = model.variable_params  # type: ignore
     d: dict[str, tuple[str, ...]] = {
         value[0]: tuple([k for k, v in vp.items() if v == value])  # type: ignore
@@ -16,13 +16,13 @@ def type_attributes(model: BaseModel):
     }
 
     @cache
-    def f(object_type: str) -> str:
+    def type_attributes(object_type: str) -> str:
         return d[object_type]  # type: ignore
 
-    return f
+    return type_attributes
 
 
-def fluents_of_arity(model: BaseModel):
+def fn_fluents_of_arity(model: BaseModel):
     arities = set(model.arity(fluent) for fluent in model.fluents)  # type: ignore
 
     d: dict[int, tuple[str, ...]] = {
@@ -31,13 +31,13 @@ def fluents_of_arity(model: BaseModel):
     }
 
     @cache
-    def f(arity: int) -> tuple[str, ...]:
+    def fluents_of_arity(arity: int) -> tuple[str, ...]:
         return d[arity]
 
-    return f
+    return fluents_of_arity
 
 
-def valid_action_fluents_given_type(model: BaseModel):
+def fn_valid_action_fluents_given_type(model: BaseModel):
     @cache
     def is_valid(fluent: str, o_t: str) -> bool:
         return (
@@ -45,13 +45,13 @@ def valid_action_fluents_given_type(model: BaseModel):
         )  # assume fluents with 0 arity are valid for all object types
 
     @cache
-    def f(obj_type: str) -> tuple[bool, ...]:
+    def valid_action_fluents_given_type(obj_type: str) -> tuple[bool, ...]:
         return tuple(is_valid(fluent, obj_type) for fluent in model.action_fluents)
 
-    return f
+    return valid_action_fluents_given_type
 
 
-def valid_action_fluents_given_arity(model: BaseModel):
+def fn_valid_action_fluents_given_arity(model: BaseModel):
     @cache
     def is_valid(fluent: str, o_t: str) -> bool:
         return (
@@ -62,7 +62,7 @@ def valid_action_fluents_given_arity(model: BaseModel):
         )
 
     @cache
-    def f(obj_type: str) -> tuple[bool, ...]:
+    def valid_action_fluents_given_arity(obj_type: str) -> tuple[bool, ...]:
         return tuple(is_valid(fluent, obj_type) for fluent in model.action_fluents)
 
-    return f
+    return valid_action_fluents_given_arity

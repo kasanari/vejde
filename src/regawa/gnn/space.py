@@ -3,7 +3,7 @@ import typing
 from gymnasium import Space
 from gymnasium.spaces import Box, Discrete, Sequence
 import numpy as np
-from .data import HeteroObs, ObsData
+from .data import HeteroObsData, ObsData
 from gymnasium.vector.utils.space_utils import batch_differing_spaces
 
 
@@ -79,7 +79,7 @@ class FactorGraphSpace(Space[ObsData]):
         )
 
 
-class HeteroStateSpace(Space[HeteroObs]):
+class HeteroStateSpace(Space[HeteroObsData]):
     def __init__(
         self,
         num_types: int,
@@ -116,9 +116,9 @@ class HeteroStateSpace(Space[HeteroObs]):
             and self.float.factor == other.float.factor
         )
 
-    def __contains__(self, item: HeteroObs) -> bool:
+    def __contains__(self, item: HeteroObsData) -> bool:
         """Check whether `item` is in this space."""
-        if not isinstance(item, HeteroObs):
+        if not isinstance(item, HeteroObsData):
             return False
 
         return item.bool in self.bool and item.float in self.float

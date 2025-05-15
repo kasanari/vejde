@@ -13,9 +13,9 @@ from regawa.model.base_model import BaseModel
 from .action_then_node import ActionThenNodePolicy
 from .data import (
     FactorGraph,
-    HeteroStateData,
+    HeteroBatchData,
     ObsData,
-    StateData,
+    BatchData,
     single_obs_to_heterostatedata,
 )
 from .factorgraph_gnn import BipartiteGNN
@@ -29,17 +29,17 @@ from .gnn_embedder import (
 
 
 def heterostatedata_to_tensors(
-    data: HeteroStateData, device: str | torch.device = "cpu"
-) -> HeteroStateData:
-    return HeteroStateData(
+    data: HeteroBatchData, device: str | torch.device = "cpu"
+) -> HeteroBatchData:
+    return HeteroBatchData(
         statedata_to_tensors(data.boolean, device),
         statedata_to_tensors(data.numeric, device),
     )
 
 
 def statedata_to_tensors(
-    data: StateData, device: str | torch.device = "cpu"
-) -> StateData:
+    data: BatchData, device: str | torch.device = "cpu"
+) -> BatchData:
     params = tuple(
         SparseTensor(
             as_tensor(attr.values, device=device),
@@ -50,11 +50,11 @@ def statedata_to_tensors(
         for attr in data
     )
 
-    return StateData(*params)
+    return BatchData(*params)
 
 
 def _embed(
-    data: StateData,
+    data: BatchData,
     var_embedder: nn.Module,
     factor_embedding: nn.Module,
     global_var_embedder: nn.Module,
@@ -190,7 +190,7 @@ class GraphAgent(nn.Module):
         )
         self.device = device
 
-    def embed(self, data: HeteroStateData) -> FactorGraph:
+    def embed(self, data: HeteroBatchData) -> FactorGraph:
         return self.p_gnn(
             merge_graphs(
                 _embed(
@@ -210,7 +210,7 @@ class GraphAgent(nn.Module):
             )
         )
 
-    def forward(self, actions: Tensor, data: HeteroStateData):
+    def forward(self, actions: Tensor, data: HeteroBatchData):
         fg = self.embed(data)
         return self.policy(
             actions,
@@ -229,7 +229,7 @@ class GraphAgent(nn.Module):
         s = heterostatedata_to_tensors(s, device=self.device)
         return self.sample(s, deterministic=deterministic)
 
-    def sample(self, data: HeteroStateData, deterministic: bool = False):
+    def sample(self, data: HeteroBatchData, deterministic: bool = False):
         fg = self.embed(data)
         return self.policy.sample(
             fg.factors,
@@ -239,7 +239,7 @@ class GraphAgent(nn.Module):
             deterministic,
         )
 
-    def value(self, data: HeteroStateData):
+    def value(self, data: HeteroBatchData):
         fg = self.embed(data)
         return self.policy.value(
             fg.factors,
@@ -340,7 +340,7 @@ class RecurrentGraphAgent(nn.Module):
             else NodeThenActionPolicy(*policy_args)
         )
 
-    def embed(self, data: HeteroStateData) -> FactorGraph:
+    def embed(self, data: HeteroBatchData) -> FactorGraph:
         return self.p_gnn(
             merge_graphs(
                 _embed(
@@ -360,17 +360,17 @@ class RecurrentGraphAgent(nn.Module):
             )
         )
 
-    def forward(self, actions: Tensor, data: HeteroStateData):
+    def forward(self, actions: Tensor, data: HeteroBatchData):
         fg = self.embed(data)
         return self.policy(actions, fg.factors, fg.action_mask, fg.n_factor)
 
-    def sample(self, data: HeteroStateData, deterministic: bool = False):
+    def sample(self, data: HeteroBatchData, deterministic: bool = False):
         fg = self.embed(data)
         return self.policy.sample(
             fg.factors, fg.n_factor, fg.action_mask, deterministic
         )
 
-    def value(self, data: HeteroStateData):
+    def value(self, data: HeteroBatchData):
         fg = self.embed(data)
         _, _, _, value, *_ = self.policy.sample(
             fg.factors, fg.n_factor, fg.action_mask, False

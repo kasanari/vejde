@@ -1,6 +1,6 @@
 from .data import (
-    HeteroStateData,
-    StateData,
+    HeteroBatchData,
+    BatchData,
     heterostatedata_from_obslist,
 )
 from .gnn_agent import (
@@ -18,8 +18,8 @@ __all__ = [
     "ActionMode",
     "GraphAgent",
     "GNNParams",
-    "StateData",
-    "HeteroStateData",
+    "BatchData",
+    "HeteroBatchData",
     "heterostatedata_to_tensors",
     "heterostatedata_from_obslist",
 ]

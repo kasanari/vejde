@@ -7,7 +7,7 @@ import numpy as np
 from regawa import BaseModel
 from regawa.model import GroundValue
 from regawa.wrappers.grounding_utils import bool_groundings, numeric_groundings
-from regawa.wrappers.gym_utils import graph_to_dict
+from regawa.wrappers.gym_utils import idxgraph_to_obsdata
 from regawa.wrappers.util_types import HeteroGraph, StackedFactorGraph, Variables
 from regawa.wrappers.utils import map_graph_to_idx
 
@@ -56,7 +56,7 @@ def create_obs_dict(
     model: BaseModel,
 ) -> dict[str, Any]:
     return {
-        k: graph_to_dict(
+        k: idxgraph_to_obsdata(
             _map_graph_to_idx(
                 v,  # type: ignore
                 model.fluent_to_idx,

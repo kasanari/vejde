@@ -10,7 +10,7 @@ from torch import Tensor
 from torch.utils._foreach_utils import _group_tensors_by_device_and_dtype
 
 from regawa.gnn.data import (
-    HeteroStateData,
+    HeteroBatchData,
     Rollout,
     RolloutCollector,
     single_obs_to_heterostatedata,
@@ -143,7 +143,7 @@ def compare_rollouts(r1: Rollout, r2: Rollout):
 def update_vf_agent(
     agent: GraphAgent,
     optimizer: th.optim.Optimizer,
-    s: HeteroStateData,
+    s: HeteroBatchData,
     values: list[float],
 ):
     value = agent.value(
@@ -166,7 +166,7 @@ def update(
     agent: GraphAgent,
     optimizer: th.optim.Optimizer,
     actions: Tensor,
-    s: HeteroStateData,
+    s: HeteroBatchData,
     max_grad_norm: float = 100.0,
 ):
     # b = th.stack([d.var_value for d in obs])

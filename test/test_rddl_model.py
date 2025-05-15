@@ -74,7 +74,7 @@ def test_fluent_param(model: BaseModel):
 
 
 def test_fluents_of_arity(model: BaseModel):
-    fluents_of_arity = utils.fluents_of_arity(model)
+    fluents_of_arity = utils.fn_fluents_of_arity(model)
 
     assert fluents_of_arity(1) == (
         "PAYOUT",

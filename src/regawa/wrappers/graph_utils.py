@@ -5,20 +5,20 @@ from typing import Any, TypeVar
 import numpy as np
 
 from regawa import BaseModel
-from regawa.gnn.data import HeteroObs
+from regawa.gnn.data import HeteroObsData
 from regawa.model import GroundValue
 from regawa.model.utils import (
-    valid_action_fluents_given_arity,
-    valid_action_fluents_given_type,
+    fn_valid_action_fluents_given_arity,
+    fn_valid_action_fluents_given_type,
 )
 from regawa.wrappers.grounding_utils import (
     bool_groundings,
-    is_bool_func,
-    is_numeric_func,
+    fn_is_bool,
+    fn_is_numeric,
     numeric_groundings,
-    objects_with_type_func,
+    fn_objects_with_type,
 )
-from regawa.wrappers.gym_utils import graph_to_dict
+from regawa.wrappers.gym_utils import idxgraph_to_obsdata
 from regawa.wrappers.util_types import FactorGraph, HeteroGraph, Variables
 from regawa.wrappers.utils import (
     generate_bipartite_obs_func,
@@ -60,12 +60,12 @@ def _map_graph_to_idx(
     )
 
 
-def create_obs_dict_func(
+def fn_heterograph_to_heteroobs(
     model: BaseModel,
 ):
-    def f(heterogenous_graph: HeteroGraph) -> dict[str, Any]:
-        return HeteroObs(
-            bool=graph_to_dict(
+    def heterograph_to_heteroobs(heterogenous_graph: HeteroGraph) -> HeteroObsData:
+        return HeteroObsData(
+            bool=idxgraph_to_obsdata(
                 _map_graph_to_idx(
                     heterogenous_graph.boolean,  # type: ignore
                     model.fluent_to_idx,
@@ -73,7 +73,7 @@ def create_obs_dict_func(
                     np.int8,
                 ),
             ),
-            float=graph_to_dict(
+            float=idxgraph_to_obsdata(
                 _map_graph_to_idx(
                     heterogenous_graph.numeric,  # type: ignore
                     model.fluent_to_idx,
@@ -83,20 +83,20 @@ def create_obs_dict_func(
             ),
         )
 
-    return f
+    return heterograph_to_heteroobs
 
 
-def create_graphs_func(
+def fn_obsdict_to_graph(
     model: BaseModel,
 ):
-    objects_with_type = objects_with_type_func(model.fluent_param)
+    objects_with_type = fn_objects_with_type(model.fluent_param)
     is_numeric, is_bool = (
-        is_numeric_func(model.fluent_range),
-        is_bool_func(model.fluent_range),
+        fn_is_numeric(model.fluent_range),
+        fn_is_bool(model.fluent_range),
     )
     valid_action_type_func, valid_action_arity_func = (
-        valid_action_fluents_given_type(model),
-        valid_action_fluents_given_arity(model),
+        fn_valid_action_fluents_given_type(model),
+        fn_valid_action_fluents_given_arity(model),
     )
     generate_bipartite_obs_bool, generate_bipartite_obs_numeric = (
         generate_bipartite_obs_func(
@@ -121,7 +121,7 @@ def create_graphs_func(
         ),
     )
 
-    def f(rddl_obs: dict[GroundValue, Any]):
+    def obsdict_to_graph(rddl_obs: dict[GroundValue, Any]):
         filtered_groundings = [
             g
             for g in rddl_obs
@@ -151,4 +151,4 @@ def create_graphs_func(
         assert isinstance(numeric_g, FactorGraph)
         return HeteroGraph(numeric_g, bool_g), filtered_groundings
 
-    return f
+    return obsdict_to_graph

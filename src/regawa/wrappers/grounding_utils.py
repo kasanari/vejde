@@ -22,7 +22,7 @@ def predicate(key: GroundValue) -> str:
     return key[0]
 
 
-def objects_with_type_func(relation_to_types: Callable[[str, int], str]):
+def fn_objects_with_type(relation_to_types: Callable[[str, int], str]):
     @cache
     def objects_with_type(
         key: GroundValue,
@@ -98,7 +98,7 @@ def num_edges(groundings: list[GroundValue], arities: Callable[[str], int]) -> i
     return sum(arities(predicate(g)) for g in groundings)
 
 
-def is_numeric_func(fluent_range: Callable[[str], type]):
+def fn_is_numeric(fluent_range: Callable[[str], type]):
     @cache
     def is_numeric(g: GroundValue):
         return fluent_range(predicate(g)) is float or fluent_range(predicate(g)) is int
@@ -112,7 +112,7 @@ def numeric_groundings(
     return [g for g in groundings if is_numeric(g)]
 
 
-def is_bool_func(fluent_range: Callable[[str], type]):
+def fn_is_bool(fluent_range: Callable[[str], type]):
     @cache
     def is_bool(g: GroundValue):
         return fluent_range(predicate(g)) is bool

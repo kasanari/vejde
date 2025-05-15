@@ -31,28 +31,27 @@ V = TypeVar("V", np.float32, np.bool_)
 
 class ObsData(NamedTuple, Generic[V]):
     var_value: NDArray[V]
-    var_type: NDArray[V]
-    factor: NDArray[V]
-    senders: NDArray[V]
-    receivers: NDArray[V]
-    edge_attr: NDArray[V]
-    length: NDArray[V]
-    # globals: NDArray
+    var_type: NDArray[np.int64]
+    factor: NDArray[np.int64]
+    senders: NDArray[np.int64]
+    receivers: NDArray[np.int64]
+    edge_attr: NDArray[np.int64]
+    length: NDArray[np.int64]
     n_factor: int
     n_variable: int
-    global_vars: NDArray[V]
+    global_vars: NDArray[np.int64]
     global_vals: NDArray[V]
-    global_length: NDArray[V]
-    action_type_mask: NDArray[V]
-    action_arity_mask: NDArray[V]
+    global_length: NDArray[np.int64]
+    action_type_mask: NDArray[np.bool_]
+    action_arity_mask: NDArray[np.bool_]
 
 
-class HeteroObs(NamedTuple):
-    bool: ObsData
-    float: ObsData
+class HeteroObsData(NamedTuple):
+    bool: ObsData[np.bool_]
+    float: ObsData[np.float32]
 
 
-class StateData(NamedTuple, Generic[V]):
+class BatchData(NamedTuple, Generic[V]):
     var_value: SparseArray[V]
     var_type: SparseArray[np.int64]
     factor: SparseArray[np.int64]
@@ -70,9 +69,9 @@ class StateData(NamedTuple, Generic[V]):
     action_type_mask: NDArray[np.bool_]
 
 
-class HeteroStateData(NamedTuple):
-    boolean: StateData[np.bool_]
-    numeric: StateData[np.float32]
+class HeteroBatchData(NamedTuple):
+    boolean: BatchData[np.bool_]
+    numeric: BatchData[np.float32]
 
 
 class GraphBuffer:
@@ -88,13 +87,13 @@ class GraphBuffer:
     def add_single_dict(self, obs: ObsData) -> None:
         self.data.append(obs)
 
-    def batch(self) -> StateData:
+    def batch(self) -> BatchData:
         return batch(list(self.data))
 
     def __getitem__(self, index: int) -> ObsData:
         return self.data[index]
 
-    def minibatch(self, indices: Iterable[int]) -> StateData:
+    def minibatch(self, indices: Iterable[int]) -> BatchData:
         return batch([self.data[i] for i in indices])
 
 
@@ -103,7 +102,7 @@ class HeteroGraphBuffer:
         types = ("bool", "float")
         self.buffers = {t: GraphBuffer() for t in types}
 
-    def extend(self, obs: list[HeteroObs]) -> None:
+    def extend(self, obs: list[HeteroObsData]) -> None:
         for o in obs:
             for t in self.buffers:
                 self.buffers[t].add_single(o.__getattribute__(t))
@@ -111,19 +110,19 @@ class HeteroGraphBuffer:
     def __iter__(self):
         return self.buffers.__iter__()
 
-    def add_single_dict(self, obs: HeteroObs) -> None:
+    def add_single_dict(self, obs: HeteroObsData) -> None:
         for t in self.buffers:
             self.buffers[t].add_single_dict(obs.__getattribute__(t))
 
     @property
-    def batch(self) -> HeteroStateData:
-        return HeteroStateData(
+    def batch(self) -> HeteroBatchData:
+        return HeteroBatchData(
             boolean=batch(list(self.buffers["bool"].data)),
             numeric=batch(list(self.buffers["float"].data)),
         )
 
-    def minibatch(self, indices: Iterable[int]) -> HeteroStateData:
-        return HeteroStateData(
+    def minibatch(self, indices: Iterable[int]) -> HeteroBatchData:
+        return HeteroBatchData(
             boolean=batch([self.buffers["bool"].data[i] for i in indices]),
             numeric=batch([self.buffers["float"].data[i] for i in indices]),
         )
@@ -158,7 +157,7 @@ class RolloutCollector:
         self.actions = deque()
 
     def add_single(
-        self, obs: HeteroObs, action: tuple[int, int], reward: float
+        self, obs: HeteroObsData, action: tuple[int, int], reward: float
     ) -> None:
         self.rewards.append(reward)
         self.obs.add_single_dict(obs)
@@ -182,7 +181,7 @@ class RolloutCollector:
         return returns
 
 
-def batch(graphs: list[ObsData[V]]) -> StateData[V]:
+def batch(graphs: list[ObsData[V]]) -> BatchData[V]:
     num_graphs = len(graphs)
     total_factors = sum(g.n_factor for g in graphs)
     total_variables = sum(g.n_variable for g in graphs)
@@ -245,7 +244,7 @@ def batch(graphs: list[ObsData[V]]) -> StateData[V]:
         edge_offsets += edge_len
         globals_offset += globals_len
 
-    return StateData(
+    return BatchData(
         var_value=SparseArray(var_value, var_batch),
         var_type=SparseArray(var_type, var_batch),
         factor=SparseArray(factor, factor_batch),
@@ -264,11 +263,11 @@ def batch(graphs: list[ObsData[V]]) -> StateData[V]:
     )
 
 
-def obs_to_statedata(obs: ObsData) -> StateData:
+def obs_to_statedata(obs: ObsData) -> BatchData:
     return obslist_to_statedata([obs])
 
 
-def obslist_to_statedata(obs: list[ObsData]) -> StateData:
+def obslist_to_statedata(obs: list[ObsData]) -> BatchData:
     return batch(obs)
 
 
@@ -278,24 +277,24 @@ attrs_from_obs = [
 
 
 def heterostatedata(
-    obs: list[HeteroObs],
-) -> HeteroStateData:
-    return HeteroStateData(
+    obs: list[HeteroObsData],
+) -> HeteroBatchData:
+    return HeteroBatchData(
         boolean=batch([o.bool for o in obs]),
         numeric=batch([o.float for o in obs]),
     )
 
 
-def single_obs_to_heterostatedata(obs: HeteroObs) -> HeteroStateData:
+def single_obs_to_heterostatedata(obs: HeteroObsData) -> HeteroBatchData:
     return heterostatedata([obs])
 
 
-def heterostatedata_from_batched_obs(obs: list[HeteroObs]) -> HeteroStateData:
+def heterostatedata_from_batched_obs(obs: list[HeteroObsData]) -> HeteroBatchData:
     return heterostatedata({k: batched_dict_to_obsdata(obs[k]) for k in obs})
 
 
 def batched_hetero_dict_to_hetero_obs_list(
-    obs: list[HeteroObs],
+    obs: list[HeteroObsData],
 ) -> dict[str, tuple[ObsData, ...]]:
     return {k: batched_dict_to_obsdata(o) for o in obs}
 
@@ -306,28 +305,28 @@ def statedata_from_buffer(buf: list[tuple[ObsData, ...]]):
 
 def heterostatedata_from_buffer(
     obs: dict[str, list[tuple[ObsData, ...]]],
-) -> HeteroStateData:
-    return HeteroStateData(
+) -> HeteroBatchData:
+    return HeteroBatchData(
         boolean=statedata_from_buffer(obs["bool"]),
         numeric=statedata_from_buffer(obs["float"]),
     )
 
 
-def heterostatedata_from_obslist(obs: list[HeteroObs]) -> HeteroStateData:
+def heterostatedata_from_obslist(obs: list[HeteroObsData]) -> HeteroBatchData:
     boolean_data = list([d.bool for d in obs])
     numeric_data = list([d.float for d in obs])
 
-    return HeteroStateData(
+    return HeteroBatchData(
         boolean=batch(boolean_data),
         numeric=batch(numeric_data),
     )
 
 
-def heterostatedata_from_obslist_alt(obs: list[HeteroObs]) -> HeteroStateData:
+def heterostatedata_from_obslist_alt(obs: list[HeteroObsData]) -> HeteroBatchData:
     boolean_data = [d.bool for d in obs]
     numeric_data = [d.float for d in obs]
 
-    return HeteroStateData(
+    return HeteroBatchData(
         boolean=batch(boolean_data),
         numeric=batch(numeric_data),
     )

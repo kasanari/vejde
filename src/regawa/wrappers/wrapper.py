@@ -9,7 +9,7 @@ from regawa import BaseModel
 from regawa.gnn.space import HeteroStateSpace
 from regawa.model import GroundValue
 
-from .graph_utils import create_graphs_func, create_obs_dict_func
+from .graph_utils import fn_obsdict_to_graph, fn_heterograph_to_heteroobs
 from .grounding_utils import to_dict_action
 from .gym_utils import action_space
 from .render_utils import create_render_graph, to_graphviz, to_graphviz_alt
@@ -36,8 +36,8 @@ class GroundedGraphWrapper(
         self.last_action: GroundValue | None = None
         self.last_g: RenderGraph | None = None
         self._object_to_type: dict[str, str] = {"None": "None"}
-        self.create_graphs = create_graphs_func(model)
-        self.create_obs_dict = create_obs_dict_func(model)
+        self.create_graphs = fn_obsdict_to_graph(model)
+        self.create_obs_dict = fn_heterograph_to_heteroobs(model)
         self.add_render_graph_to_info = add_render_graph_to_info
 
     @property

@@ -14,20 +14,22 @@ from tqdm import tqdm
 
 from regawa import GNNParams, GroundValue
 from regawa.gnn import ActionMode
-from regawa.gnn.data import heterodict_to_obsdata, heterostatedata_from_obslist
+from regawa.gnn.data import heterostatedata_from_obslist
 from regawa.gnn.gnn_agent import (
     AgentConfig,
     GraphAgent,
     RecurrentGraphAgent,
     heterostatedata_to_tensors,
 )
+from regawa.inference import fn_graph_to_obsdata, fn_groundobs_to_graph
 from regawa.model.base_grounded_model import BaseGroundedModel
 from regawa.model.base_model import BaseModel
 from regawa.model.utils import max_arity
 from regawa.rddl import register_env, register_pomdp_env
 from regawa.rddl.rddl_utils import rddl_ground_to_tuple
 from regawa.rl.util import calc_loss, evaluate, save_eval_data, update
-from regawa.wrappers.graph_utils import create_graphs, create_obs_dict
+from regawa.wrappers.graph_utils import fn_obsdict_to_graph
+from regawa.wrappers.grounding_utils import fn_objects_with_type
 from regawa.wrappers.remove_false_wrapper import remove_false
 from regawa.wrappers.render_utils import create_render_graph
 from regawa.wrappers.utils import from_dict_action, object_list
@@ -53,6 +55,7 @@ def save_sorted_losses(
     device: str = "cpu",
 ):
     loss_per_obs = []
+    objects_with_type = fn_objects_with_type(model.fluent_param)
     for i, (expert_a, d, o) in enumerate(
         zip(expert_actions, indexed_expert_obs, expert_obs)
     ):
@@ -62,7 +65,7 @@ def save_sorted_losses(
         l2_norms = [th.sum(th.square(w)) for w in agent.parameters()]
         loss = calc_loss(l2_norms, logprob).item()
 
-        objs = object_list(o.keys(), model.fluent_param)
+        objs = object_list(list(o.keys()), objects_with_type)
         objs = [o.name for o in objs]
 
         model_a = from_index_action(actions[0], lambda x: objs[x], model)
@@ -147,7 +150,8 @@ def get_obs(data: Recording):
 
 
 def to_graph(obs: GroundObs, model: BaseModel):
-    g, _ = create_graphs(obs, model)
+    create_graph = fn_obsdict_to_graph(model)
+    g, _ = create_graph(obs)
     return create_render_graph(g.boolean, g.numeric)
 
 
@@ -156,11 +160,12 @@ def to_obsdata(
     action: GroundAction,
     model: BaseModel,
 ):
+    create_graphs = fn_obsdict_to_graph(model)
+    g_to_obsdata = fn_graph_to_obsdata(model)
     g, _ = create_graphs(
         obs,
-        model,
     )
-    o = heterodict_to_obsdata(create_obs_dict(g, model))
+    o = g_to_obsdata(g)
     a = to_indexed_action(action, lambda x: g.boolean.factors.index(x), model)
 
     # Rendering
@@ -210,10 +215,10 @@ def get_agent(model: BaseModel, device: str = "cpu"):
 
     params = GNNParams(
         layers=4,
-        embedding_dim=32,
+        embedding_dim=16,
         activation=th.nn.Tanh(),
         aggregation="max",
-        action_mode=ActionMode.ACTION_THEN_NODE,
+        action_mode=ActionMode.NODE_THEN_ACTION,
     )
 
     config = AgentConfig(
@@ -291,14 +296,12 @@ def test_expert(
 
 
 def test_saved_data(domain: str, data_path: str):
-    datafile = Path(
-        f"{data_path}/{domain}/combined_data.json"
-    ).expanduser()
+    datafile = Path(f"{data_path}/{domain}/combined_data.json").expanduser()
     instance = 1
     use_rnn = False
     seed = 1
     device = "cuda:0" if th.cuda.is_available() else "cpu"
-    num_gradient_steps = 1000
+    num_gradient_steps = 500
     env_id = register_pomdp_env() if use_rnn else register_env()
 
     output_dir = pathlib.Path("imitation_output")
@@ -314,6 +317,11 @@ def test_saved_data(domain: str, data_path: str):
     random.seed(seed)
 
     agent = get_rnn_agent(model) if use_rnn else get_agent(model, device)
+
+    # agent, _ = GraphAgent.load_agent(
+    #     "imitation_output/Elevators_MDP_ippc2014/model.pth"
+    # )
+
     optimizer = th.optim.AdamW(
         agent.parameters(), lr=0.001, amsgrad=True, weight_decay=0.0
     )
@@ -399,13 +407,16 @@ def test_saved_data(domain: str, data_path: str):
 
 
 if __name__ == "__main__":
-    domains = "Navigation_MDP_ippc2011 TriangleTireworld_MDP_ippc2014 Elevators_MDP_ippc2014 SysAdmin_MDP_ippc2011 Traffic_MDP_ippc2014 SkillTeaching_MDP_ippc2014 AcademicAdvising_MDP_ippc2014 CrossingTraffic_MDP_ippc2014 Tamarisk_MDP_ippc2014"
-    domains = domains.split()
-    #domains = ["Elevators_MDP_ippc2014"]
+    # domains = "Navigation_MDP_ippc2011 TriangleTireworld_MDP_ippc2014 Elevators_MDP_ippc2014 SysAdmin_MDP_ippc2011 Traffic_MDP_ippc2014 SkillTeaching_MDP_ippc2014 AcademicAdvising_MDP_ippc2014 CrossingTraffic_MDP_ippc2014 Tamarisk_MDP_ippc2014"
+    # domains = domains.split()
+    domains = ["Elevators_MDP_ippc2014"]
+
     import sys
-    data_path = sys.argv[1]
+
+    # data_path = sys.argv[1]
     # domains = ["SysAdmin_MDP_ippc2011"]
     # domains = ["Tamarisk_MDP_ippc2014"]
     for domain in domains:
         print(f"Testing {domain}")
+        data_path = Path("/storage/GitHub/pyRDDLGym-rl/prost/").expanduser()
         test_saved_data(domain, data_path)

@@ -1,7 +1,7 @@
 from regawa import GNNParams, ActionMode, agent_from_model
 from regawa.rddl import model_from_domain
 import numpy as np
-from regawa.inference import get_agent_output_fn
+from regawa.inference import fn_get_agent_output
 import torch as th
 
 from regawa.wrappers import remove_false
@@ -25,7 +25,7 @@ def test_inference():
     agent = agent_from_model(lifted_model, params)
 
     test_obs = {
-        ("light", "r_m"): np.False_,
+        ("light", "r_m"): np.True_,
         ("light", "g_m"): np.False_,
         ("CONNECTED", "red", "r_m"): np.True_,
         ("CONNECTED", "red", "g_m"): np.False_,
@@ -40,7 +40,7 @@ def test_inference():
     #     grounded_model,
     # )
 
-    agent_output = get_agent_output_fn(agent, lifted_model, remove_false, action_mode)
+    agent_output = fn_get_agent_output(agent, lifted_model, remove_false, action_mode)
 
     action, weight_by_object, weight_by_action, graph = agent_output(test_obs)
 

@@ -27,7 +27,7 @@ from regawa.rl import lambda_return
 from regawa.rl.gae import gae
 import regawa.wrappers.gym_utils as model_utils
 from regawa import GNNParams
-from regawa.gnn import AgentConfig, GraphAgent, HeteroStateData
+from regawa.gnn import AgentConfig, GraphAgent, HeteroBatchData
 from regawa.gnn.data import (
     HeteroGraphBuffer,
     ObsData,
@@ -137,12 +137,12 @@ class Agent(nn.Module):
 
     def get_value(
         self,
-        s: HeteroStateData,
+        s: HeteroBatchData,
     ):
         value = self.agent.value(s)
         return symexp(value)
 
-    def sample_action_and_value(self, s: HeteroStateData):
+    def sample_action_and_value(self, s: HeteroBatchData):
         action, logprob, entropy, value, *_ = self.agent.sample(
             s,
         )
@@ -151,7 +151,7 @@ class Agent(nn.Module):
     def evaluate_action_and_value(
         self,
         action: Tensor,
-        s: HeteroStateData,
+        s: HeteroBatchData,
     ) -> tuple[Tensor, Tensor, Tensor]:
         # num_graphs = batch_idx.max() + 1
         # action_mask = action_mask.reshape(num_graphs, -1)
@@ -172,7 +172,7 @@ class Agent(nn.Module):
 
 def minibatch_step(
     minibatch_size: int,
-    update_func: Callable[[HeteroStateData, BatchData], UpdateData],
+    update_func: Callable[[HeteroBatchData, BatchData], UpdateData],
     device: str | npl.device,
 ):
     def _minibatch_step(
@@ -507,7 +507,7 @@ def approximate_kl(logprob_new: Tensor, logprob_old: Tensor) -> tuple[Tensor, Te
 
 def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
     def _update(
-        s: HeteroStateData,
+        s: HeteroBatchData,
         b: BatchData,
     ) -> UpdateData:
         actions, logprob_old, advantages, returns, values_old, _, _ = b

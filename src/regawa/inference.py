@@ -1,11 +1,12 @@
 from collections.abc import Callable
 from regawa.gnn.agent_utils import ActionMode
+from regawa.gnn.data import HeteroObsData
 from regawa.gnn.gnn_agent import GraphAgent
 from regawa.model.base_model import BaseModel
 from typing import Any, NamedTuple
 from torch import Tensor
 from regawa import GroundValue
-from regawa.wrappers.graph_utils import create_graphs_func, create_obs_dict_func
+from regawa.wrappers.graph_utils import fn_obsdict_to_graph, fn_heterograph_to_heteroobs
 from regawa.wrappers.render_utils import create_render_graph
 from regawa.wrappers.util_types import HeteroGraph, RenderGraph
 import torch
@@ -24,38 +25,37 @@ def tensor_to_list(x: Tensor) -> list[float]:
     return list(x.squeeze().detach().cpu().numpy())  # type: ignore
 
 
-def groundobs_to_graph(
+def fn_groundobs_to_graph(
     model: BaseModel,
     wrapper_func: Callable[[GroundObs], GroundObs],
 ):
-    create_graph_fn = create_graphs_func(model)
+    create_graph_fn = fn_obsdict_to_graph(model)
 
-    def f(obs: GroundObs):
+    def groundobs_to_graph(obs: GroundObs):
         return create_graph_fn(wrapper_func(obs))[0]
 
-    return f
+    return groundobs_to_graph
 
 
-def graph_to_obsdata(model: BaseModel):
-    create_obs_dict_fn = create_obs_dict_func(model)
+def fn_graph_to_obsdata(model: BaseModel):
+    create_obs_dict_fn = fn_heterograph_to_heteroobs(model)
 
-    def f(g: HeteroGraph):
+    def graph_to_obsdata(g: HeteroGraph) -> HeteroObsData:
         return create_obs_dict_fn(g)
 
-    return f
+    return graph_to_obsdata
 
 
-# TODO make this work for node to action
 @torch.inference_mode()
-def get_agent_output_fn(
+def fn_get_agent_output(
     agent: GraphAgent,
     model: BaseModel,
     wrapper_func: Callable[[GroundObs], GroundObs],
     action_mode: ActionMode,
     deterministic: bool = True,
 ):
-    obs_to_graph = groundobs_to_graph(model, wrapper_func)
-    graph_to_input = graph_to_obsdata(model)
+    obs_to_graph = fn_groundobs_to_graph(model, wrapper_func)
+    graph_to_input = fn_graph_to_obsdata(model)
 
     def action_then_node(
         o: GroundObs,

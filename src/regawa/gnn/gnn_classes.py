@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Callable
 from typing import Generic, NamedTuple, TypeVar
 
@@ -39,7 +41,7 @@ class SparseArray(NamedTuple, Generic[V]):
     def shape(self):
         return self.values.shape
 
-    def concat(self, other: "SparseTensor") -> "SparseTensor":
+    def concat(self, other: SparseTensor) -> SparseTensor:
         return SparseTensor(
             np.concatenate((self.values, other.values)),
             np.concatenate((self.indices, other.indices)),
@@ -54,10 +56,17 @@ class SparseTensor(NamedTuple):
     def shape(self):
         return self.values.shape
 
-    def concat(self, other: "SparseTensor") -> "SparseTensor":
+    def concat(self, other: SparseTensor) -> SparseTensor:
         return SparseTensor(
             concatenate((self.values, other.values)),
             concatenate((self.indices, other.indices)),
+        )
+
+    @classmethod
+    def from_sparse_array(cls, sparse_array: SparseArray[V]) -> SparseTensor:
+        return cls(
+            Tensor(sparse_array.values),
+            Tensor(sparse_array.indices),
         )
 
 

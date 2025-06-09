@@ -69,8 +69,8 @@ class FactorGraphSpace(Space[ObsData]):
             and item.factor in self.factor
             and item.action_arity_mask in self.action_arity_mask
             and item.action_type_mask in self.action_type_mask
-            and item.senders in self.senders
-            and item.receivers in self.receivers
+            and item.v_to_f in self.senders
+            and item.f_to_v in self.receivers
             and item.edge_attr in self.edge_attr
             and item.length in self.length
             and item.global_vars in self.global_vars

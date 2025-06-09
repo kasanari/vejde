@@ -33,8 +33,8 @@ class ObsData(NamedTuple, Generic[V]):
     var_value: NDArray[V]
     var_type: NDArray[np.int64]
     factor: NDArray[np.int64]
-    senders: NDArray[np.int64]
-    receivers: NDArray[np.int64]
+    v_to_f: NDArray[np.int64]
+    f_to_v: NDArray[np.int64]
     edge_attr: NDArray[np.int64]
     length: NDArray[np.int64]
     n_factor: int
@@ -55,8 +55,8 @@ class BatchData(NamedTuple, Generic[V]):
     var_value: SparseArray[V]
     var_type: SparseArray[np.int64]
     factor: SparseArray[np.int64]
-    senders: NDArray[np.int64]  # variable
-    receivers: NDArray[np.int64]  # factor
+    v_to_f: NDArray[np.int64]  # variable
+    f_to_v: NDArray[np.int64]  # factor
     edge_attr: NDArray[np.int64]
     n_factor: NDArray[np.int64]
     n_variable: NDArray[np.int64]
@@ -185,7 +185,7 @@ def batch(graphs: list[ObsData[V]]) -> BatchData[V]:
     num_graphs = len(graphs)
     total_factors = sum(g.n_factor for g in graphs)
     total_variables = sum(g.n_variable for g in graphs)
-    total_edges = sum(g.senders.size for g in graphs)
+    total_edges = sum(g.v_to_f.size for g in graphs)
     total_globals = sum(g.global_vars.size for g in graphs)
 
     g0 = graphs[0]
@@ -217,7 +217,7 @@ def batch(graphs: list[ObsData[V]]) -> BatchData[V]:
     for i, g in enumerate(graphs):
         var_len = g.n_variable
         fac_len = g.n_factor
-        edge_len = g.senders.size
+        edge_len = g.v_to_f.size
         globals_len = g.global_vars.size
         var_value[variable_offsets : variable_offsets + var_len] = g.var_value
         var_type[variable_offsets : variable_offsets + var_len] = g.var_type
@@ -225,8 +225,8 @@ def batch(graphs: list[ObsData[V]]) -> BatchData[V]:
         length[variable_offsets : variable_offsets + var_len] = g.length
         factor[factor_offsets : factor_offsets + fac_len] = g.factor
         factor_batch[factor_offsets : factor_offsets + fac_len] = i
-        senders[edge_offsets : edge_offsets + edge_len] = g.senders + variable_offsets
-        receivers[edge_offsets : edge_offsets + edge_len] = g.receivers + factor_offsets
+        senders[edge_offsets : edge_offsets + edge_len] = g.v_to_f + variable_offsets
+        receivers[edge_offsets : edge_offsets + edge_len] = g.f_to_v + factor_offsets
         edge_attr[edge_offsets : edge_offsets + edge_len] = g.edge_attr
         global_vars[globals_offset : globals_offset + globals_len] = g.global_vars
         global_vals[globals_offset : globals_offset + globals_len] = g.global_vals
@@ -249,8 +249,8 @@ def batch(graphs: list[ObsData[V]]) -> BatchData[V]:
         var_type=SparseArray(var_type, var_batch),
         factor=SparseArray(factor, factor_batch),
         edge_attr=edge_attr,
-        senders=senders,
-        receivers=receivers,
+        v_to_f=senders,
+        f_to_v=receivers,
         n_factor=n_factor,
         n_variable=n_variable,
         n_graphs=num_graphs,

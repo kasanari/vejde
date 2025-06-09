@@ -101,7 +101,7 @@ def grad_norm_(
     max_norm = float(max_norm)
     norm_type = float(norm_type)
     if len(grads) == 0:
-        return Tensor(0.0)
+        return Tensor([0.0])
     first_device = grads[0].device
     grouped_grads: dict[
         tuple[th.device, th.dtype], tuple[list[list[Tensor]], list[int]]

@@ -3,6 +3,7 @@ from .add_constants_wrapper import AddConstantsWrapper, add_constants_fn
 from .index_wrapper import IndexActionWrapper
 from .pomdp_wrapper import StackingGroundedGraphWrapper
 from .remove_false_wrapper import RemoveFalseWrapper, remove_false
+from .remove_none_wrapper import RemoveNoneWrapper
 from .stacking_wrapper import StackingWrapper
 from .wrapper import GroundedGraphWrapper
 from .graph_utils import fn_obsdict_to_graph
@@ -24,4 +25,5 @@ __all__ = [
     "to_graphviz",
     "remove_false",
     "add_constants_fn",
+    "RemoveNoneWrapper",
 ]

@@ -4,7 +4,6 @@ from pprint import pprint
 from typing import Any, TypeVar
 
 import gymnasium as gym
-import pyRDDLGym  # type: ignore
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")

@@ -14,6 +14,7 @@ from regawa.model.base_model import BaseModel
 from regawa.rddl.rddl_default_invalid_action_wrapper import RDDLDefaultInvalidActions
 from regawa.wrappers import AddConstantsWrapper, IndexActionWrapper, StackingWrapper
 from regawa.wrappers.remove_false_wrapper import RemoveFalseWrapper
+from regawa.wrappers.remove_none_wrapper import RemoveNoneWrapper
 
 from .rddl_convert_enums_wrapper import RDDLConvertEnums
 from .rddl_grounded_model import RDDLGroundedModel
@@ -39,6 +40,7 @@ def make_env(
     instance: str,
     has_enums: bool = False,
     remove_false: bool = False,
+    remove_none: bool = False,
     stacking: bool = False,
     add_render_graph_to_info: bool = True,
 ):
@@ -50,6 +52,7 @@ def make_env(
     env = RDDLToTuple(env)
     env = AddConstantsWrapper(env, grounded_rddl_model, only_add_on_reset=stacking)
     env = RemoveFalseWrapper(env) if remove_false else env
+    env = RemoveNoneWrapper(env) if remove_none else env
     env = RDDLConvertEnums(env) if has_enums else env
     env = StackingWrapper(env) if stacking else env
     env = (
@@ -69,6 +72,7 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         domain: str,
         instance: list[str],
         remove_false: bool = False,
+        remove_none: bool = False,
         optimize: bool = False,
         seed: int | None = None,
     ) -> None:
@@ -100,6 +104,7 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
                 str(i),
                 has_enums,
                 remove_false=remove_false,
+                remove_none=remove_none,
                 add_render_graph_to_info=(not optimize),
             )[0]
             for i in instance
@@ -153,6 +158,7 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         domain: str,
         instance: str,
         remove_false: bool = False,
+        remove_none: bool = False,
         optimize: bool = False,
     ) -> None:
         super().__init__()
@@ -160,6 +166,7 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
             domain,
             instance,
             remove_false=remove_false,
+            remove_none=remove_none,
             add_render_graph_to_info=(not optimize),
         )
         self.env = env
@@ -214,6 +221,7 @@ class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
 
 
 def register_env():
+    # TODO move som of the env init parameters here. domain, remove false.
     env_id = "RDDLGraphEnv-v0"
     gymnasium.register(
         id=env_id,

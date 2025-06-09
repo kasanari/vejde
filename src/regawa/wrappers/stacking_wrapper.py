@@ -66,7 +66,6 @@ class StackingWrapper(gym.Wrapper):
         self.buffer: dict[str, deque[Any]] = {}
         self.observed_keys: set[str] = set()
         self.iteration = 0
-        # self.horizon = int(env.horizon)
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -75,7 +74,6 @@ class StackingWrapper(gym.Wrapper):
         obs, info = self.env.reset(seed=seed)
         o = create_obs(obs, {})
 
-        # self.observed_keys = observed_keys
         self.buffer = deepcopy(o)
         self.iteration = 0
 
@@ -95,15 +93,11 @@ class StackingWrapper(gym.Wrapper):
             "key3" [None, None, t3, t4],
         }
         """ ""
-        # (obs_with_actions, next_obs), reward, terminated, truncated, info = (
-        #     self.env.step(actions)
-        # )
 
         next_obs, reward, terminated, truncated, info = self.env.step(actions)
 
         o = create_obs(next_obs, self.buffer)
 
-        # self.observed_keys = observed_keys
         self.buffer = deepcopy(o)
 
         new_obs = {k: list(v) for k, v in o.items()}

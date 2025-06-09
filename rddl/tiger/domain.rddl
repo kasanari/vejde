@@ -1,0 +1,77 @@
+
+domain tiger {
+
+  requirements = {  
+    partially-observed
+  };
+
+  types {
+    tiger : object;
+	door : object;
+  };
+
+  pvariables {
+	
+	//TRUE_PROBABILITY : { non-fluent, real, default = 0.85 };
+	//FAKE_PROBABILITY : { non-fluent, real, default = 0.15 };
+
+	DOOR(door) : { non-fluent, bool, default = true }; 
+
+	growl(door) : { observ-fluent, bool }; 
+
+    listen(door)   : { action-fluent, bool, default = false };
+	open(door)     : { action-fluent, bool, default = false };
+	revealed(door)   : { state-fluent, bool, default = false };
+    hiding(door, tiger) : { state-fluent, bool, default = false };
+  };
+
+  cpfs {
+    
+	growl(?d) = 
+    	if (exists_{?t : tiger} [hiding'(?d, ?t)] ^ listen(?d)) // If a tiger is hiding behind the door
+			then if (Bernoulli(0.85)) // There is a chance to hear a growl
+				then true
+			else false
+			
+		else if (Bernoulli(0.15) ^ listen(?d)) // Even if no tiger is hiding, there is a small chance to hear a growl anyway
+			 	then true
+			 else false;
+
+
+	revealed'(?d) = 
+	  if (open(?d)) // If the door is opened
+		then true // The door is revealed
+	  else false; // Otherwise, it remains unrevealed
+
+
+	hiding'(?d, ?t) = hiding(?d, ?t); // The hiding state of the tiger does not change unless explicitly defined
+  };
+
+
+	
+
+
+  // A student is assessed a cost for taking each course and a penalty for not completing their program   
+  reward = [
+	sum_{?d : door} [
+		if (open(?d)) then // If the door is opened and a tiger is hiding behind it
+			(
+				if (exists_{?t : tiger} [hiding(?d, ?t)])
+				then -100 // penalty for opening a door with a tiger
+				else 10 // reward for opening a door without a tiger
+			)
+		else if (listen(?d)) then
+			-1 // penalty for listening
+		else 0
+		]
+	];
+
+
+	termination {
+		exists_{?d : door} [revealed(?d)]; // The episode ends when a door is opened
+	};
+
+}
+
+
+  

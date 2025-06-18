@@ -802,8 +802,8 @@ def setup(args: Args | None = None, batch_id: str | None = None):
     logger.info("Attempting to connect to mlflow...")
     tracking_uri = "http://127.0.0.1:5000" if not args.debug else ""
     mlflow.set_tracking_uri(uri=tracking_uri)
-
-    instance_str = ", ".join(list(map(lambda x: Path(str(x)).name, args.instance)))
+    max_instance_name_length = 3
+    instance_str = ", ".join(list(map(lambda x: str(Path(str(x)).name)[:max_instance_name_length], args.instance)))
     run_name = (
         f"{Path(args.domain).name}__[{instance_str}]__{args.exp_name}__{args.seed}"
     )

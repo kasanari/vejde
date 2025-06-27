@@ -59,7 +59,8 @@ def to_graphviz(
 
     def vnorm(x: Tensor):
         return norm(x, ord=2, axis=-1)
-    #ro = lambda x: round(x, decimals=2)
+
+    # ro = lambda x: round(x, decimals=2)
 
     v_norm = vnorm(variables)
     f_norm = vnorm(factors)

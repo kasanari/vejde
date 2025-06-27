@@ -14,6 +14,7 @@ from regawa.wrappers.gym_utils import n_actions
 
 V = TypeVar("V", np.float32, np.bool_, np.int64)
 
+
 class ReplayBufferSamples(NamedTuple):
     observations: HeteroBatchData
     next_observations: HeteroBatchData

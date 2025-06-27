@@ -16,7 +16,7 @@ __all__ = [
     "FactorGraph",
     "SparseTensor",
     "HeteroGraphBuffer",
-	"HeteroObsData",
+    "HeteroObsData",
     "ObsData",
     "heterostatedata",
     "HeteroBatchData",

@@ -84,14 +84,13 @@ def create_graphs(
     filtered_obs: dict[GroundValue, Any] = {k: rddl_obs[k] for k in filtered_groundings}
 
     generate_bipartite_obs = generate_bipartite_obs_func()
-    
 
     bool_g = generate_bipartite_obs(
         StackedFactorGraph[bool],
         filtered_obs,
         bool_groundings(filtered_groundings, model.fluent_range),
         model.fluent_param,
-        #valid_action_fluents(model),
+        # valid_action_fluents(model),
         model.num_actions,
     )
 
@@ -100,7 +99,7 @@ def create_graphs(
         filtered_obs,
         numeric_groundings(filtered_groundings, model.fluent_range),
         model.fluent_param,
-        #valid_action_fluents(model),
+        # valid_action_fluents(model),
         model.num_actions,
     )
 

@@ -8,6 +8,7 @@ from . import BatchData, HeteroBatchData
 
 V = TypeVar("V")
 
+
 def heterostatedata_to_tensors(
     data: HeteroBatchData, device: str | torch.device = "cpu"
 ) -> HeteroBatchData:

@@ -7,7 +7,11 @@ from .q_node_then_action import QNodeThenAction
 
 from regawa.data import FactorGraph, HeteroBatchData
 from regawa.gnn import BipartiteGNN
-from regawa.embedding import EmbeddingLayer, NegativeBiasBooleanEmbedder, NumericEmbedder
+from regawa.embedding import (
+    EmbeddingLayer,
+    NegativeBiasBooleanEmbedder,
+    NumericEmbedder,
+)
 
 
 class GraphQAgent(nn.Module):
@@ -72,5 +76,3 @@ class GraphQAgent(nn.Module):
 
     def forward(self, data: HeteroBatchData):
         return self.qfunc.forward(self.embed(data).factors)
-
-

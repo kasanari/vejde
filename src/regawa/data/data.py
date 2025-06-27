@@ -108,7 +108,10 @@ class GraphBuffer(Generic[V]):
 
 class HeteroGraphBuffer:
     def __init__(self) -> None:
-        self.buffers = {'bool': GraphBuffer[np.bool_](), 'float': GraphBuffer[np.float32]()}
+        self.buffers = {
+            "bool": GraphBuffer[np.bool_](),
+            "float": GraphBuffer[np.float32](),
+        }
 
     def extend(self, obs: list[HeteroObsData]) -> None:
         for o in obs:

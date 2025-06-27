@@ -7,6 +7,7 @@ from gymnasium.vector.utils.space_utils import batch_differing_spaces
 
 V = TypeVar("V", np.float32, np.bool_, np.int64)
 
+
 class FactorGraphSpace(Space[ObsData[V]]):
     def __init__(
         self,
@@ -60,7 +61,7 @@ class FactorGraphSpace(Space[ObsData[V]]):
 
     def __contains__(self, item: ObsData[V]) -> bool:
         """Check whether `item` is in this space."""
-        if not isinstance(item, ObsData): # type: ignore
+        if not isinstance(item, ObsData):  # type: ignore
             return False
 
         return (
@@ -118,12 +119,12 @@ class HeteroStateSpace(Space[HeteroObsData]):
 
     def __contains__(self, item: HeteroObsData) -> bool:
         """Check whether `item` is in this space."""
-        if not isinstance(item, HeteroObsData): # type: ignore
+        if not isinstance(item, HeteroObsData):  # type: ignore
             return False
 
         return item.bool in self.bool and item.float in self.float
 
 
-@batch_differing_spaces.register(HeteroStateSpace) # type: ignore
+@batch_differing_spaces.register(HeteroStateSpace)  # type: ignore
 def batch_differing_spaces(spaces: list[HeteroStateSpace]):
     return spaces

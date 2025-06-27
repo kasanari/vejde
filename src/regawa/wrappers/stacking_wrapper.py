@@ -102,5 +102,3 @@ class StackingWrapper(gym.Wrapper):
         new_obs = {k: list(v) for k, v in o.items()}
 
         return new_obs, reward, terminated, truncated, info  # type: ignore
-
-

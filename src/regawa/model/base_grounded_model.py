@@ -6,11 +6,13 @@ GroundValue = tuple[str, ...]
 
 
 class BaseGroundedModel(ABC):
+    "Grounded model base class. This is primarily for special usecases when instance-specific information is needed, and is not required to use Vejde."
+
     @cached_property
     @abstractmethod
     def groundings(self) -> tuple[GroundValue, ...]:
         """
-        A list of all possible grounded variables in the language.
+        A list of all possible grounded facts based on the problem instance.
         on the form: (relation, object1, object2,..., objectN)
         """
         ...

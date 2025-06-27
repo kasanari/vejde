@@ -1,8 +1,7 @@
 import logging
 import random
 from collections.abc import Callable
-from itertools import chain
-from typing import Any, TypeVar, Generic
+from typing import TypeVar
 
 import numpy as np
 from gymnasium.spaces import Dict
@@ -12,11 +11,9 @@ from regawa.model import GroundValue
 from regawa.wrappers.grounding_utils import (
     arity,
     create_edges,
-    objects,
-    fn_objects_with_type,
     predicate,
 )
-from regawa.wrappers.util_types import (
+from regawa.wrappers.types import (
     Edge,
     FactorGraph,
     IdxFactorGraph,

@@ -8,8 +8,8 @@ from regawa import BaseModel
 from regawa.model import GroundValue
 from regawa.wrappers.grounding_utils import bool_groundings, numeric_groundings
 from regawa.wrappers.gym_utils import idxgraph_to_obsdata
-from regawa.wrappers.util_types import HeteroGraph, StackedFactorGraph, Variables
-from regawa.wrappers.utils import map_graph_to_idx
+from regawa.wrappers.types import HeteroGraph, StackedFactorGraph, Variables
+from regawa.wrappers.utils import generate_bipartite_obs_func, map_graph_to_idx
 
 V = TypeVar("V", np.float32, np.bool_)
 
@@ -83,12 +83,14 @@ def create_graphs(
 
     filtered_obs: dict[GroundValue, Any] = {k: rddl_obs[k] for k in filtered_groundings}
 
+    generate_bipartite_obs = generate_bipartite_obs_func()
+
     bool_g = generate_bipartite_obs(
         StackedFactorGraph[bool],
         filtered_obs,
         bool_groundings(filtered_groundings, model.fluent_range),
         model.fluent_param,
-        valid_action_fluents(model),
+        # valid_action_fluents(model),
         model.num_actions,
     )
 
@@ -97,7 +99,7 @@ def create_graphs(
         filtered_obs,
         numeric_groundings(filtered_groundings, model.fluent_range),
         model.fluent_param,
-        valid_action_fluents(model),
+        # valid_action_fluents(model),
         model.num_actions,
     )
 

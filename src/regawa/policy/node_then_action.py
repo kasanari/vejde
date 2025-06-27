@@ -9,8 +9,8 @@ from gnn_policy.functional import sample_node_then_action  # type: ignore
 from gnn_policy.functional import segmented_softmax  # type: ignore
 from gnn_policy.functional import softmax  # type: ignore
 from gnn_policy.functional import mask_logits, segment_sum
-from regawa.functional import node_mask, node_then_action_value_estimate
-from regawa.gnn.gnn_classes import SparseTensor
+from regawa.functional import node_then_action_value_estimate
+from regawa.data import SparseTensor
 
 PolicyFunc = Callable[
     [Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor],

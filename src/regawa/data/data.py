@@ -1,18 +1,12 @@
+from __future__ import annotations
 import json
 from collections import deque
 from collections.abc import Iterable
 from itertools import chain
-from typing import Generic, NamedTuple, TypeVar, Any
+from typing import Generic, NamedTuple, TypeVar
 
-# import torch
 import numpy as np
-
-# import torch as th
-# from torch import NDArray
 from numpy.typing import NDArray
-from torch import Tensor
-
-from regawa.gnn.gnn_classes import SparseArray, SparseTensor
 
 
 class Serializer(json.JSONEncoder):
@@ -26,7 +20,7 @@ class Serializer(json.JSONEncoder):
         return super().default(obj)
 
 
-V = TypeVar("V", np.float32, np.bool_)
+V = TypeVar("V", np.float32, np.bool_, np.int64)
 
 
 class ObsData(NamedTuple, Generic[V]):
@@ -69,6 +63,30 @@ class HeteroObsData(NamedTuple):
     float: ObsData[np.float32]  # numeric ObsData
 
 
+class SparseArray(NamedTuple, Generic[V]):
+    """
+    This is a simple sparse COOrdinate array representation.
+    index is the position of the values in the original dense array, e.g. the graph the node belongs to
+
+    assuming [1, 2, 3], [4, 5] and [6, 7, 8, 9], the sparse representation will be
+    values = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    indices = [0, 0, 0, 1, 1, 2, 2, 2, 2]
+    """
+
+    values: NDArray[V]
+    indices: NDArray[np.int64]
+
+    @property
+    def shape(self):
+        return self.values.shape
+
+    def concat(self, other: SparseTensor) -> SparseTensor:
+        return SparseTensor(
+            np.concatenate((self.values, other.values)),
+            np.concatenate((self.indices, other.indices)),
+        )
+
+
 class BatchData(NamedTuple, Generic[V]):
     var_value: SparseArray[V]
     var_type: SparseArray[np.int64]
@@ -92,33 +110,35 @@ class HeteroBatchData(NamedTuple):
     numeric: BatchData[np.float32]
 
 
-class GraphBuffer:
+class GraphBuffer(Generic[V]):
     def __init__(self) -> None:
-        self.data: deque[ObsData] = deque()
+        self.data: deque[ObsData[V]] = deque()
 
-    def extend(self, obs: Iterable[ObsData]) -> None:
+    def extend(self, obs: Iterable[ObsData[V]]) -> None:
         self.data.extend(obs)
 
-    def add_single(self, obs: ObsData) -> None:
+    def add_single(self, obs: ObsData[V]) -> None:
         self.data.append(obs)
 
-    def add_single_dict(self, obs: ObsData) -> None:
+    def add_single_dict(self, obs: ObsData[V]) -> None:
         self.data.append(obs)
 
-    def batch(self) -> BatchData:
+    def batch(self) -> BatchData[V]:
         return batch(list(self.data))
 
-    def __getitem__(self, index: int) -> ObsData:
+    def __getitem__(self, index: int) -> ObsData[V]:
         return self.data[index]
 
-    def minibatch(self, indices: Iterable[int]) -> BatchData:
+    def minibatch(self, indices: Iterable[int]) -> BatchData[V]:
         return batch([self.data[i] for i in indices])
 
 
 class HeteroGraphBuffer:
     def __init__(self) -> None:
-        types = ("bool", "float")
-        self.buffers = {t: GraphBuffer() for t in types}
+        self.buffers = {
+            "bool": GraphBuffer[np.bool_](),
+            "float": GraphBuffer[np.float32](),
+        }
 
     def extend(self, obs: list[HeteroObsData]) -> None:
         for o in obs:
@@ -307,14 +327,14 @@ def single_obs_to_heterostatedata(obs: HeteroObsData) -> HeteroBatchData:
     return heterostatedata([obs])
 
 
-def heterostatedata_from_batched_obs(obs: list[HeteroObsData]) -> HeteroBatchData:
-    return heterostatedata({k: batched_dict_to_obsdata(obs[k]) for k in obs})
+# def heterostatedata_from_batched_obs(obs: list[HeteroObsData]) -> HeteroBatchData:
+#     return heterostatedata({k: batched_dict_to_obsdata(obs[k]) for k in obs})
 
 
-def batched_hetero_dict_to_hetero_obs_list(
-    obs: list[HeteroObsData],
-) -> dict[str, tuple[ObsData, ...]]:
-    return {k: batched_dict_to_obsdata(o) for o in obs}
+# def batched_hetero_dict_to_hetero_obs_list(
+#     obs: list[HeteroObsData],
+# ) -> dict[str, tuple[ObsData, ...]]:
+#     return {k: batched_dict_to_obsdata(o) for o in obs}
 
 
 def statedata_from_buffer(buf: list[tuple[ObsData, ...]]):
@@ -348,14 +368,3 @@ def heterostatedata_from_obslist_alt(obs: list[HeteroObsData]) -> HeteroBatchDat
         boolean=batch(boolean_data),
         numeric=batch(numeric_data),
     )
-
-
-class FactorGraph(NamedTuple):
-    variables: SparseTensor
-    factors: SparseTensor
-    globals: SparseTensor
-    v_to_f: Tensor
-    f_to_v: Tensor
-    edge_attr: Tensor
-    n_variable: Tensor
-    n_factor: Tensor

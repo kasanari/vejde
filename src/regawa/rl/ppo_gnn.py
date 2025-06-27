@@ -23,19 +23,19 @@ from numpy.typing import NDArray
 from torch import Tensor
 from tqdm import tqdm
 
-from regawa.rl import lambda_return
-from regawa.rl.gae import gae
 import regawa.wrappers.gym_utils as model_utils
 from regawa import GNNParams
-from regawa.gnn import AgentConfig, GraphAgent, HeteroBatchData
-from regawa.gnn.data import (
+from regawa.policy import AgentConfig, GraphAgent
+from regawa.data import (
     HeteroGraphBuffer,
     ObsData,
-    batched_hetero_dict_to_hetero_obs_list,
     heterostatedata,
+    HeteroBatchData,
+    heterostatedata_to_tensors,
 )
-from regawa.gnn.gnn_agent import heterostatedata_to_tensors
-from regawa.rl.util import evaluate, save_eval_data
+from . import lambda_return
+from .gae import gae
+from .util import evaluate, save_eval_data
 
 logger = logging.getLogger(__name__)
 
@@ -251,7 +251,7 @@ def iteration_step(
         [HeteroGraphBuffer, BatchData, NDArray[np.int32]],
         tuple[list[UpdateData], bool],
     ],
-    lambda_returns: Callable[[Tensor, Tensor, Tensor], Tensor],
+    lambda_return_func: Callable[[Tensor, Tensor, Tensor], Tensor],
     device: str | npl.device,
 ):
     def _iteration_step(
@@ -293,7 +293,7 @@ def iteration_step(
         b_values = b.values.reshape(-1)
 
         decay = 0.99
-        lambda_r = lambda_returns(b.rewards, b.values, b.dones)
+        lambda_r = lambda_return_func(b.rewards, b.values, b.dones)
         s, low_ema, high_ema = lambda_return.return_scale(
             lambda_r, carry.low_ema, carry.high_ema, decay
         )
@@ -477,12 +477,12 @@ def rollout(
             is_final.copy_(npl.as_tensor(next_is_final))
 
             if "episode" in infos:
-                for f, r, l in zip(
+                for f, r, length in zip(
                     infos["_episode"], infos["episode"]["r"], infos["episode"]["l"]
                 ):
                     if f:
                         returns.append(r)
-                        lengths.append(l)
+                        lengths.append(length)
         return RolloutData(
             obs_buf,
             obs,
@@ -797,13 +797,20 @@ def main(
     return agent
 
 
-def setup(args: Args | None = None, batch_id: str | None = None):
+def train(args: Args | None = None, batch_id: str | None = None):
     args = tyro.cli(Args) if args is None else args
     logger.info("Attempting to connect to mlflow...")
     tracking_uri = "http://127.0.0.1:5000" if not args.debug else ""
     mlflow.set_tracking_uri(uri=tracking_uri)
     max_instance_name_length = 3
-    instance_str = ", ".join(list(map(lambda x: str(Path(str(x)).name)[:max_instance_name_length], args.instance)))
+    instance_str = ", ".join(
+        list(
+            map(
+                lambda x: str(Path(str(x)).name)[:max_instance_name_length],
+                args.instance,
+            )
+        )
+    )
     run_name = (
         f"{Path(args.domain).name}__[{instance_str}]__{args.exp_name}__{args.seed}"
     )

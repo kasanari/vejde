@@ -13,7 +13,7 @@ from .graph_utils import fn_obsdict_to_graph, fn_heterograph_to_heteroobs
 from .grounding_utils import to_dict_action
 from .gym_utils import action_space
 from .render_utils import create_render_graph, to_graphviz, to_graphviz_alt
-from .util_types import HeteroGraph, RenderGraph
+from .types import HeteroGraph, RenderGraph
 
 logger = logging.getLogger(__name__)
 

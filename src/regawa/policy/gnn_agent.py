@@ -7,53 +7,29 @@ import torch.nn as nn
 from torch import Generator as Rngs
 from torch import Tensor, as_tensor, concatenate, int64
 
-from regawa.gnn.agent_utils import ActionMode, AgentConfig, GNNParams
-from regawa.gnn.node_then_action import NodeThenActionPolicy
-from regawa.model.base_model import BaseModel
+from regawa.data import FactorGraph, SparseTensor, heterostatedata_to_tensors, sparsify
 
+from . import ActionMode, AgentConfig, GNNParams
+from regawa.model import BaseModel
+
+from .node_then_action import NodeThenActionPolicy
 from .action_then_node import ActionThenNodePolicy
-from .data import (
-    FactorGraph,
+from regawa.data import (
     HeteroBatchData,
     ObsData,
     BatchData,
     single_obs_to_heterostatedata,
 )
-from .factorgraph_gnn import BipartiteGNN
-from .gnn_classes import EmbeddingLayer, SparseArray, SparseTensor, sparsify
-from .gnn_embedder import (
+from regawa.gnn import BipartiteGNN
+from regawa.embedding import (
     BooleanEmbedder,
     NegativeBiasBooleanEmbedder,
     NumericEmbedder,
     RecurrentEmbedder,
+    EmbeddingLayer,
 )
 
 V = TypeVar("V", np.float32, np.bool_)
-
-def heterostatedata_to_tensors(
-    data: HeteroBatchData, device: str | torch.device = "cpu"
-) -> HeteroBatchData:
-    return HeteroBatchData(
-        statedata_to_tensors(data.boolean, device),
-        statedata_to_tensors(data.numeric, device),
-    )
-
-
-def statedata_to_tensors(
-    data: BatchData[V], device: str | torch.device = "cpu"
-) -> BatchData[V]:
-    params = tuple(
-        SparseTensor(
-            as_tensor(attr.values, device=device),
-            as_tensor(attr.indices, device=device),
-        )
-        if isinstance(attr, SparseArray)
-        else as_tensor(attr, device=device)
-        for attr in data
-    )
-
-    return BatchData(*params)
-
 
 def _embed(
     data: BatchData[V],

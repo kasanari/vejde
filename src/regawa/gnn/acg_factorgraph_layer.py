@@ -3,12 +3,12 @@ import logging
 import torch.nn as nn
 from torch import Generator as Rngs
 from torch import Tensor, concatenate, zeros_like
+from regawa.data import FactorGraph
+from regawa.data import SparseTensor
 
-from regawa.gnn.data import FactorGraph
-from regawa.gnn.mp_rendering import Lazy, to_graphviz
-from regawa.gnn.simple_mp import MessagePass
-
-from .gnn_classes import MLPLayer, SparseTensor
+from .mlp import MLPLayer
+from .mp_rendering import Lazy, to_graphviz
+from .simple_mp import MessagePass
 
 logger = logging.getLogger(__name__)
 

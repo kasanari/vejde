@@ -3,12 +3,12 @@ import logging
 import torch.nn as nn
 from torch import Generator as Rngs
 from torch import zeros
+from regawa.data import FactorGraph
+from regawa.data import SparseTensor
 
-from regawa.gnn.acg_factorgraph_layer import FactorGraphLayer
-from regawa.gnn.attentional_aggregation import AttentionalAggregation
-from regawa.gnn.data import FactorGraph
+from .acg_factorgraph_layer import FactorGraphLayer
+from .attentional_aggregation import AttentionalAggregation
 
-from .gnn_classes import SparseTensor
 
 logger = logging.getLogger(__name__)
 

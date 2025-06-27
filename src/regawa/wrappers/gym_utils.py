@@ -3,9 +3,9 @@ from typing import Any, TypeVar
 
 from gymnasium.spaces import Box, Dict, Discrete, MultiDiscrete, Sequence, Space
 import numpy as np
-from regawa.gnn.data import ObsData
+from regawa.data import ObsData
 from regawa.wrappers.space import HeteroStateSpace
-from regawa.wrappers.util_types import IdxFactorGraph
+from regawa.wrappers.types import IdxFactorGraph
 
 V = TypeVar("V", np.float32, np.bool_)
 
@@ -70,7 +70,7 @@ def n_relations(observation_space: HeteroStateSpace):
 
 
 def n_actions(action_space: MultiDiscrete):
-    return int(action_space.nvec[0])  # type: ignore
+    return int(action_space.nvec[0])
 
 
 def idxgraph_to_obsdata(idx_g: IdxFactorGraph[V]):

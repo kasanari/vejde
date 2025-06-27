@@ -1,17 +1,18 @@
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, TypeVar
 
 import numpy as np
 import numpy.typing as npt
 from gymnasium import spaces
 from torch import Tensor, as_tensor, device
 
-from regawa.gnn.data import (
+from regawa.data import (
     HeteroBatchData,
     ObsData,
-    dict_to_obsdata,
     heterostatedata_from_obslist_alt,
 )
 from regawa.wrappers.gym_utils import n_actions
+
+V = TypeVar("V", np.float32, np.bool_, np.int64)
 
 
 class ReplayBufferSamples(NamedTuple):
@@ -24,9 +25,9 @@ class ReplayBufferSamples(NamedTuple):
 
 def get_single_env(
     obs: dict[str, dict[str, tuple[Any, ...]]], i: int
-) -> dict[str, ObsData]:
+) -> dict[str, ObsData[V]]:
     def _get_single_env(x):
-        return dict_to_obsdata({k: v[i] for k, v in x.items()})
+        return {k: v[i] for k, v in x.items()}
 
     return {k: _get_single_env(x) for k, x in obs.items()}
 

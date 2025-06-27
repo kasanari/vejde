@@ -5,22 +5,22 @@ from typing import Any, TypeVar
 import numpy as np
 
 from regawa import BaseModel
-from regawa.gnn.data import HeteroObsData
+from regawa.data import HeteroObsData
 from regawa.model import GroundValue
-from regawa.model.utils import (
+from regawa.model import (
     fn_valid_action_fluents_given_arity,
     fn_valid_action_fluents_given_type,
 )
-from regawa.wrappers.grounding_utils import (
+from .grounding_utils import (
     bool_groundings,
     fn_is_bool,
     fn_is_numeric,
     numeric_groundings,
     fn_objects_with_type,
 )
-from regawa.wrappers.gym_utils import idxgraph_to_obsdata
-from regawa.wrappers.util_types import FactorGraph, HeteroGraph, Variables
-from regawa.wrappers.utils import (
+from .gym_utils import idxgraph_to_obsdata
+from .types import FactorGraph, HeteroGraph, Variables
+from .utils import (
     generate_bipartite_obs_func,
     map_graph_to_idx,
     object_list,

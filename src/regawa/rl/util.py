@@ -9,15 +9,14 @@ import torch as th
 from torch import Tensor
 from torch.utils._foreach_utils import _group_tensors_by_device_and_dtype
 
-from regawa.gnn.data import (
+from regawa.wrappers import (
     HeteroBatchData,
     Rollout,
     RolloutCollector,
     single_obs_to_heterostatedata,
 )
-from regawa.gnn.gnn_agent import GraphAgent, heterostatedata_to_tensors
+from regawa.policy.gnn_agent import GraphAgent, heterostatedata_to_tensors
 from regawa.io import obs_to_json_friendly_obs
-
 
 @th.no_grad()
 def evaluate(

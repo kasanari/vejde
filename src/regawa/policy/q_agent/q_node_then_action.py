@@ -1,6 +1,6 @@
 from torch import nn
 
-from regawa.gnn.gnn_classes import SparseTensor
+from regawa.gnn import SparseTensor
 
 
 class QNodeThenAction(nn.Module):

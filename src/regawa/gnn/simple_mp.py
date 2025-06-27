@@ -4,7 +4,7 @@ from torch import Generator as Rngs
 from torch import Tensor, concatenate, nn
 from torch_scatter import scatter  # type: ignore
 
-from regawa.gnn.gnn_classes import MLPLayer
+from .mlp import MLPLayer
 
 logger = logging.getLogger(__name__)
 

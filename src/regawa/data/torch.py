@@ -3,8 +3,7 @@ from collections.abc import Callable
 from typing import NamedTuple, TypeVar
 import torch
 from torch import Tensor, as_tensor, concatenate
-from .data import SparseArray
-from . import BatchData, HeteroBatchData
+from .data import SparseArray, BatchData, HeteroBatchData
 
 V = TypeVar("V")
 

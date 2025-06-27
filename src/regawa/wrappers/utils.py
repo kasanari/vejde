@@ -16,7 +16,7 @@ from regawa.wrappers.grounding_utils import (
     fn_objects_with_type,
     predicate,
 )
-from regawa.wrappers.util_types import (
+from regawa.wrappers.types import (
     Edge,
     FactorGraph,
     IdxFactorGraph,

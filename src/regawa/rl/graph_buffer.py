@@ -5,10 +5,9 @@ import numpy.typing as npt
 from gymnasium import spaces
 from torch import Tensor, as_tensor, device
 
-from regawa.gnn.data import (
+from regawa.data import (
     HeteroBatchData,
     ObsData,
-    dict_to_obsdata,
     heterostatedata_from_obslist_alt,
 )
 from regawa.wrappers.gym_utils import n_actions

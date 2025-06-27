@@ -13,8 +13,8 @@ from regawa.model import GroundValue
 from .grounding_utils import to_dict_action
 from .gym_utils import action_space, obs_space
 from .render_utils import create_render_graph, to_graphviz, to_graphviz_alt
-from .stacked_utils import create_graphs, create_obs_dict
-from .util_types import HeteroGraph
+from .stacking_utils import create_graphs, create_obs_dict
+from .types import HeteroGraph
 
 logger = logging.getLogger(__name__)
 

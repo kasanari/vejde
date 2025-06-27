@@ -7,7 +7,7 @@ from collections.abc import Callable
 import numpy as np
 
 from regawa.model import GroundValue
-from regawa.wrappers.util_types import Edge, Object
+from regawa.wrappers.types import Edge, Object
 
 logger = logging.getLogger(__name__)
 

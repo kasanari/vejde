@@ -5,16 +5,15 @@ import gymnasium as gym
 from regawa.model import GroundValue
 from regawa.model.base_grounded_model import BaseGroundedModel
 
-ObsType = TypeVar('ObsType')
-ActType = TypeVar('ActType')
+ObsType = TypeVar("ObsType")
+ActType = TypeVar("ActType")
 WrapperObsType = dict[GroundValue, Any]
 WrapperActType = dict[GroundValue, Any]
 
 
 def add_constants_fn(ground_model: BaseGroundedModel):
     constant_vals = {
-        g: ground_model.constant_value(g)
-        for g in ground_model.constant_groundings
+        g: ground_model.constant_value(g) for g in ground_model.constant_groundings
     }
 
     def f(obs: dict[GroundValue, Any]) -> dict[GroundValue, Any]:

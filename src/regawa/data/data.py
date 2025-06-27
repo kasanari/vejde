@@ -2,17 +2,11 @@ import json
 from collections import deque
 from collections.abc import Iterable
 from itertools import chain
-from typing import Generic, NamedTuple, TypeVar, Any
+from typing import Generic, NamedTuple, TypeVar
 
-# import torch
 import numpy as np
-
-# import torch as th
-# from torch import NDArray
 from numpy.typing import NDArray
-from torch import Tensor
 
-from regawa.gnn.gnn_classes import SparseArray, SparseTensor
 
 
 class Serializer(json.JSONEncoder):
@@ -49,6 +43,21 @@ class ObsData(NamedTuple, Generic[V]):
 class HeteroObsData(NamedTuple):
     bool: ObsData[np.bool_]
     float: ObsData[np.float32]
+
+
+class SparseArray(NamedTuple, Generic[V]):
+    values: NDArray[V]
+    indices: NDArray[np.int64]
+
+    @property
+    def shape(self):
+        return self.values.shape
+
+    def concat(self, other: SparseArray) -> SparseArray:
+        return SparseArray(
+            np.concatenate((self.values, other.values)),
+            np.concatenate((self.indices, other.indices)),
+        )
 
 
 class BatchData(NamedTuple, Generic[V]):
@@ -332,12 +341,3 @@ def heterostatedata_from_obslist_alt(obs: list[HeteroObsData]) -> HeteroBatchDat
     )
 
 
-class FactorGraph(NamedTuple):
-    variables: SparseTensor
-    factors: SparseTensor
-    globals: SparseTensor
-    v_to_f: Tensor
-    f_to_v: Tensor
-    edge_attr: Tensor
-    n_variable: Tensor
-    n_factor: Tensor

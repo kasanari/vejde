@@ -3,7 +3,7 @@ import typing
 from gymnasium import Space
 from gymnasium.spaces import Box, Discrete, Sequence
 import numpy as np
-from .data import HeteroObsData, ObsData
+from ..data.data import HeteroObsData, ObsData
 from gymnasium.vector.utils.space_utils import batch_differing_spaces
 
 

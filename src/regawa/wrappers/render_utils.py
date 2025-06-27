@@ -6,7 +6,7 @@ import numpy as np
 from regawa.model import GroundValue
 from regawa.model.base_model import BaseModel
 from regawa.wrappers.grounding_utils import create_edges, objects
-from regawa.wrappers.util_types import (
+from regawa.wrappers.types import (
     FactorGraph,
     RenderGraph,
     StackedFactorGraph,

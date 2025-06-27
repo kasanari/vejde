@@ -9,7 +9,7 @@ from gnn_policy.functional import (
     segment_sum,
 )
 from regawa.functional import action_and_node_value_estimate, num_graphs, predicate_mask
-from regawa.gnn.gnn_classes import SparseTensor
+from regawa.data import SparseTensor
 
 PolicyFunc = Callable[
     [Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor],

@@ -5,7 +5,7 @@ from typing import Any, TypeVar
 import numpy as np
 
 from regawa import BaseModel
-from regawa.gnn.data import HeteroObsData
+from regawa.data.data import HeteroObsData
 from regawa.model import GroundValue
 from regawa.model.utils import (
     fn_valid_action_fluents_given_arity,
@@ -19,7 +19,7 @@ from regawa.wrappers.grounding_utils import (
     fn_objects_with_type,
 )
 from regawa.wrappers.gym_utils import idxgraph_to_obsdata
-from regawa.wrappers.util_types import FactorGraph, HeteroGraph, Variables
+from regawa.wrappers.types import FactorGraph, HeteroGraph, Variables
 from regawa.wrappers.utils import (
     generate_bipartite_obs_func,
     map_graph_to_idx,

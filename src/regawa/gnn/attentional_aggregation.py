@@ -5,7 +5,7 @@ from torch import Tensor
 
 from gnn_policy.functional import segment_sum, segmented_softmax
 
-from .gnn_classes import SparseTensor
+from regawa.data import SparseTensor
 
 logger = logging.getLogger(__name__)
 

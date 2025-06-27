@@ -8,7 +8,7 @@ from regawa import BaseModel
 from regawa.model import GroundValue
 from regawa.wrappers.grounding_utils import bool_groundings, numeric_groundings
 from regawa.wrappers.gym_utils import idxgraph_to_obsdata
-from regawa.wrappers.util_types import HeteroGraph, StackedFactorGraph, Variables
+from regawa.wrappers.types import HeteroGraph, StackedFactorGraph, Variables
 from regawa.wrappers.utils import map_graph_to_idx
 
 V = TypeVar("V")

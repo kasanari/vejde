@@ -4,12 +4,11 @@ from .data import (
     ObsData,
     heterostatedata,
     HeteroBatchData,
-)
-from .data import SparseArray
-from .data import (
+    HeteroObsData,
     heterostatedata_from_obslist_alt,
     single_obs_to_heterostatedata,
     BatchData,
+    SparseArray,
 )
 
 
@@ -17,6 +16,7 @@ __all__ = [
     "FactorGraph",
     "SparseTensor",
     "HeteroGraphBuffer",
+	"HeteroObsData",
     "ObsData",
     "heterostatedata",
     "HeteroBatchData",
@@ -25,5 +25,5 @@ __all__ = [
     "BatchData",
     "single_obs_to_heterostatedata",
     "sparsify",
-	"heterostatedata_to_tensors",
+    "heterostatedata_to_tensors",
 ]

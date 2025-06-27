@@ -1,14 +1,13 @@
 import torch.nn as nn
 
-from regawa.gnn import ActionMode, AgentConfig
+from regawa.policy import ActionMode, AgentConfig
 from regawa.policy.gnn_agent import _embed, merge_graphs
 from .q_action_then_node import QActionThenNode
 from .q_node_then_action import QNodeThenAction
 
-from .data import FactorGraph, HeteroBatchData
-from .factorgraph_gnn import BipartiteGNN
-from .gnn_classes import EmbeddingLayer
-from .gnn_embedder import NegativeBiasBooleanEmbedder, NumericEmbedder
+from regawa.data import FactorGraph, HeteroBatchData
+from regawa.gnn import BipartiteGNN
+from regawa.embedding import EmbeddingLayer, NegativeBiasBooleanEmbedder, NumericEmbedder
 
 
 class GraphQAgent(nn.Module):
@@ -74,9 +73,4 @@ class GraphQAgent(nn.Module):
     def forward(self, data: HeteroBatchData):
         return self.qfunc.forward(self.embed(data).factors)
 
-    def save_agent(self, path: str):
-        save_agent(self, self.config, path)
 
-    @classmethod
-    def load_agent(cls, path: str) -> tuple["RecurrentGraphAgent", AgentConfig]:
-        return load_agent(cls, path)  # type: ignore

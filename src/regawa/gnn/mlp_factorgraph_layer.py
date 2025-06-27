@@ -1,5 +1,5 @@
 import torch.nn as nn
-from torch import Generator as Rngs, concatenate, empty
+from torch import Generator as Rngs, concatenate
 from torch import Tensor
 from torch_scatter import scatter
 

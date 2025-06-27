@@ -1,4 +1,7 @@
+from typing import Any
 from torch import Generator
+from gymnasium.spaces import MultiDiscrete
+from regawa.data.data import HeteroObsData
 from .policy import ActionMode, GNNParams, AgentConfig
 from .model import GroundValue
 from .model import BaseGroundedModel
@@ -11,7 +14,7 @@ from .model import max_arity
 import gymnasium as gym
 
 
-def agent_from_env(env: gym.Env, params: GNNParams, device: str = "cpu"):
+def agent_from_env(env: gym.Env[HeteroObsData, MultiDiscrete], params: GNNParams, device: str = "cpu"):
     n_types = gym_utils.n_types(env.observation_space)
     n_relations = gym_utils.n_relations(env.observation_space)
     n_actions = gym_utils.n_actions(env.action_space)
@@ -50,7 +53,7 @@ def agent_from_model(model: BaseModel, params: GNNParams, device: str = "cpu"):
     return GraphAgent(config, rng, device)
 
 
-def step_func(agent: GraphAgent, env: gym.Env, deterministic=True):
+def step_func(agent: GraphAgent, env: gym.Env[Any, Any], deterministic: bool =True):
     def f(
         obs: dict[str, Any],
     ) -> tuple[dict[str, Any], float, bool, bool, dict[str, Any]]:

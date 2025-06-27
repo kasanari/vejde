@@ -15,14 +15,14 @@ class SingleActionGNNPolicy(nn.Module):
         self, actions: Tensor, h: Tensor, batch_idx: Tensor
     ) -> tuple[Tensor, Tensor, Tensor]:
         node_logits = self.node_prob(h).squeeze(-1)
-        p = node_probs(node_logits, node_mask, batch_idx)  # type: ignore
+        p = node_probs(node_logits, batch_idx)  # type: ignore
         n_g = num_graphs(batch_idx)
-        entropy = masked_entropy(p, node_mask, n_g)  # type: ignore
+        entropy = masked_entropy(p, n_g)  # type: ignore
         logprob = log(p[actions])  # type: ignore
         return logprob, entropy  # type: ignore
 
     def sample(self, h: Tensor, batch_idx: Tensor) -> tuple[Tensor, Tensor, Tensor]:
         node_logits = self.node_prob(h).squeeze(-1)
-        actions, prob, entropy, *_ = sample_node(node_logits, node_mask, batch_idx)  # type: ignore
+        actions, prob, entropy, *_ = sample_node(node_logits, batch_idx)  # type: ignore
         logprob = log(prob[actions])  # type: ignore
         return actions, logprob, entropy  # type: ignore

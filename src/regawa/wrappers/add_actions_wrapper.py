@@ -3,7 +3,7 @@ from typing import Any, TypeVar
 import gymnasium as gym
 import numpy as np
 
-from regawa.model.base_model import BaseModel
+from regawa.model import BaseModel
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")

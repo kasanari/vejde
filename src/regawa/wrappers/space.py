@@ -1,13 +1,13 @@
-from typing import Any, NamedTuple
-import typing
+from typing import Any, TypeVar
 from gymnasium import Space
 from gymnasium.spaces import Box, Discrete, Sequence
 import numpy as np
 from ..data.data import HeteroObsData, ObsData
 from gymnasium.vector.utils.space_utils import batch_differing_spaces
 
+V = TypeVar("V", np.float32, np.bool_, np.int64)
 
-class FactorGraphSpace(Space[ObsData]):
+class FactorGraphSpace(Space[ObsData[V]]):
     def __init__(
         self,
         num_relations: int,
@@ -58,9 +58,9 @@ class FactorGraphSpace(Space[ObsData]):
             and self.global_length == other.global_length
         )
 
-    def __contains__(self, item: ObsData) -> bool:
+    def __contains__(self, item: ObsData[V]) -> bool:
         """Check whether `item` is in this space."""
-        if not isinstance(item, ObsData):
+        if not isinstance(item, ObsData): # type: ignore
             return False
 
         return (
@@ -94,10 +94,10 @@ class HeteroStateSpace(Space[HeteroObsData]):
             high=np.finfo(np.float32).max,
             shape=(),
         )
-        self.bool = FactorGraphSpace(
+        self.bool = FactorGraphSpace[np.bool_](
             num_relations, num_types, max_arity, num_actions, bool_space
         )
-        self.float = FactorGraphSpace(
+        self.float = FactorGraphSpace[np.float32](
             num_relations, num_types, max_arity, num_actions, number_space
         )
         super().__init__(None, None, seed)
@@ -118,12 +118,12 @@ class HeteroStateSpace(Space[HeteroObsData]):
 
     def __contains__(self, item: HeteroObsData) -> bool:
         """Check whether `item` is in this space."""
-        if not isinstance(item, HeteroObsData):
+        if not isinstance(item, HeteroObsData): # type: ignore
             return False
 
         return item.bool in self.bool and item.float in self.float
 
 
-@batch_differing_spaces.register(HeteroStateSpace)
+@batch_differing_spaces.register(HeteroStateSpace) # type: ignore
 def batch_differing_spaces(spaces: list[HeteroStateSpace]):
     return spaces

@@ -1,6 +1,5 @@
 from collections import deque
 from copy import deepcopy
-from pprint import pprint
 from typing import Any, TypeVar
 
 import gymnasium as gym
@@ -105,12 +104,3 @@ class StackingWrapper(gym.Wrapper):
         return new_obs, reward, terminated, truncated, info  # type: ignore
 
 
-if __name__ == "__main__":
-    env = pyRDDLGym.make("Tamarisk_POMDP_ippc2014", 1)  # type: ignore
-    env = StackingWrapper(env)
-    done = False
-    while not done:
-        obs, reward, terminated, truncated, info = env.step({})  # type: ignore
-        done = terminated or truncated
-    # print(obs, reward, terminated, truncated, info)
-    pprint(obs)  # type: ignore

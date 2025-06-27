@@ -1,7 +1,6 @@
 from functools import cache
 import itertools
 import logging
-from collections import deque
 from collections.abc import Callable
 
 import numpy as np

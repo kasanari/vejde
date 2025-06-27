@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from torch import Tensor
+from torch import Tensor, norm
 
 
 class Lazy:
@@ -22,7 +22,8 @@ def to_graphviz_bp(
 
     output = "digraph G {\n"
 
-    sum_vector = lambda x: x.sum(dim=-1)
+    def sum_vector(x: Tensor) -> Tensor:
+        return x.sum(dim=-1)
 
     v_norm = sum_vector(variables)
     f_norm = sum_vector(factors)
@@ -56,16 +57,16 @@ def to_graphviz(
 ):
     output = "digraph G {"
 
-    vnorm = lambda x: norm(x, ord=2, axis=-1)
-    ro = lambda x: round(x, decimals=2)
+    def vnorm(x: Tensor):
+        return norm(x, ord=2, axis=-1)
+    #ro = lambda x: round(x, decimals=2)
 
     v_norm = vnorm(variables)
     f_norm = vnorm(factors)
     m_norm = vnorm(messages)
 
-    edge_string = (
-        lambda v, f: f'"{v}_v" -> "{f}_f"' if not reverse else f'"{f}_f" -> "{v}_v"'
-    )
+    def edge_string(v: str, f: str) -> str:
+        return f'"{v}_v" -> "{f}_f"' if not reverse else f'"{f}_f" -> "{v}_v"'
 
     for i, v in enumerate(v_norm):
         output += f'"{i}_v" [label="{v:0.2f}", shape=ellipse, color=blue];'

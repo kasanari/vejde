@@ -1,7 +1,6 @@
 from typing import Any, SupportsFloat, TypeVar, Callable
 
 import gymnasium as gym
-import numpy as np
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")

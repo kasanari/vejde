@@ -1,10 +1,12 @@
+from __future__ import annotations
 from collections.abc import Callable
-from typing import NamedTuple
+from typing import NamedTuple, TypeVar
 import torch
 from torch import Tensor, as_tensor, concatenate
-
 from .data import SparseArray
 from . import BatchData, HeteroBatchData
+
+V = TypeVar("V")
 
 def heterostatedata_to_tensors(
     data: HeteroBatchData, device: str | torch.device = "cpu"
@@ -30,7 +32,7 @@ class SparseTensor(NamedTuple):
         )
 
     @classmethod
-    def from_sparse_array(cls, sparse_array: SparseArray[V]) -> SparseTensor:
+    def from_sparse_array(cls, sparse_array: SparseArray) -> SparseTensor:
         return cls(
             Tensor(sparse_array.values),
             Tensor(sparse_array.indices),

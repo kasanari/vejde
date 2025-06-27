@@ -477,12 +477,12 @@ def rollout(
             is_final.copy_(npl.as_tensor(next_is_final))
 
             if "episode" in infos:
-                for f, r, l in zip(
+                for f, r, length in zip(
                     infos["_episode"], infos["episode"]["r"], infos["episode"]["l"]
                 ):
                     if f:
                         returns.append(r)
-                        lengths.append(l)
+                        lengths.append(length)
         return RolloutData(
             obs_buf,
             obs,

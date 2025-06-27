@@ -70,7 +70,7 @@ def n_relations(observation_space: HeteroStateSpace):
 
 
 def n_actions(action_space: MultiDiscrete):
-    return int(action_space.nvec[0])  # type: ignore
+    return int(action_space.nvec[0])
 
 
 def idxgraph_to_obsdata(idx_g: IdxFactorGraph[V]):

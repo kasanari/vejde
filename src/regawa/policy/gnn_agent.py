@@ -28,6 +28,7 @@ from regawa.embedding import (
     EmbeddingLayer,
 )
 
+
 def _embed(
     data: BatchData,
     var_embedder: nn.Module,

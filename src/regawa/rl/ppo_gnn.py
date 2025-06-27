@@ -797,7 +797,7 @@ def main(
     return agent
 
 
-def setup(args: Args | None = None, batch_id: str | None = None):
+def train(args: Args | None = None, batch_id: str | None = None):
     args = tyro.cli(Args) if args is None else args
     logger.info("Attempting to connect to mlflow...")
     tracking_uri = "http://127.0.0.1:5000" if not args.debug else ""

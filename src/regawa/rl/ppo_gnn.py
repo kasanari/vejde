@@ -293,7 +293,7 @@ def iteration_step(
         b_values = b.values.reshape(-1)
 
         decay = 0.99
-        lambda_r = lambda_return.lambda_returns(b.rewards, b.values, b.dones)
+        lambda_r = lambda_return_func(b.rewards, b.values, b.dones)
         s, low_ema, high_ema = lambda_return.return_scale(
             lambda_r, carry.low_ema, carry.high_ema, decay
         )

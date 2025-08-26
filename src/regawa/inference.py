@@ -18,6 +18,7 @@ class AgentOutput(NamedTuple):
     action: tuple[str, str]
     weight_by_object: dict[str, float]
     weight_by_action: dict[str, float]
+    joint_probs: dict[tuple[str, str], float]
     graph: RenderGraph
 
 
@@ -73,7 +74,7 @@ def fn_get_agent_output(
             a: {
                 k: float(v)
                 for k, v in zip(objs, tensor_to_list(p_n__a[:, i]))
-                if v > 0.0
+                if v > 1e-4
             }
             for i, a in enumerate(model.action_fluents)
         }
@@ -84,13 +85,21 @@ def fn_get_agent_output(
                 model.action_fluents,
                 tensor_to_list(p_a),
             )
-            if v > 0.0
+            if v > 1e-4
+        }
+
+        joint_probs = {
+            (a, o): pa * po
+            for a, pa in weight_by_action.items()
+            for o, po in weight_by_factor[a].items()
+            if (pa * po) > 1e-4
         }
 
         return AgentOutput(
             action=(model.action_fluents[action[0]], objs[action[1]]),
             weight_by_object=weight_by_factor,
             weight_by_action=weight_by_action,
+            joint_probs=joint_probs,
             graph=r_g,
         )
 
@@ -117,15 +126,23 @@ def fn_get_agent_output(
                     model.action_fluents,
                     tensor_to_list(p_a__n[i, :]),
                 )
-                if v > 0.0
+                if v > 1e-4
             }
             for i, o in enumerate(objs)
+        }
+
+        joint_probs = {
+            (a, o): po * pa
+            for o, po in weight_by_factor.items()
+            for a, pa in weight_by_action[o].items()
+            if (po * pa) > 1e-4
         }
 
         return AgentOutput(
             action=(model.action_fluents[action[0]], objs[action[1]]),
             weight_by_object=weight_by_factor,
             weight_by_action=weight_by_action,
+            joint_probs=joint_probs,
             graph=r_g,
         )
 

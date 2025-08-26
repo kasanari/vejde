@@ -1,3 +1,4 @@
+from regawa.gnn.mp_rendering import to_graphviz
 from .gnn.agent_utils import ActionMode, GNNParams, AgentConfig
 from .model import GroundValue
 from .model.base_grounded_model import BaseGroundedModel
@@ -76,4 +77,5 @@ __all__ = [
     "GraphAgent",
     "agent_from_env",
     "agent_from_model",
+    "to_graphviz",
 ]

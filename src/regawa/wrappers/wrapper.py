@@ -6,7 +6,7 @@ import gymnasium as gym
 from gymnasium.spaces import Dict, MultiDiscrete
 
 from regawa import BaseModel
-from regawa.gnn.space import HeteroStateSpace
+from regawa.wrappers.space import HeteroStateSpace
 from regawa.model import GroundValue
 
 from .graph_utils import fn_obsdict_to_graph, fn_heterograph_to_heteroobs

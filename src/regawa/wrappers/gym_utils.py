@@ -4,7 +4,7 @@ from typing import Any, TypeVar
 from gymnasium.spaces import Box, Dict, Discrete, MultiDiscrete, Sequence, Space
 
 from regawa.gnn.data import ObsData
-from regawa.gnn.space import HeteroStateSpace
+from regawa.wrappers.space import HeteroStateSpace
 from regawa.wrappers.util_types import IdxFactorGraph
 
 V = TypeVar("V")

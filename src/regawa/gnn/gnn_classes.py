@@ -34,6 +34,15 @@ def plot_embeddings(num_embeddings: int, embedding: Embedding):
 
 
 class SparseArray(NamedTuple, Generic[V]):
+    """
+    This is a simple sparse COOrdinate array representation.
+    index is the position of the values in the original dense array, e.g. the graph the node belongs to
+
+    assuming [1, 2, 3], [4, 5] and [6, 7, 8, 9], the sparse representation will be
+    values = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    indices = [0, 0, 0, 1, 1, 2, 2, 2, 2]
+    """
+
     values: NDArray[V]
     indices: NDArray[np.int64]
 
@@ -49,6 +58,14 @@ class SparseArray(NamedTuple, Generic[V]):
 
 
 class SparseTensor(NamedTuple):
+    """
+    This is a simple sparse COOrdinate array representation.
+    index is the position of the values in the original dense array, e.g. the graph the node belongs to
+
+    assuming [1, 2, 3], [4, 5] and [6, 7, 8, 9], the sparse representation will be
+    values = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    indices = [0, 0, 0, 1, 1, 2, 2, 2, 2]
+    """
     values: Tensor
     indices: Tensor
 

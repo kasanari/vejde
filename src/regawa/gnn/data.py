@@ -30,25 +30,43 @@ V = TypeVar("V", np.float32, np.bool_)
 
 
 class ObsData(NamedTuple, Generic[V]):
-    var_value: NDArray[V]
-    var_type: NDArray[np.int64]
-    factor: NDArray[np.int64]
-    v_to_f: NDArray[np.int64]
-    f_to_v: NDArray[np.int64]
-    edge_attr: NDArray[np.int64]
-    length: NDArray[np.int64]
-    n_factor: int
-    n_variable: int
-    global_vars: NDArray[np.int64]
-    global_vals: NDArray[V]
-    global_length: NDArray[np.int64]
-    action_type_mask: NDArray[np.bool_]
-    action_arity_mask: NDArray[np.bool_]
+    # this represents a factor graph of groundings and objects
+    # assume a grounding p(o) = v
+    var_value: NDArray[V]  # value of groundings, e.g. "v". This can be bool or float
+    var_type: NDArray[
+        np.int64
+    ]  # predicate of grounding, e.g. "p". Length matches var_value.
+    factor: NDArray[np.int64]  # object of grounding, e.g. "o"
+    v_to_f: NDArray[
+        np.int64
+    ]  # mappings from grounding to object. Length matches var_value
+    f_to_v: NDArray[
+        np.int64
+    ]  # mappings from object to grounding. Length matches factor
+    edge_attr: NDArray[
+        np.int64
+    ]  # edge attributes, e.g. position in predicate. Length matches v_to_f and f_to_v
+    length: NDArray[
+        np.int64
+    ]  # number of repetitions per grounding. This is only not 1 when using stacking. Length matches var_value
+    n_factor: int  # number of objects/factors.
+    n_variable: int  # number of groundings/variables.
+    global_vars: NDArray[np.int64]  # global variable types.
+    global_vals: NDArray[V]  # global variable values. Length matches global_vars
+    global_length: NDArray[
+        np.int64
+    ]  # lengths of global variables, for stacking. Length matches global_vars
+    action_type_mask: NDArray[
+        np.bool_
+    ]  # mask that indicates which actions are valid for each factor, given the predicate type. Length matches factor.
+    action_arity_mask: NDArray[
+        np.bool_
+    ]  # mask that indicates which actions are valid for each factor, given the predicate arity. Objects are not valid for predicates with no arguments. Length matches factor.
 
 
 class HeteroObsData(NamedTuple):
-    bool: ObsData[np.bool_]
-    float: ObsData[np.float32]
+    bool: ObsData[np.bool_]  # boolean ObsData
+    float: ObsData[np.float32]  # numeric ObsData
 
 
 class BatchData(NamedTuple, Generic[V]):

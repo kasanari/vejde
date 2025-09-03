@@ -16,6 +16,7 @@ from regawa.gnn.data import (
     single_obs_to_heterostatedata,
 )
 from regawa.gnn.gnn_agent import GraphAgent, heterostatedata_to_tensors
+from regawa.io import obs_to_json_friendly_obs
 
 
 @th.no_grad()
@@ -262,8 +263,8 @@ def writable_eval_data(data):
         return [
             {
                 "reward": r,
-                "obs": {"_".join(k): v for k, v in s.items()},
-                "action": {"_".join(k): v for k, v in a.items()},
+                "obs": obs_to_json_friendly_obs(s),
+                "action": obs_to_json_friendly_obs(a),
                 "obj_weights": a_weight,
                 "action_weights": o_weight,
             }

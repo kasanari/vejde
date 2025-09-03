@@ -12,6 +12,9 @@ from .model.utils import max_arity
 import gymnasium as gym
 
 
+type GroundingValueType = bool | int | float
+
+
 def agent_from_env(env: gym.Env, params: GNNParams, device: str = "cpu"):
     n_types = gym_utils.n_types(env.observation_space)
     n_relations = gym_utils.n_relations(env.observation_space)

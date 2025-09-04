@@ -43,24 +43,25 @@ class BipartiteGNNConvVariableToFactor(nn.Module):
         edge_attr: Tensor of shape (num_edges,)
         """
 
-        senders = fg.v_to_f
-        receivers = fg.f_to_v
+        v_to_f = fg.v_to_f
+        f_to_v = fg.f_to_v
         variables = fg.variables.values
         factors = fg.factors.values
         edge_attr = fg.edge_attr
 
-        x_i = factors[receivers]
-        x_j = variables[senders]
+        x_i = factors[f_to_v]  # map factors to messages
+        x_j = variables[v_to_f]  # map variables to messages
 
-        aggr_m, m = self.mp(
-            x_i, x_j, receivers, edge_attr, num_segments=factors.shape[0]
-        )
+        aggr_m, m = self.mp(x_i, x_j, f_to_v, edge_attr, num_segments=factors.shape[0])
 
+        # combine target and aggregated message
+        # also, check for empty aggr_m
         x = (factors, aggr_m) if aggr_m.shape[0] > 0 else (factors, zeros_like(factors))
         x = concatenate(x, axis=-1)
         x = self.combine(x)
+
         render_logger.debug(
-            "%s", Lazy(lambda: to_graphviz(m, senders, receivers, variables, factors))
+            "%s", Lazy(lambda: to_graphviz(m, v_to_f, f_to_v, variables, factors))
         )
         return x
 
@@ -93,28 +94,30 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
         edge_attr: Tensor of shape (num_edges,)
         """
 
-        senders = fg.v_to_f
-        receivers = fg.f_to_v
+        v_to_f = fg.v_to_f
+        f_to_v = fg.f_to_v
         variables = fg.variables.values
         factors = fg.factors.values
         edge_attr = fg.edge_attr
 
-        x_i = variables[senders]
-        x_j = factors[receivers]
+        x_i = variables[v_to_f]  # map variables to messages
+        x_j = factors[f_to_v]  # map factors to messages
 
         aggr_m, m = self.mp(
-            x_i, x_j, senders, zeros_like(edge_attr), num_segments=variables.shape[0]
+            x_i, x_j, v_to_f, zeros_like(edge_attr), num_segments=variables.shape[0]
         )
+
+        # combine target and aggregated message
         x = (variables, aggr_m)
         x = concatenate(x, axis=-1)
         x = self.combine(x)
+
+        # skip connection. I am not sure why this helps, but it does.
         x = variables + x
         render_logger.debug(
             "%s",
             Lazy(
-                lambda: to_graphviz(
-                    m, senders, receivers, variables, factors, reverse=True
-                )
+                lambda: to_graphviz(m, v_to_f, f_to_v, variables, factors, reverse=True)
             ),
         )
         return x

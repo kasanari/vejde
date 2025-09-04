@@ -2,12 +2,12 @@ from collections.abc import Callable
 from typing import Any, TypeVar
 
 from gymnasium.spaces import Box, Dict, Discrete, MultiDiscrete, Sequence, Space
-
+import numpy as np
 from regawa.gnn.data import ObsData
 from regawa.wrappers.space import HeteroStateSpace
 from regawa.wrappers.util_types import IdxFactorGraph
 
-V = TypeVar("V")
+V = TypeVar("V", np.float32, np.bool_)
 
 
 def max_arity(observation_space: Dict) -> int:
@@ -74,7 +74,7 @@ def n_actions(action_space: MultiDiscrete):
 
 
 def idxgraph_to_obsdata(idx_g: IdxFactorGraph[V]):
-    return ObsData(
+    return ObsData[V](
         var_type=idx_g.variables.types,
         var_value=idx_g.variables.values,
         factor=idx_g.factors,

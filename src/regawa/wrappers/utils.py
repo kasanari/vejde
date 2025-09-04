@@ -27,13 +27,13 @@ from regawa.wrappers.util_types import (
 
 logger = logging.getLogger(__name__)
 
-V = TypeVar("V")
+V = TypeVar("V", np.float32, np.bool_)
 T = TypeVar(
     "T",
-    FactorGraph[bool],
-    StackedFactorGraph[bool],
-    FactorGraph[float],
-    StackedFactorGraph[float],
+    FactorGraph[np.bool_],
+    StackedFactorGraph[np.bool_],
+    FactorGraph[np.float32],
+    StackedFactorGraph[np.float32],
 )
 
 

@@ -2,7 +2,7 @@ from functools import cache
 import itertools
 import logging
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 
 import numpy as np
 
@@ -23,6 +23,9 @@ def predicate(key: GroundValue) -> str:
 
 
 def fn_objects_with_type(relation_to_types: Callable[[str, int], str]):
+    """
+    Returns a function that takes a grounding and returns a list of Objects (object name, type).
+    """
     @cache
     def objects_with_type(
         key: GroundValue,
@@ -42,9 +45,14 @@ def arity(grounding: GroundValue) -> int:
 
 def has_valid_parameters(
     action: GroundValue,
-    obj_to_type: Callable[[str], str],
-    fluent_params: Callable[[str], tuple[str, ...]],
+    obj_to_type: Callable[[str], str],  # maps object to its type
+    fluent_params: Callable[
+        [str], tuple[str, ...]
+    ],  # maps fluent to its parameter types
 ) -> bool:
+    """
+    Checks if the parameters of an action are valid based on the fluent's parameter types.
+    """
     action_fluent = predicate(action)
     param_types = fluent_params(action_fluent)
     params: tuple[str, ...] = objects(action)
@@ -64,6 +72,11 @@ def to_dict_action(
     obj_to_type: Callable[[str], str],
     fluent_params: Callable[[str], tuple[str, ...]],
 ) -> dict[GroundValue, np.bool_]:
+    """
+    Converts an action (GroundValue) to a dictionary representation. Going from (predicate, obj1, obj2) to {(predicate, obj1, obj2): True}.
+    If the action has invalid parameters, it is converted to a no-op action (i.e. "None" predicate).
+    No-op actions are represented as an empty dictionary.
+    """
     action_fluent = predicate(action)
     action_arity = len(fluent_params(action_fluent))
     if action_arity == 0:
@@ -86,10 +99,15 @@ def to_dict_action(
 
 @cache
 def get_edges(key: GroundValue) -> list[Edge]:
+    """
+    Returns a list of edges for a given grounding.
+    Each edge connects the predicate to one of its objects.
+    An edge is represented as a tuple (predicate, object, position).
+    """
     return [Edge(key, object, pos) for pos, object in enumerate(objects(key))]
 
 
-def create_edges(d: list[GroundValue]) -> list[Edge]:
+def create_edges(d: Iterable[GroundValue]) -> list[Edge]:
     edges = [get_edges(key) for key in d]
     return list(itertools.chain(*edges))
 
@@ -99,6 +117,9 @@ def num_edges(groundings: list[GroundValue], arities: Callable[[str], int]) -> i
 
 
 def fn_is_numeric(fluent_range: Callable[[str], type]):
+    """
+    Returns a function that takes a grounding and returns whether it is numeric (int or float).
+    """
     @cache
     def is_numeric(g: GroundValue):
         return fluent_range(predicate(g)) is float or fluent_range(predicate(g)) is int
@@ -109,10 +130,16 @@ def fn_is_numeric(fluent_range: Callable[[str], type]):
 def numeric_groundings(
     groundings: list[GroundValue], is_numeric: Callable[[GroundValue], bool]
 ) -> list[GroundValue]:
+    """
+    Returns a list of numeric groundings from the given list of groundings.
+    """
     return [g for g in groundings if is_numeric(g)]
 
 
 def fn_is_bool(fluent_range: Callable[[str], type]):
+    """
+    Returns a function that takes a grounding and returns whether it is boolean.
+    """
     @cache
     def is_bool(g: GroundValue):
         return fluent_range(predicate(g)) is bool
@@ -123,4 +150,7 @@ def fn_is_bool(fluent_range: Callable[[str], type]):
 def bool_groundings(
     groundings: list[GroundValue], is_bool: Callable[[GroundValue], bool]
 ) -> list[GroundValue]:
+    """
+    Returns a list of boolean groundings from the given list of groundings.
+    """
     return [g for g in groundings if is_bool(g)]

@@ -11,7 +11,7 @@ from regawa.wrappers.gym_utils import idxgraph_to_obsdata
 from regawa.wrappers.util_types import HeteroGraph, StackedFactorGraph, Variables
 from regawa.wrappers.utils import map_graph_to_idx
 
-V = TypeVar("V")
+V = TypeVar("V", np.float32, np.bool_)
 
 
 def flatten(vals: list[list[V]], vars: list[str]) -> Variables[V]:

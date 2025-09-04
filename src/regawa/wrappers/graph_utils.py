@@ -26,7 +26,7 @@ from regawa.wrappers.utils import (
     object_list,
 )
 
-V = TypeVar("V")
+V = TypeVar("V", np.float32, np.bool_)
 
 
 def _map_graph_to_idx(
@@ -35,6 +35,9 @@ def _map_graph_to_idx(
     type_to_idx: Callable[[str], int],
     var_val_dtype: type,
 ):
+    """
+    Maps a FactorGraph with string attributes to a FactorGraph with integer attributes.
+    """
     vars = Variables(
         factorgraph.variables,
         factorgraph.variable_values,
@@ -63,6 +66,9 @@ def _map_graph_to_idx(
 def fn_heterograph_to_heteroobs(
     model: BaseModel,
 ):
+    """
+    Returns a function that takes a HeteroGraph and returns a HeteroObsData (for use in GNNs).
+    """
     def heterograph_to_heteroobs(heterogenous_graph: HeteroGraph) -> HeteroObsData:
         return HeteroObsData(
             bool=idxgraph_to_obsdata(
@@ -89,6 +95,9 @@ def fn_heterograph_to_heteroobs(
 def fn_obsdict_to_graph(
     model: BaseModel,
 ):
+    """
+    Returns a function that takes an observation dictionary of groundings and values, and returns a heterogenous bipartite graph.
+    """
     objects_with_type = fn_objects_with_type(model.fluent_param)
     is_numeric, is_bool = (
         fn_is_numeric(model.fluent_range),
@@ -100,12 +109,12 @@ def fn_obsdict_to_graph(
     )
     generate_bipartite_obs_bool, generate_bipartite_obs_numeric = (
         generate_bipartite_obs_func(
-            FactorGraph[bool],
+            FactorGraph[np.bool_],
             valid_action_type_func,
             valid_action_arity_func,
         ),
         generate_bipartite_obs_func(
-            FactorGraph[float],
+            FactorGraph[np.float32],
             valid_action_type_func,
             valid_action_arity_func,
         ),

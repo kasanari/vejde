@@ -1,10 +1,12 @@
-from typing import Any, Generic, NamedTuple, TypeVar
+from typing import Generic, NamedTuple, TypeVar
 
 import numpy as np
 
+
+from numpy.typing import NDArray
 from regawa.model import GroundValue
 
-V = TypeVar("V")
+V = TypeVar("V", np.float32, np.bool_)
 
 
 class Object(NamedTuple):
@@ -21,27 +23,27 @@ class Edge(NamedTuple):
 class RenderGraph(NamedTuple):
     variable_labels: list[str]
     factor_labels: list[str]
-    senders: np.ndarray[np.int64, Any]
-    receivers: np.ndarray[np.int64, Any]
+    senders: NDArray[np.int64]
+    receivers: NDArray[np.int64]
     edge_attributes: list[int]
     global_variables: list[str]
 
 
 class Variables(NamedTuple, Generic[V]):
-    types: np.ndarray[np.int64, Any] | list[str]
-    values: np.ndarray[V, Any] | list[V]
-    lengths: np.ndarray[np.int64, Any] | list[int]
+    types: NDArray[np.int64] | list[str]
+    values: NDArray[V] | list[V]
+    lengths: NDArray[np.int64] | list[int]
 
 
 class IdxFactorGraph(NamedTuple, Generic[V]):
     variables: Variables[V]
-    factors: np.ndarray[np.int64, Any]
-    senders: np.ndarray[np.int64, Any]
-    receivers: np.ndarray[np.int64, Any]
-    edge_attributes: np.ndarray[np.int64, Any]
+    factors: NDArray[np.int64]
+    senders: NDArray[np.int64]
+    receivers: NDArray[np.int64]
+    edge_attributes: NDArray[np.int64]
     global_vars: Variables[V]
-    action_type_mask: np.ndarray[np.bool_, Any]
-    action_arity_mask: np.ndarray[np.bool_, Any]
+    action_type_mask: NDArray[np.bool_]
+    action_arity_mask: NDArray[np.bool_]
 
 
 class FactorGraph(NamedTuple, Generic[V]):
@@ -49,8 +51,8 @@ class FactorGraph(NamedTuple, Generic[V]):
     variable_values: list[V]
     factors: list[str]
     factor_types: list[str]
-    senders: np.ndarray[np.int64, Any]
-    receivers: np.ndarray[np.int64, Any]
+    senders: NDArray[np.int64]
+    receivers: NDArray[np.int64]
     edge_attributes: list[int]
     global_variables: list[str]
     global_variable_values: list[V]
@@ -65,8 +67,8 @@ class StackedFactorGraph(NamedTuple, Generic[V]):
     variable_values: list[list[V]]
     factors: list[str]
     factor_types: list[str]
-    senders: np.ndarray[np.int64, Any]
-    receivers: np.ndarray[np.int64, Any]
+    senders: NDArray[np.int64]
+    receivers: NDArray[np.int64]
     edge_attributes: list[int]
     global_variables: list[str]
     global_variable_values: list[list[V]]
@@ -76,5 +78,5 @@ class StackedFactorGraph(NamedTuple, Generic[V]):
 
 
 class HeteroGraph(NamedTuple):
-    numeric: FactorGraph[float] | StackedFactorGraph[float]
-    boolean: FactorGraph[bool] | StackedFactorGraph[bool]
+    numeric: FactorGraph[np.float32] | StackedFactorGraph[np.float32]
+    boolean: FactorGraph[np.bool_] | StackedFactorGraph[np.bool_]

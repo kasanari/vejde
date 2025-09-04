@@ -38,10 +38,12 @@ class BipartiteGNN(nn.Module):
         self,
         fg: FactorGraph,
     ) -> FactorGraph:
+        # Handle global nodes
         n_g = fg.n_factor.shape[0]
         g = zeros(n_g, self.hidden_size, device=fg.factors.values.device)
         g = self.pre_aggr(fg.globals, n_g) if fg.globals.values.shape[0] > 0 else g
 
+        # add global values to factors
         factors = SparseTensor(
             fg.factors.values + g[fg.factors.indices], fg.factors.indices
         )

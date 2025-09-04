@@ -57,7 +57,7 @@ class SparseArray(NamedTuple, Generic[V]):
         )
 
 
-class SparseTensor(NamedTuple, Generic[V]):
+class SparseTensor(NamedTuple):
     """
     This is a simple sparse COOrdinate array representation.
     index is the position of the values in the original dense array, e.g. the graph the node belongs to

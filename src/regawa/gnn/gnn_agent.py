@@ -1,6 +1,7 @@
 from dataclasses import asdict
 from typing import Any, Mapping, TypeVar
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch import Generator as Rngs
@@ -27,6 +28,7 @@ from .gnn_embedder import (
     RecurrentEmbedder,
 )
 
+V = TypeVar("V", np.float32, np.bool_)
 
 def heterostatedata_to_tensors(
     data: HeteroBatchData, device: str | torch.device = "cpu"
@@ -38,8 +40,8 @@ def heterostatedata_to_tensors(
 
 
 def statedata_to_tensors(
-    data: BatchData, device: str | torch.device = "cpu"
-) -> BatchData:
+    data: BatchData[V], device: str | torch.device = "cpu"
+) -> BatchData[V]:
     params = tuple(
         SparseTensor(
             as_tensor(attr.values, device=device),
@@ -54,7 +56,7 @@ def statedata_to_tensors(
 
 
 def _embed(
-    data: BatchData,
+    data: BatchData[V],
     var_embedder: nn.Module,
     factor_embedding: nn.Module,
     global_var_embedder: nn.Module,
@@ -222,7 +224,7 @@ class GraphAgent(nn.Module):
 
     def sample_from_obs(
         self,
-        obs: Mapping[str, (list[ObsData] | tuple[ObsData, ...])],
+        obs: Mapping[str, (list[ObsData[V]] | tuple[ObsData[V], ...])],
         deterministic: bool = False,
     ):
         s = single_obs_to_heterostatedata(obs)
@@ -304,6 +306,7 @@ class RecurrentGraphAgent(nn.Module):
         boolean_embedder = BooleanEmbedder(
             gnn_params.embedding_dim,
             self.predicate_embedding,
+            rngs,
         )
 
         self.r_boolean_embedder = RecurrentEmbedder(
@@ -331,9 +334,10 @@ class RecurrentGraphAgent(nn.Module):
             gnn_params.embedding_dim,
             gnn_params.aggregation,
             gnn_params.activation,
+            rngs,
         )
 
-        policy_args = (config.num_actions, gnn_params.embedding_dim)
+        policy_args = (config.num_actions, gnn_params.embedding_dim, rngs)
         self.policy = (
             ActionThenNodePolicy(*policy_args)
             if gnn_params.action_mode == ActionMode.ACTION_THEN_NODE

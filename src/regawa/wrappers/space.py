@@ -1,4 +1,4 @@
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, TypeVar
 import typing
 from gymnasium import Space
 from gymnasium.spaces import Box, Discrete, Sequence
@@ -6,8 +6,9 @@ import numpy as np
 from ..gnn.data import HeteroObsData, ObsData
 from gymnasium.vector.utils.space_utils import batch_differing_spaces
 
+V = TypeVar("V", np.float32, np.bool_)
 
-class FactorGraphSpace(Space[ObsData]):
+class FactorGraphSpace(Space[ObsData[V]]):
     def __init__(
         self,
         num_relations: int,
@@ -58,7 +59,7 @@ class FactorGraphSpace(Space[ObsData]):
             and self.global_length == other.global_length
         )
 
-    def __contains__(self, item: ObsData) -> bool:
+    def __contains__(self, item: ObsData[V]) -> bool:
         """Check whether `item` is in this space."""
         if not isinstance(item, ObsData):
             return False
@@ -94,10 +95,10 @@ class HeteroStateSpace(Space[HeteroObsData]):
             high=np.finfo(np.float32).max,
             shape=(),
         )
-        self.bool = FactorGraphSpace(
+        self.bool = FactorGraphSpace[np.bool_](
             num_relations, num_types, max_arity, num_actions, bool_space
         )
-        self.float = FactorGraphSpace(
+        self.float = FactorGraphSpace[np.float32](
             num_relations, num_types, max_arity, num_actions, number_space
         )
         super().__init__(None, None, seed)

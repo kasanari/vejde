@@ -3,8 +3,9 @@ from regawa import BaseModel
 from functools import cached_property, cache
 import pytest
 from regawa.model.base_grounded_model import BaseGroundedModel, GroundValue
-from regawa.model_checker import check_model
-
+from regawa.model.model_checker import check_model
+from regawa.inference import fn_graph_to_obsdata, fn_groundobs_to_graph
+from regawa.wrappers.render_utils import create_render_graph
 
 class TestModel(BaseModel):
     """Sample model for testing purposes. Loosely based on block stacking problems."""
@@ -159,6 +160,13 @@ class TestGroundedModel(BaseGroundedModel):
     def constant_value(self, constant_grounding: GroundValue) -> Any:
         return self._constants[constant_grounding]
 
+    def _create_obs(self, rddl_obs: dict[GroundValue, Any]):
+        graph = fn_groundobs_to_graph(self._model, lambda x: x)(rddl_obs)
+
+        obs = fn_graph_to_obsdata(self._model)(graph)  # to ensure types are correct
+
+        return obs, graph
+
 
 def test_model_check():
     model = TestModel()
@@ -183,20 +191,34 @@ def test_sample_obs():
         ("weight", "block3"): 3.0,
     }
 
-    obs, graph = model._create_obs(rddl_obs)
+    _, graph = model._create_obs(rddl_obs)
 
-    assert obs["var_type"] == ["bool", "bool", "bool", "float", "float", "float"]
-    assert obs["var_value"] == [True, True, False, 1.0, 2.0, 3.0]
-    assert obs["factor"] == [
-        ("at", "block1", "table1"),
-        ("at", "block2", "table2"),
-        ("on", "block1", "block2"),
-        ("weight", "block1"),
-        ("weight", "block2"),
-        ("weight", "block3"),
-    ]
-    assert graph.boolean.num_nodes == 6
-    assert graph.numeric.num_nodes == 3
+    assert graph.boolean.factors == graph.numeric.factors
+
+    assert set(graph.boolean.factors) == {
+        "None",
+        "block1",
+        "block3",
+        "table2",
+        "block2",
+        "table1",
+    }
+
+    assert set(graph.boolean.factor_types) == {
+        "None",
+        "block",
+        "block",
+        "table",
+        "block",
+        "table",
+    }
+
+    assert set(graph.boolean.variable_values) == {True, True, False}
+    assert set(graph.numeric.variable_values) == {1.0, 3.0, 2.0}
+    assert set(graph.boolean.variables) == {"at", "at", "on"}
+    assert set(graph.numeric.variables) == {"weight", "weight", "weight"}
+
+    pass
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from regawa.gnn import ActionMode
+from regawa.policy import ActionMode
 from regawa.data.data import HeteroObsData
 from regawa.policy.gnn_agent import GraphAgent
 from regawa.model.base_model import BaseModel

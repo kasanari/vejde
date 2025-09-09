@@ -8,6 +8,8 @@ from typing import Generic, NamedTuple, TypeVar
 import numpy as np
 from numpy.typing import NDArray
 
+from regawa.data import SparseTensor
+
 
 class Serializer(json.JSONEncoder):
     def default(self, obj):

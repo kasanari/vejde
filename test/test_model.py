@@ -5,7 +5,6 @@ import pytest
 from regawa.model.base_grounded_model import BaseGroundedModel, GroundValue
 from regawa.model.model_checker import check_model
 from regawa.inference import fn_graph_to_obsdata, fn_groundobs_to_graph
-from regawa.wrappers.render_utils import create_render_graph
 
 class TestModel(BaseModel):
     """Sample model for testing purposes. Loosely based on block stacking problems."""

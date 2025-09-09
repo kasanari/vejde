@@ -4,8 +4,9 @@ from typing import NamedTuple, TypeVar
 import torch
 from torch import Tensor, as_tensor, concatenate
 from .data import SparseArray, BatchData, HeteroBatchData
+import numpy as np
 
-V = TypeVar("V")
+V = TypeVar("V", np.float32, np.bool_)
 
 
 def heterostatedata_to_tensors(

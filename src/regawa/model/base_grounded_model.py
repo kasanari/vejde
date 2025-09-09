@@ -6,7 +6,7 @@ import numpy as np
 type Grounding = tuple[str, ...]
 type GroundingValueType = bool | int | float | np.bool_
 type ObservableGroundingValueType = GroundingValueType | None
-GroundObs = dict[Grounding, GroundingValueType]
+GroundObs = Mapping[Grounding, GroundingValueType]
 type ObservableGroundObs = Mapping[Grounding, ObservableGroundingValueType]
 
 StackedGroundObs = dict[Grounding, list[GroundingValueType]]

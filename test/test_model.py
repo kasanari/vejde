@@ -2,7 +2,7 @@ from typing import Any
 from regawa import BaseModel
 from functools import cached_property, cache
 import pytest
-from regawa.model.base_grounded_model import BaseGroundedModel, Grounding
+from regawa.model.base_grounded_model import BaseGroundedModel, GroundObs, Grounding
 from regawa.model.model_checker import check_model
 from regawa.inference import fn_graph_to_obsdata, fn_groundobs_to_graph
 
@@ -159,7 +159,7 @@ class TestGroundedModel(BaseGroundedModel):
     def constant_value(self, constant_grounding: Grounding) -> Any:
         return self._constants[constant_grounding]
 
-    def _create_obs(self, rddl_obs: GroundObs):
+    def create_obs(self, rddl_obs: GroundObs):
         graph = fn_groundobs_to_graph(self._model, lambda x: x)(rddl_obs)
 
         obs = fn_graph_to_obsdata(self._model)(graph)  # to ensure types are correct
@@ -169,12 +169,6 @@ class TestGroundedModel(BaseGroundedModel):
 
 def test_model_check():
     model = TestModel()
-
-    assert check_model(model)
-
-
-def test_grounded_model_check():
-    model = TestGroundedModel()
 
     assert check_model(model)
 
@@ -190,7 +184,7 @@ def test_sample_obs():
         ("weight", "block3"): 3.0,
     }
 
-    _, graph = model._create_obs(rddl_obs)
+    _, graph = model.create_obs(rddl_obs)
 
     assert graph.boolean.factors == graph.numeric.factors
 

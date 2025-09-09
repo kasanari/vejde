@@ -41,7 +41,7 @@ class StackingGroundedGraphWrapper(
         super().__init__(env)
         self.model = model
         self.env = env
-        self.last_obs: dict[str, Any] = {}
+        self.last_obs: HeteroObsData | None = None
         self.last_action: Grounding | None = None
         self.iter = 0
         self._object_to_type: dict[str, str] = {"None": "None"}
@@ -132,7 +132,7 @@ class StackingGroundedGraphWrapper(
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Hete, dict[str, Any]]:
+    ) -> tuple[HeteroObsData, dict[str, Any]]:
         super().reset(seed=seed)
         rddl_obs, info = self.env.reset(seed=seed)
 

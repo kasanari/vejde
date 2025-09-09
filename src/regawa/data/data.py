@@ -8,9 +8,6 @@ from typing import Generic, NamedTuple, TypeVar
 import numpy as np
 from numpy.typing import NDArray
 
-from regawa.data import SparseTensor
-
-
 class Serializer(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, NDArray):
@@ -82,8 +79,8 @@ class SparseArray(NamedTuple, Generic[V]):
     def shape(self):
         return self.values.shape
 
-    def concat(self, other: SparseTensor) -> SparseTensor:
-        return SparseTensor(
+    def concat(self, other: SparseArray[V]) -> SparseArray[V]:
+        return SparseArray(
             np.concatenate((self.values, other.values)),
             np.concatenate((self.indices, other.indices)),
         )

@@ -2,7 +2,7 @@ from collections.abc import Mapping
 from typing import Any
 from torch import Generator
 from gymnasium.spaces import MultiDiscrete
-from regawa.data.data import HeteroObsData
+from .data import HeteroObsData
 from .policy import ActionMode, GNNParams, AgentConfig
 from .model import Grounding, GroundObs, GroundingValueType, ObservableGroundingValueType, ObservableGroundObs
 from .model import BaseGroundedModel

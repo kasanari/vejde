@@ -1,6 +1,6 @@
 import logging
 import random
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import TypeVar
 
 import numpy as np
@@ -112,7 +112,7 @@ def translate_edges(
     return senders, receivers
 
 
-def edge_attr(edges: set[Edge]) -> NDArray[np.int64]:
+def edge_attr(edges: Iterable[Edge]) -> NDArray[np.int64]:
     return np.array([edge[2] for edge in edges], dtype=np.int64)
 
 

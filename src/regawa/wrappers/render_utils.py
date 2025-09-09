@@ -131,7 +131,7 @@ def create_render_graph(
 def render_lifted(model: BaseModel):
     params = {p: model.fluent_params(p) for p in model.fluents}
 
-    atoms = [(p, *params[p]) for p in model.fluents]
+    atoms: list[Grounding] = [(p, *params[p]) for p in model.fluents]
     global_vars = [a for a in atoms if len(objects(a)) == 0]
     non_global_vars = [a for a in atoms if len(objects(a)) > 0]
 
@@ -139,26 +139,27 @@ def render_lifted(model: BaseModel):
 
     o = sorted(set(chain(*[objects(a) for a in non_global_vars])))
 
-    senders, receivers = translate_edges(non_global_vars, o, edges)
+    senders, receivers = translate_edges(non_global_vars.index, o.index, edges)
 
     edge_attributes = [key[2] for key in edges]
 
     graph = FactorGraph(
-        variables=non_global_vars,
-        variable_values=[True for _ in non_global_vars],
+        variables=list(map(str, non_global_vars)),
+        variable_values=[np.bool_(True) for _ in non_global_vars],
         factors=o,
         factor_types=o,
         senders=senders,
         receivers=receivers,
         edge_attributes=edge_attributes,
-        global_variables=global_vars,
-        global_variable_values=[True for _ in global_vars],
+        global_variables=list(map(str, global_vars)),
+        global_variable_values=[np.bool_(True) for _ in global_vars],
         groundings=non_global_vars,
         global_groundings=global_vars,
-        action_mask=[(True,) for _ in o],
+        action_arity_mask=[(True,) for _ in o],
+        action_type_mask=[(False,) for _ in o],
     )
 
-    n_graph = FactorGraph(
+    n_graph = FactorGraph[np.float32](
         variables=[],
         variable_values=[],
         factors=[],
@@ -170,7 +171,8 @@ def render_lifted(model: BaseModel):
         global_variable_values=[],
         groundings=[],
         global_groundings=[],
-        action_mask=[],
+        action_arity_mask=[(True,) for _ in o],
+        action_type_mask=[(False,) for _ in o],
     )
 
     render_g = create_render_graph(graph, n_graph)

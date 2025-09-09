@@ -5,6 +5,7 @@ import pytest
 from regawa.model.base_grounded_model import BaseGroundedModel, GroundObs, Grounding
 from regawa.model.model_checker import check_model
 from regawa.inference import fn_graph_to_obsdata, fn_groundobs_to_graph
+from regawa.wrappers.render_utils import render_lifted
 
 class TestModel(BaseModel):
     """Sample model for testing purposes. Loosely based on block stacking problems."""
@@ -213,6 +214,12 @@ def test_sample_obs():
 
     pass
 
+def test_render_lifted():
+    graph = render_lifted(TestModel())
+
+    with open("test_lifted.dot", "w") as f:
+        f.write(graph)
+    assert graph is not None
 
 if __name__ == "__main__":
     pytest.main([__file__])

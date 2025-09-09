@@ -45,7 +45,7 @@ def obs_space(
 
 
 def action_space(
-    action_fluents: list[str],
+    action_fluents: tuple[str, ...],
     num_actions: int,
     num_objects: int,
     arity: Callable[[str], int],

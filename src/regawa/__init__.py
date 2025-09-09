@@ -1,9 +1,10 @@
+from collections.abc import Mapping
 from typing import Any
 from torch import Generator
 from gymnasium.spaces import MultiDiscrete
 from regawa.data.data import HeteroObsData
 from .policy import ActionMode, GNNParams, AgentConfig
-from .model import GroundValue
+from .model import Grounding, GroundObs, GroundingValueType, ObservableGroundingValueType, ObservableGroundObs
 from .model import BaseGroundedModel
 from .model import BaseModel
 from .wrappers import StackingGroundedGraphWrapper
@@ -15,7 +16,6 @@ import gymnasium as gym
 from .wrappers.render_utils import to_graphviz
 
 
-type GroundingValueType = bool | int | float
 
 def agent_from_env(
     env: gym.Env[HeteroObsData, MultiDiscrete], params: GNNParams, device: str = "cpu"
@@ -77,7 +77,7 @@ __all__ = [
     "BaseGroundedModel",
     "GroundedGraphWrapper",
     "StackingGroundedGraphWrapper",
-    "GroundValue",
+    "Grounding",
     "GNNParams",
     "ActionMode",
     "AgentConfig",

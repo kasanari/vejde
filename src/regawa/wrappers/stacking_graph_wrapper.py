@@ -8,7 +8,9 @@ from gymnasium import spaces
 from gymnasium.spaces import Box, Dict, Discrete, MultiDiscrete
 
 from regawa import BaseModel
-from regawa.model import GroundValue
+from regawa.data.data import HeteroObsData
+from regawa.model import Grounding
+from regawa.model.base_grounded_model import GroundObs, StackedGroundObs
 
 from .grounding_utils import to_dict_action
 from .gym_utils import action_space, obs_space
@@ -20,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class StackingGroundedGraphWrapper(
-    gym.Wrapper[dict[str, Any], MultiDiscrete, Dict, Dict]
+    gym.Wrapper[StackedGroundObs, GroundObs, StackedGroundObs, GroundObs]
 ):
     @property
     def metadata(self) -> dict[str, Any]:
@@ -32,7 +34,7 @@ class StackingGroundedGraphWrapper(
 
     def __init__(
         self,
-        env: gym.Env[dict[str, list[Any]], dict[str, int]],
+        env: gym.Env[StackedGroundObs, GroundObs],
         model: BaseModel,
         render_mode: str = "human",
     ) -> None:
@@ -40,7 +42,7 @@ class StackingGroundedGraphWrapper(
         self.model = model
         self.env = env
         self.last_obs: dict[str, Any] = {}
-        self.last_action: GroundValue | None = None
+        self.last_action: Grounding | None = None
         self.iter = 0
         self._object_to_type: dict[str, str] = {"None": "None"}
 
@@ -104,8 +106,8 @@ class StackingGroundedGraphWrapper(
         )
 
     def _create_obs(
-        self, rddl_obs: dict[str, list[Any]]
-    ) -> tuple[dict[str, Any], HeteroGraph]:
+        self, rddl_obs: StackedGroundObs
+    ) -> tuple[HeteroObsData, HeteroGraph]:
         g, _ = create_graphs(
             rddl_obs,
             self.model,
@@ -130,7 +132,7 @@ class StackingGroundedGraphWrapper(
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[spaces.Dict, dict[str, Any]]:
+    ) -> tuple[Hete, dict[str, Any]]:
         super().reset(seed=seed)
         rddl_obs, info = self.env.reset(seed=seed)
 
@@ -164,11 +166,11 @@ class StackingGroundedGraphWrapper(
             logger.warning(f"Object {obj} not found in object_to_type")
             return "None"
 
-    def _to_rddl_action(self, action: GroundValue) -> dict[GroundValue, Any]:
+    def _to_rddl_action(self, action: Grounding) -> dict[Grounding, np.bool_]:
         return to_dict_action(action, self.obj_to_type, self.model.fluent_params)
 
     def step(
-        self, action: GroundValue
+        self, action: Grounding
     ) -> tuple[spaces.Dict, SupportsFloat, bool, bool, dict[str, Any]]:
         rddl_action = self._to_rddl_action(action)
         rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action)

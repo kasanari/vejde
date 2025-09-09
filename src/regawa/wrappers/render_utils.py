@@ -3,7 +3,7 @@ from itertools import chain
 
 import numpy as np
 
-from regawa.model import GroundValue
+from regawa.model import Grounding
 from regawa.model.base_model import BaseModel
 from regawa.wrappers.grounding_utils import create_edges, objects
 from regawa.wrappers.types import (
@@ -83,10 +83,10 @@ def to_graphviz(
 
 
 def create_render_graph(
-    bool_g: FactorGraph[bool] | StackedFactorGraph[bool],
-    numeric_g: FactorGraph[float] | StackedFactorGraph[float],
+    bool_g: FactorGraph[np.bool_] | StackedFactorGraph[np.bool_],
+    numeric_g: FactorGraph[np.float32] | StackedFactorGraph[np.float32],
 ) -> RenderGraph:
-    def format_label(key: GroundValue) -> str:
+    def format_label(key: Grounding) -> str:
         fluent, *args = key
         return f"{fluent}({', '.join(args)})" if args else fluent
 

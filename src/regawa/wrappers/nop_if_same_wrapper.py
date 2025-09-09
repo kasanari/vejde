@@ -1,18 +1,15 @@
-from typing import Any, TypeVar
+from typing import Any
 
 import gymnasium as gym
 import logging
-from regawa.model import GroundValue
-
-ObsType = TypeVar("ObsType")
-ActType = TypeVar("ActType")
-WrapperObsType = dict[GroundValue, Any]
-WrapperActType = dict[GroundValue, Any]
+from regawa import GroundObs
 
 logger = logging.getLogger(__name__)
 
 
-def check_if_equal(obs1: WrapperObsType, obs2: WrapperObsType) -> bool:
+def check_if_equal(obs1: GroundObs, obs2: GroundObs | None) -> bool:
+    if obs2 is None:
+        return False
     equal_size = len(obs1) == len(obs2)
     if not equal_size:
         return False
@@ -34,27 +31,27 @@ def check_if_equal(obs1: WrapperObsType, obs2: WrapperObsType) -> bool:
     return True
 
 
-class NoOpIfSameWrapper(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActType]):
+class NoOpIfSameWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs]):
     def __init__(
         self,
-        env: gym.Env[ObsType, ActType],
+        env: gym.Env[GroundObs, GroundObs],
         discount: float = 1.0,
     ) -> None:
         super().__init__(env)
-        self.last_obs = None
+        self.last_obs: GroundObs | None = None
         self.discount = discount
 
     def step(
         self,
-        actions: ActType,
+        action: GroundObs,
     ) -> tuple[
-        dict[GroundValue, Any],
+        GroundObs,
         float,
         bool,
         bool,
         dict[str, Any],
     ]:
-        obs, reward, terminated, truncated, info = self.env.step(actions)
+        obs, reward, terminated, truncated, info = self.env.step(action)
 
         accumulated_reward = reward
 
@@ -62,7 +59,7 @@ class NoOpIfSameWrapper(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, Act
         while check_if_equal(obs, self.last_obs):
             skipped_steps += 1
             obs, reward, terminated, truncated, info = self.env.step({})
-            accumulated_reward += (self.discount**skipped_steps) * reward
+            accumulated_reward += (self.discount**float(skipped_steps)) * reward
             if terminated or truncated:
                 logger.debug(f"Terminated or truncated after {skipped_steps} steps")
                 break
@@ -75,7 +72,7 @@ class NoOpIfSameWrapper(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, Act
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[WrapperObsType, dict[str, Any]]:
+    ) -> tuple[GroundObs, dict[str, Any]]:
         super().reset(seed=seed)
         obs, info = self.env.reset(seed=seed)
 

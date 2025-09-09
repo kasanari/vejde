@@ -5,19 +5,20 @@ from collections.abc import Callable, Iterable
 
 import numpy as np
 
-from regawa.model import GroundValue
+from regawa import Grounding
+from regawa.model.base_grounded_model import GroundObs
 from regawa.wrappers.types import Edge, Object
 
 logger = logging.getLogger(__name__)
 
 
 @cache
-def objects(key: GroundValue) -> tuple[str, ...]:
+def objects(key: Grounding) -> tuple[str, ...]:
     return key[1:]
 
 
 @cache
-def predicate(key: GroundValue) -> str:
+def predicate(key: Grounding) -> str:
     return key[0]
 
 
@@ -27,7 +28,7 @@ def fn_objects_with_type(relation_to_types: Callable[[str, int], str]):
     """
     @cache
     def objects_with_type(
-        key: GroundValue,
+        key: Grounding,
     ) -> list[Object]:
         p = predicate(key)
         os = objects(key)
@@ -37,13 +38,13 @@ def fn_objects_with_type(relation_to_types: Callable[[str, int], str]):
 
 
 @cache
-def arity(grounding: GroundValue) -> int:
+def arity(grounding: Grounding) -> int:
     o = objects(grounding)
     return len(o)
 
 
 def has_valid_parameters(
-    action: GroundValue,
+    action: Grounding,
     obj_to_type: Callable[[str], str],  # maps object to its type
     fluent_params: Callable[
         [str], tuple[str, ...]
@@ -67,12 +68,12 @@ def has_valid_parameters(
 
 
 def to_dict_action(
-    action: GroundValue,
+    action: Grounding,
     obj_to_type: Callable[[str], str],
     fluent_params: Callable[[str], tuple[str, ...]],
-) -> dict[GroundValue, np.bool_]:
+) -> GroundObs:
     """
-    Converts an action (GroundValue) to a dictionary representation. Going from (predicate, obj1, obj2) to {(predicate, obj1, obj2): True}.
+    Converts an action (Grounding) to a dictionary representation. Going from (predicate, obj1, obj2) to {(predicate, obj1, obj2): True}.
     If the action has invalid parameters, it is converted to a no-op action (i.e. "None" predicate).
     No-op actions are represented as an empty dictionary.
     """
@@ -97,7 +98,7 @@ def to_dict_action(
 
 
 @cache
-def get_edges(key: GroundValue) -> list[Edge]:
+def get_edges(key: Grounding) -> list[Edge]:
     """
     Returns a list of edges for a given grounding.
     Each edge connects the predicate to one of its objects.
@@ -106,12 +107,12 @@ def get_edges(key: GroundValue) -> list[Edge]:
     return [Edge(key, object, pos) for pos, object in enumerate(objects(key))]
 
 
-def create_edges(d: Iterable[GroundValue]) -> list[Edge]:
+def create_edges(d: Iterable[Grounding]) -> list[Edge]:
     edges = [get_edges(key) for key in d]
     return list(itertools.chain(*edges))
 
 
-def num_edges(groundings: list[GroundValue], arities: Callable[[str], int]) -> int:
+def num_edges(groundings: list[Grounding], arities: Callable[[str], int]) -> int:
     return sum(arities(predicate(g)) for g in groundings)
 
 
@@ -120,15 +121,15 @@ def fn_is_numeric(fluent_range: Callable[[str], type]):
     Returns a function that takes a grounding and returns whether it is numeric (int or float).
     """
     @cache
-    def is_numeric(g: GroundValue):
+    def is_numeric(g: Grounding):
         return fluent_range(predicate(g)) is float or fluent_range(predicate(g)) is int
 
     return is_numeric
 
 
 def numeric_groundings(
-    groundings: list[GroundValue], is_numeric: Callable[[GroundValue], bool]
-) -> list[GroundValue]:
+    groundings: list[Grounding], is_numeric: Callable[[Grounding], bool]
+) -> list[Grounding]:
     """
     Returns a list of numeric groundings from the given list of groundings.
     """
@@ -140,15 +141,15 @@ def fn_is_bool(fluent_range: Callable[[str], type]):
     Returns a function that takes a grounding and returns whether it is boolean.
     """
     @cache
-    def is_bool(g: GroundValue):
+    def is_bool(g: Grounding):
         return fluent_range(predicate(g)) is bool
 
     return is_bool
 
 
 def bool_groundings(
-    groundings: list[GroundValue], is_bool: Callable[[GroundValue], bool]
-) -> list[GroundValue]:
+    groundings: list[Grounding], is_bool: Callable[[Grounding], bool]
+) -> list[Grounding]:
     """
     Returns a list of boolean groundings from the given list of groundings.
     """

@@ -7,7 +7,7 @@ import numpy as np
 from gymnasium.spaces import Dict
 from numpy.typing import NDArray
 
-from regawa.model import GroundValue
+from regawa.model import Grounding
 from regawa.wrappers.grounding_utils import (
     arity,
     create_edges,
@@ -90,7 +90,7 @@ def idx_action_to_ground_value(
     action: tuple[int, ...],
     idx_to_action: Callable[[int], str],
     idx_to_obj: Callable[[int], str],
-) -> GroundValue:
+) -> Grounding:
     action_name = idx_to_action(action[0])
     o = tuple(idx_to_obj(obj_idx) for obj_idx in action[1:] if obj_idx != 0)
     return (action_name, *o)
@@ -103,7 +103,7 @@ def sample_action(action_space: Dict) -> dict[str, int]:
 
 
 def translate_edges(
-    source_to_index: Callable[[GroundValue], int],
+    source_to_index: Callable[[Grounding], int],
     target_to_index: Callable[[str], int],
     edges: list[Edge],
 ) -> tuple[NDArray[np.int64], NDArray[np.int64]]:
@@ -112,13 +112,13 @@ def translate_edges(
     return senders, receivers
 
 
-def edge_attr(edges: Iterable[Edge]) -> NDArray[np.int64]:
-    return np.array([edge[2] for edge in edges], dtype=np.int64)
+def edge_attr(edges: Iterable[Edge]) -> list[int]:
+    return [edge[2] for edge in edges]
 
 
 def object_list(
-    obs_keys: list[GroundValue],
-    objects_with_type: Callable[[GroundValue], list[Object]],
+    obs_keys: list[Grounding],
+    objects_with_type: Callable[[Grounding], list[Object]],
 ) -> list[Object]:
     unique_objects = {obj for key in obs_keys for obj in objects_with_type(key)}
     # sorted_objects = unique_objects
@@ -131,8 +131,8 @@ def generate_bipartite_obs_func(
     action_fluent_arity_mask: Callable[[str], tuple[bool, ...]],
 ):
     def f(
-        observations: dict[GroundValue, T],
-        groundings: list[GroundValue],
+        observations: dict[Grounding, V],
+        groundings: list[Grounding],
         object_nodes: list[Object],
     ) -> T:
         nullary_groundings = [g for g in groundings if arity(g) == 0]
@@ -184,7 +184,7 @@ def generate_bipartite_obs_func(
             global_variable_values,
             action_type_mask,
             action_arity_mask,
-            non_nullary_groundings,
+            list(non_nullary_groundings.keys()),
             nullary_groundings,
         )
 

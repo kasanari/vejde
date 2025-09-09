@@ -5,9 +5,10 @@ from typing import Any, SupportsFloat
 import gymnasium as gym
 from gymnasium.spaces import Dict, MultiDiscrete
 
-from regawa import BaseModel
+from regawa import BaseModel, GroundObs
+from regawa.data.data import HeteroObsData
+from regawa.model.base_grounded_model import Grounding
 from regawa.wrappers.space import HeteroStateSpace
-from regawa.model import GroundValue
 
 from .graph_utils import fn_obsdict_to_graph, fn_heterograph_to_heteroobs
 from .grounding_utils import to_dict_action
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class GroundedGraphWrapper(
-    gym.Wrapper[HeteroStateSpace, MultiDiscrete, dict[GroundValue, Any], Dict]
+    gym.Wrapper[HeteroStateSpace, MultiDiscrete, GroundObs, Dict]
 ):
     metadata: dict[str, Any] = {"render_modes": ["human", "idx"]}
 
@@ -33,7 +34,7 @@ class GroundedGraphWrapper(
         super().__init__(env)
         self.model = model
         self.last_obs: dict[str, Any] = {}
-        self.last_action: GroundValue | None = None
+        self.last_action: Grounding | None = None
         self.last_g: RenderGraph | None = None
         self._object_to_type: dict[str, str] = {"None": "None"}
         self.create_graphs = fn_obsdict_to_graph(model)
@@ -80,17 +81,17 @@ class GroundedGraphWrapper(
         )
 
     def _create_obs(
-        self, rddl_observation: dict[GroundValue, Any]
-    ) -> tuple[dict[str, Any], HeteroGraph]:
+        self, rddl_observation: GroundObs
+    ) -> tuple[HeteroObsData, HeteroGraph]:
         graph, _ = self.create_graphs(rddl_observation)
         obs_dict = self.create_obs_dict(graph)
         return obs_dict, graph
 
     def _prepare_info(
         self,
-        rddl_obs: dict[GroundValue, Any],
+        rddl_obs: GroundObs,
         graph: HeteroGraph,
-        rddl_action: dict[GroundValue, Any],
+        rddl_action: GroundObs,
         add_render_graph_to_info: bool = False,
     ) -> tuple[dict[str, Any], RenderGraph, dict[str, str]]:
         combined_graph = (
@@ -135,11 +136,11 @@ class GroundedGraphWrapper(
             return "None"
         return obj_type
 
-    def _to_rddl_action(self, action: GroundValue) -> dict[GroundValue, Any]:
+    def _to_rddl_action(self, action: Grounding) -> GroundObs:
         return to_dict_action(action, self.obj_to_type, self.model.fluent_params)
 
     def step(
-        self, action: GroundValue
+        self, action: Grounding
     ) -> tuple[Dict, SupportsFloat, bool, bool, dict[str, Any]]:
         rddl_action = self._to_rddl_action(action)
         rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action)

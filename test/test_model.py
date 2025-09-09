@@ -2,7 +2,7 @@ from typing import Any
 from regawa import BaseModel
 from functools import cached_property, cache
 import pytest
-from regawa.model.base_grounded_model import BaseGroundedModel, GroundValue
+from regawa.model.base_grounded_model import BaseGroundedModel, Grounding
 from regawa.model.model_checker import check_model
 from regawa.inference import fn_graph_to_obsdata, fn_groundobs_to_graph
 
@@ -115,14 +115,14 @@ class TestGroundedModel(BaseGroundedModel):
         "table2": "table",
     }
 
-    _constants: dict[GroundValue, Any] = {
+    _constants: GroundObs = {
         ("weight", "block1"): 1.0,
         ("weight", "block2"): 2.0,
         ("weight", "block3"): 3.0,
     }
 
     @cached_property
-    def groundings(self) -> tuple[GroundValue, ...]:
+    def groundings(self) -> tuple[Grounding, ...]:
         return tuple(
             [
                 (relation, *objects)
@@ -140,14 +140,14 @@ class TestGroundedModel(BaseGroundedModel):
         )
 
     @cached_property
-    def action_groundings(self) -> tuple[GroundValue, ...]:
+    def action_groundings(self) -> tuple[Grounding, ...]:
         """groundings of action fluents/variables.
         on the form: (relation, object1, object2,..., objectN)
         """
         ...
 
     @cached_property
-    def constant_groundings(self) -> tuple[GroundValue, ...]:
+    def constant_groundings(self) -> tuple[Grounding, ...]:
         """Groundings assumed to be constant in the model."""
         return (
             ("weight", "block1"),
@@ -156,10 +156,10 @@ class TestGroundedModel(BaseGroundedModel):
         )
 
     @cache
-    def constant_value(self, constant_grounding: GroundValue) -> Any:
+    def constant_value(self, constant_grounding: Grounding) -> Any:
         return self._constants[constant_grounding]
 
-    def _create_obs(self, rddl_obs: dict[GroundValue, Any]):
+    def _create_obs(self, rddl_obs: GroundObs):
         graph = fn_groundobs_to_graph(self._model, lambda x: x)(rddl_obs)
 
         obs = fn_graph_to_obsdata(self._model)(graph)  # to ensure types are correct

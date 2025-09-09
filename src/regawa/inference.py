@@ -1,17 +1,15 @@
 from collections.abc import Callable
+from regawa import GroundObs
 from regawa.policy import ActionMode
 from regawa.data.data import HeteroObsData
 from regawa.policy.gnn_agent import GraphAgent
 from regawa.model.base_model import BaseModel
-from typing import Any, NamedTuple
+from typing import NamedTuple
 from torch import Tensor
-from regawa import GroundValue
 from regawa.wrappers.graph_utils import fn_obsdict_to_graph, fn_heterograph_to_heteroobs
 from regawa.wrappers.render_utils import create_render_graph
 from regawa.wrappers.types import HeteroGraph, RenderGraph
 import torch
-
-GroundObs = dict[GroundValue, Any]
 
 
 class AgentOutput(NamedTuple):

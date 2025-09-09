@@ -1,6 +1,9 @@
-from typing import Any, SupportsFloat, TypeVar, Callable
+from collections.abc import Callable
+from typing import Any, SupportsFloat, TypeVar
 
 import gymnasium as gym
+
+from regawa import GroundObs
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
@@ -9,23 +12,23 @@ WrapperActType = TypeVar("WrapperActType")
 
 
 def create_stateless_wrapper(
-    transform: Callable[[dict[Any, Any]], dict[Any, Any]],
+    transform: Callable[[GroundObs], GroundObs],
 ) -> Callable[
-    [gym.Env[gym.spaces.Dict, gym.spaces.Dict]],
-    gym.Wrapper[gym.spaces.Dict, gym.spaces.Dict, gym.spaces.Dict, gym.spaces.Dict],
+    [gym.Env[GroundObs, GroundObs]],
+    gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs],
 ]:
     """
     Creates a stateless observation wrapper that applies a transformation to the observations.
     """
 
-    def wrapper(env: gym.Env[gym.spaces.Dict, gym.spaces.Dict]) -> StateLessWrapper:
+    def wrapper(env: gym.Env[GroundObs, GroundObs]) -> StateLessWrapper:
         return StateLessWrapper(env, transform)
 
     return wrapper
 
 
 class StateLessWrapper(
-    gym.Wrapper[gym.spaces.Dict, gym.spaces.Dict, gym.spaces.Dict, gym.spaces.Dict]
+    gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs]
 ):
     """
     Stateless observation wrapper class that
@@ -33,8 +36,8 @@ class StateLessWrapper(
 
     def __init__(
         self,
-        env: gym.Env[gym.spaces.Dict, gym.spaces.Dict],
-        transform: Callable[[dict[Any, Any]], dict[Any, Any]],
+        env: gym.Env[GroundObs, GroundObs],
+        transform: Callable[[GroundObs], GroundObs],
     ) -> None:
         super().__init__(env)
         self.env = env
@@ -42,9 +45,9 @@ class StateLessWrapper(
 
     def step(
         self,
-        action: gym.spaces.Dict,
+        action: GroundObs,
     ) -> tuple[
-        dict[str, bool | None],
+        GroundObs,
         SupportsFloat,
         bool,
         bool,
@@ -54,9 +57,9 @@ class StateLessWrapper(
         return self.transform(obs), reward, terminated, truncated, info
 
     def reset(
-        self, seed: int | None = None, options: dict | None = None
+        self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[
-        dict[str, bool | None],
+        GroundObs,
         dict[str, Any],
     ]:
         obs, info = self.env.reset(seed=seed)

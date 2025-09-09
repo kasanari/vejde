@@ -1,10 +1,11 @@
+from collections.abc import Sequence
 from typing import Generic, NamedTuple, TypeVar
 
 import numpy as np
 
 
 from numpy.typing import NDArray
-from regawa.model import GroundValue
+from regawa.model import Grounding
 
 V = TypeVar("V", np.float32, np.bool_)
 
@@ -15,24 +16,24 @@ class Object(NamedTuple):
 
 
 class Edge(NamedTuple):
-    grounding: GroundValue
+    grounding: Grounding
     object: str
     pos: int
 
 
 class RenderGraph(NamedTuple):
-    variable_labels: list[str]
-    factor_labels: list[str]
+    variable_labels: Sequence[str]
+    factor_labels: Sequence[str]
     senders: NDArray[np.int64]
     receivers: NDArray[np.int64]
-    edge_attributes: list[int]
-    global_variables: list[str]
+    edge_attributes: Sequence[int]
+    global_variables: Sequence[str]
 
 
 class Variables(NamedTuple, Generic[V]):
-    types: NDArray[np.int64] | list[str]
-    values: NDArray[V] | list[V]
-    lengths: NDArray[np.int64] | list[int]
+    types: Sequence[np.int64] | Sequence[str]
+    values: Sequence[V]
+    lengths: Sequence[np.int64 | int]
 
 
 class IdxFactorGraph(NamedTuple, Generic[V]):
@@ -47,34 +48,35 @@ class IdxFactorGraph(NamedTuple, Generic[V]):
 
 
 class FactorGraph(NamedTuple, Generic[V]):
-    variables: list[str]
-    variable_values: list[V]
-    factors: list[str]
-    factor_types: list[str]
+    variables: Sequence[str]
+    variable_values: Sequence[V]
+    factors: Sequence[str]
+    factor_types: Sequence[str]
     senders: NDArray[np.int64]
     receivers: NDArray[np.int64]
-    edge_attributes: list[int]
-    global_variables: list[str]
-    global_variable_values: list[V]
-    action_type_mask: list[tuple[bool, ...]]
-    action_arity_mask: list[tuple[bool, ...]]
-    groundings: list[GroundValue]
-    global_groundings: list[GroundValue]
+    edge_attributes: Sequence[int]
+    global_variables: Sequence[str]
+    global_variable_values: Sequence[V]
+    action_type_mask: Sequence[tuple[bool, ...]]
+    action_arity_mask: Sequence[tuple[bool, ...]]
+    groundings: Sequence[Grounding]
+    global_groundings: Sequence[Grounding]
 
 
 class StackedFactorGraph(NamedTuple, Generic[V]):
-    variables: list[str]
-    variable_values: list[list[V]]
-    factors: list[str]
-    factor_types: list[str]
+    variables: Sequence[str]
+    variable_values: Sequence[Sequence[V]]
+    factors: Sequence[str]
+    factor_types: Sequence[str]
     senders: NDArray[np.int64]
     receivers: NDArray[np.int64]
-    edge_attributes: list[int]
-    global_variables: list[str]
-    global_variable_values: list[list[V]]
-    action_mask: list[tuple[bool, ...]]
-    groundings: list[GroundValue]
-    global_groundings: list[GroundValue]
+    edge_attributes: Sequence[int]
+    global_variables: Sequence[str]
+    global_variable_values: Sequence[Sequence[V]]
+    action_type_mask: Sequence[tuple[bool, ...]]
+    action_arity_mask: Sequence[tuple[bool, ...]]
+    groundings: Sequence[Grounding]
+    global_groundings: Sequence[Grounding]
 
 
 class HeteroGraph(NamedTuple):

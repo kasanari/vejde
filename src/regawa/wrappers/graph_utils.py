@@ -1,16 +1,16 @@
 from collections.abc import Callable
 from functools import partial
-from typing import Any, TypeVar
+from typing import TypeVar
 
 import numpy as np
 
 from regawa import BaseModel
 from regawa.data import HeteroObsData
-from regawa.model import GroundValue
 from regawa.model import (
     fn_valid_action_fluents_given_arity,
     fn_valid_action_fluents_given_type,
 )
+from regawa import GroundObs
 from .grounding_utils import (
     bool_groundings,
     fn_is_bool,
@@ -130,16 +130,14 @@ def fn_obsdict_to_graph(
         ),
     )
 
-    def obsdict_to_graph(rddl_obs: dict[GroundValue, Any]):
+    def obsdict_to_graph(rddl_obs: GroundObs):
         filtered_groundings = [
             g
             for g in rddl_obs
             if rddl_obs[g] is not None  # type: ignore
         ]
 
-        filtered_obs: dict[GroundValue, Any] = {
-            k: rddl_obs[k] for k in filtered_groundings
-        }
+        filtered_obs: GroundObs = {k: rddl_obs[k] for k in filtered_groundings}
 
         object_nodes = object_list(list(filtered_obs.keys()), objects_with_type)
 

@@ -2,12 +2,13 @@ from typing import Any, TypeVar
 
 import gymnasium as gym
 
-from regawa.model import GroundValue, BaseGroundedModel
+from regawa import GroundObs
+from regawa.model import BaseGroundedModel
 
 ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
-WrapperObsType = dict[GroundValue, Any]
-WrapperActType = dict[GroundValue, Any]
+WrapperObsType = GroundObs
+WrapperActType = GroundObs
 
 
 def add_constants_fn(ground_model: BaseGroundedModel):
@@ -15,7 +16,7 @@ def add_constants_fn(ground_model: BaseGroundedModel):
         g: ground_model.constant_value(g) for g in ground_model.constant_groundings
     }
 
-    def f(obs: dict[GroundValue, Any]) -> dict[GroundValue, Any]:
+    def f(obs: GroundObs) -> GroundObs:
         return obs | constant_vals
 
     return f
@@ -41,7 +42,7 @@ class AddConstantsWrapper(
         self,
         actions: ActType,
     ) -> tuple[
-        dict[GroundValue, Any],
+        GroundObs,
         float,
         bool,
         bool,

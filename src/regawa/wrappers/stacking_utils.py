@@ -4,8 +4,9 @@ from typing import Any, TypeVar
 
 import numpy as np
 
-from regawa import BaseModel
-from regawa.model import GroundValue
+from regawa import BaseModel, GroundObs
+from regawa.data.data import HeteroObsData
+from regawa.model.base_grounded_model import StackedGroundObs
 from regawa.wrappers.grounding_utils import bool_groundings, numeric_groundings
 from regawa.wrappers.gym_utils import idxgraph_to_obsdata
 from regawa.wrappers.types import HeteroGraph, StackedFactorGraph, Variables
@@ -38,7 +39,7 @@ def _map_graph_to_idx(
     type_to_idx: Callable[[str], int],
     var_val_dtype: type,
 ):
-    return map_graph_to_idx(
+    return map_graph_to_idx[V](
         *flatten_values(factorgraph),
         factorgraph.senders,
         factorgraph.receivers,
@@ -70,9 +71,8 @@ def create_obs_dict(
         ]
     }
 
-
 def create_graphs(
-    rddl_obs: dict[GroundValue, Any],
+    rddl_obs: StackedGroundObs,
     model: BaseModel,
 ):
     filtered_groundings = [
@@ -81,7 +81,7 @@ def create_graphs(
         if rddl_obs[g] is not None  # type: ignore
     ]
 
-    filtered_obs: dict[GroundValue, Any] = {k: rddl_obs[k] for k in filtered_groundings}
+    filtered_obs: GroundObs = {k: rddl_obs[k] for k in filtered_groundings}
 
     generate_bipartite_obs = generate_bipartite_obs_func()
 

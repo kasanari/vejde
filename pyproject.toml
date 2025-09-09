@@ -41,7 +41,7 @@ torch = [
   { index = "pytorch-cu124", extra = "cu124" },
 ]
 regawa = { workspace = true }
-gnn-policy = { git = "git+ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy" }
+gnn-policy = { git = "git+ssh://git@github.com/kasanari/GNN" }
 
 [dependency-groups]
 dev = [

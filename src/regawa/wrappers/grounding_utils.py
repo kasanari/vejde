@@ -1,7 +1,7 @@
 from functools import cache
 import itertools
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 
 import numpy as np
 

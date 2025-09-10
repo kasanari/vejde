@@ -1,6 +1,6 @@
 from regawa.wrappers.utils import from_dict_action, object_list
 from .add_constants_wrapper import AddConstantsWrapper, add_constants_fn
-from .index_wrapper import IndexActionWrapper
+from .index_action_wrapper import IndexActionWrapper
 from .stacking_graph_wrapper import StackingGroundedGraphWrapper
 from .remove_false_wrapper import RemoveFalseWrapper, remove_false
 from .remove_none_wrapper import RemoveNoneWrapper

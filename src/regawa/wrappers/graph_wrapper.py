@@ -1,32 +1,23 @@
 import logging
-from functools import cached_property
 from typing import Any, SupportsFloat
-
 import gymnasium as gym
-from gymnasium.spaces import Dict, MultiDiscrete
-
 from regawa import BaseModel, GroundObs
-from regawa.data.data import HeteroObsData
 from regawa.model.base_grounded_model import Grounding
-from regawa.wrappers.space import HeteroStateSpace
-
-from .graph_utils import fn_obsdict_to_graph, fn_heterograph_to_heteroobs
-from .grounding_utils import to_dict_action
-from .gym_utils import action_space
-from .render_utils import create_render_graph, to_graphviz, to_graphviz_alt
+from .graph_utils import fn_obsdict_to_graph
+from .render_utils import create_render_graph, to_graphviz
 from .types import HeteroGraph, RenderGraph
 
 logger = logging.getLogger(__name__)
 
 
 class GroundedGraphWrapper(
-    gym.Wrapper[HeteroStateSpace, MultiDiscrete, GroundObs, Dict]
+    gym.Wrapper[
+        HeteroGraph, GroundObs | tuple[int, ...], GroundObs, GroundObs | tuple[int, ...]
+    ]
 ):
-    metadata: dict[str, Any] = {"render_modes": ["human", "idx"]}
-
     def __init__(
         self,
-        env: gym.Env[dict[str, Any], dict[str, int]],
+        env: gym.Env[GroundObs, GroundObs | tuple[int, ...]],
         model: BaseModel,
         render_mode: str = "human",
         add_render_graph_to_info: bool = True,
@@ -38,122 +29,61 @@ class GroundedGraphWrapper(
         self.last_g: RenderGraph | None = None
         self._object_to_type: dict[str, str] = {"None": "None"}
         self.create_graphs = fn_obsdict_to_graph(model)
-        self.create_obs_dict = fn_heterograph_to_heteroobs(model)
+
         self.add_render_graph_to_info = add_render_graph_to_info
 
-    @property
-    def action_space(self) -> MultiDiscrete:
-        return action_space(
-            self.model.action_fluents,
-            self.model.num_actions,
-            len(self._object_to_type),
-            self.model.arity,
-        )
-
     def render(self):
-        if self.metadata.get("render_modes") == "idx":
-            obs = self.last_obs
-            return to_graphviz_alt(
-                obs["var_type"],
-                obs["var_value"],
-                obs["factor"],
-                obs["edge_index"].T,
-                obs["edge_attr"],
-                self.model.idx_to_type,
-                self.model.idx_to_fluent,
-            )
+        return to_graphviz(self.last_g, scaling=10) if self.last_g is not None else None
 
-        # Default rendering mode
-        return to_graphviz(self.last_g, scaling=10)
-
-    @cached_property
-    def observation_space(self) -> HeteroStateSpace:
-        num_types = self.model.num_types
-        num_relations = self.model.num_fluents
-        max_arity = max(self.model.arity(r) for r in self.model.fluents)
-        num_actions = self.model.num_actions
-
-        return HeteroStateSpace(
-            num_types,
-            num_relations,
-            max_arity,
-            num_actions,
-        )
-
-    def _create_obs(
-        self, rddl_observation: GroundObs
-    ) -> tuple[HeteroObsData, HeteroGraph]:
+    def _create_obs(self, rddl_observation: GroundObs) -> HeteroGraph:
         graph, _ = self.create_graphs(rddl_observation)
-        obs_dict = self.create_obs_dict(graph)
-        return obs_dict, graph
+        return graph
 
     def _prepare_info(
         self,
         rddl_obs: GroundObs,
         graph: HeteroGraph,
-        rddl_action: GroundObs,
         add_render_graph_to_info: bool = False,
-    ) -> tuple[dict[str, Any], RenderGraph, dict[str, str]]:
+    ) -> tuple[dict[str, Any], RenderGraph | None]:
         combined_graph = (
             create_render_graph(graph.boolean, graph.numeric)
             if add_render_graph_to_info
             else None
         )
-        object_to_type = dict(zip(graph.boolean.factors, graph.boolean.factor_types))
+
         info: dict[str, Any] = {
             "state": combined_graph,
             "rddl_state": rddl_obs,
-            "idx_to_object": graph.boolean.factors,
-            "object_to_type": object_to_type,
             "action_fluents": self.model.action_fluents,
-            "rddl_action": rddl_action,
         }
-        return info, combined_graph, object_to_type
+        return info, combined_graph
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Dict, dict[str, Any]]:
+    ) -> tuple[HeteroGraph, dict[str, Any]]:
         super().reset(seed=seed)
         rddl_obs, info = self.env.reset(seed=seed)
-
-        obs, graph = self._create_obs(rddl_obs)
-        info_update, combined_graph, object_to_type = self._prepare_info(
-            rddl_obs, graph, {}, self.add_render_graph_to_info
+        graph, _ = self.create_graphs(rddl_obs)
+        info_update, combined_graph = self._prepare_info(
+            rddl_obs, graph, self.add_render_graph_to_info
         )
-        info.update(info_update)
+        info = info | info_update
 
-        self.last_obs = obs
         self.last_g = combined_graph
-        self._object_to_type = object_to_type
-        self.last_action = None
 
-        return obs, info
-
-    def obj_to_type(self, obj: str) -> str:
-        obj_type = self._object_to_type.get(obj, None)
-        if obj_type is None:
-            logger.warning(f"Object '{obj}' not found in object-to-type mapping.")
-            return "None"
-        return obj_type
-
-    def _to_rddl_action(self, action: Grounding) -> GroundObs:
-        return to_dict_action(action, self.obj_to_type, self.model.fluent_params)
+        return graph, info
 
     def step(
-        self, action: Grounding
-    ) -> tuple[Dict, SupportsFloat, bool, bool, dict[str, Any]]:
-        rddl_action = self._to_rddl_action(action)
-        rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action)
+        self, action: GroundObs | tuple[int, ...]
+    ) -> tuple[HeteroGraph, SupportsFloat, bool, bool, dict[str, Any]]:
+        rddl_obs, reward, terminated, truncated, info = self.env.step(action)
 
-        obs, graph = self._create_obs(rddl_obs)
-        info_update, combined_graph, object_to_type = self._prepare_info(
-            rddl_obs, graph, rddl_action, self.add_render_graph_to_info
+        graph, _ = self.create_graphs(rddl_obs)
+        info_update, combined_graph = self._prepare_info(
+            rddl_obs, graph, self.add_render_graph_to_info
         )
-        info.update(info_update)
-        self._object_to_type = object_to_type
-        self.last_obs = obs
+        info = info | info_update
         self.last_g = combined_graph
         self.last_rddl_obs = rddl_obs
-        self.last_action = action
 
-        return obs, reward, terminated, truncated, info
+        return graph, reward, terminated, truncated, info

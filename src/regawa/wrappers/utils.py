@@ -87,7 +87,7 @@ def from_dict_action(
 
 
 def idx_action_to_ground_value(
-    action: tuple[int, ...],
+    action: NDArray[np.integer],
     idx_to_action: Callable[[int], str],
     idx_to_obj: Callable[[int], str],
 ) -> Grounding:

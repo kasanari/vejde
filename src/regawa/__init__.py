@@ -22,7 +22,9 @@ from .wrappers.render_utils import to_graphviz
 
 
 def agent_from_env(
-    env: gym.Env[HeteroObsData, MultiDiscrete], params: GNNParams, device: str = "cpu"
+    env: gym.Env[HeteroObsData, MultiDiscrete],
+    params: GNNParams,
+    device: str = "cpu",
 ):
     n_types = gym_utils.n_types(env.observation_space)
     n_relations = gym_utils.n_relations(env.observation_space)

@@ -8,6 +8,7 @@ from torch import Generator as Rngs
 from torch import Tensor, as_tensor, concatenate, int64
 
 from regawa.data import FactorGraph, SparseTensor, heterostatedata_to_tensors, sparsify
+from regawa.data.data import HeteroObsData
 
 from . import ActionMode, AgentConfig, GNNParams
 from regawa.model import BaseModel
@@ -200,7 +201,7 @@ class GraphAgent(nn.Module):
 
     def sample_from_obs(
         self,
-        obs: Mapping[str, (list[ObsData[V]] | tuple[ObsData[V], ...])],
+        obs: HeteroObsData,
         deterministic: bool = False,
     ):
         s = single_obs_to_heterostatedata(obs)

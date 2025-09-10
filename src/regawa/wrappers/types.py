@@ -37,6 +37,7 @@ class Variables(NamedTuple, Generic[V]):
 
 
 class IdxFactorGraph(NamedTuple, Generic[V]):
+    """A FactorGraph with integer attributes."""
     variables: Variables[V]
     factors: NDArray[np.int64]
     senders: NDArray[np.int64]
@@ -48,6 +49,7 @@ class IdxFactorGraph(NamedTuple, Generic[V]):
 
 
 class FactorGraph(NamedTuple, Generic[V]):
+    """A FactorGraph with string attributes."""
     variables: Sequence[str]
     variable_values: Sequence[V]
     factors: Sequence[str]

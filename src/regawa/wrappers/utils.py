@@ -1,6 +1,6 @@
 import logging
 import random
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence, Mapping
 from typing import TypeVar
 
 import numpy as np
@@ -39,10 +39,10 @@ def map_graph_to_idx(
     global_variables: Variables[V],
     senders: NDArray[np.int64],
     receivers: NDArray[np.int64],
-    edge_attributes: list[int],
-    action_type_mask: list[tuple[bool, ...]],
-    action_arity_mask: list[tuple[bool, ...]],
-    factor_types: list[str],
+    edge_attributes: Sequence[int],
+    action_type_mask: Sequence[tuple[bool, ...]],
+    action_arity_mask: Sequence[tuple[bool, ...]],
+    factor_types: Sequence[str],
     rel_to_idx: Callable[[str], int],
     type_to_idx: Callable[[str], int],
     var_val_dtype: type,
@@ -131,9 +131,9 @@ def generate_bipartite_obs_func(
     action_fluent_arity_mask: Callable[[str], tuple[bool, ...]],
 ):
     def f(
-        observations: dict[Grounding, V],
-        groundings: list[Grounding],
-        object_nodes: list[Object],
+        observations: Mapping[Grounding, V],
+        groundings: Sequence[Grounding],
+        object_nodes: Sequence[Object],
     ) -> T:
         nullary_groundings = [g for g in groundings if arity(g) == 0]
         non_nullary_groundings = {
@@ -174,14 +174,14 @@ def generate_bipartite_obs_func(
 
         return cls(
             factor_node_predicates,
-            factor_node_values,
+            factor_node_values,  # type: ignore
             object_names,
             object_types,
             senders,
             receivers,
             edge_attributes,
             global_variables,
-            global_variable_values,
+            global_variable_values,  # type: ignore
             action_type_mask,
             action_arity_mask,
             list(non_nullary_groundings.keys()),

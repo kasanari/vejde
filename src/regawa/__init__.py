@@ -1,10 +1,15 @@
-from collections.abc import Mapping
 from typing import Any
 from torch import Generator
 from gymnasium.spaces import MultiDiscrete
 from .data import HeteroObsData
 from .policy import ActionMode, GNNParams, AgentConfig
-from .model import Grounding, GroundObs, GroundingValueType, ObservableGroundingValueType, ObservableGroundObs
+from .model import (
+    Grounding,
+    GroundObs,
+    GroundingValueType,
+    ObservableGroundingValueType,
+    ObservableGroundObs,
+)
 from .model import BaseGroundedModel
 from .model import BaseModel
 from .wrappers import StackingGroundedGraphWrapper
@@ -14,7 +19,6 @@ from .wrappers import gym_utils
 from .model import max_arity
 import gymnasium as gym
 from .wrappers.render_utils import to_graphviz
-
 
 
 def agent_from_env(
@@ -85,4 +89,8 @@ __all__ = [
     "agent_from_env",
     "agent_from_model",
     "to_graphviz",
+    "ObservableGroundObs",
+    "ObservableGroundingValueType",
+    "GroundObs",
+    "GroundingValueType",
 ]

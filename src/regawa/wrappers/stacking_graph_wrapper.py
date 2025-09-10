@@ -5,7 +5,7 @@ from typing import Any, SupportsFloat
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
-from gymnasium.spaces import Box, Dict, Discrete, MultiDiscrete
+from gymnasium.spaces import Box, Discrete
 
 from regawa import BaseModel
 from regawa.data.data import HeteroObsData

@@ -5,7 +5,6 @@ from typing import Any, TypeVar
 import numpy as np
 
 from regawa import BaseModel, GroundObs
-from regawa.data.data import HeteroObsData
 from regawa.model.base_grounded_model import StackedGroundObs
 from regawa.wrappers.grounding_utils import bool_groundings, numeric_groundings
 from regawa.wrappers.gym_utils import idxgraph_to_obsdata

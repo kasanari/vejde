@@ -27,6 +27,7 @@ class IndexActionWrapper(
         self.env = env
         self.model = model
         self._idx_to_object = ["None"]
+        self._object_to_type: dict[str, str] = {"None": "None"}
 
     def idx_to_object(self, idx: int) -> str:
         try:

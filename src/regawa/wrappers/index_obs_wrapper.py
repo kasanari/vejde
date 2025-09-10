@@ -29,13 +29,6 @@ class IndexObsWrapper(
         self._idx_to_object = ["None"]
         self.create_obs_dict = fn_heterograph_to_heteroobs(model)
 
-    def idx_to_object(self, idx: int) -> str:
-        try:
-            return self._idx_to_object[idx]
-        except IndexError:
-            logger.warning(f"Index {idx} not found in idx_to_object")
-            return "None"
-
     @cached_property
     def observation_space(self) -> HeteroStateSpace:
         num_types = self.model.num_types
@@ -64,6 +57,7 @@ class IndexObsWrapper(
         
         graph, r, term, trunc, info = self.env.step(action)
 
+        info["idx_to_object"] = graph.boolean.factors
         obs = self.create_obs_dict(graph)
 
         return obs, r, term, trunc, info
@@ -74,6 +68,7 @@ class IndexObsWrapper(
         super().reset(seed=seed, options=options)
         graph, info = self.env.reset(seed=seed)
 
+        info["idx_to_object"] = graph.boolean.factors
         obs = self.create_obs_dict(graph)
 
         return obs, info

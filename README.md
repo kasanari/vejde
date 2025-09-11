@@ -63,9 +63,6 @@ This lets you experiment with many of the problems in the [library of RDDL probl
 
 ## Code Layout
 
-- `rddl`
-  - RDDL domains I made for testing purposes.  
-
 - `regawa`
   - `data` - Data classes used in other modules.
   - `embedding` - Classes to embed various node types.

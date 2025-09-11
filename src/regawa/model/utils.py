@@ -49,6 +49,7 @@ def fn_valid_action_fluents_given_type(model: BaseModel):
     whether each action fluent is valid for that object based on the fluent's parameter types.
     The null object is assumed to be a valid object type for all fluents.
     """
+
     @cache
     def is_valid(fluent: str, o_t: str) -> bool:
         return (
@@ -69,6 +70,7 @@ def fn_valid_action_fluents_given_arity(model: BaseModel):
     Nullary predicates do not take any object parameters, so they are never valid for any object type, except the null object.
     The null object is assumed to be a valid object type for all fluents.
     """
+
     @cache
     def is_valid(fluent: str, o_t: str) -> bool:
         return (

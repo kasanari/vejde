@@ -25,6 +25,7 @@ def fn_objects_with_type(relation_to_types: Callable[[str, int], str]):
     """
     Returns a function that takes a grounding and returns a list of Objects (object name, type).
     """
+
     @cache
     def objects_with_type(
         key: Grounding,
@@ -119,6 +120,7 @@ def fn_is_numeric(fluent_range: Callable[[str], type]):
     """
     Returns a function that takes a grounding and returns whether it is numeric (int or float).
     """
+
     @cache
     def is_numeric(g: Grounding):
         return fluent_range(predicate(g)) is float or fluent_range(predicate(g)) is int
@@ -139,6 +141,7 @@ def fn_is_bool(fluent_range: Callable[[str], type]):
     """
     Returns a function that takes a grounding and returns whether it is boolean.
     """
+
     @cache
     def is_bool(g: Grounding):
         return fluent_range(predicate(g)) is bool

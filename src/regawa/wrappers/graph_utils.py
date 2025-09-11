@@ -69,6 +69,7 @@ def fn_heterograph_to_heteroobs(
     """
     Returns a function that takes a HeteroGraph and returns a HeteroObsData (for use in GNNs).
     """
+
     def heterograph_to_heteroobs(heterogenous_graph: HeteroGraph) -> HeteroObsData:
         return HeteroObsData(
             bool=idxgraph_to_obsdata(

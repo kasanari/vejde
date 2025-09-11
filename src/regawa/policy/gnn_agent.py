@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from typing import Any, Mapping, TypeVar
+from typing import Any, TypeVar
 
 import numpy as np
 import torch
@@ -17,7 +17,6 @@ from .node_then_action import NodeThenActionPolicy
 from .action_then_node import ActionThenNodePolicy
 from regawa.data import (
     HeteroBatchData,
-    ObsData,
     BatchData,
     single_obs_to_heterostatedata,
 )
@@ -31,6 +30,7 @@ from regawa.embedding import (
 )
 
 V = TypeVar("V", np.float32, np.bool_)
+
 
 def _embed(
     data: BatchData[V],

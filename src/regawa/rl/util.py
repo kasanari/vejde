@@ -18,6 +18,7 @@ from regawa.wrappers import (
 from regawa.policy.gnn_agent import GraphAgent, heterostatedata_to_tensors
 from regawa.io import obs_to_json_friendly_obs
 
+
 @th.no_grad()
 def evaluate(
     env: gym.Env,

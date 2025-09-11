@@ -27,9 +27,7 @@ def create_stateless_wrapper(
     return wrapper
 
 
-class StateLessWrapper(
-    gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs]
-):
+class StateLessWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs]):
     """
     Stateless observation wrapper class that
     """

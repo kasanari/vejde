@@ -11,6 +11,7 @@ type ObservableGroundObs = Mapping[Grounding, ObservableGroundingValueType]
 
 StackedGroundObs = dict[Grounding, list[GroundingValueType]]
 
+
 class BaseGroundedModel(ABC):
     "Grounded model base class. This is primarily for special usecases when instance-specific information is needed, and is not required to use Vejde."
 

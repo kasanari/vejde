@@ -70,6 +70,7 @@ def create_obs_dict(
         ]
     }
 
+
 def create_graphs(
     rddl_obs: StackedGroundObs,
     model: BaseModel,

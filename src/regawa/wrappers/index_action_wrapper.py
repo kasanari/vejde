@@ -10,6 +10,7 @@ from regawa.wrappers.types import HeteroGraph
 from .gym_utils import action_space
 from .utils import idx_action_to_ground_value
 from gymnasium.spaces import MultiDiscrete
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,9 +21,7 @@ class IndexActionWrapper(
     Converts actions from index-based to string-based
     """
 
-    def __init__(
-        self, env: gym.Env[HeteroGraph, GroundObs], model: BaseModel
-    ) -> None:
+    def __init__(self, env: gym.Env[HeteroGraph, GroundObs], model: BaseModel) -> None:
         super().__init__(env)
         self.env = env
         self.model = model
@@ -47,7 +46,7 @@ class IndexActionWrapper(
             len(self._object_to_type),
             self.model.arity,
         )
-    
+
     @action_space.setter
     def action_space(self, space: gym.Space[MultiDiscrete]) -> None:
         raise AttributeError("Can't set attribute")
@@ -73,10 +72,12 @@ class IndexActionWrapper(
         info["rddl_action"] = rddl_action
 
         self._idx_to_object = graph.boolean.factors
-        self._object_to_type = dict(zip(graph.boolean.factors, graph.boolean.factor_types))
+        self._object_to_type = dict(
+            zip(graph.boolean.factors, graph.boolean.factor_types)
+        )
 
         return graph, r, term, trunc, info
-    
+
     def obj_to_type(self, obj: str) -> str:
         obj_type = self._object_to_type.get(obj, None)
         if obj_type is None:
@@ -91,6 +92,8 @@ class IndexActionWrapper(
         graph, info = self.env.reset(seed=seed)
 
         self._idx_to_object = graph.boolean.factors
-        self._object_to_type = dict(zip(graph.boolean.factors, graph.boolean.factor_types))
+        self._object_to_type = dict(
+            zip(graph.boolean.factors, graph.boolean.factor_types)
+        )
 
         return graph, info

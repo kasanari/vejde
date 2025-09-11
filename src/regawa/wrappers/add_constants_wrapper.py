@@ -28,6 +28,7 @@ class AddConstantsWrapper(
     """
     Adds constant values to the observation, if there are constants defined in a grounded model.
     """
+
     def __init__(
         self,
         env: gym.Env[ObsType, ActType],

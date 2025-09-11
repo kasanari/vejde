@@ -14,7 +14,12 @@ logger = logging.getLogger(__name__)
 
 
 class IndexObsWrapper(
-    gym.Wrapper[HeteroStateSpace, GroundObs | tuple[int, ...], HeteroGraph, GroundObs | tuple[int, ...]]
+    gym.Wrapper[
+        HeteroStateSpace,
+        GroundObs | tuple[int, ...],
+        HeteroGraph,
+        GroundObs | tuple[int, ...],
+    ]
 ):
     """
     Converts HeteroGraph to index-based HeteroObsData
@@ -43,7 +48,6 @@ class IndexObsWrapper(
             num_actions,
         )
 
-
     def step(
         self,
         action: GroundObs | tuple[int, ...],
@@ -54,7 +58,6 @@ class IndexObsWrapper(
         bool,
         dict[str, Any],
     ]:
-        
         graph, r, term, trunc, info = self.env.step(action)
 
         info["idx_to_object"] = graph.boolean.factors

@@ -1,8 +1,7 @@
 import logging
 from typing import Any, SupportsFloat
 import gymnasium as gym
-from regawa import BaseModel, GroundObs
-from regawa.model.base_grounded_model import Grounding
+from regawa import BaseModel, GroundObs, Grounding
 from .graph_utils import fn_obsdict_to_graph
 from .render_utils import create_render_graph, to_graphviz
 from .types import HeteroGraph, RenderGraph

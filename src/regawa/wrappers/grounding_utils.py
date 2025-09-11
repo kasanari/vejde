@@ -5,8 +5,8 @@ from collections.abc import Callable, Iterable
 
 import numpy as np
 
-from regawa.model.base_grounded_model import GroundObs, Grounding
-from regawa.wrappers.types import Edge, Object
+from regawa.model import GroundObs, Grounding
+from .types import Edge, Object
 
 logger = logging.getLogger(__name__)
 

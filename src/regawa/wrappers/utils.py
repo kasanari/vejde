@@ -8,12 +8,12 @@ from gymnasium.spaces import Dict
 from numpy.typing import NDArray
 
 from regawa.model import Grounding
-from regawa.wrappers.grounding_utils import (
+from .grounding_utils import (
     arity,
     create_edges,
     predicate,
 )
-from regawa.wrappers.types import (
+from .types import (
     Edge,
     FactorGraph,
     IdxFactorGraph,

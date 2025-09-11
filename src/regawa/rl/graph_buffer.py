@@ -10,7 +10,7 @@ from regawa.data import (
     ObsData,
     heterostatedata_from_obslist_alt,
 )
-from regawa.wrappers.gym_utils import n_actions
+from regawa.wrappers import n_actions
 
 V = TypeVar("V", np.float32, np.bool_, np.int64)
 

@@ -1,4 +1,4 @@
-from regawa.wrappers.utils import from_dict_action, object_list
+from regawa.wrappers import from_dict_action, object_list
 from .add_constants_wrapper import AddConstantsWrapper, add_constants_fn
 from .index_action_wrapper import IndexActionWrapper
 from .index_obs_wrapper import IndexObsWrapper
@@ -10,6 +10,8 @@ from .graph_wrapper import GroundedGraphWrapper
 from .graph_utils import fn_obsdict_to_graph
 from .graph_utils import fn_heterograph_to_heteroobs
 from .render_utils import create_render_graph, to_graphviz
+from .gym_utils import n_actions
+from .types import HeteroGraph, RenderGraph
 from ..data.data import (
     HeteroBatchData,
     BatchData,
@@ -30,6 +32,8 @@ __all__ = [
     "from_dict_action",
     "object_list",
     "to_graphviz",
+    "RenderGraph",
+    "HeteroGraph",
     "remove_false",
     "add_constants_fn",
     "RemoveNoneWrapper",
@@ -40,4 +44,5 @@ __all__ = [
     "RolloutCollector",
     "single_obs_to_heterostatedata",
     "IndexObsWrapper",
+    "n_actions",
 ]

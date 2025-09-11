@@ -337,12 +337,12 @@ def single_obs_to_heterostatedata(obs: HeteroObsData) -> HeteroBatchData:
 #     return {k: batched_dict_to_obsdata(o) for o in obs}
 
 
-def statedata_from_buffer(buf: list[tuple[ObsData, ...]]):
+def statedata_from_buffer(buf: list[tuple[ObsData[V], ...]]):
     return batch(list(chain(*buf)))
 
 
 def heterostatedata_from_buffer(
-    obs: dict[str, list[tuple[ObsData, ...]]],
+    obs: dict[str, list[tuple[ObsData[V], ...]]],
 ) -> HeteroBatchData:
     return HeteroBatchData(
         boolean=statedata_from_buffer(obs["bool"]),

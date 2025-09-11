@@ -4,14 +4,14 @@ from itertools import chain
 import numpy as np
 
 from regawa.model import Grounding
-from regawa.model.base_model import BaseModel
-from regawa.wrappers.grounding_utils import create_edges, objects
-from regawa.wrappers.types import (
+from regawa.model import BaseModel
+from .grounding_utils import create_edges, objects
+from .types import (
     FactorGraph,
     RenderGraph,
     StackedFactorGraph,
 )
-from regawa.wrappers.utils import translate_edges
+from .utils import translate_edges
 
 
 def to_graphviz_alt(

@@ -23,7 +23,7 @@ from numpy.typing import NDArray
 from torch import Tensor
 from tqdm import tqdm
 
-import regawa.wrappers.gym_utils as model_utils
+import regawa.wrappers as model_utils
 from regawa import GNNParams
 from regawa.policy import AgentConfig, GraphAgent
 from regawa.data import (

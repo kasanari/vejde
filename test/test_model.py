@@ -2,8 +2,8 @@ from typing import Any
 from regawa import BaseModel
 from functools import cached_property, cache
 import pytest
-from regawa.model.base_grounded_model import BaseGroundedModel, GroundObs, Grounding
-from regawa.model.model_checker import check_model
+from regawa.model import BaseGroundedModel, GroundObs, Grounding
+from regawa.model import check_model
 from regawa.inference import fn_graph_to_obsdata, fn_groundobs_to_graph
 from regawa.wrappers.render_utils import render_lifted
 

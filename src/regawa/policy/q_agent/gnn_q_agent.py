@@ -1,7 +1,7 @@
 import torch.nn as nn
 
 from regawa.policy import ActionMode, AgentConfig
-from regawa.policy.gnn_agent import _embed, merge_graphs
+from regawa.policy.agent_utils import embed, merge_graphs
 from .q_action_then_node import QActionThenNode
 from .q_node_then_action import QNodeThenAction
 
@@ -59,13 +59,13 @@ class GraphQAgent(nn.Module):
     def embed(self, data: HeteroBatchData) -> FactorGraph:
         return self.p_gnn(
             merge_graphs(
-                _embed(
+                embed(
                     data.boolean,
                     self.boolean_embedder,
                     self.factor_embedding,
                     self.boolean_embedder,
                 ),
-                _embed(
+                embed(
                     data.numeric,
                     self.numeric_embedder,
                     self.factor_embedding,

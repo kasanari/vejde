@@ -15,7 +15,8 @@ from regawa.wrappers import (
     RolloutCollector,
     single_obs_to_heterostatedata,
 )
-from regawa.policy.gnn_agent import GraphAgent, heterostatedata_to_tensors
+from regawa.policy import GraphAgent
+from regawa.data import heterostatedata_to_tensors
 from regawa.io import obs_to_json_friendly_obs
 
 

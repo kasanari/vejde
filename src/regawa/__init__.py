@@ -14,7 +14,7 @@ from .model import BaseGroundedModel
 from .model import BaseModel
 from .wrappers import StackingGroundedGraphWrapper
 from .wrappers import GroundedGraphWrapper
-from .policy import GraphAgent
+from .policy import GraphAgent, RecurrentGraphAgent
 from .wrappers import gym_utils
 from .model import max_arity
 import gymnasium as gym
@@ -88,6 +88,7 @@ __all__ = [
     "ActionMode",
     "AgentConfig",
     "GraphAgent",
+    "RecurrentGraphAgent",
     "agent_from_env",
     "agent_from_model",
     "to_graphviz",

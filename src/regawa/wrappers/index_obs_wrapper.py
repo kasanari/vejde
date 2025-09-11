@@ -3,12 +3,12 @@ from typing import Any, SupportsFloat
 
 import gymnasium as gym
 from functools import cached_property
-from regawa.data.data import HeteroObsData
-from regawa.model.base_grounded_model import GroundObs
-from regawa.model.base_model import BaseModel
-from regawa.wrappers.graph_utils import fn_heterograph_to_heteroobs
-from regawa.wrappers.space import HeteroStateSpace
-from regawa.wrappers.types import HeteroGraph
+from regawa.data import HeteroObsData
+from regawa.model import GroundObs
+from regawa.model import BaseModel
+from .graph_utils import fn_heterograph_to_heteroobs
+from .space import HeteroStateSpace
+from .types import HeteroGraph
 
 logger = logging.getLogger(__name__)
 

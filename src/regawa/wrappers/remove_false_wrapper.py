@@ -1,6 +1,6 @@
 import numpy as np
 from regawa import GroundObs
-from regawa.wrappers.stateless_obs_wrapper import create_stateless_wrapper
+from .stateless_obs_wrapper import create_stateless_wrapper
 
 
 def remove_false(obs: GroundObs) -> GroundObs:

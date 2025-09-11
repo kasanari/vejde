@@ -3,10 +3,10 @@ from typing import Any, SupportsFloat
 
 import gymnasium as gym
 
-from regawa.model.base_grounded_model import GroundObs, Grounding
-from regawa.model.base_model import BaseModel
-from regawa.wrappers.grounding_utils import to_dict_action
-from regawa.wrappers.types import HeteroGraph
+from regawa.model import GroundObs, Grounding
+from regawa.model import BaseModel
+from .grounding_utils import to_dict_action
+from .types import HeteroGraph
 from .gym_utils import action_space
 from .utils import idx_action_to_ground_value
 from gymnasium.spaces import MultiDiscrete

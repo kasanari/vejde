@@ -8,9 +8,9 @@ from gymnasium import spaces
 from gymnasium.spaces import Box, Discrete
 
 from regawa import BaseModel
-from regawa.data.data import HeteroObsData
+from regawa.data import HeteroObsData
 from regawa.model import Grounding
-from regawa.model.base_grounded_model import GroundObs, StackedGroundObs
+from regawa.model import GroundObs, StackedGroundObs
 
 from .grounding_utils import to_dict_action
 from .gym_utils import action_space, obs_space

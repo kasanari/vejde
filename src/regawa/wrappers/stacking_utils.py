@@ -5,11 +5,11 @@ from typing import Any, TypeVar
 import numpy as np
 
 from regawa import BaseModel, GroundObs
-from regawa.model.base_grounded_model import StackedGroundObs
-from regawa.wrappers.grounding_utils import bool_groundings, numeric_groundings
-from regawa.wrappers.gym_utils import idxgraph_to_obsdata
-from regawa.wrappers.types import HeteroGraph, StackedFactorGraph, Variables
-from regawa.wrappers.utils import generate_bipartite_obs_func, map_graph_to_idx
+from regawa.model import StackedGroundObs
+from .grounding_utils import bool_groundings, numeric_groundings
+from .gym_utils import idxgraph_to_obsdata
+from .types import HeteroGraph, StackedFactorGraph, Variables
+from .utils import generate_bipartite_obs_func, map_graph_to_idx
 
 V = TypeVar("V", np.float32, np.bool_)
 

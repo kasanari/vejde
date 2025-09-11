@@ -1,14 +1,14 @@
 from collections.abc import Callable
 from regawa import GroundObs
 from regawa.policy import ActionMode
-from regawa.data.data import HeteroObsData
-from regawa.policy.gnn_agent import GraphAgent
-from regawa.model.base_model import BaseModel
+from regawa.data import HeteroObsData
+from regawa.policy import GraphAgent
+from regawa.model import BaseModel
 from typing import NamedTuple
 from torch import Tensor
-from regawa.wrappers.graph_utils import fn_obsdict_to_graph, fn_heterograph_to_heteroobs
-from regawa.wrappers.render_utils import create_render_graph
-from regawa.wrappers.types import HeteroGraph, RenderGraph
+from regawa.wrappers import fn_obsdict_to_graph, fn_heterograph_to_heteroobs
+from regawa.wrappers import create_render_graph
+from regawa.wrappers import HeteroGraph, RenderGraph
 import torch
 
 

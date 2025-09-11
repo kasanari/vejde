@@ -4,8 +4,8 @@ from typing import Any, TypeVar
 from gymnasium.spaces import Box, Dict, Discrete, MultiDiscrete, Sequence, Space
 import numpy as np
 from regawa.data import ObsData
-from regawa.wrappers.space import HeteroStateSpace
-from regawa.wrappers.types import IdxFactorGraph
+from .space import HeteroStateSpace
+from .types import IdxFactorGraph
 
 V = TypeVar("V", np.float32, np.bool_)
 

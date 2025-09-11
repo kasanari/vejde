@@ -1,4 +1,4 @@
-from regawa import BaseModel, BaseGroundedModel
+from . import BaseModel, BaseGroundedModel
 
 
 def _check_model(model: BaseModel) -> bool:

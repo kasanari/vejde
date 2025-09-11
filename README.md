@@ -53,7 +53,7 @@ where the first entry of the tuples are the predicate, and the rest of the tuple
 
 This will yield a graph like this:
 
-![graph](https://gitr.sys.kth.se/jaknyb/RDDLGraphWrapper/assets/525/319cd805-c4ba-4628-8f66-62363ed27a8d)
+<img width="632" height="352" alt="319cd805-c4ba-4628-8f66-62363ed27a8d" src="https://github.com/user-attachments/assets/ecc28251-e33a-4611-97d0-91c2283688bf" />
 
 ## I want examples!
 

@@ -1,4 +1,4 @@
-# Relational Reinforcement Learning Wrapper
+# Vejde: Relational Reinforcement Learning Wrapper
 
 *Disclaimer*: This library has been designed to be somewhat user friendly, but it is still a research project primarily aimed towards other researchers. There is no ready-to-use CLI and you will very likely have to dig into the code in order to understand how it works and how it can be used for your problems. The classes and functions provided here should make the process easier, but you will have to make judgements based on your particular problem.
 

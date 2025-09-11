@@ -125,27 +125,4 @@ def merge_graphs(
     )
 
 
-def save_agent(agent: GraphAgent | RecurrentGraphAgent, config: AgentConfig, path: str):
-    state_dict = agent.state_dict()
-    to_save: dict[str, Any] = {}
-    to_save["config"] = asdict(config)
-    to_save["state_dict"] = state_dict
-    torch.save(to_save, path)  # type: ignore
 
-
-T = TypeVar("T", bound=GraphAgent | RecurrentGraphAgent)
-
-
-def load_agent(cls: T, path: str, device: str = "cpu") -> tuple[T, AgentConfig]:
-    data = torch.load(path, weights_only=False, map_location=device)  # type: ignore
-
-    data["config"]["hyper_params"] = GNNParams(**data["config"]["hyper_params"])
-
-    if "remove_false_fluents" not in data["config"]:
-        data["config"]["remove_false_fluents"] = False  # for backward compatibility
-
-    config = AgentConfig(**data["config"])
-    agent = cls(config, None)
-    agent.load_state_dict(data["state_dict"])
-
-    return agent, config

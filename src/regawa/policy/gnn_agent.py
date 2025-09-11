@@ -7,8 +7,8 @@ from torch import Tensor
 from regawa.data import FactorGraph, heterostatedata_to_tensors
 from regawa.data import HeteroObsData
 
-from . import ActionMode, AgentConfig
 from regawa.model import BaseModel
+from regawa.policy.save import save_agent
 
 from .node_then_action import NodeThenActionPolicy
 from .action_then_node import ActionThenNodePolicy
@@ -23,7 +23,7 @@ from regawa.embedding import (
     NumericEmbedder,
     EmbeddingLayer,
 )
-from .agent_utils import embed, save_agent, load_agent, merge_graphs
+from .agent_utils import ActionMode, AgentConfig, embed, merge_graphs
 
 
 class GraphAgent(nn.Module):
@@ -166,9 +166,3 @@ class GraphAgent(nn.Module):
         ), "Mismatch in number of action types, agent expects {}, model has {}".format(
             self.config.num_actions, model.num_actions
         )
-
-    @classmethod
-    def load_agent(
-        cls, path: str, device: str = "cpu"
-    ) -> tuple[GraphAgent, AgentConfig]:
-        return load_agent(cls, path, device)  # type: ignore

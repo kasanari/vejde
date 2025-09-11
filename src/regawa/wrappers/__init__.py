@@ -1,4 +1,4 @@
-from regawa.wrappers import from_dict_action, object_list
+from .utils import from_dict_action, object_list
 from .add_constants_wrapper import AddConstantsWrapper, add_constants_fn
 from .index_action_wrapper import IndexActionWrapper
 from .index_obs_wrapper import IndexObsWrapper

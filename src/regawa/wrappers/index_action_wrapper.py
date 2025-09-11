@@ -70,6 +70,7 @@ class IndexActionWrapper(
         graph, r, term, trunc, info = self.env.step(rddl_action)
 
         info["rddl_action"] = rddl_action
+        info["action_fluents"] = self.model.action_fluents
 
         self._idx_to_object = graph.boolean.factors
         self._object_to_type = dict(
@@ -90,6 +91,8 @@ class IndexActionWrapper(
     ) -> tuple[HeteroGraph, dict[str, Any]]:
         super().reset(seed=seed, options=options)
         graph, info = self.env.reset(seed=seed)
+
+        info["action_fluents"] = self.model.action_fluents
 
         self._idx_to_object = graph.boolean.factors
         self._object_to_type = dict(

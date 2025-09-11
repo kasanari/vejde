@@ -113,18 +113,32 @@ class RecurrentGraphAgent(nn.Module):
 
     def forward(self, actions: Tensor, data: HeteroBatchData):
         fg = self.embed(data)
-        return self.policy(actions, fg.factors, fg.action_mask, fg.n_factor)
+        return self.policy(
+            actions,
+            fg.factors,
+            data.boolean.action_type_mask,
+            data.boolean.action_arity_mask,
+            fg.n_factor,
+        )
 
     def sample(self, data: HeteroBatchData, deterministic: bool = False):
         fg = self.embed(data)
         return self.policy.sample(
-            fg.factors, fg.n_factor, fg.action_mask, deterministic
+            fg.factors,
+            fg.n_factor,
+            data.boolean.action_type_mask,
+            data.boolean.action_arity_mask,
+            deterministic,
         )
 
     def value(self, data: HeteroBatchData):
         fg = self.embed(data)
         _, _, _, value, *_ = self.policy.sample(
-            fg.factors, fg.n_factor, fg.action_mask, False
+            fg.factors,
+            fg.n_factor,
+            data.boolean.action_type_mask,
+            data.boolean.action_arity_mask,
+            False,
         )
         return value
 

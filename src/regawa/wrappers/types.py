@@ -31,9 +31,9 @@ class RenderGraph(NamedTuple):
 
 
 class Variables(NamedTuple, Generic[V]):
-    types: Sequence[np.int64] | Sequence[str]
+    types: NDArray[np.int64]
     values: Sequence[V]
-    lengths: NDArray[np.int64] | Sequence[int]
+    lengths: NDArray[np.int64]
 
 
 class IdxFactorGraph(NamedTuple, Generic[V]):

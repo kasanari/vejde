@@ -1,12 +1,13 @@
 import logging
 import random
-from collections.abc import Callable, Iterable, Sequence, Mapping
+from collections.abc import Callable, Iterable, Sequence
 from typing import TypeVar
 
 import numpy as np
 from gymnasium.spaces import Dict
 from numpy.typing import NDArray
 
+from regawa.model.base_grounded_model import GroundObs
 from regawa.model import Grounding
 from .grounding_utils import (
     arity,
@@ -131,7 +132,7 @@ def generate_bipartite_obs_func(
     action_fluent_arity_mask: Callable[[str], tuple[bool, ...]],
 ):
     def f(
-        observations: Mapping[Grounding, V],
+        observations: GroundObs,
         groundings: Sequence[Grounding],
         object_nodes: Sequence[Object],
     ) -> T:

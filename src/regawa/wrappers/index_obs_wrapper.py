@@ -6,7 +6,8 @@ from functools import cached_property
 from regawa.data import HeteroObsData
 from regawa.model import GroundObs
 from regawa.model import BaseModel
-from .graph_utils import fn_heterograph_to_heteroobs
+from .graph_utils import fn_heterograph_to_heteroobs, fn_regular_map_graph_to_idx
+from .stacking_utils import fn_flatten_map_graph_to_idx
 from .space import HeteroStateSpace
 from .types import HeteroGraph
 
@@ -26,13 +27,27 @@ class IndexObsWrapper(
     """
 
     def __init__(
-        self, env: gym.Env[HeteroGraph, GroundObs | tuple[int, ...]], model: BaseModel
+        self,
+        env: gym.Env[HeteroGraph, GroundObs | tuple[int, ...]],
+        model: BaseModel,
+        stacking: bool = False,
     ) -> None:
         super().__init__(env)
         self.env = env
         self.model = model
         self._idx_to_object = ["None"]
-        self.create_obs_dict = fn_heterograph_to_heteroobs(model)
+        idx_func = (
+            fn_flatten_map_graph_to_idx(
+                model.fluent_to_idx,
+                model.type_to_idx,
+            )
+            if stacking
+            else fn_regular_map_graph_to_idx(
+                model.fluent_to_idx,
+                model.type_to_idx,
+            )
+        )
+        self.create_obs_dict = fn_heterograph_to_heteroobs(idx_func)
 
     @cached_property
     def observation_space(self) -> HeteroStateSpace:

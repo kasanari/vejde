@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import NamedTuple, TypeVar
 import torch
-from torch import Tensor, as_tensor, concatenate
+from torch import Size, Tensor, as_tensor, concatenate
 from .data import SparseArray, BatchData, HeteroBatchData
 import numpy as np
 
@@ -32,7 +32,7 @@ class SparseTensor(NamedTuple):
     indices: Tensor
 
     @property
-    def shape(self):
+    def shape(self) -> Size:
         return self.values.shape
 
     def concat(self, other: SparseTensor) -> SparseTensor:

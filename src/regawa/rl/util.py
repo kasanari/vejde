@@ -45,7 +45,6 @@ def evaluate(
         o = info["rddl_state"]
         g = info["state"]
         obs_buf.append(o)
-
         s = single_obs_to_heterostatedata(obs)
         s = heterostatedata_to_tensors(s, device=device)
 

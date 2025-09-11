@@ -15,8 +15,8 @@ from regawa.model import GroundObs, StackedGroundObs
 from .grounding_utils import to_dict_action
 from .gym_utils import action_space, obs_space
 from .render_utils import create_render_graph, to_graphviz, to_graphviz_alt
-from .stacking_utils import create_graphs, create_obs_dict
-from .types import HeteroGraph
+from .graph_utils import fn_obsdict_to_graph
+from .types import HeteroGraph, StackedFactorGraph
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +45,9 @@ class StackingGroundedGraphWrapper(
         self.last_action: Grounding | None = None
         self.iter = 0
         self._object_to_type: dict[str, str] = {"None": "None"}
+        self.create_graphs = fn_obsdict_to_graph(
+            model, StackedFactorGraph[np.bool_], StackedFactorGraph[np.float32]
+        )
 
     @property
     def action_space(self) -> gym.spaces.MultiDiscrete:  # type: ignore
@@ -105,30 +108,21 @@ class StackingGroundedGraphWrapper(
             }
         )
 
-    def _create_obs(
-        self, rddl_obs: StackedGroundObs
-    ) -> tuple[HeteroObsData, HeteroGraph]:
-        g, _ = create_graphs(
-            rddl_obs,
-            self.model,
-        )
-        o = create_obs_dict(
-            g,
-            self.model,
-        )
+    def _create_obs(self, rddl_obs: StackedGroundObs) -> HeteroGraph:
+        g = self.create_graphs(rddl_obs)
 
-        assert o["bool"]["length"].sum() == len(
-            o["bool"]["var_value"]
-        ), "Expected {} but got {}".format(
-            o["bool"]["length"].sum(), len(o["bool"]["var_value"])
-        )
-        assert o["float"]["length"].sum() == len(
-            o["float"]["var_value"]
-        ), "Expected {} but got {}".format(
-            o["float"]["length"].sum(), len(o["float"]["var_value"])
-        )
+        # assert o["bool"]["length"].sum() == len(
+        #     o["bool"]["var_value"]
+        # ), "Expected {} but got {}".format(
+        #     o["bool"]["length"].sum(), len(o["bool"]["var_value"])
+        # )
+        # assert o["float"]["length"].sum() == len(
+        #     o["float"]["var_value"]
+        # ), "Expected {} but got {}".format(
+        #     o["float"]["length"].sum(), len(o["float"]["var_value"])
+        # )
 
-        return o, g
+        return g
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -136,7 +130,7 @@ class StackingGroundedGraphWrapper(
         super().reset(seed=seed)
         rddl_obs, info = self.env.reset(seed=seed)
 
-        obs, g = self._create_obs(rddl_obs)
+        g = self._create_obs(rddl_obs)
 
         combined_g = create_render_graph(g.boolean, g.numeric)
 
@@ -145,19 +139,18 @@ class StackingGroundedGraphWrapper(
             self.env.unwrapped.state if hasattr(self.env.unwrapped, "state") else {}
         )  # type: ignore
         info["rddl_obs"] = rddl_obs
-        info["idx_to_object"] = g.boolean.factors
+
         info["action_fluents"] = self.model.action_fluents
 
         self._object_to_type = {
             k: v for k, v in zip(g.boolean.factors, g.boolean.factor_types)
         }
 
-        self.last_obs = obs
         self.last_g = combined_g
         self.last_rddl_obs = rddl_obs
         self.last_action = None
 
-        return obs, info
+        return g, info
 
     def obj_to_type(self, obj: str) -> str:
         try:
@@ -172,10 +165,10 @@ class StackingGroundedGraphWrapper(
     def step(
         self, action: Grounding
     ) -> tuple[spaces.Dict, SupportsFloat, bool, bool, dict[str, Any]]:
-        rddl_action = self._to_rddl_action(action)
-        rddl_obs, reward, terminated, truncated, info = self.env.step(rddl_action)
 
-        obs, g = self._create_obs(rddl_obs)
+        rddl_obs, reward, terminated, truncated, info = self.env.step(action)
+
+        g = self._create_obs(rddl_obs)
 
         combined_g = create_render_graph(g.boolean, g.numeric)
 
@@ -184,17 +177,14 @@ class StackingGroundedGraphWrapper(
             self.env.unwrapped.state if hasattr(self.env.unwrapped, "state") else {}
         )  # type: ignore
         info["rddl_obs"] = rddl_obs
-        info["rddl_action"] = rddl_action
-        info["idx_to_object"] = g.boolean.factors
-        info["action_fluents"] = self.model.action_fluents
 
         self._object_to_type = {
             k: v for k, v in zip(g.boolean.factors, g.boolean.factor_types)
         }
 
-        self.last_obs = obs
+
         self.last_g = combined_g
         self.last_rddl_obs = rddl_obs
         self.last_action = action
 
-        return obs, reward, terminated, truncated, info
+        return g, reward, terminated, truncated, info

@@ -4,8 +4,8 @@ import gymnasium as gym
 from regawa import BaseModel, GroundObs, Grounding
 from .graph_utils import fn_obsdict_to_graph
 from .render_utils import create_render_graph, to_graphviz
-from .types import HeteroGraph, RenderGraph
-
+from .types import FactorGraph, HeteroGraph, RenderGraph
+import numpy as np
 logger = logging.getLogger(__name__)
 
 
@@ -27,7 +27,9 @@ class GroundedGraphWrapper(
         self.last_action: Grounding | None = None
         self.last_g: RenderGraph | None = None
         self._object_to_type: dict[str, str] = {"None": "None"}
-        self.create_graphs = fn_obsdict_to_graph(model)
+        self.create_graphs = fn_obsdict_to_graph(
+            model, FactorGraph[np.bool_], FactorGraph[np.float32]
+        )
 
         self.add_render_graph_to_info = add_render_graph_to_info
 
@@ -35,7 +37,7 @@ class GroundedGraphWrapper(
         return to_graphviz(self.last_g, scaling=10) if self.last_g is not None else None
 
     def _create_obs(self, rddl_observation: GroundObs) -> HeteroGraph:
-        graph, _ = self.create_graphs(rddl_observation)
+        graph = self.create_graphs(rddl_observation)
         return graph
 
     def _prepare_info(
@@ -62,7 +64,7 @@ class GroundedGraphWrapper(
     ) -> tuple[HeteroGraph, dict[str, Any]]:
         super().reset(seed=seed)
         rddl_obs, info = self.env.reset(seed=seed)
-        graph, _ = self.create_graphs(rddl_obs)
+        graph = self.create_graphs(rddl_obs)
         info_update, combined_graph = self._prepare_info(
             rddl_obs, graph, self.add_render_graph_to_info
         )
@@ -77,7 +79,7 @@ class GroundedGraphWrapper(
     ) -> tuple[HeteroGraph, SupportsFloat, bool, bool, dict[str, Any]]:
         rddl_obs, reward, terminated, truncated, info = self.env.step(action)
 
-        graph, _ = self.create_graphs(rddl_obs)
+        graph = self.create_graphs(rddl_obs)
         info_update, combined_graph = self._prepare_info(
             rddl_obs, graph, self.add_render_graph_to_info
         )

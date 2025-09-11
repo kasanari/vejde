@@ -2,6 +2,7 @@ from functools import cache
 import itertools
 import logging
 from collections.abc import Callable, Iterable
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -129,7 +130,7 @@ def fn_is_numeric(fluent_range: Callable[[str], type]):
 
 
 def numeric_groundings(
-    groundings: list[Grounding], is_numeric: Callable[[Grounding], bool]
+    groundings: Sequence[Grounding], is_numeric: Callable[[Grounding], bool]
 ) -> list[Grounding]:
     """
     Returns a list of numeric groundings from the given list of groundings.
@@ -150,7 +151,7 @@ def fn_is_bool(fluent_range: Callable[[str], type]):
 
 
 def bool_groundings(
-    groundings: list[Grounding], is_bool: Callable[[Grounding], bool]
+    groundings: Sequence[Grounding], is_bool: Callable[[Grounding], bool]
 ) -> list[Grounding]:
     """
     Returns a list of boolean groundings from the given list of groundings.

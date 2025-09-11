@@ -1,25 +1,21 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from itertools import chain
-from typing import Any, TypeVar
+from typing import TypeVar
 
 import numpy as np
 
-from regawa import BaseModel, GroundObs
-from regawa.model import StackedGroundObs
-from .grounding_utils import bool_groundings, numeric_groundings
-from .gym_utils import idxgraph_to_obsdata
-from .types import HeteroGraph, StackedFactorGraph, Variables
-from .utils import generate_bipartite_obs_func, map_graph_to_idx
+from .types import IdxFactorGraph, StackedFactorGraph, Variables
+from .utils import map_graph_to_idx
 
 V = TypeVar("V", np.float32, np.bool_)
 
 
-def flatten(vals: list[list[V]], vars: list[str]) -> Variables[V]:
+def flatten(vals: Sequence[Sequence[V]], vars: Sequence[str]) -> Variables[V]:
     # Flatten the list of node history lists to account for different node history lengths
     flat_vals = list(chain(*vals))
     v = [[vars[i] for _ in v] for i, v in enumerate(vals)]  # expand the variable names
     flat_vars = list(chain(*v))
-    lengths = [len(v) for v in vals]
+    lengths = [len(v) for v in vals]  # lengths of each variable history
     return Variables(flat_vars, flat_vals, lengths)
 
 
@@ -31,82 +27,24 @@ def flatten_values(
         flatten(factorgraph.global_variable_values, factorgraph.global_variables),
     )
 
-
-def _map_graph_to_idx(
-    factorgraph: StackedFactorGraph[V],
-    rel_to_idx: Callable[[str], int],
-    type_to_idx: Callable[[str], int],
-    var_val_dtype: type,
+def fn_flatten_map_graph_to_idx(
+    rel_to_idx: Callable[[str], int], type_to_idx: Callable[[str], int]
 ):
-    return map_graph_to_idx[V](
-        *flatten_values(factorgraph),
-        factorgraph.senders,
-        factorgraph.receivers,
-        factorgraph.edge_attributes,
-        factorgraph.action_mask,
-        factorgraph.factor_types,
-        rel_to_idx,
-        type_to_idx,
-        var_val_dtype,
-    )
-
-
-def create_obs_dict(
-    heterogenous_graph: HeteroGraph,
-    model: BaseModel,
-) -> dict[str, Any]:
-    return {
-        k: idxgraph_to_obsdata(
-            _map_graph_to_idx(
-                v,  # type: ignore
-                model.fluent_to_idx,
-                model.type_to_idx,
-                dtype,
-            ),
+    def flatten_map_graph_to_idx(
+        factorgraph: StackedFactorGraph[V],
+        var_val_dtype: type,
+    ) -> IdxFactorGraph[V]:
+        return map_graph_to_idx(
+            *flatten_values(factorgraph),
+            factorgraph.senders,
+            factorgraph.receivers,
+            factorgraph.edge_attributes,
+            factorgraph.action_type_mask,
+            factorgraph.action_arity_mask,
+            factorgraph.factor_types,
+            rel_to_idx,
+            type_to_idx,
+            var_val_dtype,
         )
-        for k, v, dtype in [
-            ("bool", heterogenous_graph.boolean, np.int8),
-            ("float", heterogenous_graph.numeric, np.float32),
-        ]
-    }
 
-
-def create_graphs(
-    rddl_obs: StackedGroundObs,
-    model: BaseModel,
-):
-    filtered_groundings = [
-        g
-        for g in rddl_obs
-        if rddl_obs[g] is not None  # type: ignore
-    ]
-
-    filtered_obs: GroundObs = {k: rddl_obs[k] for k in filtered_groundings}
-
-    generate_bipartite_obs = generate_bipartite_obs_func()
-
-    bool_g = generate_bipartite_obs(
-        StackedFactorGraph[bool],
-        filtered_obs,
-        bool_groundings(filtered_groundings, model.fluent_range),
-        model.fluent_param,
-        # valid_action_fluents(model),
-        model.num_actions,
-    )
-
-    numeric_g = generate_bipartite_obs(
-        StackedFactorGraph[float],
-        filtered_obs,
-        numeric_groundings(filtered_groundings, model.fluent_range),
-        model.fluent_param,
-        # valid_action_fluents(model),
-        model.num_actions,
-    )
-
-    assert isinstance(
-        bool_g, StackedFactorGraph
-    ), f"expected StackedFactorGraph but got {type(bool_g)}"
-    assert isinstance(
-        numeric_g, StackedFactorGraph
-    ), f"expected StackedFactorGraph but got {type(numeric_g)}"
-    return HeteroGraph(numeric_g, bool_g), filtered_groundings
+    return flatten_map_graph_to_idx

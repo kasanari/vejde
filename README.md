@@ -19,6 +19,10 @@ You are free to use all these components, or exchange some components with other
 
 ## How to use
 
+### Installation
+
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management. Run `uv sync --extra cu124` for PyTorch compiled with CUDA 12.4 and `uv sync --extra cpu` for CPU only. 
+
 ### Define the relational model
 
 The class `BaseModel` is used to define the functions that your environment needs to provide for this library to function. The `BaseModel` class represents a lifted relational model of your domain, meaning that it should not contain information specific to particular instances.

@@ -51,6 +51,12 @@ This will yield a graph like this:
 
 ![graph](https://gitr.sys.kth.se/jaknyb/RDDLGraphWrapper/assets/525/319cd805-c4ba-4628-8f66-62363ed27a8d)
 
+## I want examples!
+
+The most developed extension of Vejde is the [RDDL extension](https://github.com/kasanari/vejde-rddl). 
+It wraps [pyRDDLGym](https://github.com/pyrddlgym-project/pyRDDLGym), and provides an child class of BaseModel which automatically pulls the required fields from the simulator.
+This lets you experiment with many of the problems in the [library of RDDL problems](https://github.com/pyrddlgym-project/rddlrepository). 
+
 ## Code Layout
 
 - `rddl`

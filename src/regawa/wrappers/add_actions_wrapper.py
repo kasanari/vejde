@@ -70,8 +70,9 @@ class AddActionWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs]):
 
         return obs_with_actions, reward, terminated, truncated, info
 
+    # Listening to: "Mawarukagami" by "Perfume"
     def reset(
-        self, seed: int | None = None
+        self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[
         GroundObs,
         dict[str, Any],

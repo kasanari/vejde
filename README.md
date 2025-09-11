@@ -63,9 +63,11 @@ This lets you experiment with many of the problems in the [library of RDDL probl
   - RDDL domains I made for testing purposes.  
 
 - `regawa`
-  - `gnn` - Message passing, action sampling and value prediction. 
-  - `model` - Lifted and grounded relational model definitions 
-  - `rddl` - RDDL-specific model and wrappers. Will eventually be moved to another repo.
+  - `data` - Data classes used in other modules.
+  - `embedding` - Classes to embed various node types.
+  - `gnn` - Classes and functions for message passing. 
+  - `model` - Lifted and grounded relational model definitions
+  - `policy` - Action sampling and evaluation.
   - `rl` - PPO and other methods for reinforcement learning.
   - `wrappers` - Functions to transform and filter observations to the graph format used by the GNNs.  
 

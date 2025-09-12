@@ -4,12 +4,12 @@ from functools import cache, cached_property
 import numpy as np
 
 type Grounding = tuple[str, ...]
-type GroundingValueType = bool | int | float | np.bool_
-type ObservableGroundingValueType = GroundingValueType | None
-GroundObs = Mapping[Grounding, GroundingValueType]
-type ObservableGroundObs = Mapping[Grounding, ObservableGroundingValueType]
+type GroundingRange = bool | int | float | np.bool_
+type ObservableGroundingRange = GroundingRange | None
+GroundObs = Mapping[Grounding, GroundingRange]
+type ObservableGroundObs = Mapping[Grounding, ObservableGroundingRange]
 
-StackedGroundObs = dict[Grounding, list[GroundingValueType]]
+StackedGroundObs = dict[Grounding, list[GroundingRange]]
 
 class BaseGroundedModel(ABC):
     "Grounded model base class. This is primarily for special usecases when instance-specific information is needed, and is not required to use Vejde."
@@ -39,6 +39,6 @@ class BaseGroundedModel(ABC):
 
     @cache
     @abstractmethod
-    def constant_value(self, constant_grounding: Grounding) -> GroundingValueType:
+    def constant_value(self, constant_grounding: Grounding) -> GroundingRange:
         """The constant value of a constant grounding."""
         ...

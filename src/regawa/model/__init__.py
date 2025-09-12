@@ -3,8 +3,8 @@ from .base_grounded_model import (
     BaseGroundedModel,
     Grounding,
     GroundObs,
-    GroundingValueType,
-    ObservableGroundingValueType,
+    GroundingRange,
+    ObservableGroundingRange,
     ObservableGroundObs,
 )
 from .utils import (
@@ -16,8 +16,8 @@ from .utils import (
 __all__ = [
     "Grounding",
     "GroundObs",
-    "GroundingValueType",
-    "ObservableGroundingValueType",
+    "GroundingRange",
+    "ObservableGroundingRange",
     "ObservableGroundObs",
     "BaseModel",
     "BaseGroundedModel",

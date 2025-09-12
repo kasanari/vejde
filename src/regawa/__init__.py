@@ -6,8 +6,8 @@ from .policy import ActionMode, GNNParams, AgentConfig
 from .model import (
     Grounding,
     GroundObs,
-    GroundingValueType,
-    ObservableGroundingValueType,
+    GroundingRange,
+    ObservableGroundingRange,
     ObservableGroundObs,
 )
 from .model import BaseGroundedModel
@@ -92,7 +92,7 @@ __all__ = [
     "agent_from_model",
     "to_graphviz",
     "ObservableGroundObs",
-    "ObservableGroundingValueType",
+    "ObservableGroundingRange",
     "GroundObs",
-    "GroundingValueType",
+    "GroundingRange",
 ]

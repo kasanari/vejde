@@ -1,11 +1,12 @@
 from dataclasses import asdict
+from pathlib import Path
 from typing import Any
 import torch
 import torch.nn as nn
 from .agent_utils import AgentConfig
 
 
-def save_agent(agent: nn.Module, config: AgentConfig, path: str):
+def save_agent(agent: nn.Module, config: AgentConfig, path: str | Path):
     state_dict = agent.state_dict()
     to_save: dict[str, Any] = {}
     to_save["config"] = asdict(config)

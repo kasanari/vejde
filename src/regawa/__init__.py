@@ -19,23 +19,32 @@ from .wrappers import gym_utils
 from .model import max_arity
 import gymnasium as gym
 from .wrappers.render_utils import to_graphviz
+from gymnasium.vector import SyncVectorEnv, AsyncVectorEnv
 
 
 def agent_from_env(
-    env: gym.Env[HeteroObsData, MultiDiscrete],
+    env: gym.Env[HeteroObsData, MultiDiscrete]
+    | gym.vector.SyncVectorEnv
+    | gym.vector.AsyncVectorEnv,
     params: GNNParams,
     device: str = "cpu",
 ):
-    n_types = gym_utils.n_types(env.observation_space)
-    n_relations = gym_utils.n_relations(env.observation_space)
-    n_actions = gym_utils.n_actions(env.action_space)
+    obs_space, action_space = (
+        (env.observation_space, env.action_space)
+        if not isinstance(env, (SyncVectorEnv, AsyncVectorEnv))
+        else (env.single_observation_space, env.single_action_space)
+    )
+
+    n_types = gym_utils.n_types(obs_space)  # type: ignore
+    n_relations = gym_utils.n_relations(obs_space)  # type: ignore
+    n_actions = gym_utils.n_actions(action_space)  # type: ignore
 
     config = AgentConfig(
         n_types,
         n_relations,
         n_actions,
         remove_false_fluents=True,
-        arity=gym_utils.max_arity(env.observation_space),
+        arity=gym_utils.max_arity(obs_space),  # type: ignore
         hyper_params=params,
     )
 

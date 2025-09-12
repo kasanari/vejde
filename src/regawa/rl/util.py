@@ -1,6 +1,7 @@
 import json
 from collections import deque
 from collections.abc import Callable, Iterable
+from pathlib import Path
 from typing import Any
 
 import gymnasium as gym
@@ -258,7 +259,7 @@ class Serializer(json.JSONEncoder):
         return super().default(o)
 
 
-def writable_eval_data(data):
+def writable_eval_data(data: dict[str, Any]) -> str:
     def from_episode(episode):
         return [
             {
@@ -278,7 +279,7 @@ def writable_eval_data(data):
     )
 
 
-def save_eval_data(data, path: str = "evaluation.json"):
+def save_eval_data(data: dict[str, Any], path: str | Path = "evaluation.json"):
     to_write = writable_eval_data(data)
 
     with open(path, "w") as f:

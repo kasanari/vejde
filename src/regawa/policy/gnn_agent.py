@@ -1,4 +1,5 @@
 from __future__ import annotations
+from pathlib import Path
 
 import torch.nn as nn
 from torch import Generator as Rngs
@@ -144,7 +145,7 @@ class GraphAgent(nn.Module):
             data.boolean.action_arity_mask,
         )
 
-    def save_agent(self, path: str):
+    def save_agent(self, path: str | Path):
         save_agent(self, self.config, path)
 
     def num_trainable_params(self):

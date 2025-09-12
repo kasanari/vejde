@@ -2,6 +2,8 @@
 
 *Disclaimer*: This library has been designed to be somewhat user friendly, but it is still a research project primarily aimed towards other researchers. There is no ready-to-use CLI and you will very likely have to dig into the code in order to understand how it works and how it can be used for your problems. The classes and functions provided here should make the process easier, but you will have to make judgements based on your particular problem.
 
+For more detailed explanations and comparisons, there is also [a preprint paper](https://arxiv.org/abs/2509.09219).
+
 ## Intro
 
 The purpose of this code library is to train deep reinforcement learning agents with problems where the data conforms to a relational data model (or the data can be made to follow one). One way to think of it is that if that state of your problem can be represented by a variale number of discrete objects with properties and relations to other objects, this might be useful for you. The primary data structure used to represent states/observations is a `Dict[tuple[str, ...]: float | int | bool]`. Each key is a predicate on the form `P(X, ...)`, where the first element is always the predicate, and the rest of the tuple are its object arguments. This ostensibly represents a database.

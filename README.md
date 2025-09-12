@@ -1,6 +1,8 @@
-# Relational Reinforcement Learning Wrapper
+# Vejde: Relational Reinforcement Learning Wrapper
 
 *Disclaimer*: This library has been designed to be somewhat user friendly, but it is still a research project primarily aimed towards other researchers. There is no ready-to-use CLI and you will very likely have to dig into the code in order to understand how it works and how it can be used for your problems. The classes and functions provided here should make the process easier, but you will have to make judgements based on your particular problem.
+
+For more detailed explanations and comparisons, there is also [a preprint paper](https://arxiv.org/abs/2509.09219).
 
 ## Intro
 
@@ -18,6 +20,10 @@ Functions related to sparse sampling of actions is stored in [this library](http
 You are free to use all these components, or exchange some components with other libraries, like Torch Geometric for message passing or Stable Baselines 3 for RL. 
 
 ## How to use
+
+### Installation
+
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management. Run `uv sync --extra cu124` for PyTorch compiled with CUDA 12.4 and `uv sync --extra cpu` for CPU only. 
 
 ### Define the relational model
 
@@ -49,17 +55,22 @@ where the first entry of the tuples are the predicate, and the rest of the tuple
 
 This will yield a graph like this:
 
-![graph](https://gitr.sys.kth.se/jaknyb/RDDLGraphWrapper/assets/525/319cd805-c4ba-4628-8f66-62363ed27a8d)
+<img width="632" height="352" alt="319cd805-c4ba-4628-8f66-62363ed27a8d" src="https://github.com/user-attachments/assets/ecc28251-e33a-4611-97d0-91c2283688bf" />
+
+## I want examples!
+
+The most developed extension of Vejde is the [RDDL extension](https://github.com/kasanari/vejde-rddl). 
+It wraps [pyRDDLGym](https://github.com/pyrddlgym-project/pyRDDLGym), and provides an child class of BaseModel which automatically pulls the required fields from the simulator.
+This lets you experiment with many of the problems in the [library of RDDL problems](https://github.com/pyrddlgym-project/rddlrepository). 
 
 ## Code Layout
 
-- `rddl`
-  - RDDL domains I made for testing purposes.  
-
 - `regawa`
-  - `gnn` - Message passing, action sampling and value prediction. 
-  - `model` - Lifted and grounded relational model definitions 
-  - `rddl` - RDDL-specific model and wrappers. Will eventually be moved to another repo.
+  - `data` - Data classes used in other modules.
+  - `embedding` - Classes to embed various node types.
+  - `gnn` - Classes and functions for message passing. 
+  - `model` - Lifted and grounded relational model definitions
+  - `policy` - Action sampling and evaluation.
   - `rl` - PPO and other methods for reinforcement learning.
   - `wrappers` - Functions to transform and filter observations to the graph format used by the GNNs.  
 

@@ -27,6 +27,7 @@ class AddConstantsWrapper(
 ):
     """
     Adds constant values to the observation, if there are constants defined in a grounded model.
+    When `only_add_on_reset` is True, constants are only added in the first step.
     """
 
     def __init__(

@@ -1,3 +1,4 @@
+from typing import Literal
 from regawa import GNNParams
 
 
@@ -8,6 +9,7 @@ from dataclasses import dataclass
 @dataclass
 class Args:
     env_id: str
+    agent_class: Literal["GraphAgent", "RecurrentGraphAgent"]
     agent_config: GNNParams
     resume_from: str | None = None
     multiprocess: bool = False

@@ -1,6 +1,8 @@
 from typing import Any
 from torch import Generator
 from gymnasium.spaces import MultiDiscrete
+
+from regawa.policy.gnn_agent import GraphAgentInterface
 from .data import HeteroObsData
 from .policy import ActionMode, GNNParams, AgentConfig
 from .model import (
@@ -23,6 +25,7 @@ from gymnasium.vector import SyncVectorEnv, AsyncVectorEnv
 
 
 def agent_from_env(
+    agent_class: type[GraphAgentInterface],
     env: gym.Env[HeteroObsData, MultiDiscrete]
     | gym.vector.SyncVectorEnv
     | gym.vector.AsyncVectorEnv,
@@ -50,10 +53,15 @@ def agent_from_env(
 
     rng = Generator()
 
-    return GraphAgent(config, rng, device)
+    return agent_class(config, rng, device=device)
 
 
-def agent_from_model(model: BaseModel, params: GNNParams, device: str = "cpu"):
+def agent_from_model(
+    agent_class: type[GraphAgentInterface],
+    model: BaseModel,
+    params: GNNParams,
+    device: str = "cpu",
+):
     n_types = model.num_types
     n_relations = model.num_fluents
     n_actions = model.num_actions
@@ -70,7 +78,7 @@ def agent_from_model(model: BaseModel, params: GNNParams, device: str = "cpu"):
 
     rng = Generator()
 
-    return GraphAgent(config, rng, device)
+    return agent_class(config, rng, device)
 
 
 def step_func(agent: GraphAgent, env: gym.Env[Any, Any], deterministic: bool = True):

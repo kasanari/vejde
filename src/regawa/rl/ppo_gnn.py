@@ -1,6 +1,9 @@
 # docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/ppo/#ppopy
 import logging
 import os
+
+from regawa.policy.gnn_agent import GraphAgent
+from regawa.policy.recurrent_gnn_agent import RecurrentGraphAgent
 os.environ["DO_NOT_TRACK"] = "true"
 import random
 import time
@@ -36,9 +39,8 @@ from numpy.typing import NDArray
 from torch import Tensor
 from tqdm import tqdm
 import os
-from mlflow.environment_variables import MLFLOW_DISABLE_TELEMETRY
 
-from regawa.policy import AgentConfig, GraphAgent
+from regawa.policy import GraphAgentInterface
 from regawa.data import (
     HeteroGraphBuffer,
     ObsData,
@@ -430,7 +432,7 @@ def main(
     run_name: str,
     args: Args,
     device: str | npl.device,
-    graph_agent: GraphAgent,
+    graph_agent: GraphAgentInterface,
 ):
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -639,6 +641,14 @@ def create_run_folder(run_name: str) -> Path:
     run_folder.mkdir(exist_ok=True)
     return run_folder
 
+AGENT_CLASSES: dict[str, type[GraphAgentInterface]] = {
+    c.__name__: c
+    for c in [
+        GraphAgent,
+        RecurrentGraphAgent,
+    ]
+}
+
 
 def train(args: Args | None = None, batch_id: str | None = None):
     args = tyro.cli(Args) if args is None else args
@@ -651,6 +661,7 @@ def train(args: Args | None = None, batch_id: str | None = None):
     run_name = run_name + "__debug" if args.debug else run_name
     run_folder = create_run_folder(run_name)
     logger.addHandler(logging.FileHandler(run_folder / f"{run_name}.log"))
+    agent_class = AGENT_CLASSES[args.agent_class]
     envs = (
         gym.vector.AsyncVectorEnv(
             [
@@ -673,9 +684,9 @@ def train(args: Args | None = None, batch_id: str | None = None):
     )
 
     if args.resume_from:
-        agent, _ = load_agent(GraphAgent, args.resume_from, device=device)
+        agent, _ = load_agent(agent_class, args.resume_from, device)
     else:
-        agent = agent_from_env(envs, args.agent_config, device)
+        agent = agent_from_env(agent_class, envs, args.agent_config, device)
 
     logged_config = vars(args) | asdict(agent.config)
     if args.track:
@@ -726,10 +737,10 @@ def train(args: Args | None = None, batch_id: str | None = None):
         "run_id": run_id,
     }
     save_eval_data(data, run_folder / f"{run_name}.json")
-    return stats, agent
+    return stats, agent.agent
 
 
-def eval(agent: GraphAgent, env_id: str, device: str):
+def eval(agent: GraphAgentInterface, env_id: str, device: str):
     eval_env = gym.make(
         env_id,
     )

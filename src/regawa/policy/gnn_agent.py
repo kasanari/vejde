@@ -25,9 +25,45 @@ from regawa.embedding import (
     EmbeddingLayer,
 )
 from .agent_utils import ActionMode, AgentConfig, embed, merge_graphs
+from abc import ABC, abstractmethod
 
 
-class GraphAgent(nn.Module):
+class GraphAgentInterface(ABC):
+    @abstractmethod
+    def __init__(self, config: AgentConfig, rngs: Rngs, device: str = "cpu"): ...
+
+    @abstractmethod
+    def embed(self, data: HeteroBatchData) -> FactorGraph: ...
+
+    @abstractmethod
+    def forward(self, actions: Tensor, data: HeteroBatchData) -> tuple[Tensor, ...]: ...
+
+    @abstractmethod
+    def sample_from_obs(
+        self,
+        obs: HeteroObsData,
+        deterministic: bool = False,
+    ) -> tuple[Tensor, ...]: ...
+
+    @abstractmethod
+    def sample(
+        self, data: HeteroBatchData, deterministic: bool = False
+    ) -> tuple[Tensor, ...]: ...
+
+    @abstractmethod
+    def value(self, data: HeteroBatchData) -> Tensor: ...
+
+    @abstractmethod
+    def save_agent(self, path: str | Path): ...
+
+    @abstractmethod
+    def num_trainable_params(self) -> int: ...
+
+    @abstractmethod
+    def check_compatability(self, model: BaseModel): ...
+
+
+class GraphAgent(nn.Module, GraphAgentInterface):
     def __init__(
         self,
         config: AgentConfig,
@@ -40,18 +76,22 @@ class GraphAgent(nn.Module):
 
         self.config = config
         self.factor_embedding = EmbeddingLayer(
-            config.num_object_classes, gnn_params.embedding_dim, rngs
+            config.num_object_classes,
+            gnn_params.embedding_dim,
+            rngs,
         )
 
         self.predicate_embedding = EmbeddingLayer(
-            config.num_predicate_classes, gnn_params.embedding_dim, rngs
+            config.num_predicate_classes,
+            gnn_params.embedding_dim,
+            rngs,
         )
 
         self.edge_attr_embedding = EmbeddingLayer(
             config.arity, gnn_params.embedding_dim, rngs, use_padding=False
         )
 
-        self.boolean_embedder = (
+        boolean_embedder = (
             NegativeBiasBooleanEmbedder(
                 gnn_params.embedding_dim,
                 self.predicate_embedding,
@@ -65,7 +105,7 @@ class GraphAgent(nn.Module):
             )
         )
 
-        self.numeric_embedder = NumericEmbedder(
+        numeric_embedder = NumericEmbedder(
             gnn_params.embedding_dim,
             gnn_params.activation,
             self.predicate_embedding,
@@ -86,6 +126,8 @@ class GraphAgent(nn.Module):
             else NodeThenActionPolicy(*policy_args)
         )
         self.device = device
+        self.boolean_embedder = boolean_embedder
+        self.numeric_embedder = numeric_embedder
 
     def embed(self, data: HeteroBatchData) -> FactorGraph:
         return self.p_gnn(

@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import TypeVar
 
 import numpy as np
@@ -6,6 +7,12 @@ from torch import Generator as Rngs
 from torch import Tensor
 
 from regawa.data import FactorGraph
+from regawa.data import single_obs_to_heterostatedata
+from regawa.data import heterostatedata_to_tensors
+from regawa.data.data import HeteroObsData
+from regawa.embedding.node_embedders import NegativeBiasBooleanEmbedder
+from regawa.model.base_model import BaseModel
+from .gnn_agent import GraphAgentInterface
 from regawa.policy.save import save_agent
 
 from . import ActionMode, AgentConfig
@@ -27,17 +34,18 @@ from .agent_utils import embed, merge_graphs
 V = TypeVar("V", np.float32, np.bool_)
 
 
-class RecurrentGraphAgent(nn.Module):
+class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
     def __init__(
         self,
         config: AgentConfig,
         rngs: Rngs,
+        device: str = "cpu",
     ):
         super().__init__()  # type: ignore
 
-        self.config = config
         gnn_params = config.hyper_params
 
+        self.config = config
         self.factor_embedding = EmbeddingLayer(
             config.num_object_classes,
             gnn_params.embedding_dim,
@@ -50,19 +58,22 @@ class RecurrentGraphAgent(nn.Module):
             rngs,
         )
 
-        boolean_embedder = BooleanEmbedder(
-            gnn_params.embedding_dim,
-            self.predicate_embedding,
-            rngs,
-        )
-
-        self.r_boolean_embedder = RecurrentEmbedder(
-            gnn_params.embedding_dim,
-            boolean_embedder,
-        )
-
         self.edge_attr_embedding = EmbeddingLayer(
             config.arity, gnn_params.embedding_dim, rngs, use_padding=False
+        )
+
+        boolean_embedder = (
+            NegativeBiasBooleanEmbedder(
+                gnn_params.embedding_dim,
+                self.predicate_embedding,
+                rngs,
+            )
+            if config.remove_false_fluents
+            else BooleanEmbedder(
+                gnn_params.embedding_dim,
+                self.predicate_embedding,
+                rngs,
+            )
         )
 
         numeric_embedder = NumericEmbedder(
@@ -74,6 +85,10 @@ class RecurrentGraphAgent(nn.Module):
         self.r_numeric_embedder = RecurrentEmbedder(
             gnn_params.embedding_dim,
             numeric_embedder,
+        )
+        self.r_boolean_embedder = RecurrentEmbedder(
+            gnn_params.embedding_dim,
+            boolean_embedder,
         )
 
         self.p_gnn = BipartiteGNN(
@@ -90,6 +105,9 @@ class RecurrentGraphAgent(nn.Module):
             if gnn_params.action_mode == ActionMode.ACTION_THEN_NODE
             else NodeThenActionPolicy(*policy_args)
         )
+        self.device = device
+        self.boolean_embedder = boolean_embedder
+        self.numeric_embedder = numeric_embedder
 
     def embed(self, data: HeteroBatchData) -> FactorGraph:
         return self.p_gnn(
@@ -120,7 +138,16 @@ class RecurrentGraphAgent(nn.Module):
             data.boolean.action_arity_mask,
             fg.n_factor,
         )
-
+    
+    def sample_from_obs(
+        self,
+        obs: HeteroObsData,
+        deterministic: bool = False,
+    ):
+        s = single_obs_to_heterostatedata(obs)
+        s = heterostatedata_to_tensors(s, device=self.device)
+        return self.sample(s, deterministic=deterministic)
+    
     def sample(self, data: HeteroBatchData, deterministic: bool = False):
         fg = self.embed(data)
         return self.policy.sample(
@@ -133,14 +160,32 @@ class RecurrentGraphAgent(nn.Module):
 
     def value(self, data: HeteroBatchData):
         fg = self.embed(data)
-        _, _, _, value, *_ = self.policy.sample(
+        return self.policy.value(
             fg.factors,
             fg.n_factor,
             data.boolean.action_type_mask,
             data.boolean.action_arity_mask,
-            False,
         )
-        return value
 
-    def save_agent(self, path: str):
+    def save_agent(self, path: str | Path):
         save_agent(self, self.config, path)
+
+    def num_trainable_params(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+    def check_compatability(self, model: BaseModel):
+        assert (
+            self.config.num_object_classes == model.num_types
+        ), "Mismatch in number of variable types, agent expects {}, model has {}".format(
+            self.config.num_object_classes, model.num_types
+        )
+        assert (
+            self.config.num_predicate_classes == model.num_fluents
+        ), "Mismatch in number of predicates, agent expects {}, model has {}".format(
+            self.config.num_predicate_classes, model.num_fluents
+        )
+        assert (
+            self.config.num_actions == model.num_actions
+        ), "Mismatch in number of action types, agent expects {}, model has {}".format(
+            self.config.num_actions, model.num_actions
+        )

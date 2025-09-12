@@ -1,5 +1,5 @@
 from regawa.data import HeteroBatchData
-from regawa.policy import AgentConfig, GraphAgent
+from regawa.policy import GraphAgentInterface
 from .symexp import symexp
 
 
@@ -13,7 +13,7 @@ from typing import Any
 class Agent(nn.Module):
     def __init__(
         self,
-        agent: GraphAgent,
+        agent: GraphAgentInterface,
         **kwargs: dict[str, Any],
     ):
         super().__init__()  # type: ignore

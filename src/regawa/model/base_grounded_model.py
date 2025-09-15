@@ -18,7 +18,7 @@ class BaseGroundedModel(ABC):
     @cached_property
     @abstractmethod
     def objects(self) -> tuple[str, ...]:
-        """A list of all objects in the model."""
+        """A list of all objects in the instance."""
         ...
 
     @cached_property

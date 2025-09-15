@@ -94,7 +94,7 @@ def fn_heterograph_to_heteroobs(
             bool=idxgraph_to_obsdata(
                 fn_graph_to_idx(
                     heterogenous_graph.boolean,  # type: ignore
-                    np.bool_,
+                    np.int8,
                 ),
             ),
             float=idxgraph_to_obsdata(

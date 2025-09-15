@@ -43,41 +43,44 @@ class FactorGraphSpace(Space[ObsData[V]]):
         """Check whether `other` is equivalent to this instance. Doesn't check dtype equivalence."""
         if not isinstance(other, FactorGraphSpace):
             return False
-
-        return (
-            self.var_type == other.var_type
-            and self.var_value == other.var_value
-            and self.factor == other.factor
-            and self.action_arity_mask == other.action_arity_mask
-            and self.action_type_mask == other.action_type_mask
-            and self.senders == other.senders
-            and self.receivers == other.receivers
-            and self.edge_attr == other.edge_attr
-            and self.length == other.length
-            and self.global_vars == other.global_vars
-            and self.global_vals == other.global_vals
-            and self.global_length == other.global_length
-        )
+        
+        results = [
+            self.var_type == other.var_type,
+            self.var_value == other.var_value,
+            self.factor == other.factor,
+            self.action_arity_mask == other.action_arity_mask,
+            self.action_type_mask == other.action_type_mask,
+            self.senders == other.senders,
+            self.receivers == other.receivers,
+            self.edge_attr == other.edge_attr,
+            self.length == other.length,
+            self.global_vars == other.global_vars,
+            self.global_vals == other.global_vals,
+            self.global_length == other.global_length,
+        ]
+        return all(results)
 
     def __contains__(self, item: ObsData[V]) -> bool:
         """Check whether `item` is in this space."""
         if not isinstance(item, ObsData):  # type: ignore
             return False
 
-        return (
-            item.var_type in self.var_type
-            and item.var_value in self.var_value
-            and item.factor in self.factor
-            and item.action_arity_mask in self.action_arity_mask
-            and item.action_type_mask in self.action_type_mask
-            and item.v_to_f in self.senders
-            and item.f_to_v in self.receivers
-            and item.edge_attr in self.edge_attr
-            and item.length in self.length
-            and item.global_vars in self.global_vars
-            and item.global_vals in self.global_vals
-            and item.global_length in self.global_length
-        )
+        results = [
+            item.var_type in self.var_type,
+            item.var_value in self.var_value,
+            item.factor in self.factor,
+            item.action_arity_mask in self.action_arity_mask,
+            item.action_type_mask in self.action_type_mask,
+            item.v_to_f in self.senders,
+            item.f_to_v in self.receivers,
+            item.edge_attr in self.edge_attr,
+            item.length in self.length,
+            item.global_vars in self.global_vars,
+            item.global_vals in self.global_vals,
+            item.global_length in self.global_length,
+        ]
+
+        return all(results)
 
 
 class HeteroStateSpace(Space[HeteroObsData]):
@@ -107,15 +110,17 @@ class HeteroStateSpace(Space[HeteroObsData]):
         """Check whether `other` is equivalent to this instance. Doesn't check dtype equivalence."""
         if not isinstance(other, HeteroStateSpace):
             return False
+        
+        results = [
+            self.bool.var_type == other.bool.var_type,
+            self.bool.var_value == other.bool.var_value,
+            self.bool.factor == other.bool.factor,
+            self.float.var_type == other.float.var_type,
+            self.float.var_value == other.float.var_value,
+            self.float.factor == other.float.factor,
+        ]
 
-        return (
-            self.bool.var_type == other.bool.var_type
-            and self.bool.var_value == other.bool.var_value
-            and self.bool.factor == other.bool.factor
-            and self.float.var_type == other.float.var_type
-            and self.float.var_value == other.float.var_value
-            and self.float.factor == other.float.factor
-        )
+        return all(results)
 
     def __contains__(self, item: HeteroObsData) -> bool:
         """Check whether `item` is in this space."""

@@ -58,8 +58,10 @@ def statedata_to_tensors(
             as_tensor(attr.indices, device=device),
         )
         if isinstance(attr, SparseArray)
-        else as_tensor(attr, device=device)
-        for attr in data
+        else as_tensor(
+            attr, device=device if key not in ("length", "global_length") else "cpu"
+        )
+        for key, attr in data._asdict().items()
     )
 
     return BatchData(*params)

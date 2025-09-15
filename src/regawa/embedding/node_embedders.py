@@ -70,6 +70,7 @@ def compress_time(recurrent: nn.GRU, h: Tensor, length: Tensor) -> Tensor:
         length.size(0),
         length.max().item(),
         h.size(-1),
+        device=h.device,
     )
 
     offsets = roll(cumsum(length, axis=0), 1, 0)

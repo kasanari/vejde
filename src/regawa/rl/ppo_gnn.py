@@ -650,10 +650,11 @@ AGENT_CLASSES: dict[str, type[GraphAgentInterface]] = {
 }
 
 
-def train(args: Args | None = None, batch_id: str | None = None):
+def train(
+    args: Args | None = None, batch_id: str | None = None
+):
     args = tyro.cli(Args) if args is None else args
     logger.info("Attempting to connect to mlflow...")
-    tracking_uri = "http://127.0.0.1:5000" if not args.debug else ""
     device = npl.device(
         "cuda:0" if npl.cuda.is_available() and args.cuda else npl.device("cpu")
     )
@@ -699,7 +700,7 @@ def train(args: Args | None = None, batch_id: str | None = None):
         )
 
     mlflow.enable_system_metrics_logging()
-    mlflow.set_tracking_uri(uri=tracking_uri)
+    mlflow.set_tracking_uri(uri=args.mlflow_tracking_uri)
     
     try:
         mlflow.create_experiment(run_name)
@@ -709,7 +710,7 @@ def train(args: Args | None = None, batch_id: str | None = None):
     mlflow.set_experiment(run_name)
 
     with mlflow.start_run():
-        logger.info(f"Connected to mlflow at {tracking_uri}")
+        logger.info(f"Connected to mlflow at {args.mlflow_tracking_uri}")
         mlflow.log_param("using_edge_attr", True)
         mlflow.log_param("using_scaling", True)
         mlflow.log_params(logged_config)

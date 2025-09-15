@@ -29,7 +29,8 @@ class Args:
     """the wandb's project name"""
     wandb_entity: str | None = None
     """the entity (team) of wandb's project"""
-
+    mlflow_tracking_uri: str = ""
+    """the tracking uri for mlflow. If empty, mlflow will log locally"""
     # Algorithm specific arguments
     total_timesteps: int = 2000
     """total timesteps of the experiments"""

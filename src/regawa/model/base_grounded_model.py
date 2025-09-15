@@ -17,6 +17,12 @@ class BaseGroundedModel(ABC):
 
     @cached_property
     @abstractmethod
+    def objects(self) -> tuple[str, ...]:
+        """A list of all objects in the model."""
+        ...
+
+    @cached_property
+    @abstractmethod
     def groundings(self) -> tuple[Grounding, ...]:
         """
         A list of all possible grounded facts based on the problem instance.

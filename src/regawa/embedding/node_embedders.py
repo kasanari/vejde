@@ -4,8 +4,18 @@ import torch.nn as nn
 import torch.nn.init as init
 from torch.nn import Embedding, LayerNorm, Module, Sequential
 from torch import Generator as Rngs
-from torch import Tensor, cumsum, roll, zeros
-from torch.nn.utils.rnn import pack_padded_sequence
+from torch import (
+    Tensor,
+    zeros,
+    argsort,
+    arange,
+    cat,
+    long,
+    repeat_interleave,
+)
+from torch.nn.utils.rnn import (
+    PackedSequence,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -65,21 +75,74 @@ class EmbeddingLayer(Module):
         return self.transform(x)
 
 
-def compress_time(recurrent: nn.GRU, h: Tensor, length: Tensor) -> Tensor:
-    padded = zeros(
-        length.size(0),
-        length.max().item(),
-        h.size(-1),
-        device=h.device,
+def _batch_sizes_from_lengths(lengths: Tensor) -> Tensor:
+    # lengths: [B] long
+    T = int(lengths.max().item())
+    t = arange(T, device=lengths.device)  # [T]
+    # batch_sizes[t] = #seqs with length > t
+    batch_sizes = (t.unsqueeze(0) < lengths.unsqueeze(1)).sum(0).to(long)  # [T]
+    return batch_sizes
+
+
+def packed_from_concatenated_sequences(
+    data: Tensor,
+    lengths: Tensor,
+    *,
+    include_sort_info: bool = True,
+) -> PackedSequence:
+    """
+    Build a PackedSequence when rows are concatenated per sequence (sequence-major order).
+    Example row order: [s0:t0, s0:t1, ..., s0:tL0-1, s1:t0, ..., sN-1:tL(N-1)-1]
+
+    Args:
+        data: Tensor of shape [sum(lengths), *feat]
+        lengths: 1-D ints, one per sequence
+        include_sort_info: attach (sorted_indices, unsorted_indices)
+
+    Returns:
+        nn.utils.rnn.PackedSequence
+    """
+    device = data.device
+    if (lengths <= 0).any():
+        raise ValueError("All sequence lengths must be > 0.")
+
+    B = lengths.numel()
+    N = int(lengths.sum().item())
+
+    if data.size(0) != N:
+        raise ValueError(f"data has {data.size(0)} rows, but sum(lengths)={N}.")
+
+    # Map each row -> which sequence it came from
+    row_to_seq = repeat_interleave(arange(B, device=device), lengths)  # [N]
+
+    # Time index inside its sequence (0..length-1), following input order
+    # Since data is sequence-major, this is just [0..L0-1, 0..L1-1, ...]
+    time_index = cat([arange(int(L), device=device) for L in lengths])  # [N]
+
+    # Sort sequences by length (desc) to make a canonical pack order
+    sorted_indices = argsort(lengths, descending=True)  # [B] sorted->orig
+    unsorted_indices = argsort(sorted_indices)  # [B] orig->sorted (rank)
+    rank = unsorted_indices[row_to_seq]  # [N] seq rank used within each time step
+
+    # Reorder rows to time-major: lexicographic by (time_index, rank)
+    B_val = B if B > 0 else 1
+    key = time_index * B_val + rank
+    perm = argsort(key)  # [N]
+    packed_data = data.index_select(0, perm)
+
+    # Build batch_sizes
+    batch_sizes = _batch_sizes_from_lengths(lengths.index_select(0, sorted_indices))
+
+    return (
+        PackedSequence(packed_data, batch_sizes, sorted_indices, unsorted_indices)
+        if include_sort_info
+        else PackedSequence(packed_data, batch_sizes)
     )
 
-    offsets = roll(cumsum(length, axis=0), 1, 0)
-    offsets[0] = 0
-    for i, node_l in enumerate(length):
-        padded[i, : node_l.item()] = h[offsets[i] : offsets[i] + node_l.item()]
 
-    h_c = pack_padded_sequence(padded, length, batch_first=True, enforce_sorted=False)
-    _, variables = recurrent(h_c)
+def compress_time(recurrent: nn.GRU, h: Tensor, length: Tensor) -> Tensor:
+    custom_h_c = packed_from_concatenated_sequences(h, length, include_sort_info=True)
+    _, variables = recurrent(custom_h_c)
     return variables
 
 

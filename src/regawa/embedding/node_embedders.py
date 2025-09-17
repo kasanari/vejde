@@ -81,7 +81,7 @@ def _batch_sizes_from_lengths(lengths: Tensor) -> Tensor:
     t = arange(T, device=lengths.device)  # [T]
     # batch_sizes[t] = #seqs with length > t
     batch_sizes = (t.unsqueeze(0) < lengths.unsqueeze(1)).sum(0).to(long)  # [T]
-    return batch_sizes
+    return batch_sizes.to("cpu")
 
 
 def packed_from_concatenated_sequences(
@@ -113,11 +113,11 @@ def packed_from_concatenated_sequences(
         raise ValueError(f"data has {data.size(0)} rows, but sum(lengths)={N}.")
 
     # Map each row -> which sequence it came from
-    row_to_seq = repeat_interleave(arange(B, device=device), lengths)  # [N]
+    row_to_seq = repeat_interleave(arange(B), lengths)  # [N]
 
     # Time index inside its sequence (0..length-1), following input order
     # Since data is sequence-major, this is just [0..L0-1, 0..L1-1, ...]
-    time_index = cat([arange(int(L), device=device) for L in lengths])  # [N]
+    time_index = cat([arange(int(L)) for L in lengths])  # [N]
 
     # Sort sequences by length (desc) to make a canonical pack order
     sorted_indices = argsort(lengths, descending=True)  # [B] sorted->orig
@@ -128,13 +128,18 @@ def packed_from_concatenated_sequences(
     B_val = B if B > 0 else 1
     key = time_index * B_val + rank
     perm = argsort(key)  # [N]
-    packed_data = data.index_select(0, perm)
+    packed_data = data.index_select(0, perm.to(device))  # [N, *feat]
 
     # Build batch_sizes
     batch_sizes = _batch_sizes_from_lengths(lengths.index_select(0, sorted_indices))
 
     return (
-        PackedSequence(packed_data, batch_sizes, sorted_indices, unsorted_indices)
+        PackedSequence(
+            packed_data,
+            batch_sizes,
+            sorted_indices.to(device),
+            unsorted_indices.to(device),
+        )
         if include_sort_info
         else PackedSequence(packed_data, batch_sizes)
     )

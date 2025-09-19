@@ -190,7 +190,7 @@ def fn_obsdict_to_graph(
     model: BaseModel,
     bool_graph_cls: type[T],
     numeric_graph_cls: type[S],
-):
+) -> Callable[[GroundObs], HeteroGraph]:
     """
     Returns a function that takes an observation dictionary of groundings and values, and returns a heterogenous bipartite graph.
     """
@@ -199,7 +199,7 @@ def fn_obsdict_to_graph(
     bool_fn = fn_obsdict_to_graph_boolean(model, bool_graph_cls)
     numeric_fn = fn_obsdict_to_graph_numeric(model, numeric_graph_cls)
 
-    def obsdict_to_graph(rddl_obs: GroundObs):
+    def obsdict_to_graph(rddl_obs: GroundObs) -> HeteroGraph:
         filtered_groundings = [
             g
             for g in rddl_obs

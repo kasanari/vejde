@@ -6,6 +6,7 @@ from torch import Tensor
 
 
 class NumericEmbedder(nn.Module):
+    """Embedder that multiplies the numeric value by the predicate embeddings."""
     def __init__(
         self,
         embedding_dim: int,

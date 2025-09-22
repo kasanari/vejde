@@ -1,7 +1,7 @@
 from typing import TypeVar
 from .gnn_agent import GraphAgent
 from .recurrent_gnn_agent import RecurrentGraphAgent
-from .agent_utils import AgentConfig, GNNParams
+from .agent_config import AgentConfig, GNNParams
 import torch
 
 T = TypeVar("T", bound=GraphAgent | RecurrentGraphAgent)

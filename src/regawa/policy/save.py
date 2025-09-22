@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any
 import torch
 import torch.nn as nn
-from .agent_utils import AgentConfig
+from .agent_config import AgentConfig
 
 
 def save_agent(agent: nn.Module, config: AgentConfig, path: str | Path):

@@ -102,6 +102,8 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
         self.factor_embedding = factor_embedding
         self.edge_attr_embedding = edge_attr_embedding
         self.predicate_embedding = predicate_embedding
+        self.r_numeric_embedder = r_numeric_embedder
+        self.r_boolean_embedder = r_boolean_embedder
 
         self.embed_heterobatch = fn_embed_heterobatch(
             fn_compress_time(

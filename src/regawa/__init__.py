@@ -30,7 +30,6 @@ def agent_from_env(
     | gym.vector.SyncVectorEnv
     | gym.vector.AsyncVectorEnv,
     params: GNNParams,
-    remove_false_fluents: bool,
     device: str = "cpu",
 ):
     obs_space, action_space = (
@@ -47,7 +46,6 @@ def agent_from_env(
         n_types,
         n_relations,
         n_actions,
-        remove_false_fluents=remove_false_fluents,
         arity=gym_utils.max_arity(obs_space),  # type: ignore
         hyper_params=params,
     )

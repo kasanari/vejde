@@ -6,7 +6,11 @@ import numpy as np
 from regawa.data import BatchData, FactorGraph, SparseTensor, sparsify, HeteroBatchData
 from regawa.data.torch import concat_sparse
 from .recurrent import RecurrentEmbedder
-from .boolean import BooleanEmbedder, NegativeBiasBooleanEmbedder
+from .boolean import (
+    BooleanEmbedder,
+    NegativeBiasBooleanEmbedder,
+    PositiveNegativeBooleanEmbedder,
+)
 from .numeric import NumericEmbedder
 from numpy.typing import NDArray
 from .node_embedders import (
@@ -19,6 +23,7 @@ __all__ = [
     "NumericEmbedder",
     "RecurrentEmbedder",
     "EmbeddingLayer",
+    "PositiveNegativeBooleanEmbedder",
 ]
 
 

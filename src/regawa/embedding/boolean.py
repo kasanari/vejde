@@ -72,7 +72,7 @@ class NegativeBiasBooleanEmbedder(nn.Module):
 
 
 class PositiveNegativeBooleanEmbedder(nn.Module):
-    """Embedder that uses separate embeddings for positive and negative and negative versions of predicates."""
+    """Embedder that uses separate embeddings for positive and negative versions of predicates."""
     def __init__(
         self,
         embedding_dim: int,
@@ -105,3 +105,4 @@ class PositiveNegativeBooleanEmbedder(nn.Module):
             + (1 - var_val).unsqueeze(1) * negative_preds
         )
         return h
+

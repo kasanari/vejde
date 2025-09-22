@@ -11,6 +11,7 @@ from regawa.data import HeteroObsData
 from regawa.embedding import (
     BooleanEmbedder,
     NegativeBiasBooleanEmbedder,
+    PositiveNegativeBooleanEmbedder,
     NumericEmbedder,
 )
 from regawa.model import BaseModel
@@ -95,18 +96,10 @@ class GraphAgent(nn.Module, GraphAgentInterface):
             config.arity, gnn_params.embedding_dim, rngs, use_padding=False
         )
 
-        boolean_embedder = (
-            NegativeBiasBooleanEmbedder(
-                gnn_params.embedding_dim,
-                predicate_embedding,
-                rngs,
-            )
-            if config.remove_false_fluents
-            else BooleanEmbedder(
-                gnn_params.embedding_dim,
-                predicate_embedding,
-                rngs,
-            )
+        boolean_embedder = NegativeBiasBooleanEmbedder(
+            gnn_params.embedding_dim,
+            predicate_embedding,
+            rngs,
         )
 
         numeric_embedder = NumericEmbedder(

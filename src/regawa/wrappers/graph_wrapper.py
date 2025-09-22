@@ -6,6 +6,7 @@ from .graph_utils import fn_obsdict_to_graph
 from .render_utils import create_render_graph, to_graphviz
 from .types import FactorGraph, HeteroGraph, RenderGraph
 import numpy as np
+
 logger = logging.getLogger(__name__)
 
 

@@ -80,6 +80,7 @@ class FactorGraph(NamedTuple):
     """
     This represents a single factor graph, with all features mapped to a vector space.
     """
+
     variables: SparseTensor
     factors: SparseTensor
     globals: SparseTensor

@@ -144,7 +144,7 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
             data.boolean.action_arity_mask,
             fg.n_factor,
         )
-    
+
     def sample_from_obs(
         self,
         obs: HeteroObsData,
@@ -153,7 +153,7 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
         s = single_obs_to_heterostatedata(obs)
         s = heterostatedata_to_tensors(s, device=self.device)
         return self.sample(s, deterministic=deterministic)
-    
+
     def sample(self, data: HeteroBatchData, deterministic: bool = False):
         fg = self.embed(data)
         return self.policy.sample(

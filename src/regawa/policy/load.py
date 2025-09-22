@@ -8,6 +8,7 @@ T = TypeVar("T", bound=GraphAgent | RecurrentGraphAgent)
 
 ## TODO check that the size of the loaded model matches the basemodel used
 
+
 def load_agent(cls: type[T], path: str, device: str = "cpu") -> tuple[T, AgentConfig]:
     data = torch.load(path, weights_only=False, map_location=device)  # type: ignore
 

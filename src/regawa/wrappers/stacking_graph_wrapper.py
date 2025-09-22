@@ -165,7 +165,6 @@ class StackingGroundedGraphWrapper(
     def step(
         self, action: Grounding
     ) -> tuple[spaces.Dict, SupportsFloat, bool, bool, dict[str, Any]]:
-
         rddl_obs, reward, terminated, truncated, info = self.env.step(action)
 
         g = self._create_obs(rddl_obs)
@@ -181,7 +180,6 @@ class StackingGroundedGraphWrapper(
         self._object_to_type = {
             k: v for k, v in zip(g.boolean.factors, g.boolean.factor_types)
         }
-
 
         self.last_g = combined_g
         self.last_rddl_obs = rddl_obs

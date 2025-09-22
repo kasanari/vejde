@@ -43,7 +43,7 @@ class FactorGraphSpace(Space[ObsData[V]]):
         """Check whether `other` is equivalent to this instance. Doesn't check dtype equivalence."""
         if not isinstance(other, FactorGraphSpace):
             return False
-        
+
         results = [
             self.var_type == other.var_type,
             self.var_value == other.var_value,
@@ -110,7 +110,7 @@ class HeteroStateSpace(Space[HeteroObsData]):
         """Check whether `other` is equivalent to this instance. Doesn't check dtype equivalence."""
         if not isinstance(other, HeteroStateSpace):
             return False
-        
+
         results = [
             self.bool.var_type == other.bool.var_type,
             self.bool.var_value == other.bool.var_value,

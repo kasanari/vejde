@@ -35,6 +35,7 @@ def dynamic_add_actions_to_obs(obs: GroundObs, actions: GroundObs) -> GroundObs:
     obs_with_actions = add_actions_to_obs(obs, boolean_actions)
     return obs_with_actions
 
+
 class AddActionWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs]):
     """
     Adds the previous action to the observation. Only the most recent action is set to true.

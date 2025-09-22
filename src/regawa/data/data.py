@@ -28,6 +28,7 @@ class ObsData(NamedTuple, Generic[V]):
     This class represents a factor graph of groundings and objects.
     Assume a grounding p(o) = v.
     """
+
     var_value: NDArray[V]  # value of groundings, e.g. "v". This can be bool or float
     var_type: NDArray[
         np.int64
@@ -64,6 +65,7 @@ class HeteroObsData(NamedTuple):
     """
     This class represents a heterogeneous observation with boolean and float features.
     """
+
     bool: ObsData[np.bool_]  # boolean ObsData
     float: ObsData[np.float32]  # numeric ObsData
 
@@ -94,6 +96,7 @@ class SparseArray(NamedTuple, Generic[V]):
 
 class BatchData(NamedTuple, Generic[V]):
     """This represents a batch of multiple factor graphs."""
+
     var_value: SparseArray[V]
     var_type: SparseArray[np.int64]
     factor: SparseArray[np.int64]
@@ -113,6 +116,7 @@ class BatchData(NamedTuple, Generic[V]):
 
 class HeteroBatchData(NamedTuple):
     """This represents a batch of multiple heterogeneous factor graphs."""
+
     boolean: BatchData[np.bool_]
     numeric: BatchData[np.float32]
 
@@ -225,12 +229,17 @@ class RolloutCollector:
         returns = [sum(list(self.rewards)[i:]) for i in range(len(self.rewards))]
         return returns
 
+
 # Listening to: "Magic of Love" by "Perfume"
 def batch(graphs: list[ObsData[V]]) -> BatchData[V]:
     num_graphs = len(graphs)
     total_factors = sum(g.n_factor for g in graphs)
-    total_length = sum(g.n_variable for g in graphs) # 1 length per variable, even with stacking
-    total_variables = sum(sum(g.length) for g in graphs) # account for stacking. each variable can have length
+    total_length = sum(
+        g.n_variable for g in graphs
+    )  # 1 length per variable, even with stacking
+    total_variables = sum(
+        sum(g.length) for g in graphs
+    )  # account for stacking. each variable can have length
     total_edges = sum(g.v_to_f.size for g in graphs)
     total_globals = sum(g.global_vars.size for g in graphs)
 
@@ -261,8 +270,8 @@ def batch(graphs: list[ObsData[V]]) -> BatchData[V]:
     factor_offsets, variable_offsets, globals_offset, length_offset = 0, 0, 0, 0
     edge_offsets = 0
     for i, g in enumerate(graphs):
-        var_len = sum(g.length) # account for stacking. each variable can have length
-        num_length = g.n_variable # 1 length per variable, even with stacking
+        var_len = sum(g.length)  # account for stacking. each variable can have length
+        num_length = g.n_variable  # 1 length per variable, even with stacking
         fac_len = g.n_factor
         edge_len = g.v_to_f.size
         globals_len = g.global_vars.size
@@ -272,7 +281,9 @@ def batch(graphs: list[ObsData[V]]) -> BatchData[V]:
         length[length_offset : length_offset + num_length] = g.length
         factor[factor_offsets : factor_offsets + fac_len] = g.factor
         factor_batch[factor_offsets : factor_offsets + fac_len] = i
-        senders[edge_offsets : edge_offsets + edge_len] = g.v_to_f + length_offset # don't offset vars by their full length, since the vars will be flattened before message passing
+        senders[edge_offsets : edge_offsets + edge_len] = (
+            g.v_to_f + length_offset
+        )  # don't offset vars by their full length, since the vars will be flattened before message passing
         receivers[edge_offsets : edge_offsets + edge_len] = g.f_to_v + factor_offsets
         edge_attr[edge_offsets : edge_offsets + edge_len] = g.edge_attr
         global_vars[globals_offset : globals_offset + globals_len] = g.global_vars

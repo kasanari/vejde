@@ -1,6 +1,7 @@
 import torch
 from torch import Tensor
 
+
 def symlog(x: Tensor):
     # return x
     return torch.sign(x) * torch.log(1 + torch.abs(x))

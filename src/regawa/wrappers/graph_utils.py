@@ -130,7 +130,6 @@ def fn_obsdict_to_graph_boolean(
     model: BaseModel,
     graph_cls: type[T],
 ):
-
     generate_bipartite_obs_bool = generate_bipartite_obs_func(
         graph_cls,
         fn_valid_action_fluents_given_type(model),
@@ -162,7 +161,6 @@ S = TypeVar(
 
 
 def fn_obsdict_to_graph_numeric(model: BaseModel, graph_cls: type[S]):
-
     generate_bipartite_obs_numeric = generate_bipartite_obs_func(
         graph_cls,
         fn_valid_action_fluents_given_type(model),

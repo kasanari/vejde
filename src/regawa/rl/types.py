@@ -7,6 +7,8 @@ import numpy as np
 from typing import NamedTuple, TypeVar
 
 V = TypeVar("V", np.float32, np.bool_, np.int64)
+
+
 class RolloutData(NamedTuple):
     obs: HeteroGraphBuffer
     last_obs: dict[str, list[ObsData[V]]]

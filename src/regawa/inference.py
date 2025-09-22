@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from typing_extensions import TypeVar
 from regawa import GroundObs
 from regawa.wrappers.graph_utils import fn_regular_map_graph_to_idx
 from regawa.wrappers.stacking_utils import fn_flatten_map_graph_to_idx
@@ -24,6 +23,7 @@ class NodeThenActionAgentOutput(NamedTuple):
     weight_by_action: dict[str, float]
     joint_probs: dict[tuple[str, str], float]
     graph: RenderGraph
+
 
 class ActionThenNodeAgentOutput(NamedTuple):
     action: tuple[str, str]

@@ -78,7 +78,11 @@ def packed_from_concatenated_sequences(
     )
 
 
-def compress_time(recurrent: Callable[[PackedSequence], tuple[Tensor, Tensor]], h: Tensor, length: Tensor) -> Tensor:
+def compress_time(
+    recurrent: Callable[[PackedSequence], tuple[Tensor, Tensor]],
+    h: Tensor,
+    length: Tensor,
+) -> Tensor:
     custom_h_c = packed_from_concatenated_sequences(h, length, include_sort_info=True)
     _, variables = recurrent(custom_h_c)
     return variables

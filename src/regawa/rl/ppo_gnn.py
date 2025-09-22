@@ -4,6 +4,7 @@ import os
 
 from regawa.policy.gnn_agent import GraphAgent
 from regawa.policy.recurrent_gnn_agent import RecurrentGraphAgent
+
 os.environ["DO_NOT_TRACK"] = "true"
 import random
 import time
@@ -498,7 +499,7 @@ def main(
         lambda_return.lambda_returns(args.gamma, args.gae_lambda),
         device,
     )
-    
+
     actions = npl.zeros(
         (args.num_steps, args.num_envs) + envs.single_action_space.shape  # type: ignore
     ).to(device)
@@ -586,11 +587,17 @@ def mlflow_log(
     global_step: int,
     start_time: float,
 ):
-    mlflow.log_artifact(artifact_name, artifact_path="checkpoints") if artifact_name else None
+    mlflow.log_artifact(
+        artifact_name, artifact_path="checkpoints"
+    ) if artifact_name else None
     mlflow.log_metric("charts/learning_rate", learning_rate, global_step)
     mlflow.log_metric("rollout/return_scale", return_scale.item(), global_step)
-    mlflow.log_metric("rollout/return_scale_low", carry.low_ema.item(), global_step) if carry.low_ema is not None else None
-    mlflow.log_metric("rollout/return_scale_high", carry.high_ema.item(), global_step) if carry.high_ema is not None else None
+    mlflow.log_metric(
+        "rollout/return_scale_low", carry.low_ema.item(), global_step
+    ) if carry.low_ema is not None else None
+    mlflow.log_metric(
+        "rollout/return_scale_high", carry.high_ema.item(), global_step
+    ) if carry.high_ema is not None else None
     mlflow.log_metric("rollout/mean_reward", b.rewards.mean().item(), global_step)
     if r is not None:
         mlflow.log_metric("rollout/mean_episodic_return", r, global_step)  # type: ignore
@@ -641,6 +648,7 @@ def create_run_folder(run_name: str) -> Path:
     run_folder.mkdir(exist_ok=True)
     return run_folder
 
+
 AGENT_CLASSES: dict[str, type[GraphAgentInterface]] = {
     c.__name__: c
     for c in [
@@ -650,9 +658,7 @@ AGENT_CLASSES: dict[str, type[GraphAgentInterface]] = {
 }
 
 
-def train(
-    args: Args | None = None, batch_id: str | None = None
-):
+def train(args: Args | None = None, batch_id: str | None = None):
     args = tyro.cli(Args) if args is None else args
     logger.info("Attempting to connect to mlflow...")
     device = npl.device(
@@ -701,12 +707,12 @@ def train(
 
     mlflow.enable_system_metrics_logging()
     mlflow.set_tracking_uri(uri=args.mlflow_tracking_uri)
-    
+
     try:
         mlflow.create_experiment(run_name)
     except mlflow.exceptions.MlflowException:
         pass
-    
+
     mlflow.set_experiment(run_name)
 
     with mlflow.start_run():
@@ -722,7 +728,7 @@ def train(
         if batch_id:
             mlflow.log_param("batch_id", batch_id)
         run_id = mlflow.active_run().info.run_id
-        
+
         agent = main(envs, run_name, args, device, agent)
 
         agent.agent.save_agent(run_folder / f"{run_name}.pth")

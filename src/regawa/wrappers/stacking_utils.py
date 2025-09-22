@@ -27,6 +27,7 @@ def flatten_values(
         flatten(factorgraph.global_variable_values, factorgraph.global_variables),
     )
 
+
 def fn_flatten_map_graph_to_idx(
     rel_to_idx: Callable[[str], int], type_to_idx: Callable[[str], int]
 ):

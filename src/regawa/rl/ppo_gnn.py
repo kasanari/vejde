@@ -435,10 +435,7 @@ def main(
     device: str | npl.device,
     graph_agent: GraphAgentInterface,
 ):
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    npl.manual_seed(args.seed)  # type: ignore
-    npl.backends.cudnn.deterministic = args.torch_deterministic
+
 
     batch_size = int(args.num_envs * args.num_steps)
     minibatch_size = int(batch_size // args.num_minibatches)
@@ -660,6 +657,10 @@ AGENT_CLASSES: dict[str, type[GraphAgentInterface]] = {
 
 def train(args: Args | None = None, batch_id: str | None = None):
     args = tyro.cli(Args) if args is None else args
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    npl.manual_seed(args.seed)  # type: ignore
+    npl.backends.cudnn.deterministic = args.torch_deterministic
     logger.info("Attempting to connect to mlflow...")
     device = npl.device(
         "cuda:0" if npl.cuda.is_available() and args.cuda else npl.device("cpu")

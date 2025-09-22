@@ -6,6 +6,7 @@ from .stacking_graph_wrapper import StackingGroundedGraphWrapper
 from .remove_false_wrapper import RemoveFalseWrapper, remove_false
 from .remove_none_wrapper import RemoveNoneWrapper
 from .stacking_wrapper import StackingWrapper
+from .add_actions_wrapper import AddActionWrapper
 from .graph_wrapper import GroundedGraphWrapper
 from .graph_utils import fn_obsdict_to_graph
 from .graph_utils import fn_heterograph_to_heteroobs
@@ -45,4 +46,5 @@ __all__ = [
     "single_obs_to_heterostatedata",
     "IndexObsWrapper",
     "n_actions",
+	"AddActionWrapper",
 ]

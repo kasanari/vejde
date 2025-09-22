@@ -2,18 +2,6 @@ from dataclasses import dataclass
 from enum import Enum
 
 import torch.nn as nn
-from typing import TypeVar
-
-import numpy as np
-import torch
-from torch import Tensor, as_tensor, concatenate, int64
-
-from regawa.data import FactorGraph, SparseTensor, sparsify
-
-
-from regawa.data import (
-    BatchData,
-)
 
 
 class ActionMode(Enum):
@@ -43,86 +31,3 @@ class AgentConfig:
     # GNN parameters
     hyper_params: GNNParams
     arity: int
-
-
-V = TypeVar("V", np.float32, np.bool_)
-
-
-def embed(
-    data: BatchData[V],
-    var_embedder: nn.Module,
-    factor_embedding: nn.Module,
-    global_var_embedder: nn.Module,
-    edge_attr_emb: nn.Module,
-) -> FactorGraph:
-    factors = sparsify(factor_embedding)(data.factor)
-    variables = SparseTensor(
-        var_embedder(
-            data.var_value.values,
-            data.var_type.values,
-        ),
-        data.var_value.indices,
-    )
-    globals_ = (
-        SparseTensor(
-            global_var_embedder(
-                data.global_vals.values,
-                data.global_vars.values,
-            ),
-            data.global_vals.indices,
-        )
-        if data.global_vals.shape[0] > 0
-        else SparseTensor(
-            as_tensor([], device=data.global_vals.values.device),
-            as_tensor([], dtype=int64, device=data.global_vals.values.device),
-        )
-    )
-
-    embedd_edge_attr = edge_attr_emb(data.edge_attr)
-
-    return FactorGraph(
-        variables,
-        factors,
-        globals_,
-        data.v_to_f,
-        data.f_to_v,
-        embedd_edge_attr,
-        data.n_variable,
-        data.n_factor,
-    )
-
-
-def cat(a: Tensor, b: Tensor) -> Tensor:
-    return concatenate((a, b))
-
-
-@torch.jit.script
-def concat_sparse(a: SparseTensor, b: SparseTensor) -> SparseTensor:
-    return SparseTensor(
-        concatenate((a.values, b.values)),
-        concatenate((a.indices, b.indices)),
-    )
-
-
-@torch.jit.script
-def merge_graphs(
-    boolean: FactorGraph,
-    numeric: FactorGraph,
-) -> FactorGraph:
-    # this only refers to the factors, so we can use either boolean or numeric data
-
-    return FactorGraph(
-        concat_sparse(boolean.variables, numeric.variables),
-        # same factors for both boolean and numeric data, so we can use either
-        boolean.factors,
-        concat_sparse(boolean.globals, numeric.globals),
-        cat(boolean.v_to_f, numeric.v_to_f + boolean.variables.values.shape[0]),
-        # since factors are the same, we do not need to offset the receiver indices
-        cat(boolean.f_to_v, numeric.f_to_v),
-        cat(boolean.edge_attr, numeric.edge_attr),
-        boolean.n_variable + numeric.n_variable,
-        boolean.n_factor,
-    )
-
-
-

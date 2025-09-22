@@ -24,8 +24,10 @@ V = TypeVar("V", np.float32, np.bool_, np.int64)
 
 
 class ObsData(NamedTuple, Generic[V]):
-    # this represents a factor graph of groundings and objects
-    # assume a grounding p(o) = v
+    """
+    This class represents a factor graph of groundings and objects.
+    Assume a grounding p(o) = v.
+    """
     var_value: NDArray[V]  # value of groundings, e.g. "v". This can be bool or float
     var_type: NDArray[
         np.int64
@@ -59,6 +61,9 @@ class ObsData(NamedTuple, Generic[V]):
 
 
 class HeteroObsData(NamedTuple):
+    """
+    This class represents a heterogeneous observation with boolean and float features.
+    """
     bool: ObsData[np.bool_]  # boolean ObsData
     float: ObsData[np.float32]  # numeric ObsData
 
@@ -88,6 +93,7 @@ class SparseArray(NamedTuple, Generic[V]):
 
 
 class BatchData(NamedTuple, Generic[V]):
+    """This represents a batch of multiple factor graphs."""
     var_value: SparseArray[V]
     var_type: SparseArray[np.int64]
     factor: SparseArray[np.int64]
@@ -106,6 +112,7 @@ class BatchData(NamedTuple, Generic[V]):
 
 
 class HeteroBatchData(NamedTuple):
+    """This represents a batch of multiple heterogeneous factor graphs."""
     boolean: BatchData[np.bool_]
     numeric: BatchData[np.float32]
 

@@ -1,7 +1,8 @@
 import torch.nn as nn
 
+from regawa.embedding.boolean import NegativeBiasBooleanEmbedder
+from regawa.embedding.numeric import NumericEmbedder
 from regawa.policy import ActionMode, AgentConfig
-from regawa.policy.agent_utils import embed, merge_graphs
 from .q_action_then_node import QActionThenNode
 from .q_node_then_action import QNodeThenAction
 
@@ -9,8 +10,7 @@ from regawa.data import FactorGraph, HeteroBatchData
 from regawa.gnn import BipartiteGNN
 from regawa.embedding import (
     EmbeddingLayer,
-    NegativeBiasBooleanEmbedder,
-    NumericEmbedder,
+    merge_graphs,
 )
 
 

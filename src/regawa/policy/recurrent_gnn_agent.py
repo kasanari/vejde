@@ -10,7 +10,12 @@ from regawa.data import FactorGraph
 from regawa.data import single_obs_to_heterostatedata
 from regawa.data import heterostatedata_to_tensors
 from regawa.data.data import HeteroObsData
-from regawa.embedding.node_embedders import NegativeBiasBooleanEmbedder
+from regawa.embedding import (
+    BooleanEmbedder,
+    NegativeBiasBooleanEmbedder,
+    NumericEmbedder,
+    RecurrentEmbedder,
+)
 from regawa.model.base_model import BaseModel
 from .gnn_agent import GraphAgentInterface
 from regawa.policy.save import save_agent
@@ -23,13 +28,8 @@ from regawa.data import (
     HeteroBatchData,
 )
 from regawa.gnn import BipartiteGNN
-from regawa.embedding import (
-    BooleanEmbedder,
-    NumericEmbedder,
-    RecurrentEmbedder,
-    EmbeddingLayer,
-)
-from .agent_utils import embed, merge_graphs
+from regawa.embedding import EmbeddingLayer, fn_compress_time, fn_embed_heterobatch
+from regawa.embedding import fn_embed_graph
 
 V = TypeVar("V", np.float32, np.bool_)
 
@@ -46,32 +46,32 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
         gnn_params = config.hyper_params
 
         self.config = config
-        self.factor_embedding = EmbeddingLayer(
+        factor_embedding = EmbeddingLayer(
             config.num_object_classes,
             gnn_params.embedding_dim,
             rngs,
         )
 
-        self.predicate_embedding = EmbeddingLayer(
+        predicate_embedding = EmbeddingLayer(
             config.num_predicate_classes,
             gnn_params.embedding_dim,
             rngs,
         )
 
-        self.edge_attr_embedding = EmbeddingLayer(
+        edge_attr_embedding = EmbeddingLayer(
             config.arity, gnn_params.embedding_dim, rngs, use_padding=False
         )
 
         boolean_embedder = (
             NegativeBiasBooleanEmbedder(
                 gnn_params.embedding_dim,
-                self.predicate_embedding,
+                predicate_embedding,
                 rngs,
             )
             if config.remove_false_fluents
             else BooleanEmbedder(
                 gnn_params.embedding_dim,
-                self.predicate_embedding,
+                predicate_embedding,
                 rngs,
             )
         )
@@ -79,16 +79,14 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
         numeric_embedder = NumericEmbedder(
             gnn_params.embedding_dim,
             gnn_params.activation,
-            self.predicate_embedding,
+            predicate_embedding,
         )
 
-        self.r_numeric_embedder = RecurrentEmbedder(
+        r_numeric_embedder = RecurrentEmbedder(
             gnn_params.embedding_dim,
-            numeric_embedder,
         )
-        self.r_boolean_embedder = RecurrentEmbedder(
+        r_boolean_embedder = RecurrentEmbedder(
             gnn_params.embedding_dim,
-            boolean_embedder,
         )
 
         self.p_gnn = BipartiteGNN(
@@ -108,26 +106,34 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
         self.device = device
         self.boolean_embedder = boolean_embedder
         self.numeric_embedder = numeric_embedder
+        self.factor_embedding = factor_embedding
+        self.edge_attr_embedding = edge_attr_embedding
+        self.predicate_embedding = predicate_embedding
 
-    def embed(self, data: HeteroBatchData) -> FactorGraph:
-        return self.p_gnn(
-            merge_graphs(
-                embed(
-                    data.boolean,
-                    self.r_boolean_embedder(data.boolean.length),
-                    self.factor_embedding,
-                    self.r_boolean_embedder(data.boolean.global_length),
-                    self.edge_attr_embedding,
+        self.embed_heterobatch = fn_embed_heterobatch(
+            fn_compress_time(
+                r_boolean_embedder,
+                fn_embed_graph(
+                    boolean_embedder,
+                    factor_embedding,
+                    boolean_embedder,
+                    edge_attr_embedding,
                 ),
-                embed(
-                    data.numeric,
-                    self.r_numeric_embedder(data.numeric.length),
-                    self.factor_embedding,
-                    self.r_numeric_embedder(data.numeric.global_length),
-                    self.edge_attr_embedding,
+            ),
+            fn_compress_time(
+                r_numeric_embedder,
+                fn_embed_graph(
+                    numeric_embedder,
+                    factor_embedding,
+                    numeric_embedder,
+                    edge_attr_embedding,
                 ),
-            )
+            ),
         )
+
+    # Listening to: Sagittarius by Daisuke Achiwa
+    def embed(self, data: HeteroBatchData) -> FactorGraph:
+        return self.p_gnn(self.embed_heterobatch(data))
 
     def forward(self, actions: Tensor, data: HeteroBatchData):
         fg = self.embed(data)

@@ -8,6 +8,11 @@ from torch import Tensor
 from regawa.data import FactorGraph, heterostatedata_to_tensors
 from regawa.data import HeteroObsData
 
+from regawa.embedding import (
+    BooleanEmbedder,
+    NegativeBiasBooleanEmbedder,
+    NumericEmbedder,
+)
 from regawa.model import BaseModel
 from regawa.policy.save import save_agent
 
@@ -19,12 +24,11 @@ from regawa.data import (
 )
 from regawa.gnn import BipartiteGNN
 from regawa.embedding import (
-    BooleanEmbedder,
-    NegativeBiasBooleanEmbedder,
-    NumericEmbedder,
     EmbeddingLayer,
+    fn_embed_graph,
+    fn_embed_heterobatch,
 )
-from .agent_utils import ActionMode, AgentConfig, embed, merge_graphs
+from .agent_utils import ActionMode, AgentConfig
 from abc import ABC, abstractmethod
 
 
@@ -75,32 +79,32 @@ class GraphAgent(nn.Module, GraphAgentInterface):
         gnn_params = config.hyper_params
 
         self.config = config
-        self.factor_embedding = EmbeddingLayer(
+        factor_embedding = EmbeddingLayer(
             config.num_object_classes,
             gnn_params.embedding_dim,
             rngs,
         )
 
-        self.predicate_embedding = EmbeddingLayer(
+        predicate_embedding = EmbeddingLayer(
             config.num_predicate_classes,
             gnn_params.embedding_dim,
             rngs,
         )
 
-        self.edge_attr_embedding = EmbeddingLayer(
+        edge_attr_embedding = EmbeddingLayer(
             config.arity, gnn_params.embedding_dim, rngs, use_padding=False
         )
 
         boolean_embedder = (
             NegativeBiasBooleanEmbedder(
                 gnn_params.embedding_dim,
-                self.predicate_embedding,
+                predicate_embedding,
                 rngs,
             )
             if config.remove_false_fluents
             else BooleanEmbedder(
                 gnn_params.embedding_dim,
-                self.predicate_embedding,
+                predicate_embedding,
                 rngs,
             )
         )
@@ -108,10 +112,10 @@ class GraphAgent(nn.Module, GraphAgentInterface):
         numeric_embedder = NumericEmbedder(
             gnn_params.embedding_dim,
             gnn_params.activation,
-            self.predicate_embedding,
+            predicate_embedding,
         )
 
-        self.p_gnn = BipartiteGNN(
+        self.message_pass = BipartiteGNN(
             gnn_params.layers,
             gnn_params.embedding_dim,
             gnn_params.aggregation,
@@ -128,26 +132,26 @@ class GraphAgent(nn.Module, GraphAgentInterface):
         self.device = device
         self.boolean_embedder = boolean_embedder
         self.numeric_embedder = numeric_embedder
+        self.factor_embedding = factor_embedding
+        self.edge_attr_embedding = edge_attr_embedding
+        self.predicate_embedding = predicate_embedding
+        self.embed_heterobatch = fn_embed_heterobatch(
+            fn_embed_graph(
+                boolean_embedder,
+                factor_embedding,
+                boolean_embedder,
+                edge_attr_embedding,
+            ),
+            fn_embed_graph(
+                numeric_embedder,
+                factor_embedding,
+                numeric_embedder,
+                edge_attr_embedding,
+            ),
+        )
 
     def embed(self, data: HeteroBatchData) -> FactorGraph:
-        return self.p_gnn(
-            merge_graphs(
-                embed(
-                    data.boolean,
-                    self.boolean_embedder,
-                    self.factor_embedding,
-                    self.boolean_embedder,
-                    self.edge_attr_embedding,
-                ),
-                embed(
-                    data.numeric,
-                    self.numeric_embedder,
-                    self.factor_embedding,
-                    self.numeric_embedder,
-                    self.edge_attr_embedding,
-                ),
-            )
-        )
+        return self.message_pass(self.embed_heterobatch(data))
 
     def forward(self, actions: Tensor, data: HeteroBatchData):
         fg = self.embed(data)

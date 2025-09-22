@@ -77,6 +77,9 @@ def sparsify(
 
 
 class FactorGraph(NamedTuple):
+    """
+    This represents a single factor graph, with all features mapped to a vector space.
+    """
     variables: SparseTensor
     factors: SparseTensor
     globals: SparseTensor
@@ -85,3 +88,11 @@ class FactorGraph(NamedTuple):
     edge_attr: Tensor
     n_variable: Tensor
     n_factor: Tensor
+
+
+@torch.jit.script
+def concat_sparse(a: SparseTensor, b: SparseTensor) -> SparseTensor:
+    return SparseTensor(
+        concatenate((a.values, b.values)),
+        concatenate((a.indices, b.indices)),
+    )

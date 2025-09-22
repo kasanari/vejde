@@ -73,7 +73,7 @@ class StackingWrapper(gym.Wrapper):
         obs, info = self.env.reset(seed=seed)
         o = create_obs(obs, {})
 
-        self.buffer = deepcopy(o)
+        self.buffer = o
         self.iteration = 0
 
         new_obs = {k: list(v) for k, v in o.items()}
@@ -97,7 +97,7 @@ class StackingWrapper(gym.Wrapper):
 
         o = create_obs(next_obs, self.buffer)
 
-        self.buffer = deepcopy(o)
+        self.buffer = o
 
         new_obs = {k: list(v) for k, v in o.items()}
 

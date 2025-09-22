@@ -28,7 +28,7 @@ from regawa.embedding import (
     fn_embed_graph,
     fn_embed_heterobatch,
 )
-from .agent_utils import ActionMode, AgentConfig
+from .agent_config import ActionMode, AgentConfig
 from abc import ABC, abstractmethod
 
 

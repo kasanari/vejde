@@ -21,7 +21,9 @@ def obs_space(
     num_actions: int,
     var_value_space: Space[Any],
 ) -> Dict:
-    big_number = 2000
+    big_number = (
+        5000  # arbitrary large number since we do not know the max size in advance
+    )
     return Dict(
         {  # type: ignore
             "var_type": Sequence(Discrete(num_relations), stack=True),

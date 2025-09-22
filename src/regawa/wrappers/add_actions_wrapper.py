@@ -44,7 +44,7 @@ class AddActionWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs]):
     def __init__(
         self,
         env: gym.Env[GroundObs, GroundObs],
-        grounded_model: BaseGroundedModel | None,
+        grounded_model: BaseGroundedModel | None = None,
     ) -> None:
         super().__init__(env)
         self.env = env

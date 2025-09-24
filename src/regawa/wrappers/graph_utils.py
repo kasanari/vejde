@@ -198,18 +198,11 @@ def fn_obsdict_to_graph(
     numeric_fn = fn_obsdict_to_graph_numeric(model, numeric_graph_cls)
 
     def obsdict_to_graph(rddl_obs: GroundObs) -> HeteroGraph:
-        filtered_groundings = [
-            g
-            for g in rddl_obs
-            if rddl_obs[g] is not None  # type: ignore
-        ]
-
-        filtered_obs: GroundObs = {k: rddl_obs[k] for k in filtered_groundings}
-
-        object_nodes = object_list(list(filtered_obs.keys()), objects_with_type)
-
-        bool_g = bool_fn(filtered_obs, filtered_groundings, object_nodes)
-        numeric_g = numeric_fn(filtered_obs, filtered_groundings, object_nodes)
-        return HeteroGraph(numeric_g, bool_g)
+        groundings = list(rddl_obs.keys())  # create an order.
+        object_nodes = object_list(groundings, objects_with_type)
+        return HeteroGraph(
+            numeric_fn(rddl_obs, groundings, object_nodes),
+            bool_fn(rddl_obs, groundings, object_nodes),
+        )
 
     return obsdict_to_graph

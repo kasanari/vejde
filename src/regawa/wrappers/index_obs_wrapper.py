@@ -94,7 +94,6 @@ class IndexObsWrapper(
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[HeteroObsData, dict[str, Any]]:
-        super().reset(seed=seed, options=options)
         graph, info = self.env.reset(seed=seed)
 
         info["idx_to_object"] = graph.boolean.factors

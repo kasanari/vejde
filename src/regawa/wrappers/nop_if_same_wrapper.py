@@ -73,7 +73,7 @@ class NoOpIfSameWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs])
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[GroundObs, dict[str, Any]]:
-        super().reset(seed=seed)
+        
         obs, info = self.env.reset(seed=seed)
 
         self.last_obs = obs

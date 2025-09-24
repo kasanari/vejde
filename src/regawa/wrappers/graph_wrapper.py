@@ -63,7 +63,6 @@ class GroundedGraphWrapper(
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[HeteroGraph, dict[str, Any]]:
-        super().reset(seed=seed)
         rddl_obs, info = self.env.reset(seed=seed)
         graph = self.create_graphs(rddl_obs)
         info_update, combined_graph = self._prepare_info(

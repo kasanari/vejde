@@ -59,8 +59,7 @@ class AddConstantsWrapper(
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[WrapperObsType, dict[str, Any]]:
-        super().reset(seed=seed)
+    ) -> tuple[WrapperObsType, dict[str, Any]]:   
         obs, info = self.env.reset(seed=seed)
 
         obs = self.transform(obs)

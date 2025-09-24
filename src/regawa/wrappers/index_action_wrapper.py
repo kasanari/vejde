@@ -89,7 +89,6 @@ class IndexActionWrapper(
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[HeteroGraph, dict[str, Any]]:
-        super().reset(seed=seed, options=options)
         graph, info = self.env.reset(seed=seed)
 
         info["action_fluents"] = self.model.action_fluents

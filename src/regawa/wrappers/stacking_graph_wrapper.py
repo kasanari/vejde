@@ -111,23 +111,11 @@ class StackingGroundedGraphWrapper(
     def _create_obs(self, rddl_obs: StackedGroundObs) -> HeteroGraph:
         g = self.create_graphs(rddl_obs)
 
-        # assert o["bool"]["length"].sum() == len(
-        #     o["bool"]["var_value"]
-        # ), "Expected {} but got {}".format(
-        #     o["bool"]["length"].sum(), len(o["bool"]["var_value"])
-        # )
-        # assert o["float"]["length"].sum() == len(
-        #     o["float"]["var_value"]
-        # ), "Expected {} but got {}".format(
-        #     o["float"]["length"].sum(), len(o["float"]["var_value"])
-        # )
-
         return g
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[HeteroObsData, dict[str, Any]]:
-        super().reset(seed=seed)
         rddl_obs, info = self.env.reset(seed=seed)
 
         g = self._create_obs(rddl_obs)

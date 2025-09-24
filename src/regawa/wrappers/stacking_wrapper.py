@@ -69,7 +69,6 @@ class StackingWrapper(gym.Wrapper):
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, str], float, bool, bool, dict[str, Any]]:
-        super().reset(seed=seed, options=options)
         obs, info = self.env.reset(seed=seed)
         o = create_obs(obs, {})
 

@@ -120,6 +120,10 @@ class HeteroBatchData(NamedTuple):
     boolean: BatchData[np.bool_]
     numeric: BatchData[np.float32]
 
+    @property
+    def n_graphs(self) -> int:
+        return self.boolean.n_graphs
+
 
 class GraphBuffer(Generic[V]):
     def __init__(self) -> None:
@@ -295,7 +299,7 @@ def batch(graphs: list[ObsData[V]]) -> BatchData[V]:
         )
         action_type_mask[factor_offsets : factor_offsets + fac_len] = g.action_type_mask
         n_factor[i] = fac_len
-        n_variable[i] = var_len
+        n_variable[i] = num_length
 
         factor_offsets += fac_len
         variable_offsets += var_len

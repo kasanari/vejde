@@ -113,14 +113,14 @@ def translate_edges(
     return senders, receivers
 
 
-def edge_attr(edges: Iterable[Edge]) -> list[int]:
+def edge_attr(edges: Iterable[Edge]) -> Sequence[int]:
     return [edge[2] for edge in edges]
 
 
 def object_list(
-    obs_keys: list[Grounding],
-    objects_with_type: Callable[[Grounding], list[Object]],
-) -> list[Object]:
+    obs_keys: Sequence[Grounding],
+    objects_with_type: Callable[[Grounding], Sequence[Object]],
+) -> Sequence[Object]:
     unique_objects = {obj for key in obs_keys for obj in objects_with_type(key)}
     # sorted_objects = unique_objects
     return [Object("None", "None")] + list(unique_objects)

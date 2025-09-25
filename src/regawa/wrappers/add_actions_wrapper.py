@@ -16,11 +16,9 @@ def fn_add_actions_to_obs(grounded_model: BaseGroundedModel):
     action_groundings = grounded_model.action_groundings  # type: ignore
 
     def add_actions_to_obs(obs: GroundObs, actions: GroundObs) -> GroundObs:
-        boolean_actions: dict[str, np.bool_] = {
-            k: np.bool_(v) for k, v in actions.items()
-        }
+        boolean_actions = {k: np.bool_(v) for k, v in actions.items()}
 
-        new_actions: dict[str, bool | None] = {
+        new_actions = {
             k: boolean_actions.get(k, None) for k in action_groundings if k not in obs
         }
 

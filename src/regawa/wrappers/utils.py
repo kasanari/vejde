@@ -140,25 +140,17 @@ def generate_bipartite_obs_func(
         non_nullary_groundings = {
             g: idx for idx, g in enumerate(g for g in groundings if arity(g) > 0)
         }
-
-        edges = create_edges(non_nullary_groundings.keys())
-
-        object_names = [obj.name for obj in object_nodes]
-        object_types = [obj.type for obj in object_nodes]
-
         factor_node_values = [observations[g] for g in non_nullary_groundings]
         factor_node_predicates = [predicate(g) for g in non_nullary_groundings]
 
+        object_names = [obj.name for obj in object_nodes]
+        object_types = [obj.type for obj in object_nodes]
         object_indices = {name: idx for idx, name in enumerate(object_names)}
 
+        edges = create_edges(non_nullary_groundings.keys())
         senders, receivers = translate_edges(
             lambda x: non_nullary_groundings[x], lambda x: object_indices[x], edges
         )
-
-        edge_attributes = edge_attr(edges)
-
-        global_variables = [predicate(g) for g in nullary_groundings]
-        global_variable_values = [observations[g] for g in nullary_groundings]
 
         action_type_mask = [
             action_fluent_type_mask(obj_type) for obj_type in object_types
@@ -180,9 +172,9 @@ def generate_bipartite_obs_func(
             object_types,
             senders,
             receivers,
-            edge_attributes,
-            global_variables,
-            global_variable_values,  # type: ignore
+            edge_attr(edges),
+            [predicate(g) for g in nullary_groundings],
+            [observations[g] for g in nullary_groundings],  # type: ignore
             action_type_mask,
             action_arity_mask,
             list(non_nullary_groundings.keys()),

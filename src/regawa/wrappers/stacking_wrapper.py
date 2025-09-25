@@ -1,14 +1,14 @@
 from collections import deque
-from copy import deepcopy
-from typing import Any, TypeVar
+from typing import Any, SupportsFloat
 
 import gymnasium as gym
 
-ObsType = TypeVar("ObsType")
-ActType = TypeVar("ActType")
-WrapperObsType = TypeVar("WrapperObsType")
-WrapperActType = TypeVar("WrapperActType")
-
+from regawa.model.base_grounded_model import (
+    GroundObs,
+    Grounding,
+    GroundingRange,
+    StackedGroundObs,
+)
 
 def stack_obs(
     horizon: int,
@@ -45,12 +45,9 @@ def stack_obs(
 
 
 def create_obs(
-    obs: dict[str, Any],
-    buffer: dict[str, deque[Any]],
-):
-    obs.update({k: bool(v) for k, v in obs.items() if isinstance(v, bool)})
-    obs = {k: v for k, v in obs.items() if v is not None}
-
+    obs: GroundObs,
+    buffer: dict[Grounding, deque[Any]],
+) -> StackedGroundObs:
     for key in obs:
         if key not in buffer:
             buffer[key] = deque()
@@ -59,20 +56,20 @@ def create_obs(
     return buffer
 
 
-class StackingWrapper(gym.Wrapper):
-    def __init__(self, env) -> None:
+class StackingWrapper(gym.Wrapper[StackedGroundObs, GroundObs, GroundObs, GroundObs]):
+    def __init__(self, env: gym.Env[GroundObs, GroundObs]) -> None:
         self.env = env  # ActionInObsWrapper(env)
-        self.buffer: dict[str, deque[Any]] = {}
+        self.buffer: dict[Grounding, deque[GroundingRange]] = {}
         self.observed_keys: set[str] = set()
         self.iteration = 0
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[dict[str, str], float, bool, bool, dict[str, Any]]:
+    ) -> tuple[StackedGroundObs, dict[str, Any]]:
         obs, info = self.env.reset(seed=seed)
         o = create_obs(obs, {})
 
-        self.buffer = o
+        self.buffer = o  # type: ignore
         self.iteration = 0
 
         new_obs = {k: list(v) for k, v in o.items()}
@@ -81,8 +78,8 @@ class StackingWrapper(gym.Wrapper):
 
     def step(
         self,
-        actions: dict[str, int],
-    ) -> tuple[dict[str, str], float, bool, dict[str, Any]]:
+        action: GroundObs,
+    ) -> tuple[StackedGroundObs, SupportsFloat, bool, bool, dict[str, Any]]:
         """""
         Stacks observations
         obs= {
@@ -92,11 +89,11 @@ class StackingWrapper(gym.Wrapper):
         }
         """ ""
 
-        next_obs, reward, terminated, truncated, info = self.env.step(actions)
+        next_obs, reward, terminated, truncated, info = self.env.step(action)
 
         o = create_obs(next_obs, self.buffer)
 
-        self.buffer = o
+        self.buffer = o  # type: ignore
 
         new_obs = {k: list(v) for k, v in o.items()}
 

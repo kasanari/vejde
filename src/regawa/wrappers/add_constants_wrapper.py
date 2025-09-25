@@ -1,14 +1,9 @@
-from typing import Any, TypeVar
+from typing import Any, SupportsFloat
 
 import gymnasium as gym
 
 from regawa import GroundObs
 from regawa.model import BaseGroundedModel
-
-ObsType = TypeVar("ObsType")
-ActType = TypeVar("ActType")
-WrapperObsType = GroundObs
-WrapperActType = GroundObs
 
 
 def add_constants_fn(ground_model: BaseGroundedModel):
@@ -22,9 +17,7 @@ def add_constants_fn(ground_model: BaseGroundedModel):
     return f
 
 
-class AddConstantsWrapper(
-    gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActType]
-):
+class AddConstantsWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs]):
     """
     Adds constant values to the observation, if there are constants defined in a grounded model.
     When `only_add_on_reset` is True, constants are only added in the first step.
@@ -32,7 +25,7 @@ class AddConstantsWrapper(
 
     def __init__(
         self,
-        env: gym.Env[ObsType, ActType],
+        env: gym.Env[GroundObs, GroundObs],
         ground_model: BaseGroundedModel,
         only_add_on_reset: bool = False,
     ) -> None:
@@ -42,15 +35,15 @@ class AddConstantsWrapper(
 
     def step(
         self,
-        actions: ActType,
+        action: GroundObs,
     ) -> tuple[
         GroundObs,
-        float,
+        SupportsFloat,
         bool,
         bool,
         dict[str, Any],
     ]:
-        obs, reward, terminated, truncated, info = self.env.step(actions)
+        obs, reward, terminated, truncated, info = self.env.step(action)
 
         if not self.only_add_on_reset:
             obs = self.transform(obs)
@@ -59,7 +52,7 @@ class AddConstantsWrapper(
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[WrapperObsType, dict[str, Any]]:   
+    ) -> tuple[GroundObs, dict[str, Any]]:
         obs, info = self.env.reset(seed=seed)
 
         obs = self.transform(obs)

@@ -91,6 +91,5 @@ def test_merge_graph():
     assert merged.globals.values.shape == (1, 2)
 
     assert merged.f_to_v.tolist() == [2, 3, 2, 1, 4, 3, 4, 1, 3, 1, 3, 1]
-    assert merged.v_to_f.tolist() == [0, 0, 1, 1, 2, 2, 3, 3, 4, 5, 6, 7] # offset by 4
+    assert merged.v_to_f.tolist() == [0, 0, 1, 1, 2, 2, 3, 3, 4, 5, 6, 7]  # offset by 4
     assert merged.edge_attr.shape == (12, 2)
-

@@ -46,5 +46,5 @@ __all__ = [
     "single_obs_to_heterostatedata",
     "IndexObsWrapper",
     "n_actions",
-	"AddActionWrapper",
+    "AddActionWrapper",
 ]

@@ -9,9 +9,7 @@ from regawa.data import FactorGraph, heterostatedata_to_tensors
 from regawa.data import HeteroObsData
 
 from regawa.embedding import (
-    BooleanEmbedder,
     NegativeBiasBooleanEmbedder,
-    PositiveNegativeBooleanEmbedder,
     NumericEmbedder,
 )
 from regawa.model import BaseModel

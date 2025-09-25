@@ -21,11 +21,14 @@ def test_segmented_sort():
     assert torch.equal(sort, torch.tensor([5, 4, 3, 3, 2], dtype=torch.long))
     assert torch.equal(new_indices, torch.tensor([0, 3, 1, 4, 2], dtype=torch.long))
 
+
 from torch import Tensor
+
 
 def get_packed(h: Tensor, length: Tensor) -> Tensor:
     from torch.nn.utils.rnn import pack_padded_sequence
-    from torch import zeros, long, roll, cumsum
+    from torch import zeros, roll, cumsum
+
     padded = zeros(
         length.size(0),
         length.max().item(),
@@ -41,19 +44,19 @@ def get_packed(h: Tensor, length: Tensor) -> Tensor:
     return pack_padded_sequence(padded, length, batch_first=True, enforce_sorted=False)
 
 
-
 def test_packed_from_concatenated_sequences():
-    from torch import tensor
-    from torch.nn.utils.rnn import PackedSequence
     lengths = torch.tensor([3, 2, 5, 4, 3], dtype=torch.long)
-    data = torch.tensor(list(chain(*[[i] * i for i in lengths])), dtype=torch.float32).unsqueeze(-1)
+    data = torch.tensor(
+        list(chain(*[[i] * i for i in lengths])), dtype=torch.float32
+    ).unsqueeze(-1)
     assert data.shape == (lengths.sum().item(), 1)
     indices = torch.tensor([0, 0, 1, 1, 1], dtype=torch.long)
     n_variables = torch.tensor([2, 3], dtype=torch.long)
 
     d = packed_from_concatenated_sequences(
         data,
-        lengths, include_sort_info=True,
+        lengths,
+        include_sort_info=True,
     )
 
     expected = get_packed(data, lengths)
@@ -63,11 +66,7 @@ def test_packed_from_concatenated_sequences():
     assert torch.equal(d.sorted_indices, expected.sorted_indices)
     assert torch.equal(d.unsorted_indices, expected.unsorted_indices)
 
-    
-
-
 
 if __name__ == "__main__":
-
     test_packed_from_concatenated_sequences()
     print("All tests passed.")

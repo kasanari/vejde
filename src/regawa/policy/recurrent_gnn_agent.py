@@ -11,8 +11,6 @@ from regawa.data import single_obs_to_heterostatedata
 from regawa.data import heterostatedata_to_tensors
 from regawa.data.data import HeteroObsData
 from regawa.embedding import (
-    BooleanEmbedder,
-    NegativeBiasBooleanEmbedder,
     PositiveNegativeBooleanEmbedder,
     NumericEmbedder,
     RecurrentEmbedder,
@@ -64,10 +62,10 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
         )
 
         boolean_embedder = PositiveNegativeBooleanEmbedder(
-                gnn_params.embedding_dim,
-                predicate_embedding,
-                rngs,
-            )
+            gnn_params.embedding_dim,
+            predicate_embedding,
+            rngs,
+        )
 
         numeric_embedder = NumericEmbedder(
             gnn_params.embedding_dim,

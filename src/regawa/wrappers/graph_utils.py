@@ -142,7 +142,9 @@ def fn_obsdict_to_graph_boolean(
     )
 
     def obsdict_to_graph(
-        rddl_obs: GroundObs, groundings: Sequence[Grounding], object_nodes: Sequence[Object]
+        rddl_obs: GroundObs,
+        groundings: Sequence[Grounding],
+        object_nodes: Sequence[Object],
     ):
         return generate_bipartite_obs_bool(
             rddl_obs,

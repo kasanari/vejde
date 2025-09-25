@@ -10,6 +10,7 @@ from regawa.model.base_grounded_model import (
     StackedGroundObs,
 )
 
+
 def stack_obs(
     horizon: int,
     obs: dict[str, Any],

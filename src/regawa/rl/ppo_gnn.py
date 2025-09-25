@@ -435,7 +435,6 @@ def main(
     device: str | npl.device,
     graph_agent: GraphAgentInterface,
 ):
-
     batch_size = int(args.num_envs * args.num_steps)
     minibatch_size = int(batch_size // args.num_minibatches)
     num_iterations = args.total_timesteps // batch_size

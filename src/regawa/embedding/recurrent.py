@@ -5,11 +5,9 @@ from torch import long
 
 import torch.nn as nn
 import torch.nn.init as init
-from torch import Tensor, arange, argsort, cat, repeat_interleave
+from torch import Tensor, arange
 
 import torch
-from torch import Tensor
-from torch.nn.utils.rnn import PackedSequence
 
 
 def _batch_sizes_from_lengths(lengths: Tensor) -> Tensor:

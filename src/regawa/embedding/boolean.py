@@ -7,6 +7,7 @@ from torch import Generator as Rngs, Tensor, zeros
 
 class BooleanEmbedder(nn.Module):
     """Embedder that uses separate embeddings for boolean True and False, and multiplies by the predicate embeddings."""
+
     def __init__(
         self,
         embedding_dim: int,
@@ -43,6 +44,7 @@ class BooleanEmbedder(nn.Module):
 
 class NegativeBiasBooleanEmbedder(nn.Module):
     """Embedder that uses a learned bias. The bias is always present, even for false predicates."""
+
     def __init__(
         self,
         embedding_dim: int,
@@ -73,6 +75,7 @@ class NegativeBiasBooleanEmbedder(nn.Module):
 
 class PositiveNegativeBooleanEmbedder(nn.Module):
     """Embedder that uses separate embeddings for positive and negative versions of predicates."""
+
     def __init__(
         self,
         embedding_dim: int,
@@ -105,4 +108,3 @@ class PositiveNegativeBooleanEmbedder(nn.Module):
             + (1 - var_val).unsqueeze(1) * negative_preds
         )
         return h
-

@@ -1,176 +1,90 @@
 import logging
-from functools import cache
 from typing import Any, SupportsFloat
-
 import gymnasium as gym
-import numpy as np
-from gymnasium import spaces
-from gymnasium.spaces import Box, Discrete
-
-from regawa import BaseModel
-from regawa.data import HeteroObsData
-from regawa.model import Grounding
-from regawa.model import GroundObs, StackedGroundObs
-
-from .grounding_utils import to_dict_action
-from .gym_utils import action_space, obs_space
-from .render_utils import create_render_graph, to_graphviz, to_graphviz_alt
+from regawa import BaseModel, GroundObs, Grounding
+from regawa.model import StackedGroundObs
 from .graph_utils import fn_obsdict_to_graph
-from .types import HeteroGraph, StackedFactorGraph
+from .render_utils import create_render_graph, to_graphviz
+from .types import StackedFactorGraph, HeteroGraph, RenderGraph
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
 
 class StackingGroundedGraphWrapper(
-    gym.Wrapper[StackedGroundObs, GroundObs, StackedGroundObs, GroundObs]
+    gym.Wrapper[HeteroGraph, GroundObs | tuple[int, ...], StackedGroundObs, GroundObs | tuple[int, ...]]
 ):
-    @property
-    def metadata(self) -> dict[str, Any]:
-        return {"render_modes": ["human", "idx"]}
-
-    @metadata.setter
-    def metadata(self, value: dict[str, Any]):
-        self._metadata = value
-
     def __init__(
         self,
-        env: gym.Env[StackedGroundObs, GroundObs],
+        env: gym.Env[StackedGroundObs, GroundObs | tuple[int, ...]],
         model: BaseModel,
         render_mode: str = "human",
+        add_render_graph_to_info: bool = True,
     ) -> None:
         super().__init__(env)
         self.model = model
-        self.env = env
-        self.last_obs: HeteroObsData | None = None
         self.last_action: Grounding | None = None
-        self.iter = 0
+        self.last_g: RenderGraph | None = None
         self._object_to_type: dict[str, str] = {"None": "None"}
         self.create_graphs = fn_obsdict_to_graph(
             model, StackedFactorGraph[np.bool_], StackedFactorGraph[np.float32]
         )
 
-    @property
-    def action_space(self) -> gym.spaces.MultiDiscrete:  # type: ignore
-        return action_space(
-            self.model.action_fluents,
-            self.model.num_actions,
-            len(self._object_to_type) or 1,
-            self.model.arity,
-        )
+        self.add_render_graph_to_info = add_render_graph_to_info
 
     def render(self):
-        return to_graphviz(self.last_g, scaling=10)
+        return to_graphviz(self.last_g, scaling=10) if self.last_g is not None else None
 
-        if self.metadata["render_modes"] == "idx":
-            obs = self.last_obs
-            nodes_classes = obs["var_type"]
-            node_values = obs["var_value"]
-            object_nodes = obs["factor"]
-            edge_indices = obs["edge_index"].T
-            edge_attributes = obs["edge_attr"]
-            # numeric = obs["numeric"]
-
-            return to_graphviz_alt(
-                nodes_classes,
-                node_values,
-                object_nodes,
-                edge_indices,  # type: ignore
-                edge_attributes,
-                self.model.idx_to_type,  # type: ignore
-                self.model.idx_to_fluent,  # type: ignore
-            )
-
-    @property
-    @cache
-    def observation_space(self) -> spaces.Dict:  # type: ignore
-        # num_groundings = len(self.wrapped_model.groundings)
-        # num_objects = self.wrapped_model.num_objects
-        num_types = self.model.num_types
-        num_relations = self.model.num_fluents
-        max_arity = max(self.model.arity(r) for r in self.model.fluents)
-        num_actions = self.model.num_actions
-
-        bool_space = Discrete(2)
-        number_space = Box(
-            np.finfo(np.float32).min,
-            np.finfo(np.float32).max,
-            shape=(),
+    def _prepare_info(
+        self,
+        rddl_obs: GroundObs,
+        graph: HeteroGraph,
+        add_render_graph_to_info: bool = False,
+    ) -> tuple[dict[str, Any], RenderGraph | None]:
+        combined_graph = (
+            create_render_graph(graph.boolean, graph.numeric)
+            if add_render_graph_to_info
+            else None
         )
 
-        return spaces.Dict(
-            {
-                "bool": obs_space(
-                    num_relations, num_types, max_arity, num_actions, bool_space
-                ),
-                "float": obs_space(
-                    num_relations, num_types, max_arity, num_actions, number_space
-                ),
-            }
-        )
-
-    def _create_obs(self, rddl_obs: StackedGroundObs) -> HeteroGraph:
-        g = self.create_graphs(rddl_obs)
-
-        return g
+        info: dict[str, Any] = {
+            "state": combined_graph,
+            "rddl_obs": rddl_obs,
+            "action_fluents": self.model.action_fluents,
+        }
+        return info, combined_graph
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[HeteroObsData, dict[str, Any]]:
+    ) -> tuple[HeteroGraph, dict[str, Any]]:
         rddl_obs, info = self.env.reset(seed=seed)
-
-        g = self._create_obs(rddl_obs)
-
-        combined_g = create_render_graph(g.boolean, g.numeric)
-
-        info["state"] = combined_g
+        graph = self.create_graphs(rddl_obs)
+        info_update, combined_graph = self._prepare_info(
+            rddl_obs, graph, self.add_render_graph_to_info
+        )
+        info = info | info_update
         info["rddl_state"] = (
-            self.env.unwrapped.state if hasattr(self.env.unwrapped, "state") else {}
-        )  # type: ignore
-        info["rddl_obs"] = rddl_obs
+            self.env.unwrapped.state if hasattr(self.env.unwrapped, "state") else {} # type: ignore
+        )  
 
-        info["action_fluents"] = self.model.action_fluents
+        self.last_g = combined_graph
 
-        self._object_to_type = {
-            k: v for k, v in zip(g.boolean.factors, g.boolean.factor_types)
-        }
-
-        self.last_g = combined_g
-        self.last_rddl_obs = rddl_obs
-        self.last_action = None
-
-        return g, info
-
-    def obj_to_type(self, obj: str) -> str:
-        try:
-            return self._object_to_type[obj]
-        except IndexError:
-            logger.warning(f"Object {obj} not found in object_to_type")
-            return "None"
-
-    def _to_rddl_action(self, action: Grounding) -> dict[Grounding, np.bool_]:
-        return to_dict_action(action, self.obj_to_type, self.model.fluent_params)
+        return graph, info
 
     def step(
-        self, action: Grounding
-    ) -> tuple[spaces.Dict, SupportsFloat, bool, bool, dict[str, Any]]:
+        self, action: GroundObs | tuple[int, ...]
+    ) -> tuple[HeteroGraph, SupportsFloat, bool, bool, dict[str, Any]]:
         rddl_obs, reward, terminated, truncated, info = self.env.step(action)
 
-        g = self._create_obs(rddl_obs)
-
-        combined_g = create_render_graph(g.boolean, g.numeric)
-
-        info["state"] = combined_g
+        graph = self.create_graphs(rddl_obs)
+        info_update, combined_graph = self._prepare_info(
+            rddl_obs, graph, self.add_render_graph_to_info
+        )
+        info = info | info_update
         info["rddl_state"] = (
-            self.env.unwrapped.state if hasattr(self.env.unwrapped, "state") else {}
-        )  # type: ignore
-        info["rddl_obs"] = rddl_obs
-
-        self._object_to_type = {
-            k: v for k, v in zip(g.boolean.factors, g.boolean.factor_types)
-        }
-
-        self.last_g = combined_g
+            self.env.unwrapped.state if hasattr(self.env.unwrapped, "state") else {} # type: ignore
+        )  
+        self.last_g = combined_graph
         self.last_rddl_obs = rddl_obs
-        self.last_action = action
 
-        return g, reward, terminated, truncated, info
+        return graph, reward, terminated, truncated, info

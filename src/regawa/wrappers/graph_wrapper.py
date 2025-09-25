@@ -24,7 +24,6 @@ class GroundedGraphWrapper(
     ) -> None:
         super().__init__(env)
         self.model = model
-        self.last_obs: dict[str, Any] = {}
         self.last_action: Grounding | None = None
         self.last_g: RenderGraph | None = None
         self._object_to_type: dict[str, str] = {"None": "None"}
@@ -36,10 +35,6 @@ class GroundedGraphWrapper(
 
     def render(self):
         return to_graphviz(self.last_g, scaling=10) if self.last_g is not None else None
-
-    def _create_obs(self, rddl_observation: GroundObs) -> HeteroGraph:
-        graph = self.create_graphs(rddl_observation)
-        return graph
 
     def _prepare_info(
         self,

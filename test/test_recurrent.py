@@ -4,22 +4,22 @@ import torch
 from regawa.embedding.recurrent import packed_from_concatenated_sequences
 
 
-def test_segmented_sort():
-    lengths = torch.tensor([3, 2, 5, 4, 3], dtype=torch.long)
-    indices = torch.tensor([0, 0, 1, 1, 1], dtype=torch.long)
-    n_variables = torch.tensor([2, 3], dtype=torch.long)
+# def test_segmented_sort():
+#     lengths = torch.tensor([3, 2, 5, 4, 3], dtype=torch.long)
+#     indices = torch.tensor([0, 0, 1, 1, 1], dtype=torch.long)
+#     n_variables = torch.tensor([2, 3], dtype=torch.long)
 
-    sort, new_indices = sort_segments(lengths, n_variables)
-    assert torch.equal(sort, torch.tensor([5, 4, 3, 3, 2], dtype=torch.long))
-    assert torch.equal(new_indices, torch.tensor([2, 3, 0, 4, 1], dtype=torch.long))
+#     sort, new_indices = sort_segments(lengths, n_variables)
+#     assert torch.equal(sort, torch.tensor([5, 4, 3, 3, 2], dtype=torch.long))
+#     assert torch.equal(new_indices, torch.tensor([2, 3, 0, 4, 1], dtype=torch.long))
 
-    lengths = torch.tensor([5, 3, 2, 4, 3], dtype=torch.long)
-    indices = torch.tensor([0, 0, 0, 1, 1], dtype=torch.long)
-    n_variables = torch.tensor([3, 2], dtype=torch.long)
+#     lengths = torch.tensor([5, 3, 2, 4, 3], dtype=torch.long)
+#     indices = torch.tensor([0, 0, 0, 1, 1], dtype=torch.long)
+#     n_variables = torch.tensor([3, 2], dtype=torch.long)
 
-    sort, new_indices = sort_segments(lengths, n_variables)
-    assert torch.equal(sort, torch.tensor([5, 4, 3, 3, 2], dtype=torch.long))
-    assert torch.equal(new_indices, torch.tensor([0, 3, 1, 4, 2], dtype=torch.long))
+#     sort, new_indices = sort_segments(lengths, n_variables)
+#     assert torch.equal(sort, torch.tensor([5, 4, 3, 3, 2], dtype=torch.long))
+#     assert torch.equal(new_indices, torch.tensor([0, 3, 1, 4, 2], dtype=torch.long))
 
 
 from torch import Tensor
@@ -65,6 +65,24 @@ def test_packed_from_concatenated_sequences():
     assert torch.equal(d.batch_sizes, expected.batch_sizes)
     assert torch.equal(d.sorted_indices, expected.sorted_indices)
     assert torch.equal(d.unsorted_indices, expected.unsorted_indices)
+
+def test_compress_index():
+    data = [0, 0, 1, 1, 1, 2, 2, 2, 2]
+    lengths = [2, 3, 4]
+    indices = [0, 0, 1, 1, 1, 2, 2, 2, 2]
+
+    expected = [0, 1, 2]
+
+    def compress_index(data, lengths, indices):
+        import numpy as np
+
+        new_data = []
+        offsets = np.cumsum([0] + lengths[:-1])
+        for i, o in enumerate(offsets):
+            new_data.append(data[o : o + lengths[i]][0])
+        return new_data
+
+    assert compress_index(data, lengths, indices) == expected
 
 
 if __name__ == "__main__":

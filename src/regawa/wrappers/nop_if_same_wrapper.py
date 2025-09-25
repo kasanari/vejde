@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, SupportsFloat
 
 import gymnasium as gym
 import logging
@@ -46,7 +46,7 @@ class NoOpIfSameWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs])
         action: GroundObs,
     ) -> tuple[
         GroundObs,
-        float,
+        SupportsFloat,
         bool,
         bool,
         dict[str, Any],

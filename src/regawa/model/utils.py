@@ -1,3 +1,5 @@
+"""Utility functions for models"""
+
 from functools import cache
 
 from .base_model import BaseModel

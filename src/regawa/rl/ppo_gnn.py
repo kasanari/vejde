@@ -733,8 +733,10 @@ def train(args: Args | None = None, batch_id: str | None = None):
         agent.agent.save_agent(run_folder / f"{run_name}.pth")
         mlflow.log_artifact(str(run_folder / f"{run_name}.pth"))
 
-    # print(f"avg_reward: {avg_mean_reward}")
-    stats, data = eval(agent.agent, args.env_id, device)
+        # print(f"avg_reward: {avg_mean_reward}")
+        stats, data = eval(agent.agent, args.env_id, device)
+        for k, v in stats.items():
+            mlflow.log_metric(f"eval/{k}", v)
 
     stats = stats | {
         "env_id": args.env_id,
@@ -761,18 +763,14 @@ def eval(agent: GraphAgentInterface, env_id: str, device: str):
     avg_mean_reward = np.mean([np.mean(r) for r in rewards])
     returns = [np.sum(r).item() for r in rewards]
 
-    mlflow.log_metric("eval/mean_reward", avg_mean_reward)
-
     stats = {
-        "mean": np.mean(returns).item(),
-        "median": np.median(returns).item(),
-        "min": np.min(returns).item(),
-        "max": np.max(returns).item(),
-        "std": np.std(returns).item(),
+        "return_mean": np.mean(returns).item(),
+        "return_median": np.median(returns).item(),
+        "return_min": np.min(returns).item(),
+        "return_max": np.max(returns).item(),
+        "return_std": np.std(returns).item(),
+        "mean_reward": avg_mean_reward.item(),
     }
-
-    for k, v in stats.items():
-        mlflow.log_metric(f"eval/return_{k}", v)
 
     stats["returns"] = returns
     return stats, data

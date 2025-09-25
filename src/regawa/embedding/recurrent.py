@@ -132,6 +132,7 @@ class RecurrentEmbedder(nn.Module):
     def __init__(
         self,
         embedding_dim: int,
+        device: str | torch.device = "cpu",
     ):
         super().__init__()  # type: ignore
 
@@ -148,6 +149,7 @@ class RecurrentEmbedder(nn.Module):
                 init.zeros_(param)
 
         self.recurrent = recurrent  # type: ignore
+        self.recurrent.to(device)
         self.recurrent.flatten_parameters()
     
     @torch.jit.export

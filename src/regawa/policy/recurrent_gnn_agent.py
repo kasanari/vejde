@@ -76,11 +76,13 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
         r_numeric_embedder = torch.jit.script(
             RecurrentEmbedder(
                 gnn_params.embedding_dim,
+                device=device,
             )
         )
         r_boolean_embedder = torch.jit.script(
             RecurrentEmbedder(
                 gnn_params.embedding_dim,
+                device=device,
             )
         )
 

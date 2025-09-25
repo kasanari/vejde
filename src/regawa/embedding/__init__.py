@@ -127,18 +127,14 @@ def fn_embed_graph(
 
 
 def fn_compress_time(
-    recurrent: Callable[[Tensor, NDArray[np.int64]], Tensor],
+    recurrent: Callable[[SparseTensor, NDArray[np.int64]], SparseTensor],
     embed_fn: Callable[[BatchData[V]], TorchFactorGraph],
 ):
     def compress_time(data: BatchData[V]) -> TorchFactorGraph:
         g = embed_fn(data)
         return g._replace(
-            variables=SparseTensor(
-                recurrent(g.variables.values, data.length), g.variables.indices
-            ),
-            globals=SparseTensor(
-                recurrent(g.globals.values, data.global_length), g.globals.indices
-            ),
+            variables=recurrent(g.variables, data.length) if g.variables.values.shape[0] > 0 else g.variables,
+            globals=recurrent(g.globals, data.global_length) if g.globals.values.shape[0] > 0 else g.globals,
         )
 
     return compress_time

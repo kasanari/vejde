@@ -9,6 +9,26 @@ from torch import Tensor, arange
 
 import torch
 
+from regawa.data.torch import SparseTensor
+
+
+def compress_index_alt(data: Tensor, lengths: Tensor) -> Tensor:
+    """
+    data:    1D tensor of values laid out in consecutive segments
+    lengths: 1D tensor of positive segment lengths (sum(lengths) == len(data))
+    returns: 1D tensor with the first element from each segment
+    """
+    # Ensure indices are on the same device and of integer type
+    lengths = lengths.to(device=data.device, dtype=torch.long)
+
+    if lengths.numel() == 0:
+        return data.new_empty((0,), dtype=data.dtype)
+
+    # Start index of each segment: [cumsum(lengths) - lengths]
+    offsets = torch.cumsum(lengths, dim=0) - lengths
+
+    # Pick the first element of each segment
+    return data.index_select(0, offsets)
 
 def _batch_sizes_from_lengths(lengths: Tensor) -> Tensor:
     # lengths: [B] long
@@ -131,13 +151,13 @@ class RecurrentEmbedder(nn.Module):
 
     def forward(
         self,
-        h: Tensor,
+        h: SparseTensor,
         length: Tensor,
     ):
         logger.debug("h:\n%s", h)
 
-        variables = compress_time(self.recurrent, h, length) if h.shape[0] > 0 else h
-
+        variables = compress_time(self.recurrent, h.values, length)
+        
         logger.debug("variables:\n%s", variables)
 
-        return variables.squeeze(0)
+        return SparseTensor(variables.squeeze(0), compress_index_alt(h.indices, length))

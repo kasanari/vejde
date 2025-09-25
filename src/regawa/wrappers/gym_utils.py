@@ -78,7 +78,9 @@ def n_actions(action_space: MultiDiscrete):
 
 
 def idxgraph_to_obsdata(idx_g: IdxFactorGraph[V]):
-    return ObsData[V](
+    return ObsData[
+        V
+    ](
         var_type=idx_g.variables.types,
         var_value=idx_g.variables.values,
         factor=idx_g.factors,
@@ -92,5 +94,7 @@ def idxgraph_to_obsdata(idx_g: IdxFactorGraph[V]):
         action_arity_mask=idx_g.action_arity_mask,
         action_type_mask=idx_g.action_type_mask,
         n_factor=idx_g.factors.shape[0],  # + obs["var_value"].shape[0]
-        n_variable=idx_g.variables.lengths.shape[0],
+        n_variable=idx_g.variables.lengths.shape[
+            0
+        ],  # use the lengths to get the number of variables, since var_value can be stacked
     )

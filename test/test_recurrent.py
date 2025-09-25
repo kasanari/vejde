@@ -67,22 +67,40 @@ def test_packed_from_concatenated_sequences():
     assert torch.equal(d.unsorted_indices, expected.unsorted_indices)
 
 def test_compress_index():
-    data = [0, 0, 1, 1, 1, 2, 2, 2, 2]
-    lengths = [2, 3, 4]
-    indices = [0, 0, 1, 1, 1, 2, 2, 2, 2]
+    indices = torch.tensor([0, 0, 1, 1, 1, 2, 2, 2, 2])
+    lengths = torch.tensor([2, 3, 4])
 
-    expected = [0, 1, 2]
+    expected = torch.tensor([0, 1, 2])
 
-    def compress_index(data, lengths, indices):
-        import numpy as np
+    def compress_index_alt(data: Tensor, lengths: Tensor) -> Tensor:
+        """
+        data:    1D tensor of values laid out in consecutive segments
+        lengths: 1D tensor of positive segment lengths (sum(lengths) == len(data))
+        returns: 1D tensor with the first element from each segment
+        """
+        # Ensure indices are on the same device and of integer type
+        lengths = lengths.to(device=data.device, dtype=torch.long)
 
-        new_data = []
-        offsets = np.cumsum([0] + lengths[:-1])
+        if lengths.numel() == 0:
+            return data.new_empty((0,), dtype=data.dtype)
+
+        # Start index of each segment: [cumsum(lengths) - lengths]
+        offsets = torch.cumsum(lengths, dim=0) - lengths
+
+        # Pick the first element of each segment
+        return data.index_select(0, offsets)
+
+    def compress_index(indices: Tensor, lengths: Tensor) -> Tensor:
+        new_data = torch.empty(len(lengths), dtype=indices.dtype, device=indices.device)
+        offsets = torch.cumsum(
+            torch.cat((torch.tensor([0], device=indices.device), lengths[:-1])), 0
+        )
         for i, o in enumerate(offsets):
-            new_data.append(data[o : o + lengths[i]][0])
+            new_data[i] = indices[o : o + lengths[i]][0]
         return new_data
 
-    assert compress_index(data, lengths, indices) == expected
+    assert torch.equal(compress_index(indices, lengths), expected)
+    assert torch.equal(compress_index_alt(indices, lengths), expected)
 
 
 if __name__ == "__main__":

@@ -47,7 +47,7 @@ class ObsData(NamedTuple, Generic[V]):
         np.int64
     ]  # number of repetitions per grounding. This is only not 1 when using stacking. Length matches var_value
     n_factor: int  # number of objects/factors.
-    n_variable: int  # number of groundings/variables.
+    n_variable: int  # number of groundings/variables. Will match len(length), even with stacking. Will match len(var_value) without stacking.
     global_vars: NDArray[np.int64]  # global variable types.
     global_vals: NDArray[V]  # global variable values. Length matches global_vars
     global_length: NDArray[
@@ -236,6 +236,7 @@ class RolloutCollector:
 
 # Listening to: "Magic of Love" by "Perfume"
 def batch(graphs: list[ObsData[V]]) -> BatchData[V]:
+    """This is a big ugly function that batches multiple factor graphs into a single one."""
     num_graphs = len(graphs)
     total_factors = sum(g.n_factor for g in graphs)
     total_length = sum(
@@ -245,7 +246,8 @@ def batch(graphs: list[ObsData[V]]) -> BatchData[V]:
         sum(g.length) for g in graphs
     )  # account for stacking. each variable can have length
     total_edges = sum(g.v_to_f.size for g in graphs)
-    total_globals = sum(g.global_vars.size for g in graphs)
+    flat_total_globals = sum(g.global_vars.size for g in graphs)
+    total_global_vars = sum(g.global_length.shape[0] for g in graphs)
 
     g0 = graphs[0]
 
@@ -260,10 +262,10 @@ def batch(graphs: list[ObsData[V]]) -> BatchData[V]:
     n_factor = np.empty((num_graphs,), dtype=np.int64)
     n_variable = np.empty((num_graphs,), dtype=np.int64)
     length = np.empty((total_length,), dtype=np.int64)
-    global_vars = np.empty((total_globals,), dtype=np.int64)
-    global_vals = np.empty((total_globals,), dtype=g0.global_vals.dtype)
-    global_length = np.empty((total_globals,), dtype=np.int64)
-    global_batch = np.empty((total_globals,), dtype=np.int64)
+    global_vars = np.empty((flat_total_globals,), dtype=np.int64)
+    global_vals = np.empty((flat_total_globals,), dtype=g0.global_vals.dtype)
+    global_length = np.empty((total_global_vars,), dtype=np.int64)
+    global_batch = np.empty((flat_total_globals,), dtype=np.int64)
     action_arity_mask = np.empty(
         (total_factors, g0.action_arity_mask.shape[1]), dtype=np.bool_
     )
@@ -271,41 +273,43 @@ def batch(graphs: list[ObsData[V]]) -> BatchData[V]:
         (total_factors, g0.action_type_mask.shape[1]), dtype=np.bool_
     )
 
-    factor_offsets, variable_offsets, globals_offset, length_offset = 0, 0, 0, 0
+    factor_offsets, variable_offsets, globals_offset, num_vars_offset, num_globals_offset = 0, 0, 0, 0, 0
     edge_offsets = 0
     for i, g in enumerate(graphs):
-        var_len = sum(g.length)  # account for stacking. each variable can have length
-        num_length = g.n_variable  # 1 length per variable, even with stacking
+        flat_var_len = sum(g.length)  # account for stacking. each variable can have length
+        num_vars = g.n_variable  # 1 length per variable, even with stacking
         fac_len = g.n_factor
         edge_len = g.v_to_f.size
-        globals_len = g.global_vars.size
-        var_value[variable_offsets : variable_offsets + var_len] = g.var_value
-        var_type[variable_offsets : variable_offsets + var_len] = g.var_type
-        var_batch[variable_offsets : variable_offsets + var_len] = i
-        length[length_offset : length_offset + num_length] = g.length
+        flat_globals_len = g.global_vars.size
+        num_globals_vars = g.global_length.shape[0]
+        var_value[variable_offsets : variable_offsets + flat_var_len] = g.var_value
+        var_type[variable_offsets : variable_offsets + flat_var_len] = g.var_type
+        var_batch[variable_offsets : variable_offsets + flat_var_len] = i
+        length[num_vars_offset : num_vars_offset + num_vars] = g.length
         factor[factor_offsets : factor_offsets + fac_len] = g.factor
         factor_batch[factor_offsets : factor_offsets + fac_len] = i
         senders[edge_offsets : edge_offsets + edge_len] = (
-            g.v_to_f + length_offset
+            g.v_to_f + num_vars_offset
         )  # don't offset vars by their full length, since the vars will be flattened before message passing
         receivers[edge_offsets : edge_offsets + edge_len] = g.f_to_v + factor_offsets
         edge_attr[edge_offsets : edge_offsets + edge_len] = g.edge_attr
-        global_vars[globals_offset : globals_offset + globals_len] = g.global_vars
-        global_vals[globals_offset : globals_offset + globals_len] = g.global_vals
-        global_length[globals_offset : globals_offset + globals_len] = g.global_length
-        global_batch[globals_offset : globals_offset + globals_len] = i
+        global_vars[globals_offset : globals_offset + flat_globals_len] = g.global_vars
+        global_vals[globals_offset : globals_offset + flat_globals_len] = g.global_vals
+        global_length[num_globals_offset : num_globals_offset + num_globals_vars] = g.global_length
+        global_batch[globals_offset : globals_offset + flat_globals_len] = i
         action_arity_mask[factor_offsets : factor_offsets + fac_len] = (
             g.action_arity_mask
         )
         action_type_mask[factor_offsets : factor_offsets + fac_len] = g.action_type_mask
         n_factor[i] = fac_len
-        n_variable[i] = num_length
+        n_variable[i] = num_vars
 
         factor_offsets += fac_len
-        variable_offsets += var_len
-        length_offset += num_length
+        variable_offsets += flat_var_len
+        num_vars_offset += num_vars
         edge_offsets += edge_len
-        globals_offset += globals_len
+        globals_offset += flat_globals_len
+        num_globals_offset += num_globals_vars
 
     return BatchData(
         var_value=SparseArray(var_value, var_batch),

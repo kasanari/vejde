@@ -148,6 +148,7 @@ class RecurrentEmbedder(nn.Module):
                 init.zeros_(param)
 
         self.recurrent = recurrent  # type: ignore
+        self.recurrent.flatten_parameters()
     
     @torch.jit.export
     def compress_time(self, h: Tensor, length: Tensor) -> Tensor:

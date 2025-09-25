@@ -736,7 +736,8 @@ def train(args: Args | None = None, batch_id: str | None = None):
         # print(f"avg_reward: {avg_mean_reward}")
         stats, data = eval(agent.agent, args.env_id, device)
         for k, v in stats.items():
-            mlflow.log_metric(f"eval/{k}", v)
+            if k != "returns":
+                mlflow.log_metric(f"train_eval/{k}", v)
 
     stats = stats | {
         "env_id": args.env_id,

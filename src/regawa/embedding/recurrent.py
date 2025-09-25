@@ -7,6 +7,10 @@ import torch.nn as nn
 import torch.nn.init as init
 from torch import Tensor, arange, argsort, cat, repeat_interleave
 
+import torch
+from torch import Tensor
+from torch.nn.utils.rnn import PackedSequence
+
 
 def _batch_sizes_from_lengths(lengths: Tensor) -> Tensor:
     # lengths: [B] long
@@ -35,7 +39,9 @@ def packed_from_concatenated_sequences(
     Returns:
         nn.utils.rnn.PackedSequence
     """
-    device = data.device
+    # Validate input
+    if lengths.dim() != 1:
+        raise ValueError("lengths must be a 1-D tensor.")
     if (lengths <= 0).any():
         raise ValueError("All sequence lengths must be > 0.")
 
@@ -45,37 +51,55 @@ def packed_from_concatenated_sequences(
     if data.size(0) != N:
         raise ValueError(f"data has {data.size(0)} rows, but sum(lengths)={N}.")
 
-    # Map each row -> which sequence it came from
-    row_to_seq = repeat_interleave(arange(B), lengths)  # [N]
+    # Handle the degenerate empty case explicitly (matches semantics cleanly)
+    if B == 0:
+        empty = torch.zeros(0, dtype=torch.long)
+        return (
+            PackedSequence(data, empty, empty.to(data.device), empty.to(data.device))
+            if include_sort_info
+            else PackedSequence(data, empty)
+        )
 
-    # Time index inside its sequence (0..length-1), following input order
-    # Since data is sequence-major, this is just [0..L0-1, 0..L1-1, ...]
-    time_index = cat([arange(int(L)) for L in lengths])  # [N]
+    # --- 1) Sort sequences by length (desc) and build the inverse permutation (rank) ---
+    sorted_indices = torch.argsort(lengths, descending=True)  # [B] sorted -> orig
+    unsorted_indices = torch.empty_like(sorted_indices)  # [B] orig   -> sorted (rank)
+    unsorted_indices.scatter_(0, sorted_indices, torch.arange(B, device=lengths.device))
 
-    # Sort sequences by length (desc) to make a canonical pack order
-    sorted_indices = argsort(lengths, descending=True)  # [B] sorted->orig
-    unsorted_indices = argsort(sorted_indices)  # [B] orig->sorted (rank)
-    rank = unsorted_indices[row_to_seq]  # [N] seq rank used within each time step
+    # --- 2) Batch sizes and per-time-step start offsets in the packed output ---
+    lengths_sorted = lengths.index_select(0, sorted_indices)  # [B]
+    batch_sizes = _batch_sizes_from_lengths(lengths_sorted)  # [T]
+    time_offsets = (
+        batch_sizes.cumsum(0) - batch_sizes
+    )  # [T], start index of each time block
 
-    # Reorder rows to time-major: lexicographic by (time_index, rank)
-    B_val = B if B > 0 else 1
-    key = time_index * B_val + rank
-    perm = argsort(key)  # [N]
-    packed_data = data.index_select(0, perm.to(device))  # [N, *feat]
+    # --- 3) For each input row, compute its (time_index, rank) in O(N) ---
+    # start offset of each sequence in the concatenated input
+    starts = lengths.cumsum(0) - lengths  # [B]
+    # time index within its sequence (0..Li-1) without a Python loop
+    time_index = torch.arange(N, device=lengths.device) - starts.repeat_interleave(
+        lengths
+    )  # [N]
+    # sorted rank of the owning sequence for each row (orig -> sorted), repeated per row
+    rank_per_row = unsorted_indices.repeat_interleave(lengths)  # [N]
 
-    # Build batch_sizes
-    batch_sizes = _batch_sizes_from_lengths(lengths.index_select(0, sorted_indices))
+    # --- 4) Directly place rows into packed order in O(N) (no global sort) ---
+    # destination position for each input row in the packed output:
+    #   pos = time_offsets[time_index] + rank_per_row
+    dest = time_offsets.index_select(0, time_index) + rank_per_row  # [N] in [0, N)
+    perm = torch.empty(N, dtype=torch.long, device=data.device)
+    perm.scatter_(0, dest.to(data.device), torch.arange(N, device=data.device))
 
-    return (
-        PackedSequence(
+    packed_data = data.index_select(0, perm)
+
+    if include_sort_info:
+        return PackedSequence(
             packed_data,
             batch_sizes,
-            sorted_indices.to(device),
-            unsorted_indices.to(device),
+            sorted_indices.to(data.device),
+            unsorted_indices.to(data.device),
         )
-        if include_sort_info
-        else PackedSequence(packed_data, batch_sizes)
-    )
+    else:
+        return PackedSequence(packed_data, batch_sizes)
 
 
 def compress_time(

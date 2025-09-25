@@ -1,7 +1,5 @@
 from collections.abc import Callable
 from torch.nn.utils.rnn import PackedSequence
-from regawa.embedding.node_embedders import logger
-from torch import long
 
 import torch.nn as nn
 import torch.nn.init as init
@@ -11,7 +9,7 @@ import torch
 
 from regawa.data.torch import SparseTensor
 
-
+@torch.jit.script  # type: ignore
 def compress_index_alt(data: Tensor, lengths: Tensor) -> Tensor:
     """
     data:    1D tensor of values laid out in consecutive segments
@@ -30,19 +28,19 @@ def compress_index_alt(data: Tensor, lengths: Tensor) -> Tensor:
     # Pick the first element of each segment
     return data.index_select(0, offsets)
 
+@torch.jit.script  # type: ignore
 def _batch_sizes_from_lengths(lengths: Tensor) -> Tensor:
     # lengths: [B] long
     T = int(lengths.max().item())
     t = arange(T, device=lengths.device)  # [T]
     # batch_sizes[t] = #seqs with length > t
-    batch_sizes = (t.unsqueeze(0) < lengths.unsqueeze(1)).sum(0).to(long)  # [T]
+    batch_sizes = (t.unsqueeze(0) < lengths.unsqueeze(1)).sum(0).to(torch.long)  # [T]
     return batch_sizes.to("cpu")
 
-
+@torch.jit.script  # type: ignore
 def packed_from_concatenated_sequences(
     data: Tensor,
     lengths: Tensor,
-    *,
     include_sort_info: bool = True,
 ) -> PackedSequence:
     """
@@ -75,7 +73,7 @@ def packed_from_concatenated_sequences(
         return (
             PackedSequence(data, empty, empty.to(data.device), empty.to(data.device))
             if include_sort_info
-            else PackedSequence(data, empty)
+            else PackedSequence(data, empty, None, None)
         )
 
     # --- 1) Sort sequences by length (desc) and build the inverse permutation (rank) ---
@@ -117,7 +115,7 @@ def packed_from_concatenated_sequences(
             unsorted_indices.to(data.device),
         )
     else:
-        return PackedSequence(packed_data, batch_sizes)
+        return PackedSequence(packed_data, batch_sizes, None, None)
 
 
 def compress_time(
@@ -137,27 +135,32 @@ class RecurrentEmbedder(nn.Module):
     ):
         super().__init__()  # type: ignore
 
-        self.recurrent = nn.RNN(
+        recurrent = nn.RNN(
             embedding_dim,
             embedding_dim,
             batch_first=True,
         )
 
-        for name, param in self.recurrent.named_parameters():
+        for name, param in recurrent.named_parameters():
             if "weight" in name:
                 init.orthogonal_(param)  # type: ignore
             elif "bias" in name:
                 init.zeros_(param)
 
+        self.recurrent = recurrent  # type: ignore
+    
+    @torch.jit.export
+    def compress_time(self, h: Tensor, length: Tensor) -> Tensor:
+        custom_h_c = packed_from_concatenated_sequences(h, length, include_sort_info=True)
+        _, variables = self.recurrent.forward(custom_h_c, None)
+        return variables
+
+    @torch.jit.export
     def forward(
         self,
         h: SparseTensor,
         length: Tensor,
     ):
-        logger.debug("h:\n%s", h)
-
-        variables = compress_time(self.recurrent, h.values, length)
-        
-        logger.debug("variables:\n%s", variables)
+        variables = self.compress_time(h.values, length)
 
         return SparseTensor(variables.squeeze(0), compress_index_alt(h.indices, length))

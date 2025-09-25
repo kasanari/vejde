@@ -54,7 +54,7 @@ def statedata_to_tensors(
 ) -> BatchData[V]:
     params = tuple(
         SparseTensor(
-            as_tensor(attr.values, device=device),
+            as_tensor(attr.values, device=device),  # type: ignore
             as_tensor(attr.indices, device=device),
         )
         if isinstance(attr, SparseArray)
@@ -64,7 +64,7 @@ def statedata_to_tensors(
         for key, attr in data._asdict().items()
     )
 
-    return BatchData(*params)
+    return BatchData(*params)  # type: ignore
 
 
 def sparsify(
@@ -91,7 +91,7 @@ class TorchFactorGraph(NamedTuple):
     n_factor: Tensor
 
 
-@torch.jit.script
+@torch.jit.script  # type: ignore
 def concat_sparse(a: SparseTensor, b: SparseTensor) -> SparseTensor:
     return SparseTensor(
         concatenate((a.values, b.values)),

@@ -3,7 +3,7 @@ import logging
 import torch.nn as nn
 from torch import Generator as Rngs
 from torch import zeros
-from regawa.data import FactorGraph
+from regawa.data import TorchFactorGraph
 from regawa.data import SparseTensor
 
 from .acg_factorgraph_layer import FactorGraphLayer
@@ -36,8 +36,8 @@ class BipartiteGNN(nn.Module):
 
     def forward(
         self,
-        fg: FactorGraph,
-    ) -> FactorGraph:
+        fg: TorchFactorGraph,
+    ) -> TorchFactorGraph:
         # Handle global nodes
         n_g = fg.n_factor.shape[0]
         g = zeros(n_g, self.hidden_size, device=fg.factors.values.device)
@@ -47,7 +47,7 @@ class BipartiteGNN(nn.Module):
         factors = SparseTensor(
             fg.factors.values + g[fg.factors.indices], fg.factors.indices
         )
-        fg = FactorGraph(
+        fg = TorchFactorGraph(
             fg.variables,
             factors,
             fg.globals,
@@ -68,7 +68,7 @@ class BipartiteGNN(nn.Module):
         for conv in self.convs:
             logger.debug("Layer %d", i)
             (variables, factors) = conv(fg)
-            fg = FactorGraph(
+            fg = TorchFactorGraph(
                 SparseTensor(variables, fg.variables.indices),
                 SparseTensor(factors, fg.factors.indices),
                 fg.globals,

@@ -76,7 +76,7 @@ def sparsify(
     return wrapper
 
 
-class FactorGraph(NamedTuple):
+class TorchFactorGraph(NamedTuple):
     """
     This represents a single factor graph, with all features mapped to a vector space.
     """

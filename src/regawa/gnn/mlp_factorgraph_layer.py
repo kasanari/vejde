@@ -3,7 +3,7 @@ from torch import Generator as Rngs, concatenate
 from torch import Tensor
 from torch_scatter import scatter
 
-from regawa.data import FactorGraph
+from regawa.data import TorchFactorGraph
 from .mlp import MLPLayer
 from .mp_rendering import Lazy, to_graphviz_bp
 import logging
@@ -29,7 +29,7 @@ class MLPFactorGraphLayer(nn.Module):
 
     def forward(
         self,
-        fg: FactorGraph,
+        fg: TorchFactorGraph,
         prev_m_f_to_v: Tensor,
     ) -> tuple[Tensor, Tensor, Tensor]:
         v_to_f = fg.v_to_f

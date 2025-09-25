@@ -3,7 +3,7 @@ import logging
 import torch.nn as nn
 from torch import Generator as Rngs
 from torch import Tensor, concatenate, zeros_like
-from regawa.data import FactorGraph
+from regawa.data import TorchFactorGraph
 from regawa.data import SparseTensor
 
 from .mlp import MLPLayer
@@ -34,7 +34,7 @@ class BipartiteGNNConvVariableToFactor(nn.Module):
 
     def forward(
         self,
-        fg: FactorGraph,
+        fg: TorchFactorGraph,
     ):
         """
         x_p: Tensor of shape (num_predicates, embedding_dim),
@@ -85,7 +85,7 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
 
     def forward(
         self,
-        fg: FactorGraph,
+        fg: TorchFactorGraph,
     ):
         """
         x_p: Tensor of shape (num_predicates, embedding_dim),
@@ -138,7 +138,7 @@ class FactorGraphLayer(nn.Module):
 
     def forward(
         self,
-        fg: FactorGraph,
+        fg: TorchFactorGraph,
     ) -> tuple[Tensor, Tensor]:
         n_h_f = self.var2factor(
             fg,
@@ -146,7 +146,7 @@ class FactorGraphLayer(nn.Module):
 
         logger.debug("New Factor\n%s", n_h_f)
 
-        new_fg = FactorGraph(
+        new_fg = TorchFactorGraph(
             fg.variables,
             SparseTensor(n_h_f, fg.factors.indices),
             fg.globals,

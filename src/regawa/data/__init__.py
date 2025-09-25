@@ -1,4 +1,4 @@
-from .torch import FactorGraph, SparseTensor, sparsify, heterostatedata_to_tensors
+from .torch import TorchFactorGraph, SparseTensor, sparsify, heterostatedata_to_tensors
 from .data import (
     HeteroGraphBuffer,
     ObsData,
@@ -13,7 +13,7 @@ from .data import (
 
 
 __all__ = [
-    "FactorGraph",
+    "TorchFactorGraph",
     "SparseTensor",
     "HeteroGraphBuffer",
     "HeteroObsData",

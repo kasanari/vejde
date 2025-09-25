@@ -6,7 +6,7 @@ from regawa.policy import ActionMode, AgentConfig
 from .q_action_then_node import QActionThenNode
 from .q_node_then_action import QNodeThenAction
 
-from regawa.data import FactorGraph, HeteroBatchData
+from regawa.data import TorchFactorGraph, HeteroBatchData
 from regawa.gnn import BipartiteGNN
 from regawa.embedding import (
     EmbeddingLayer,
@@ -56,7 +56,7 @@ class GraphQAgent(nn.Module):
         )
         self.qfunc = qfunc(config.num_actions, config.embedding_dim)
 
-    def embed(self, data: HeteroBatchData) -> FactorGraph:
+    def embed(self, data: HeteroBatchData) -> TorchFactorGraph:
         return self.p_gnn(
             merge_graphs(
                 embed(

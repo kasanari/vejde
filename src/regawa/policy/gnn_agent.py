@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch import Generator as Rngs
 from torch import Tensor
 
-from regawa.data import FactorGraph, heterostatedata_to_tensors
+from regawa.data import TorchFactorGraph, heterostatedata_to_tensors
 from regawa.data import HeteroObsData
 
 from regawa.embedding import (
@@ -36,7 +36,7 @@ class GraphAgentInterface(ABC):
     def __init__(self, config: AgentConfig, rngs: Rngs, device: str = "cpu"): ...
 
     @abstractmethod
-    def embed(self, data: HeteroBatchData) -> FactorGraph: ...
+    def embed(self, data: HeteroBatchData) -> TorchFactorGraph: ...
 
     @abstractmethod
     def forward(self, actions: Tensor, data: HeteroBatchData) -> tuple[Tensor, ...]: ...
@@ -141,7 +141,7 @@ class GraphAgent(nn.Module, GraphAgentInterface):
             ),
         )
 
-    def embed(self, data: HeteroBatchData) -> FactorGraph:
+    def embed(self, data: HeteroBatchData) -> TorchFactorGraph:
         return self.message_pass(self.embed_heterobatch(data))
 
     def forward(self, actions: Tensor, data: HeteroBatchData):

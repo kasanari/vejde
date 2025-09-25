@@ -1,4 +1,4 @@
-from regawa.data.torch import FactorGraph, SparseTensor
+from regawa.data.torch import TorchFactorGraph, SparseTensor
 from regawa.embedding import merge_graphs
 
 
@@ -6,7 +6,7 @@ def test_merge_graph():
     from torch import tensor
     import torch
 
-    boolean = FactorGraph(
+    boolean = TorchFactorGraph(
         variables=SparseTensor(
             values=tensor(
                 [
@@ -48,7 +48,7 @@ def test_merge_graph():
         n_variable=tensor([4]),
         n_factor=tensor([5]),
     )
-    numeric = FactorGraph(
+    numeric = TorchFactorGraph(
         variables=SparseTensor(
             values=tensor(
                 [

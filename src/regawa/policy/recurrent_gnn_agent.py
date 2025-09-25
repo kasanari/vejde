@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch import Generator as Rngs
 from torch import Tensor
 
-from regawa.data import FactorGraph
+from regawa.data import TorchFactorGraph
 from regawa.data import single_obs_to_heterostatedata
 from regawa.data import heterostatedata_to_tensors
 from regawa.data.data import HeteroObsData
@@ -125,7 +125,7 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
         )
 
     # Listening to: Sagittarius by Daisuke Achiwa
-    def embed(self, data: HeteroBatchData) -> FactorGraph:
+    def embed(self, data: HeteroBatchData) -> TorchFactorGraph:
         return self.p_gnn(self.embed_heterobatch(data))
 
     def forward(self, actions: Tensor, data: HeteroBatchData):

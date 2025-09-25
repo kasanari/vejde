@@ -3,7 +3,13 @@ import torch.nn as nn
 from torch import Tensor, as_tensor, concatenate, int64
 from typing import TypeVar
 import numpy as np
-from regawa.data import BatchData, FactorGraph, SparseTensor, sparsify, HeteroBatchData
+from regawa.data import (
+    BatchData,
+    TorchFactorGraph,
+    SparseTensor,
+    sparsify,
+    HeteroBatchData,
+)
 from regawa.data.torch import concat_sparse
 from .recurrent import RecurrentEmbedder
 from .boolean import (
@@ -35,12 +41,12 @@ def cat(a: Tensor, b: Tensor) -> Tensor:
 
 
 def merge_graphs(
-    boolean: FactorGraph,
-    numeric: FactorGraph,
-) -> FactorGraph:
+    boolean: TorchFactorGraph,
+    numeric: TorchFactorGraph,
+) -> TorchFactorGraph:
     # this only refers to the factors, so we can use either boolean or numeric data
 
-    return FactorGraph(
+    return TorchFactorGraph(
         concat_sparse(boolean.variables, numeric.variables),
         # same factors for both boolean and numeric data, so we can use either
         boolean.factors,
@@ -55,10 +61,10 @@ def merge_graphs(
 
 
 def fn_embed_heterobatch(
-    boolean_embedder: Callable[[BatchData[np.bool]], FactorGraph],
-    numeric_embedder: Callable[[BatchData[np.float32]], FactorGraph],
+    boolean_embedder: Callable[[BatchData[np.bool]], TorchFactorGraph],
+    numeric_embedder: Callable[[BatchData[np.float32]], TorchFactorGraph],
 ):
-    def embed_heterobatch(data: HeteroBatchData) -> FactorGraph:
+    def embed_heterobatch(data: HeteroBatchData) -> TorchFactorGraph:
         return merge_graphs(
             boolean_embedder(
                 data.boolean,
@@ -105,8 +111,8 @@ def fn_embed_graph(
     global_var_embed = fn_embed_variables(global_var_embedder)
     factor_embed = sparsify(factor_embedding)
 
-    def embed_graph(data: BatchData[V]) -> FactorGraph:
-        return FactorGraph(
+    def embed_graph(data: BatchData[V]) -> TorchFactorGraph:
+        return TorchFactorGraph(
             var_embed(data.var_value, data.var_type),
             factor_embed(data.factor),
             global_var_embed(data.global_vals, data.global_vars),
@@ -122,9 +128,9 @@ def fn_embed_graph(
 
 def fn_compress_time(
     recurrent: Callable[[Tensor, NDArray[np.int64]], Tensor],
-    embed_fn: Callable[[BatchData[V]], FactorGraph],
+    embed_fn: Callable[[BatchData[V]], TorchFactorGraph],
 ):
-    def compress_time(data: BatchData[V]) -> FactorGraph:
+    def compress_time(data: BatchData[V]) -> TorchFactorGraph:
         g = embed_fn(data)
         return g._replace(
             variables=SparseTensor(

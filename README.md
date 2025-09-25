@@ -63,6 +63,8 @@ The most developed extension of Vejde is the [RDDL extension](https://github.com
 It wraps [pyRDDLGym](https://github.com/pyrddlgym-project/pyRDDLGym), and provides an child class of BaseModel which automatically pulls the required fields from the simulator.
 This lets you experiment with many of the problems in the [library of RDDL problems](https://github.com/pyrddlgym-project/rddlrepository). 
 
+There is also an extension to make Vejde compatible with the cybersecurity-focused [MAL simulator](https://github.com/mal-lang/mal-simulator), which can be found at [vejde-malsim](https://github.com/mal-lang/vejde-malsim).
+
 ## Code Layout
 
 - `regawa`

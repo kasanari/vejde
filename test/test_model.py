@@ -2,11 +2,12 @@ from typing import Any
 from regawa import BaseModel
 from functools import cached_property, cache
 import pytest
+from regawa.wrappers.types import FactorGraph
 from regawa.model import BaseGroundedModel, GroundObs, Grounding
 from regawa.model import check_model
 from regawa.inference import fn_graph_to_obsdata, fn_groundobs_to_graph
 from regawa.wrappers.render_utils import render_lifted
-
+import numpy as np
 
 class TestModel(BaseModel):
     """Sample model for testing purposes. Loosely based on block stacking problems."""
@@ -162,7 +163,9 @@ class TestGroundedModel(BaseGroundedModel):
         return self._constants[constant_grounding]
 
     def create_obs(self, rddl_obs: GroundObs):
-        graph = fn_groundobs_to_graph(self._model, lambda x: x)(rddl_obs)
+        graph = fn_groundobs_to_graph(
+            FactorGraph[np.bool_], FactorGraph[np.float32], self._model, lambda x: x
+        )(rddl_obs)
 
         obs = fn_graph_to_obsdata(self._model)(graph)  # to ensure types are correct
 

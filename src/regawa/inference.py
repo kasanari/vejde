@@ -37,12 +37,10 @@ def tensor_to_list(x: Tensor) -> list[float]:
     return list(x.squeeze().detach().cpu().numpy())  # type: ignore
 
 
-def fn_groundobs_to_graph[
-    T: FactorGraph[np.bool_] | StackedFactorGraph[np.bool_],
-    S: FactorGraph[np.float32] | StackedFactorGraph[np.float32],
-](
-    bool_graph_cls: type[T],
-    numeric_graph_cls: type[S],
+def fn_groundobs_to_graph(
+    bool_graph_cls: type[FactorGraph[np.bool_]] | type[StackedFactorGraph[np.bool_]],
+    numeric_graph_cls: type[FactorGraph[np.float32]]
+    | type[StackedFactorGraph[np.float32]],
     model: BaseModel,
     wrapper_func: Callable[[GroundObs], GroundObs],
 ) -> Callable[[GroundObs], HeteroGraph]:

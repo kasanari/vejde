@@ -744,6 +744,7 @@ def train(args: Args | None = None, batch_id: str | None = None):
         "run_name": run_name,
         "seed": args.seed,
         "run_id": run_id,
+        "weights_path": str(run_folder / f"{run_name}.pth"),
     }
     save_eval_data(data, run_folder / f"{run_name}.json")
     return stats, agent.agent

@@ -19,6 +19,7 @@ from regawa.wrappers import (
 from regawa.policy import GraphAgent
 from regawa.data import heterostatedata_to_tensors
 from regawa.io import obs_to_json_friendly_obs
+from regawa.wrappers.types import RenderGraph
 
 
 @th.no_grad()
@@ -44,7 +45,8 @@ def evaluate(
         time += 1
 
         o = info["rddl_state"]
-        g = info["state"]
+        g: RenderGraph | None = info["state"]
+        action_fluents: list[str] | None = info.get("action_fluents", None)
         obs_buf.append(o)
         s = single_obs_to_heterostatedata(obs)
         s = heterostatedata_to_tensors(s, device=device)
@@ -60,18 +62,27 @@ def evaluate(
             p_n__a.T[action[:, 0]].detach().squeeze().round(decimals=2).cpu().numpy()
         )
 
-        weight_by_factor = {
-            k: float(v) for k, v in zip(g.factor_labels, factor_weights) if v > 0.0
-        }
+        weight_by_factor = (
+            {k: float(v) for k, v in zip(g.factor_labels, factor_weights) if v > 0.0}
+            if g is not None
+            else {}
+        )
 
-        weight_by_action = {
-            k: float(v)
-            for k, v in zip(
-                info["action_fluents"],
-                th.atleast_1d(p_a.detach().squeeze()).round(decimals=2).cpu().numpy(),
-            )
-            if v > 0.0
-        }
+        weight_by_action = (
+            {
+                k: float(v)
+                for k, v in zip(
+                    action_fluents,
+                    th.atleast_1d(p_a.detach().squeeze())
+                    .round(decimals=2)
+                    .cpu()
+                    .numpy(),
+                )
+                if v > 0.0
+            }
+            if action_fluents is not None
+            else {}
+        )
 
         obj_weights.append(weight_by_factor)
         action_weights.append(weight_by_action)

@@ -14,9 +14,6 @@ def load_agent(cls: type[T], path: str, device: str = "cpu") -> tuple[T, AgentCo
 
     data["config"]["hyper_params"] = GNNParams(**data["config"]["hyper_params"])
 
-    if "remove_false_fluents" not in data["config"]:
-        data["config"]["remove_false_fluents"] = False  # for backward compatibility
-
     config = AgentConfig(**data["config"])
     agent = cls(config, None)
     agent.load_state_dict(data["state_dict"])

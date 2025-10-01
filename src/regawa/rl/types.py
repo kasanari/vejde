@@ -3,15 +3,14 @@ from regawa.data import HeteroGraphBuffer, ObsData
 
 from torch import Tensor
 
-import numpy as np
-from typing import NamedTuple, TypeVar
+from typing import Generic, NamedTuple
 
-V = TypeVar("V", np.float32, np.bool_, np.int64)
+from regawa.data.graph import VariableDomain
 
 
-class RolloutData(NamedTuple):
+class RolloutData(NamedTuple, Generic[VariableDomain]):
     obs: HeteroGraphBuffer
-    last_obs: dict[str, list[ObsData[V]]]
+    last_obs: dict[str, list[ObsData[VariableDomain]]]
     last_done: Tensor
     global_step: int
     returns: list[float]
@@ -50,9 +49,9 @@ class PPOParams(NamedTuple):
     target_kl: float | None
 
 
-class IterationCarry(NamedTuple):
+class IterationCarry(NamedTuple, Generic[VariableDomain]):
     b: BatchData
-    next_obs: dict[str, list[ObsData]]
+    next_obs: dict[str, list[ObsData[VariableDomain]]]
     next_done: Tensor
     global_step: int
     low_ema: Tensor | None = None

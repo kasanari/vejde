@@ -1,50 +1,59 @@
 from collections.abc import Callable, Sequence
 from itertools import chain
-from typing import TypeVar
-
-import numpy as np
-
-from .types import IdxFactorGraph, StackedFactorGraph, Variables
-from .utils import map_graph_to_idx
-
-V = TypeVar("V", np.float32, np.bool_)
 
 
-def flatten(vals: Sequence[Sequence[V]], vars: Sequence[str]) -> Variables[V]:
+from regawa.data import ObsData, StackedStringFactorGraph
+from regawa.data.graph import StringVariables, VariableDomain
+from .utils import fn_map_graph_to_idx
+
+
+def flatten(
+    vals: Sequence[Sequence[VariableDomain]], vars: Sequence[str]
+) -> StringVariables[VariableDomain]:
     # Flatten the list of node history lists to account for different node history lengths
     flat_vals = list(chain(*vals))
     v = [[vars[i] for _ in v] for i, v in enumerate(vals)]  # expand the variable names
     flat_vars = list(chain(*v))
     lengths = [len(v) for v in vals]  # lengths of each variable history
-    return Variables(flat_vars, flat_vals, lengths)
+    n_variable = len(lengths)  # number of unique variables
+    return StringVariables(flat_vars, flat_vals, lengths, n_variable=n_variable)
 
 
 def flatten_values(
-    factorgraph: StackedFactorGraph[V],
-) -> tuple[Variables[V], Variables[V]]:
+    factorgraph: StackedStringFactorGraph[VariableDomain],
+) -> tuple[StringVariables[VariableDomain], StringVariables[VariableDomain]]:
     return (
-        flatten(factorgraph.variable_values, factorgraph.variables),
-        flatten(factorgraph.global_variable_values, factorgraph.global_variables),
+        flatten(factorgraph.variables.values, factorgraph.variables.types),
+        flatten(
+            factorgraph.global_variables.values, factorgraph.global_variables.types
+        ),
     )
 
 
 def fn_flatten_map_graph_to_idx(
     rel_to_idx: Callable[[str], int], type_to_idx: Callable[[str], int]
 ):
+    map_graph_to_idx = fn_map_graph_to_idx(
+        rel_to_idx,
+        type_to_idx,
+    )
+
     def flatten_map_graph_to_idx(
-        factorgraph: StackedFactorGraph[V],
+        factorgraph: StackedStringFactorGraph[VariableDomain],
         var_val_dtype: type,
-    ) -> IdxFactorGraph[V]:
+    ) -> ObsData[VariableDomain]:
+        flattened_graph = factorgraph._replace(
+            variables=flatten(
+                factorgraph.variables.values, factorgraph.variables.types
+            ),
+            global_variables=flatten(
+                factorgraph.global_variables.values,
+                factorgraph.global_variables.types,
+            ),
+        )
+
         return map_graph_to_idx(
-            *flatten_values(factorgraph),
-            factorgraph.senders,
-            factorgraph.receivers,
-            factorgraph.edge_attributes,
-            factorgraph.action_type_mask,
-            factorgraph.action_arity_mask,
-            factorgraph.factor_types,
-            rel_to_idx,
-            type_to_idx,
+            flattened_graph,
             var_val_dtype,
         )
 

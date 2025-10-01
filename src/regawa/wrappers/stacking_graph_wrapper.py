@@ -2,17 +2,23 @@ import logging
 from typing import Any, SupportsFloat
 import gymnasium as gym
 from regawa import BaseModel, GroundObs, Grounding
+from ..data.graph import HeteroGraph, StackedStringFactorGraph
 from regawa.model import StackedGroundObs
 from .graph_utils import fn_obsdict_to_graph
 from .render_utils import create_render_graph, to_graphviz
-from .types import StackedFactorGraph, HeteroGraph, RenderGraph
+from .render_utils import RenderGraph
 import numpy as np
 
 logger = logging.getLogger(__name__)
 
 
 class StackingGroundedGraphWrapper(
-    gym.Wrapper[HeteroGraph, GroundObs | tuple[int, ...], StackedGroundObs, GroundObs | tuple[int, ...]]
+    gym.Wrapper[
+        HeteroGraph,
+        GroundObs | tuple[int, ...],
+        StackedGroundObs,
+        GroundObs | tuple[int, ...],
+    ]
 ):
     def __init__(
         self,
@@ -27,7 +33,9 @@ class StackingGroundedGraphWrapper(
         self.last_g: RenderGraph | None = None
         self._object_to_type: dict[str, str] = {"None": "None"}
         self.create_graphs = fn_obsdict_to_graph(
-            model, StackedFactorGraph[np.bool_], StackedFactorGraph[np.float32]
+            model,
+            StackedStringFactorGraph[np.bool_],
+            StackedStringFactorGraph[np.float32],
         )
 
         self.add_render_graph_to_info = add_render_graph_to_info
@@ -58,14 +66,16 @@ class StackingGroundedGraphWrapper(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[HeteroGraph, dict[str, Any]]:
         rddl_obs, info = self.env.reset(seed=seed)
-        graph = self.create_graphs(rddl_obs)
+        graph = self.create_graphs(rddl_obs)  # type: ignore
         info_update, combined_graph = self._prepare_info(
-            rddl_obs, graph, self.add_render_graph_to_info
+            rddl_obs,  # type: ignore
+            graph,
+            self.add_render_graph_to_info,
         )
         info = info | info_update
         info["rddl_state"] = (
-            self.env.unwrapped.state if hasattr(self.env.unwrapped, "state") else {} # type: ignore
-        )  
+            self.env.unwrapped.state if hasattr(self.env.unwrapped, "state") else {}  # type: ignore
+        )
 
         self.last_g = combined_graph
 
@@ -76,14 +86,16 @@ class StackingGroundedGraphWrapper(
     ) -> tuple[HeteroGraph, SupportsFloat, bool, bool, dict[str, Any]]:
         rddl_obs, reward, terminated, truncated, info = self.env.step(action)
 
-        graph = self.create_graphs(rddl_obs)
+        graph = self.create_graphs(rddl_obs)  # type: ignore
         info_update, combined_graph = self._prepare_info(
-            rddl_obs, graph, self.add_render_graph_to_info
+            rddl_obs,  # type: ignore
+            graph,
+            self.add_render_graph_to_info,
         )
         info = info | info_update
         info["rddl_state"] = (
-            self.env.unwrapped.state if hasattr(self.env.unwrapped, "state") else {} # type: ignore
-        )  
+            self.env.unwrapped.state if hasattr(self.env.unwrapped, "state") else {}  # type: ignore
+        )
         self.last_g = combined_graph
         self.last_rddl_obs = rddl_obs
 

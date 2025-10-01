@@ -9,14 +9,14 @@ from regawa.model import BaseModel
 from .graph_utils import fn_heterograph_to_heteroobs, fn_regular_map_graph_to_idx
 from .stacking_utils import fn_flatten_map_graph_to_idx
 from .space import HeteroStateSpace
-from .types import HeteroGraph
+from regawa.data import HeteroGraph
 
 logger = logging.getLogger(__name__)
 
 
 class IndexObsWrapper(
     gym.Wrapper[
-        HeteroStateSpace,
+        HeteroObsData,
         GroundObs | tuple[int, ...],
         HeteroGraph,
         GroundObs | tuple[int, ...],
@@ -50,7 +50,7 @@ class IndexObsWrapper(
         self.create_obs_dict = fn_heterograph_to_heteroobs(idx_func)
 
     @cached_property
-    def observation_space(self) -> HeteroStateSpace:
+    def observation_space(self) -> HeteroStateSpace:  # type: ignore
         num_types = self.model.num_types
         num_relations = self.model.num_fluents
         max_arity = max(self.model.arity(r) for r in self.model.fluents)
@@ -78,15 +78,15 @@ class IndexObsWrapper(
         info["idx_to_object"] = graph.boolean.factors
         obs = self.create_obs_dict(graph)
 
-        assert obs.bool.length.sum() == len(
-            obs.bool.var_value
+        assert obs.bool.var.length.sum() == len(
+            obs.bool.var.value
         ), "Expected {} but got {}".format(
-            obs.bool.length.sum(), len(obs.bool.var_value)
+            obs.bool.var.length.sum(), len(obs.bool.var.value)
         )
-        assert obs.float.length.sum() == len(
-            obs.float.var_value
+        assert obs.float.var.length.sum() == len(
+            obs.float.var.value
         ), "Expected {} but got {}".format(
-            obs.float.length.sum(), len(obs.float.var_value)
+            obs.float.var.length.sum(), len(obs.float.var.value)
         )
 
         return obs, r, term, trunc, info

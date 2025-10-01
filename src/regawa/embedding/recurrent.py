@@ -9,6 +9,7 @@ import torch
 
 from regawa.data.torch import SparseTensor
 
+
 @torch.jit.script  # type: ignore
 def compress_index_alt(data: Tensor, lengths: Tensor) -> Tensor:
     """
@@ -28,6 +29,7 @@ def compress_index_alt(data: Tensor, lengths: Tensor) -> Tensor:
     # Pick the first element of each segment
     return data.index_select(0, offsets)
 
+
 @torch.jit.script  # type: ignore
 def _batch_sizes_from_lengths(lengths: Tensor) -> Tensor:
     # lengths: [B] long
@@ -36,6 +38,7 @@ def _batch_sizes_from_lengths(lengths: Tensor) -> Tensor:
     # batch_sizes[t] = #seqs with length > t
     batch_sizes = (t.unsqueeze(0) < lengths.unsqueeze(1)).sum(0).to(torch.long)  # [T]
     return batch_sizes.to("cpu")
+
 
 @torch.jit.script  # type: ignore
 def packed_from_concatenated_sequences(
@@ -151,10 +154,12 @@ class RecurrentEmbedder(nn.Module):
         self.recurrent = recurrent  # type: ignore
         self.recurrent.to(device)
         self.recurrent.flatten_parameters()
-    
+
     @torch.jit.export
     def compress_time(self, h: Tensor, length: Tensor) -> Tensor:
-        custom_h_c = packed_from_concatenated_sequences(h, length, include_sort_info=True)
+        custom_h_c = packed_from_concatenated_sequences(
+            h, length, include_sort_info=True
+        )
         _, variables = self.recurrent.forward(custom_h_c, None)
         return variables
 

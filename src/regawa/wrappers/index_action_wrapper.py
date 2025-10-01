@@ -6,16 +6,36 @@ import gymnasium as gym
 from regawa.model import GroundObs, Grounding
 from regawa.model import BaseModel
 from .grounding_utils import to_dict_action
-from .types import HeteroGraph
-from .gym_utils import action_space
+from regawa.data import HeteroGraph
+from collections.abc import Callable
+import numpy as np
 from .utils import idx_action_to_ground_value
 from gymnasium.spaces import MultiDiscrete
 
 logger = logging.getLogger(__name__)
 
 
+def action_space(
+    action_fluents: tuple[str, ...],
+    num_actions: int,
+    num_objects: int,
+    arity: Callable[[str], int],
+) -> MultiDiscrete:
+    max_action_args = max(arity(a) for a in action_fluents) or 1
+
+    return MultiDiscrete(
+        np.asarray(
+            [num_actions]
+            + [
+                num_objects,
+            ]
+            * max_action_args
+        )
+    )
+
+
 class IndexActionWrapper(
-    gym.Wrapper[HeteroGraph, MultiDiscrete, HeteroGraph, GroundObs]
+    gym.Wrapper[HeteroGraph, tuple[int, ...], HeteroGraph, GroundObs]
 ):
     """
     Converts actions from index-based to string-based
@@ -39,8 +59,8 @@ class IndexActionWrapper(
         return to_dict_action(action, self.obj_to_type, self.model.fluent_params)
 
     @property
-    def action_space(self) -> gym.Space[MultiDiscrete]:
-        return action_space(
+    def action_space(self) -> gym.Space[MultiDiscrete]:  # type: ignore
+        return action_space(  # type: ignore
             self.model.action_fluents,
             self.model.num_actions,
             len(self._object_to_type),
@@ -48,12 +68,12 @@ class IndexActionWrapper(
         )
 
     @action_space.setter
-    def action_space(self, space: gym.Space[MultiDiscrete]) -> None:
+    def action_space(self, space: gym.Space[MultiDiscrete]) -> None:  # type: ignore
         raise AttributeError("Can't set attribute")
 
     def step(
         self,
-        action: MultiDiscrete,
+        action: tuple[int, ...],
     ) -> tuple[
         HeteroGraph,
         SupportsFloat,

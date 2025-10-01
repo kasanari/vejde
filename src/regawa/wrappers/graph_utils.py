@@ -4,9 +4,9 @@ from typing import TypeVar
 
 import numpy as np
 
+from regawa.data.graph import GraphTypes, VariableDomain
 from regawa.model.base_grounded_model import Grounding
 from regawa import BaseModel
-from regawa.data import HeteroObsData
 from regawa.model import (
     fn_valid_action_fluents_given_arity,
     fn_valid_action_fluents_given_type,
@@ -19,22 +19,19 @@ from .grounding_utils import (
     numeric_groundings,
     fn_objects_with_type,
 )
-from .gym_utils import idxgraph_to_obsdata
-from .types import (
-    FactorGraph,
+from regawa.data import (
     HeteroGraph,
-    IdxFactorGraph,
     Object,
-    StackedFactorGraph,
-    Variables,
+    StackedStringFactorGraph,
+    StringFactorGraph,
+    HeteroObsData,
+    ObsData,
 )
 from .utils import (
     generate_bipartite_obs_func,
-    map_graph_to_idx,
+    fn_map_graph_to_idx,
     object_list,
 )
-
-V = TypeVar("V", np.float32, np.bool_)
 
 
 type StrToInt = Callable[[str], int]
@@ -44,32 +41,19 @@ def fn_regular_map_graph_to_idx(rel_to_idx: StrToInt, type_to_idx: StrToInt):
     """
     Prepares a function that maps a FactorGraph with string attributes to a FactorGraph with integer attributes.
     """
+    map_graph_to_idx = fn_map_graph_to_idx(
+        rel_to_idx,
+        type_to_idx,
+    )
 
-    def regular_map_graph_to_idx(factorgraph: FactorGraph[V], var_val_dtype: type):
+    def regular_map_graph_to_idx(
+        factorgraph: StringFactorGraph[VariableDomain], var_val_dtype: type
+    ):
         """
         Maps a FactorGraph with string attributes to a FactorGraph with integer attributes.
         """
-        vars = Variables(
-            factorgraph.variables,
-            factorgraph.variable_values,
-            np.ones_like(factorgraph.variable_values, dtype=np.int64),
-        )
-        global_vars = Variables(
-            factorgraph.global_variables,
-            factorgraph.global_variable_values,
-            np.ones_like(factorgraph.global_variable_values, dtype=np.int64),
-        )
         return map_graph_to_idx(
-            vars,
-            global_vars,
-            factorgraph.senders,
-            factorgraph.receivers,
-            factorgraph.edge_attributes,
-            factorgraph.action_type_mask,
-            factorgraph.action_arity_mask,
-            factorgraph.factor_types,
-            rel_to_idx,
-            type_to_idx,
+            factorgraph,
             var_val_dtype,
         )
 
@@ -79,10 +63,10 @@ def fn_regular_map_graph_to_idx(rel_to_idx: StrToInt, type_to_idx: StrToInt):
 def fn_heterograph_to_heteroobs(
     fn_graph_to_idx: Callable[
         [
-            FactorGraph[V] | StackedFactorGraph[V],
+            GraphTypes,
             type,
         ],
-        IdxFactorGraph[V],
+        ObsData[VariableDomain],
     ],
 ):
     """
@@ -91,17 +75,13 @@ def fn_heterograph_to_heteroobs(
 
     def heterograph_to_heteroobs(heterogenous_graph: HeteroGraph) -> HeteroObsData:
         return HeteroObsData(
-            bool=idxgraph_to_obsdata(
-                fn_graph_to_idx(
-                    heterogenous_graph.boolean,  # type: ignore
-                    np.int8,
-                ),
+            bool=fn_graph_to_idx(
+                heterogenous_graph.boolean,  # type: ignore
+                np.int8,
             ),
-            float=idxgraph_to_obsdata(
-                fn_graph_to_idx(
-                    heterogenous_graph.numeric,  # type: ignore
-                    np.float32,
-                ),
+            float=fn_graph_to_idx(
+                heterogenous_graph.numeric,  # type: ignore
+                np.float32,
             ),
         )
 
@@ -119,16 +99,16 @@ def filter_none_groundings(rddl_obs: GroundObs) -> GroundObs:
     return filtered_obs
 
 
-T = TypeVar(
-    "T",
-    FactorGraph[np.bool_],
-    StackedFactorGraph[np.bool_],
+BooleanGraphTypes = TypeVar(
+    "BooleanGraphTypes",
+    StringFactorGraph[np.bool_],
+    StackedStringFactorGraph[np.bool_],
 )
 
 
 def fn_obsdict_to_graph_boolean(
     model: BaseModel,
-    graph_cls: type[T],
+    graph_cls: type[BooleanGraphTypes],
 ):
     generate_bipartite_obs_bool = generate_bipartite_obs_func(
         graph_cls,
@@ -147,7 +127,7 @@ def fn_obsdict_to_graph_boolean(
         object_nodes: Sequence[Object],
     ):
         return generate_bipartite_obs_bool(
-            rddl_obs,
+            rddl_obs,  # type: ignore
             b_g(groundings),
             object_nodes,
         )
@@ -155,14 +135,14 @@ def fn_obsdict_to_graph_boolean(
     return obsdict_to_graph
 
 
-S = TypeVar(
-    "S",
-    FactorGraph[np.float32],
-    StackedFactorGraph[np.float32],
+NumericGraphTypes = TypeVar(
+    "NumericGraphTypes",
+    StringFactorGraph[np.float32],
+    StackedStringFactorGraph[np.float32],
 )
 
 
-def fn_obsdict_to_graph_numeric(model: BaseModel, graph_cls: type[S]):
+def fn_obsdict_to_graph_numeric(model: BaseModel, graph_cls: type[NumericGraphTypes]):
     generate_bipartite_obs_numeric = generate_bipartite_obs_func(
         graph_cls,
         fn_valid_action_fluents_given_type(model),
@@ -180,7 +160,7 @@ def fn_obsdict_to_graph_numeric(model: BaseModel, graph_cls: type[S]):
         object_nodes: Sequence[Object],
     ):
         return generate_bipartite_obs_numeric(
-            rddl_obs,
+            rddl_obs,  # type: ignore
             n_g(groundings),
             object_nodes,
         )
@@ -190,8 +170,8 @@ def fn_obsdict_to_graph_numeric(model: BaseModel, graph_cls: type[S]):
 
 def fn_obsdict_to_graph(
     model: BaseModel,
-    bool_graph_cls: type[T],
-    numeric_graph_cls: type[S],
+    bool_graph_cls: type[BooleanGraphTypes],
+    numeric_graph_cls: type[NumericGraphTypes],
 ) -> Callable[[GroundObs], HeteroGraph]:
     """
     Returns a function that takes an observation dictionary of groundings and values, and returns a heterogenous bipartite graph.

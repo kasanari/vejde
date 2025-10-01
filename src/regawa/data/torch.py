@@ -3,10 +3,8 @@ from collections.abc import Callable
 from typing import NamedTuple, TypeVar
 import torch
 from torch import Size, Tensor, as_tensor, concatenate
-from .data import SparseArray, BatchData, HeteroBatchData
-import numpy as np
-
-V = TypeVar("V", np.float32, np.bool_)
+from .batch import BatchData, HeteroBatchData
+from .sparse import SparseArray
 
 
 def heterostatedata_to_tensors(
@@ -16,6 +14,9 @@ def heterostatedata_to_tensors(
         statedata_to_tensors(data.boolean, device),
         statedata_to_tensors(data.numeric, device),
     )
+
+
+V = TypeVar("V", torch.float32, torch.bool, torch.int64, torch.int8)  # type: ignore
 
 
 class SparseTensor(NamedTuple):

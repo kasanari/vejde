@@ -1,0 +1,123 @@
+from __future__ import annotations
+from collections.abc import Sequence
+
+import numpy as np
+from numpy.typing import NDArray
+from regawa.model import Grounding
+
+
+from typing import Generic, NamedTuple
+
+
+from typing import TypeVar
+
+VariableDomain = TypeVar(
+    "VariableDomain",
+    np.float32,
+    np.bool_,
+    np.int8,
+)
+
+
+VariableTypeDomain = np.int64
+EdgeIndexDomain = np.int64
+
+
+class Distances(NamedTuple):
+    source_variables: NDArray[np.int64]
+    target_factors: NDArray[np.int64]
+    distances: NDArray[np.float32]
+
+    # distances: Distances
+
+
+class Variables(NamedTuple, Generic[VariableDomain]):
+    # predicate of grounding, e.g. "p". Length matches var_value.
+    types: NDArray[VariableTypeDomain]
+    # number of repetitions per grounding. This is only not 1 when using stacking. Length matches var_value
+    # value of groundings, e.g. "v". This can be bool or float
+    value: NDArray[VariableDomain]
+    length: NDArray[VariableTypeDomain]
+    # number of groundings/variables. Will match len(length), even with stacking. Will match len(var_value) without stacking.
+    n_variable: int  # number of groundings/variables. Will match len(length), even with stacking. Will match len(var_value) without stacking.
+
+
+class Edge(NamedTuple):
+    grounding: Grounding
+    object: str
+    pos: int
+
+
+class Object(NamedTuple):
+    name: str
+    type: str
+
+
+class StackedStringVariables(NamedTuple, Generic[VariableDomain]):
+    types: Sequence[str]
+    values: Sequence[Sequence[VariableDomain]]
+    length: Sequence[int]
+    n_variable: int
+
+
+class StringVariables(NamedTuple, Generic[VariableDomain]):
+    types: Sequence[str]
+    values: Sequence[VariableDomain]
+    length: Sequence[int]
+    n_variable: int  # number of groundings/variables. Will match len(length),
+
+
+class StringFactorGraph(NamedTuple, Generic[VariableDomain]):
+    """A FactorGraph with string attributes."""
+
+    variables: StringVariables[VariableDomain]
+    factors: Sequence[str]
+    factor_types: Sequence[str]
+    senders: NDArray[VariableTypeDomain]
+    receivers: NDArray[VariableTypeDomain]
+    edge_attributes: Sequence[int]
+    global_variables: StringVariables[VariableDomain]
+    action_type_mask: Sequence[tuple[bool, ...]]
+    action_arity_mask: Sequence[tuple[bool, ...]]
+    groundings: Sequence[Grounding]
+    global_groundings: Sequence[Grounding]
+
+    # distance metrics, in a sparse format
+    # distances: Distances
+
+
+class StackedStringFactorGraph(NamedTuple, Generic[VariableDomain]):
+    variables: StackedStringVariables[VariableDomain]
+    factors: Sequence[str]
+    factor_types: Sequence[str]
+    senders: NDArray[VariableTypeDomain]
+    receivers: NDArray[VariableTypeDomain]
+    edge_attributes: Sequence[int]
+    global_variables: StackedStringVariables[VariableDomain]
+    action_type_mask: Sequence[tuple[bool, ...]]
+    action_arity_mask: Sequence[tuple[bool, ...]]
+    groundings: Sequence[Grounding]
+    global_groundings: Sequence[Grounding]
+
+
+class HeteroGraph(NamedTuple):
+    numeric: StringFactorGraph[np.float32] | StackedStringFactorGraph[np.float32]
+    boolean: StringFactorGraph[np.bool_] | StackedStringFactorGraph[np.bool_]
+
+
+class Edges(NamedTuple):
+    # mappings from grounding to object. Length matches var_value
+    v_to_f: NDArray[EdgeIndexDomain]
+    # mappings from object to grounding. Length matches factor
+    f_to_v: NDArray[EdgeIndexDomain]
+    # edge attributes, e.g. position in predicate. Length matches v_to_f and f_to_v
+    edge_attr: NDArray[EdgeIndexDomain]
+
+
+GraphTypes = TypeVar(
+    "GraphTypes",
+    StringFactorGraph[np.bool_],
+    StackedStringFactorGraph[np.bool_],
+    StringFactorGraph[np.float32],
+    StackedStringFactorGraph[np.float32],
+)

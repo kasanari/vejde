@@ -1,15 +1,17 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from itertools import chain
+from typing import NamedTuple
 
 import numpy as np
+from numpy.typing import NDArray
 
 from regawa.model import Grounding
 from regawa.model import BaseModel
 from .grounding_utils import create_edges, objects
-from .types import (
-    FactorGraph,
-    RenderGraph,
-    StackedFactorGraph,
+from regawa.data.graph import (
+    StackedStringFactorGraph,
+    StringFactorGraph,
+    StringVariables,
 )
 from .utils import translate_edges
 
@@ -42,6 +44,15 @@ def to_graphviz_alt(
         graph += f'"{first_mapping[edge[0]]}" -- "{second_mapping[edge[1]]}" [color="{colors[attribute]}"]\n'
     graph += "}"
     return graph
+
+
+class RenderGraph(NamedTuple):
+    variable_labels: Sequence[str]
+    factor_labels: Sequence[str]
+    senders: NDArray[np.int64]
+    receivers: NDArray[np.int64]
+    edge_attributes: Sequence[int]
+    global_variables: Sequence[str]
 
 
 def to_graphviz(
@@ -83,19 +94,19 @@ def to_graphviz(
 
 
 def create_render_graph(
-    bool_g: FactorGraph[np.bool_] | StackedFactorGraph[np.bool_],
-    numeric_g: FactorGraph[np.float32] | StackedFactorGraph[np.float32],
+    bool_g: StringFactorGraph[np.bool_] | StackedStringFactorGraph[np.bool_],
+    numeric_g: StringFactorGraph[np.float32] | StackedStringFactorGraph[np.float32],
 ) -> RenderGraph:
     def format_label(key: Grounding) -> str:
         fluent, *args = key
         return f"{fluent}({', '.join(args)})" if args else fluent
 
     boolean_labels = [
-        f"{format_label(key)}={bool_g.variable_values[idx]}"
+        f"{format_label(key)}={bool_g.variables.values[idx]}"
         for idx, key in enumerate(bool_g.groundings)
     ]
     numeric_labels = [
-        f"{format_label(key)}={numeric_g.variable_values[idx]}"
+        f"{format_label(key)}={numeric_g.variables.values[idx]}"
         for idx, key in enumerate(numeric_g.groundings)
     ]
 
@@ -103,9 +114,9 @@ def create_render_graph(
 
     factor_labels = [f"{key}" for key in bool_g.factors]
 
-    edge_attributes = np.concatenate(
+    edge_attributes: Sequence[int] = np.concatenate(
         (bool_g.edge_attributes, numeric_g.edge_attributes)
-    )
+    )  # type: ignore
 
     senders = np.concatenate(
         [bool_g.senders, numeric_g.senders + len(bool_g.variables)]
@@ -114,12 +125,12 @@ def create_render_graph(
     receivers = np.concatenate([bool_g.receivers, numeric_g.receivers])
 
     global_numeric = [
-        f"{key}={numeric_g.global_variable_values[idx]}"
-        for idx, key in enumerate(numeric_g.global_variables)
+        f"{key}={numeric_g.global_variables.values[idx]}"
+        for idx, key in enumerate(numeric_g.global_variables.values)
     ]
     global_boolean = [
-        f"{key}={bool_g.global_variable_values[idx]}"
-        for idx, key in enumerate(bool_g.global_variables)
+        f"{key}={bool_g.global_variables.values[idx]}"
+        for idx, key in enumerate(bool_g.global_variables.values)
     ]
     global_labels = global_boolean + global_numeric
 
@@ -143,32 +154,38 @@ def render_lifted(model: BaseModel):
 
     edge_attributes = [key[2] for key in edges]
 
-    graph = FactorGraph(
-        variables=list(map(str, non_global_vars)),
-        variable_values=[np.bool_(True) for _ in non_global_vars],
+    graph = StringFactorGraph(
+        StringVariables[np.bool_](
+            list(map(str, non_global_vars)),
+            [np.bool_(True) for _ in non_global_vars],
+            [1 for _ in non_global_vars],
+            n_variable=len(non_global_vars),
+        ),
         factors=o,
         factor_types=o,
         senders=senders,
         receivers=receivers,
         edge_attributes=edge_attributes,
-        global_variables=list(map(str, global_vars)),
-        global_variable_values=[np.bool_(True) for _ in global_vars],
+        global_variables=StringVariables[np.bool_](
+            list(map(str, global_vars)),
+            [np.bool_(True) for _ in global_vars],
+            [1 for _ in global_vars],
+            n_variable=len(global_vars),
+        ),
         groundings=non_global_vars,
         global_groundings=global_vars,
         action_arity_mask=[(True,) for _ in o],
         action_type_mask=[(False,) for _ in o],
     )
 
-    n_graph = FactorGraph[np.float32](
-        variables=[],
-        variable_values=[],
+    n_graph = StringFactorGraph[np.float32](
+        variables=StringVariables[np.float32]([], [], [], n_variable=0),
         factors=[],
         factor_types=[],
         senders=np.array([], dtype=np.int64),
         receivers=np.array([], dtype=np.int64),
         edge_attributes=[],
-        global_variables=[],
-        global_variable_values=[],
+        global_variables=StringVariables[np.float32]([], [], [], n_variable=0),
         groundings=[],
         global_groundings=[],
         action_arity_mask=[(True,) for _ in o],

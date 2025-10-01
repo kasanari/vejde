@@ -4,10 +4,16 @@ import gymnasium as gym
 import numpy as np
 
 from regawa.model import GroundObs
-from regawa.model.base_grounded_model import BaseGroundedModel
+from regawa.model.base_grounded_model import (
+    BaseGroundedModel,
+    Grounding,
+    GroundingRange,
+)
 
 
-def add_actions_to_obs(obs: GroundObs, actions: GroundObs) -> GroundObs:
+def add_actions_to_obs(
+    obs: dict[Grounding, GroundingRange], actions: dict[Grounding, GroundingRange]
+) -> GroundObs:
     obs_with_actions = {a: v for a, v in actions.items()} | obs
     return obs_with_actions
 
@@ -22,15 +28,17 @@ def fn_add_actions_to_obs(grounded_model: BaseGroundedModel):
             k: boolean_actions.get(k, None) for k in action_groundings if k not in obs
         }
 
-        obs_with_actions = add_actions_to_obs(obs, new_actions)
+        obs_with_actions = add_actions_to_obs(obs, new_actions)  # type: ignore
         return obs_with_actions
 
     return add_actions_to_obs
 
 
-def dynamic_add_actions_to_obs(obs: GroundObs, actions: GroundObs) -> GroundObs:
+def dynamic_add_actions_to_obs(
+    obs: dict[Grounding, GroundingRange], actions: GroundObs
+) -> GroundObs:
     boolean_actions = {k: np.bool_(v) for k, v in actions.items()}
-    obs_with_actions = add_actions_to_obs(obs, boolean_actions)
+    obs_with_actions = add_actions_to_obs(obs, boolean_actions)  # type: ignore
     return obs_with_actions
 
 
@@ -65,7 +73,7 @@ class AddActionWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs]):
     ]:
         obs, reward, terminated, truncated, info = self.env.step(action)
 
-        obs_with_actions = self.add_action_func(obs, action)
+        obs_with_actions = self.add_action_func(obs, action)  # type: ignore
 
         return obs_with_actions, reward, terminated, truncated, info
 
@@ -78,6 +86,6 @@ class AddActionWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs]):
     ]:
         obs, info = self.env.reset(seed=seed)
 
-        obs_with_actions = self.add_action_func(obs, {})
+        obs_with_actions = self.add_action_func(obs, {})  # type: ignore
 
         return obs_with_actions, info

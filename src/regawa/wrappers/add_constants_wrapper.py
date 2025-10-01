@@ -12,7 +12,7 @@ def add_constants_fn(ground_model: BaseGroundedModel):
     }
 
     def f(obs: GroundObs) -> GroundObs:
-        return obs | constant_vals
+        return obs | constant_vals  # type: ignore
 
     return f
 

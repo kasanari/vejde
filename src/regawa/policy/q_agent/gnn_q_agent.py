@@ -1,3 +1,4 @@
+# type: ignore
 import torch.nn as nn
 
 from regawa.embedding.boolean import NegativeBiasBooleanEmbedder

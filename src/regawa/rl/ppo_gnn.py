@@ -599,11 +599,13 @@ def mlflow_log(
     if length is not None:
         mlflow.log_metric("rollout/mean_episodic_length", length, global_step)  # type: ignore
     mlflow.log_metric(
-        "losses/total_loss", np.mean([u.loss.item() for u in u_data]), global_step
-    )  # type: ignore
+        "losses/total_loss",
+        np.mean([u.loss.item() for u in u_data]),  # type: ignore
+        global_step,
+    )
     mlflow.log_metric(
         "losses/grad_norm",
-        np.mean([u.grad_norm.item() for u in u_data]),
+        np.mean([u.grad_norm.item() for u in u_data]),  # type: ignore
         global_step,
     )  # type: ignore
     mlflow.log_metric("losses/value_loss", value_loss, global_step)  # type: ignore

@@ -1,80 +1,80 @@
 import logging
 import random
-from collections.abc import Callable, Iterable, Sequence
-from typing import TypeVar
+from collections.abc import Callable, Iterable, Mapping, Sequence
 
 import numpy as np
 from gymnasium.spaces import Dict
 from numpy.typing import NDArray
+import networkx as nx
 
-from regawa.model.base_grounded_model import GroundObs
+from regawa.data.actions import ActionMask
+from regawa.data.graph import Edges, GraphTypes, VariableDomain
+from regawa.data.obs import Factors
 from regawa.model import Grounding
 from .grounding_utils import (
     arity,
     create_edges,
     predicate,
 )
-from .types import (
+from regawa.data import (
     Edge,
-    FactorGraph,
-    IdxFactorGraph,
+    ObsData,
     Object,
-    StackedFactorGraph,
+    StackedStringFactorGraph,
     Variables,
+    StringFactorGraph,
+    StringVariables,
 )
 
 logger = logging.getLogger(__name__)
 
-V = TypeVar("V", np.float32, np.bool_)
-T = TypeVar(
-    "T",
-    FactorGraph[np.bool_],
-    StackedFactorGraph[np.bool_],
-    FactorGraph[np.float32],
-    StackedFactorGraph[np.float32],
-)
 
-
-def map_graph_to_idx(
-    variables: Variables[V],
-    global_variables: Variables[V],
-    senders: NDArray[np.int64],
-    receivers: NDArray[np.int64],
-    edge_attributes: Sequence[int],
-    action_type_mask: Sequence[tuple[bool, ...]],
-    action_arity_mask: Sequence[tuple[bool, ...]],
-    factor_types: Sequence[str],
+def fn_map_graph_to_idx(
     rel_to_idx: Callable[[str], int],
     type_to_idx: Callable[[str], int],
-    var_val_dtype: type,
-) -> IdxFactorGraph[V]:
-    arr = np.asarray
-    factor_type_idx = arr(
-        [type_to_idx(f_type) for f_type in factor_types], dtype=np.int64
-    )
-    idx_global_vars = arr(
-        [rel_to_idx(p) for p in global_variables.types], dtype=np.int64
-    )
-    idx_vars = arr([rel_to_idx(p) for p in variables.types], dtype=np.int64)
+):
+    def map_graph_to_idx(
+        g: StringFactorGraph[VariableDomain] | StackedStringFactorGraph[VariableDomain],
+        var_val_dtype: type,
+    ) -> ObsData[VariableDomain]:
+        arr = np.asarray
+        factor_type_idx = arr(
+            [type_to_idx(f_type) for f_type in g.factor_types], dtype=np.int64
+        )
+        idx_global_vars = arr(
+            [rel_to_idx(p) for p in g.global_variables.types], dtype=np.int64
+        )
+        idx_vars = arr([rel_to_idx(p) for p in g.variables.types], dtype=np.int64)
 
-    return IdxFactorGraph(
-        Variables(
-            idx_vars,
-            arr(variables.values, dtype=var_val_dtype),
-            arr(variables.lengths),
-        ),
-        factor_type_idx,
-        senders,
-        receivers,
-        arr(edge_attributes, dtype=np.int64),
-        Variables(
-            idx_global_vars,
-            arr(global_variables.values, dtype=var_val_dtype),
-            arr(global_variables.lengths),
-        ),
-        arr(action_type_mask, dtype=np.bool_),
-        arr(action_arity_mask, dtype=np.bool_),
-    )
+        return ObsData(
+            var=Variables(
+                idx_vars,
+                arr(g.variables.values, dtype=var_val_dtype),
+                arr(g.variables.length),
+                n_variable=g.variables.n_variable,
+            ),
+            factor=Factors(
+                factor_type_idx,
+                factor_type_idx.shape[0],  # number of factors
+            ),
+            edges=Edges(
+                g.senders,
+                g.receivers,
+                arr(g.edge_attributes, dtype=np.int64),
+            ),
+            global_var=Variables(
+                idx_global_vars,
+                arr(g.global_variables.values, dtype=var_val_dtype),
+                arr(g.global_variables.length),
+                n_variable=g.global_variables.n_variable,
+            ),
+            action_masks=ActionMask(
+                arr(g.action_type_mask, dtype=np.bool_),
+                arr(g.action_arity_mask, dtype=np.bool_),
+            ),
+        )
+
+    return map_graph_to_idx
 
 
 def from_dict_action(
@@ -88,7 +88,7 @@ def from_dict_action(
 
 
 def idx_action_to_ground_value(
-    action: NDArray[np.integer],
+    action: Sequence[int],
     idx_to_action: Callable[[int], str],
     idx_to_obj: Callable[[int], str],
 ) -> Grounding:
@@ -127,20 +127,23 @@ def object_list(
 
 
 def generate_bipartite_obs_func(
-    cls: type[T],
+    cls: type[GraphTypes],
     action_fluent_type_mask: Callable[[str], tuple[bool, ...]],
     action_fluent_arity_mask: Callable[[str], tuple[bool, ...]],
 ):
     def f(
-        observations: GroundObs,
+        observations: Mapping[Grounding, VariableDomain],
         groundings: Sequence[Grounding],
         object_nodes: Sequence[Object],
-    ) -> T:
+    ) -> GraphTypes:
         nullary_groundings = [g for g in groundings if arity(g) == 0]
         non_nullary_groundings = {
             g: idx for idx, g in enumerate(g for g in groundings if arity(g) > 0)
         }
         factor_node_values = [observations[g] for g in non_nullary_groundings]
+
+        lengths = [len(x) if isinstance(x, Sequence) else 1 for x in factor_node_values]
+
         factor_node_predicates = [predicate(g) for g in non_nullary_groundings]
 
         object_names = [obj.name for obj in object_nodes]
@@ -152,12 +155,34 @@ def generate_bipartite_obs_func(
             lambda x: non_nullary_groundings[x], lambda x: object_indices[x], edges
         )
 
+        # calculate grounding-factor distance matrix
+        # use networkx
+        G = nx.Graph()
+        for edge in edges:
+            G.add_edge(str(edge[0]), str(edge[1]))
+        distances = dict(nx.shortest_path_length(G))
+        distance_list = [
+            (
+                non_nullary_groundings[i],
+                object_indices[j.name],
+                distances[str(i)][j.name],
+            )
+            for i in non_nullary_groundings
+            for j in object_nodes
+            if j.name in distances[str(i)]
+        ]
+
+        pass
+
         action_type_mask = [
             action_fluent_type_mask(obj_type) for obj_type in object_types
         ]
         action_arity_mask = [
             action_fluent_arity_mask(obj_type) for obj_type in object_types
         ]
+
+        global_vals = [observations[g] for g in nullary_groundings]
+        global_lengths = [len(x) if isinstance(x, Sequence) else 1 for x in global_vals]
 
         if edges:
             assert senders.max() < len(
@@ -166,15 +191,23 @@ def generate_bipartite_obs_func(
             assert receivers.max() < len(object_types), "Receivers index out of bounds."
 
         return cls(
-            factor_node_predicates,
-            factor_node_values,  # type: ignore
+            StringVariables[VariableDomain](  # type: ignore
+                factor_node_predicates,
+                factor_node_values,
+                lengths,
+                len(non_nullary_groundings),
+            ),
             object_names,
             object_types,
             senders,
             receivers,
             edge_attr(edges),
-            [predicate(g) for g in nullary_groundings],
-            [observations[g] for g in nullary_groundings],  # type: ignore
+            StringVariables[VariableDomain](  # type: ignore
+                [predicate(g) for g in nullary_groundings],
+                global_vals,
+                global_lengths,
+                len(nullary_groundings),
+            ),
             action_type_mask,
             action_arity_mask,
             list(non_nullary_groundings.keys()),

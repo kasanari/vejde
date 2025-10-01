@@ -66,6 +66,7 @@ def test_packed_from_concatenated_sequences():
     assert torch.equal(d.sorted_indices, expected.sorted_indices)
     assert torch.equal(d.unsorted_indices, expected.unsorted_indices)
 
+
 def test_compress_index():
     indices = torch.tensor([0, 0, 1, 1, 1, 2, 2, 2, 2])
     lengths = torch.tensor([2, 3, 4])

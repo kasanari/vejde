@@ -30,6 +30,7 @@ from regawa.gnn import BipartiteGNN
 from regawa.embedding import EmbeddingLayer, fn_compress_time, fn_embed_heterobatch
 from regawa.embedding import fn_embed_graph
 import torch
+
 V = TypeVar("V", np.float32, np.bool_)
 
 
@@ -87,12 +88,12 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
         )
 
         self.p_gnn = BipartiteGNN(
-                gnn_params.layers,
-                gnn_params.embedding_dim,
-                gnn_params.aggregation,
-                gnn_params.activation,
-                rngs,
-            )
+            gnn_params.layers,
+            gnn_params.embedding_dim,
+            gnn_params.aggregation,
+            gnn_params.activation,
+            rngs,
+        )
 
         policy_args = (config.num_actions, gnn_params.embedding_dim, rngs)
         self.policy = (

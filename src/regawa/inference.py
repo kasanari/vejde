@@ -2,19 +2,19 @@ from collections.abc import Callable
 from regawa import GroundObs
 from regawa.wrappers.graph_utils import fn_regular_map_graph_to_idx
 from regawa.wrappers.stacking_utils import fn_flatten_map_graph_to_idx
-from regawa.wrappers.types import FactorGraph
+from regawa.data.graph import HeteroGraph, StringFactorGraph
 from regawa.policy import ActionMode
-from regawa.data import HeteroObsData
+from regawa.data.obs import HeteroObsData
 from regawa.policy import GraphAgent
 from regawa.model import BaseModel
 from typing import NamedTuple
 from torch import Tensor
 from regawa.wrappers import fn_obsdict_to_graph, fn_heterograph_to_heteroobs
 from regawa.wrappers import create_render_graph
-from regawa.wrappers import HeteroGraph, RenderGraph
+from regawa.wrappers.render_utils import RenderGraph
 import torch
 import numpy as np
-from regawa.wrappers.types import StackedFactorGraph
+from regawa.data.graph import StackedStringFactorGraph
 
 
 class NodeThenActionAgentOutput(NamedTuple):
@@ -38,9 +38,10 @@ def tensor_to_list(x: Tensor) -> list[float]:
 
 
 def fn_groundobs_to_graph(
-    bool_graph_cls: type[FactorGraph[np.bool_]] | type[StackedFactorGraph[np.bool_]],
-    numeric_graph_cls: type[FactorGraph[np.float32]]
-    | type[StackedFactorGraph[np.float32]],
+    bool_graph_cls: type[StringFactorGraph[np.bool_]]
+    | type[StackedStringFactorGraph[np.bool_]],
+    numeric_graph_cls: type[StringFactorGraph[np.float32]]
+    | type[StackedStringFactorGraph[np.float32]],
     model: BaseModel,
     wrapper_func: Callable[[GroundObs], GroundObs],
 ) -> Callable[[GroundObs], HeteroGraph]:
@@ -82,9 +83,9 @@ def fn_get_agent_output(
     stacking: bool = False,
 ):
     bool_graph_cls, numeric_graph_cls = (
-        (StackedFactorGraph[np.bool_], StackedFactorGraph[np.float32])
+        (StackedStringFactorGraph[np.bool_], StackedStringFactorGraph[np.float32])
         if stacking
-        else (FactorGraph[np.bool_], FactorGraph[np.float32])
+        else (StringFactorGraph[np.bool_], StringFactorGraph[np.float32])
     )
     obs_to_graph = fn_groundobs_to_graph(
         bool_graph_cls, numeric_graph_cls, model, wrapper_func

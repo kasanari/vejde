@@ -3,7 +3,7 @@ from torch import Generator
 from gymnasium.spaces import MultiDiscrete
 
 from regawa.policy.gnn_agent import GraphAgentInterface
-from .data import HeteroObsData
+from .data.obs import HeteroObsData
 from .policy import ActionMode, GNNParams, AgentConfig
 from .model import (
     Grounding,

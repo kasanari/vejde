@@ -1,374 +1,34 @@
 from __future__ import annotations
 import json
-from collections import deque
-from collections.abc import Iterable
 from itertools import chain
-from typing import Generic, NamedTuple, TypeVar
 
 import numpy as np
 from numpy.typing import NDArray
 
+from regawa.data.graph import VariableDomain
+
+from .batch import BatchData, HeteroBatchData, batch
+from .obs import HeteroObsData, ObsData
+
 
 class Serializer(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, NDArray):
-            return obj.tolist()
-        if isinstance(obj, np.bool_):
-            return bool(obj)
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        return super().default(obj)
-
-
-V = TypeVar("V", np.float32, np.bool_, np.int64)
-
-
-class ObsData(NamedTuple, Generic[V]):
-    """
-    This class represents a factor graph of groundings and objects.
-    Assume a grounding p(o) = v.
-    """
-
-    var_value: NDArray[V]  # value of groundings, e.g. "v". This can be bool or float
-    var_type: NDArray[
-        np.int64
-    ]  # predicate of grounding, e.g. "p". Length matches var_value.
-    factor: NDArray[np.int64]  # object of grounding, e.g. "o"
-    v_to_f: NDArray[
-        np.int64
-    ]  # mappings from grounding to object. Length matches var_value
-    f_to_v: NDArray[
-        np.int64
-    ]  # mappings from object to grounding. Length matches factor
-    edge_attr: NDArray[
-        np.int64
-    ]  # edge attributes, e.g. position in predicate. Length matches v_to_f and f_to_v
-    length: NDArray[
-        np.int64
-    ]  # number of repetitions per grounding. This is only not 1 when using stacking. Length matches var_value
-    n_factor: int  # number of objects/factors.
-    n_variable: int  # number of groundings/variables. Will match len(length), even with stacking. Will match len(var_value) without stacking.
-    global_vars: NDArray[np.int64]  # global variable types.
-    global_vals: NDArray[V]  # global variable values. Length matches global_vars
-    global_length: NDArray[
-        np.int64
-    ]  # lengths of global variables, for stacking. Length matches global_vars
-    action_type_mask: NDArray[
-        np.bool_
-    ]  # mask that indicates which actions are valid for each factor, given the predicate type. Length matches factor.
-    action_arity_mask: NDArray[
-        np.bool_
-    ]  # mask that indicates which actions are valid for each factor, given the predicate arity. Objects are not valid for predicates with no arguments. Length matches factor.
-
-
-class HeteroObsData(NamedTuple):
-    """
-    This class represents a heterogeneous observation with boolean and float features.
-    """
-
-    bool: ObsData[np.bool_]  # boolean ObsData
-    float: ObsData[np.float32]  # numeric ObsData
-
-
-class SparseArray(NamedTuple, Generic[V]):
-    """
-    This is a simple sparse COOrdinate array representation.
-    index is the position of the values in the original dense array, e.g. the graph the node belongs to
-
-    assuming [1, 2, 3], [4, 5] and [6, 7, 8, 9], the sparse representation will be
-    values = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    indices = [0, 0, 0, 1, 1, 2, 2, 2, 2]
-    """
-
-    values: NDArray[V]
-    indices: NDArray[np.int64]
-
-    @property
-    def shape(self):
-        return self.values.shape
-
-    def concat(self, other: SparseArray[V]) -> SparseArray[V]:
-        return SparseArray(
-            np.concatenate((self.values, other.values)),
-            np.concatenate((self.indices, other.indices)),
-        )
-
-
-class BatchData(NamedTuple, Generic[V]):
-    """This represents a batch of multiple factor graphs."""
-
-    var_value: SparseArray[V]
-    var_type: SparseArray[np.int64]
-    factor: SparseArray[np.int64]
-    v_to_f: NDArray[np.int64]  # variable
-    f_to_v: NDArray[np.int64]  # factor
-    edge_attr: NDArray[np.int64]
-    n_factor: NDArray[np.int64]
-    n_variable: NDArray[np.int64]
-    n_graphs: np.int64
-    length: NDArray[np.int64]
-    global_vars: SparseArray[np.int64]
-    global_vals: SparseArray[V]
-    global_length: NDArray[np.int64]
-    action_arity_mask: NDArray[np.bool_]
-    action_type_mask: NDArray[np.bool_]
-
-
-class HeteroBatchData(NamedTuple):
-    """This represents a batch of multiple heterogeneous factor graphs."""
-
-    boolean: BatchData[np.bool_]
-    numeric: BatchData[np.float32]
-
-    @property
-    def n_graphs(self) -> int:
-        return self.boolean.n_graphs
-
-
-class GraphBuffer(Generic[V]):
-    def __init__(self) -> None:
-        self.data: deque[ObsData[V]] = deque()
-
-    def extend(self, obs: Iterable[ObsData[V]]) -> None:
-        self.data.extend(obs)
-
-    def add_single(self, obs: ObsData[V]) -> None:
-        self.data.append(obs)
-
-    def add_single_dict(self, obs: ObsData[V]) -> None:
-        self.data.append(obs)
-
-    def batch(self) -> BatchData[V]:
-        return batch(list(self.data))
-
-    def __getitem__(self, index: int) -> ObsData[V]:
-        return self.data[index]
-
-    def minibatch(self, indices: Iterable[int]) -> BatchData[V]:
-        return batch([self.data[i] for i in indices])
-
-
-class HeteroGraphBuffer:
-    def __init__(self) -> None:
-        self.buffers = {
-            "bool": GraphBuffer[np.bool_](),
-            "float": GraphBuffer[np.float32](),
-        }
-
-    def extend(self, obs: list[HeteroObsData]) -> None:
-        for o in obs:
-            for t in self.buffers:
-                self.buffers[t].add_single(o.__getattribute__(t))
-
-    def __iter__(self):
-        return self.buffers.__iter__()
-
-    def add_single_dict(self, obs: HeteroObsData) -> None:
-        for t in self.buffers:
-            self.buffers[t].add_single_dict(obs.__getattribute__(t))
-
-    @property
-    def batch(self) -> HeteroBatchData:
-        return HeteroBatchData(
-            boolean=batch(list(self.buffers["bool"].data)),
-            numeric=batch(list(self.buffers["float"].data)),
-        )
-
-    def minibatch(self, indices: Iterable[int]) -> HeteroBatchData:
-        return HeteroBatchData(
-            boolean=batch([self.buffers["bool"].data[i] for i in indices]),
-            numeric=batch([self.buffers["float"].data[i] for i in indices]),
-        )
-
-
-class Rollout(NamedTuple):
-    rewards: list[float]
-    obs: HeteroGraphBuffer
-    actions: list[tuple[int, int]]
-    values: list[float]
-
-
-def save_rollout(rollout: Rollout, path: str):
-    with open(path, "w") as f:
-        json.dump(rollout._asdict(), f, cls=Serializer)
-
-
-def load_rollout(path: str) -> Rollout:
-    with open(path, "r") as f:
-        data = json.load(f)
-    return Rollout(**data)
-
-
-class RolloutCollector:
-    rewards: deque[float]
-    obs: HeteroGraphBuffer
-    actions: deque[tuple[int, int]]
-
-    def __init__(self) -> None:
-        self.rewards = deque()
-        self.obs = HeteroGraphBuffer()
-        self.actions = deque()
-
-    def add_single(
-        self, obs: HeteroObsData, action: tuple[int, int], reward: float
-    ) -> None:
-        self.rewards.append(reward)
-        self.obs.add_single_dict(obs)
-        self.actions.append(action)
-
-    def export(self) -> Rollout:
-        return Rollout(
-            rewards=list(self.rewards),
-            obs=self.obs,
-            actions=list(self.actions),
-            values=self.values,
-        )
-
-    @property
-    def return_(self) -> float:
-        return sum(self.rewards)
-
-    @property
-    def values(self) -> list[float]:
-        returns = [sum(list(self.rewards)[i:]) for i in range(len(self.rewards))]
-        return returns
-
-
-# Listening to: "Magic of Love" by "Perfume"
-def batch(graphs: list[ObsData[V]]) -> BatchData[V]:
-    """
-    This is a big ugly function that batches multiple factor graphs into a single one.
-    Its uglyness comes from a need for speed and memory efficiency in this particular function, as it is called many times during training.
-    """
-
-    # to get dtypes and shapes, which are assumed to be the same for all graphs
-    g0 = graphs[0]
-
-    # Variables
-    total_length = sum(
-        g.n_variable for g in graphs
-    )  # 1 length per variable, even with stacking
-    total_variables = sum(
-        sum(g.length) for g in graphs
-    )  # account for stacking. each variable can have length
-    var_value = np.empty((total_variables,), dtype=g0.var_value.dtype)
-    var_type = np.empty((total_variables,), dtype=np.int64)
-    var_batch = np.empty((total_variables,), dtype=np.int64)
-    length = np.empty((total_length,), dtype=np.int64)
-
-    # Factors
-    total_factors = sum(g.n_factor for g in graphs)
-    factor = np.empty((total_factors,), dtype=np.int64)
-    factor_batch = np.empty((total_factors,), dtype=np.int64)
-
-    # Edges
-    total_edges = sum(g.v_to_f.size for g in graphs)
-    senders = np.empty((total_edges,), dtype=np.int64)
-    receivers = np.empty((total_edges,), dtype=np.int64)
-    edge_attr = np.empty((total_edges,), dtype=np.int64)
-
-    # Graph info
-    num_graphs = len(graphs)
-    n_factor = np.empty((num_graphs,), dtype=np.int64)
-    n_variable = np.empty((num_graphs,), dtype=np.int64)
-
-    # Global Variables
-    flat_total_globals = sum(g.global_vars.size for g in graphs)
-    total_global_vars = sum(g.global_length.shape[0] for g in graphs)
-    global_vars = np.empty((flat_total_globals,), dtype=np.int64)
-    global_vals = np.empty((flat_total_globals,), dtype=g0.global_vals.dtype)
-    global_length = np.empty((total_global_vars,), dtype=np.int64)
-    global_batch = np.empty((flat_total_globals,), dtype=np.int64)
-
-    # Action masks
-    action_arity_mask = np.empty(
-        (total_factors, g0.action_arity_mask.shape[1]), dtype=np.bool_
-    )
-    action_type_mask = np.empty(
-        (total_factors, g0.action_type_mask.shape[1]), dtype=np.bool_
-    )
-
-    # Offsets, to keep track of where we are in the big arrays
-    (
-        factor_offsets,
-        variable_offsets,
-        globals_offset,
-        num_vars_offset,
-        num_globals_offset,
-        edge_offsets,
-    ) = 0, 0, 0, 0, 0, 0
-    for i, g in enumerate(graphs):
-        # Variables
-        flat_var_len = sum(g.length)  # account for stacking. each variable can have length
-        num_vars = g.n_variable  # 1 length per variable, even with stacking
-        edge_len = g.v_to_f.size
-        var_value[variable_offsets : variable_offsets + flat_var_len] = g.var_value
-        var_type[variable_offsets : variable_offsets + flat_var_len] = g.var_type
-        var_batch[variable_offsets : variable_offsets + flat_var_len] = i
-        length[num_vars_offset : num_vars_offset + num_vars] = g.length
-
-        # Factors
-        fac_len = g.n_factor
-        factor[factor_offsets : factor_offsets + fac_len] = g.factor
-        factor_batch[factor_offsets : factor_offsets + fac_len] = i
-
-        # Edges
-        senders[edge_offsets : edge_offsets + edge_len] = (
-            g.v_to_f + num_vars_offset
-        )  # don't offset vars by their full length, since the vars will be flattened before message passing
-        receivers[edge_offsets : edge_offsets + edge_len] = g.f_to_v + factor_offsets
-        edge_attr[edge_offsets : edge_offsets + edge_len] = g.edge_attr
-
-        # Global Variables
-        flat_globals_len = g.global_vars.size
-        num_globals_vars = g.global_length.shape[0]
-        global_vars[globals_offset : globals_offset + flat_globals_len] = g.global_vars
-        global_vals[globals_offset : globals_offset + flat_globals_len] = g.global_vals
-        global_length[num_globals_offset : num_globals_offset + num_globals_vars] = g.global_length
-        global_batch[globals_offset : globals_offset + flat_globals_len] = i
-
-        # Action masks
-        action_arity_mask[factor_offsets : factor_offsets + fac_len] = (
-            g.action_arity_mask
-        )
-        action_type_mask[factor_offsets : factor_offsets + fac_len] = g.action_type_mask
-
-        # Graph info
-        n_factor[i] = fac_len
-        n_variable[i] = num_vars
-
-        # Update offsets
-        factor_offsets += fac_len
-        variable_offsets += flat_var_len
-        num_vars_offset += num_vars
-        edge_offsets += edge_len
-        globals_offset += flat_globals_len
-        num_globals_offset += num_globals_vars
-
-    return BatchData(
-        var_value=SparseArray(var_value, var_batch),
-        var_type=SparseArray(var_type, var_batch),
-        factor=SparseArray(factor, factor_batch),
-        edge_attr=edge_attr,
-        v_to_f=senders,
-        f_to_v=receivers,
-        n_factor=n_factor,
-        n_variable=n_variable,
-        n_graphs=np.int64(num_graphs),
-        length=length,
-        global_vars=SparseArray(global_vars, global_batch),
-        global_vals=SparseArray(global_vals, global_batch),
-        global_length=global_length,
-        action_arity_mask=action_arity_mask,
-        action_type_mask=action_type_mask,
-    )
-
-
-def obs_to_statedata(obs: ObsData) -> BatchData:
+    def default(self, o: object):
+        if isinstance(o, NDArray):  # type: ignore
+            return o.tolist()
+        if isinstance(o, np.bool_):
+            return bool(o)  # type: ignore
+        if isinstance(o, np.ndarray):
+            return o.tolist()
+        return super().default(o)
+
+
+def obs_to_statedata(obs: ObsData[VariableDomain]) -> BatchData[VariableDomain]:
     return obslist_to_statedata([obs])
 
 
-def obslist_to_statedata(obs: list[ObsData]) -> BatchData:
+def obslist_to_statedata(
+    obs: list[ObsData[VariableDomain]],
+) -> BatchData[VariableDomain]:
     return batch(obs)
 
 
@@ -400,16 +60,16 @@ def single_obs_to_heterostatedata(obs: HeteroObsData) -> HeteroBatchData:
 #     return {k: batched_dict_to_obsdata(o) for o in obs}
 
 
-def statedata_from_buffer(buf: list[tuple[ObsData[V], ...]]):
+def statedata_from_buffer(buf: list[tuple[ObsData[VariableDomain], ...]]):
     return batch(list(chain(*buf)))
 
 
 def heterostatedata_from_buffer(
-    obs: dict[str, list[tuple[ObsData[V], ...]]],
+    obs: dict[str, list[tuple[ObsData[VariableDomain], ...]]],
 ) -> HeteroBatchData:
     return HeteroBatchData(
-        boolean=statedata_from_buffer(obs["bool"]),
-        numeric=statedata_from_buffer(obs["float"]),
+        boolean=statedata_from_buffer(obs["bool"]),  # type: ignore
+        numeric=statedata_from_buffer(obs["float"]),  # type: ignore
     )
 
 

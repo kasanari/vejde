@@ -10,16 +10,18 @@ import torch as th
 from torch import Tensor
 from torch.utils._foreach_utils import _group_tensors_by_device_and_dtype
 
-from regawa.wrappers import (
+from regawa.data import (
     HeteroBatchData,
     Rollout,
     RolloutCollector,
     single_obs_to_heterostatedata,
 )
+from regawa.data.obs import HeteroObsData
+from regawa.model.base_grounded_model import GroundObs
 from regawa.policy import GraphAgent
 from regawa.data import heterostatedata_to_tensors
 from regawa.io import obs_to_json_friendly_obs
-from regawa.wrappers.types import RenderGraph
+from regawa.wrappers.render_utils import RenderGraph
 
 
 @th.no_grad()
@@ -73,7 +75,7 @@ def evaluate(
                 k: float(v)
                 for k, v in zip(
                     action_fluents,
-                    th.atleast_1d(p_a.detach().squeeze())
+                    th.atleast_1d(p_a.detach().squeeze())  # type: ignore
                     .round(decimals=2)
                     .cpu()
                     .numpy(),
@@ -122,13 +124,13 @@ def grad_norm_(
 
     norms: list[Tensor] = []
     for (device, _), ([device_grads], _) in grouped_grads.items():  # type: ignore[assignment]
-        norms.extend([th.linalg.vector_norm(g, norm_type) for g in device_grads])
+        norms.extend([th.linalg.vector_norm(g, norm_type) for g in device_grads])  # type: ignore[operator]
 
-    total_norm = th.linalg.vector_norm(
+    total_norm = th.linalg.vector_norm(  # type: ignore[call-arg]
         th.stack([norm.to(first_device) for norm in norms]), norm_type
     )
 
-    if error_if_nonfinite and th.logical_or(total_norm.isnan(), total_norm.isinf()):
+    if error_if_nonfinite and th.logical_or(total_norm.isnan(), total_norm.isinf()):  # type: ignore[union-attr]
         raise RuntimeError(
             f"The total norm of order {norm_type} for gradients from "
             "`parameters` is non-finite, so it cannot be clipped. To disable "
@@ -139,18 +141,18 @@ def grad_norm_(
     return total_norm
 
 
-def compare_rollouts(r1: Rollout, r2: Rollout):
-    assert r1.rewards == r2.rewards
-    assert r1.actions == r2.actions
-    for o1, o2 in zip(r1.obs, r2.obs):
-        assert o1.keys() == o2.keys()
-        for k in o1:
-            if isinstance(o1[k], np.ndarray):
-                o = o1[k].tolist()
-            else:
-                o = o1[k]
+# def compare_rollouts(r1: Rollout, r2: Rollout):
+#     assert r1.rewards == r2.rewards
+#     assert r1.actions == r2.actions
+#     for o1, o2 in zip(r1.obs, r2.obs):
+#         assert o1.keys() == o2.keys()
+#         for k in o1:
+#             if isinstance(o1[k], np.ndarray):
+#                 o = o1[k].tolist()
+#             else:
+#                 o = o1[k]
 
-            assert o == o2[k], f"{o} != {o2[k]} for {k}"
+#             assert o == o2[k], f"{o} != {o2[k]} for {k}"
 
 
 def update_vf_agent(
@@ -193,10 +195,10 @@ def update(
     loss = calc_loss(l2_norms, logprob)
 
     optimizer.zero_grad()
-    loss.backward()
+    loss.backward()  # type: ignore
 
     d = dict(agent.named_parameters())
-    grads = {k: th.nonzero((-d[k].grad).clamp(min=0)) for k in d}
+    grads = {k: th.nonzero(-x.clamp(min=0)) for k in d if (x := d[k].grad) is not None}
     grads = {k: v for k, v in grads.items() if len(v) > 0}
 
     # if iteration % 100 == 0:
@@ -227,9 +229,9 @@ def calc_loss(l2_norms: list[Tensor], logprob: Tensor) -> Tensor:
 
 
 def rollout(
-    env: gym.Env,
+    env: gym.Env[HeteroObsData, tuple[int, ...]],
     seed: int,
-    expert_policy: Callable[[dict[str, bool]], tuple[int, int]],
+    expert_policy: Callable[[GroundObs, Callable[[str], int]], tuple[int, ...]],
     expected_return: float,
 ) -> tuple[Rollout, int]:
     obs, info = env.reset(seed=seed)

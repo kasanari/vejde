@@ -4,12 +4,11 @@ from torch import Tensor, as_tensor, concatenate, int64
 from typing import TypeVar
 import numpy as np
 from regawa.data import (
-    BatchData,
     TorchFactorGraph,
     SparseTensor,
     sparsify,
-    HeteroBatchData,
 )
+from regawa.data.batch import BatchData, HeteroBatchData
 from regawa.data.torch import concat_sparse
 from .recurrent import RecurrentEmbedder
 from .boolean import (
@@ -133,8 +132,12 @@ def fn_compress_time(
     def compress_time(data: BatchData[V]) -> TorchFactorGraph:
         g = embed_fn(data)
         return g._replace(
-            variables=recurrent(g.variables, data.length) if g.variables.values.shape[0] > 0 else g.variables,
-            globals=recurrent(g.globals, data.global_length) if g.globals.values.shape[0] > 0 else g.globals,
+            variables=recurrent(g.variables, data.length)
+            if g.variables.values.shape[0] > 0
+            else g.variables,
+            globals=recurrent(g.globals, data.global_length)
+            if g.globals.values.shape[0] > 0
+            else g.globals,
         )
 
     return compress_time

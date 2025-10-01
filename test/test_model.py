@@ -2,12 +2,13 @@ from typing import Any
 from regawa import BaseModel
 from functools import cached_property, cache
 import pytest
-from regawa.wrappers.types import FactorGraph
+from regawa.data.graph import StringFactorGraph
 from regawa.model import BaseGroundedModel, GroundObs, Grounding
 from regawa.model import check_model
 from regawa.inference import fn_graph_to_obsdata, fn_groundobs_to_graph
 from regawa.wrappers.render_utils import render_lifted
 import numpy as np
+
 
 class TestModel(BaseModel):
     """Sample model for testing purposes. Loosely based on block stacking problems."""
@@ -164,7 +165,10 @@ class TestGroundedModel(BaseGroundedModel):
 
     def create_obs(self, rddl_obs: GroundObs):
         graph = fn_groundobs_to_graph(
-            FactorGraph[np.bool_], FactorGraph[np.float32], self._model, lambda x: x
+            StringFactorGraph[np.bool_],
+            StringFactorGraph[np.float32],
+            self._model,
+            lambda x: x,
         )(rddl_obs)
 
         obs = fn_graph_to_obsdata(self._model)(graph)  # to ensure types are correct
@@ -211,10 +215,10 @@ def test_sample_obs():
         "table",
     }
 
-    assert set(graph.boolean.variable_values) == {True, True, False}
-    assert set(graph.numeric.variable_values) == {1.0, 3.0, 2.0}
-    assert set(graph.boolean.variables) == {"at", "at", "on"}
-    assert set(graph.numeric.variables) == {"weight", "weight", "weight"}
+    assert set(graph.boolean.variables.values) == {True, True, False}
+    assert set(graph.numeric.variables.values) == {1.0, 3.0, 2.0}
+    assert set(graph.boolean.variables.types) == {"at", "at", "on"}
+    assert set(graph.numeric.variables.types) == {"weight", "weight", "weight"}
 
     pass
 
@@ -228,4 +232,5 @@ def test_render_lifted():
 
 
 if __name__ == "__main__":
-    pytest.main([__file__])
+    # run the tests, with flags to allow debugging
+    pytest.main(["-s", "-v", __file__])

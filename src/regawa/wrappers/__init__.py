@@ -12,13 +12,7 @@ from .graph_utils import fn_obsdict_to_graph
 from .graph_utils import fn_heterograph_to_heteroobs
 from .render_utils import create_render_graph, to_graphviz
 from .gym_utils import n_actions
-from .types import HeteroGraph, RenderGraph
-from ..data.data import (
-    HeteroBatchData,
-    BatchData,
-    heterostatedata_from_obslist,
-)
-from ..data.data import Rollout, RolloutCollector, single_obs_to_heterostatedata
+from .render_utils import RenderGraph
 
 __all__ = [
     "GroundedGraphWrapper",
@@ -34,16 +28,9 @@ __all__ = [
     "object_list",
     "to_graphviz",
     "RenderGraph",
-    "HeteroGraph",
     "remove_false",
     "add_constants_fn",
     "RemoveNoneWrapper",
-    "HeteroBatchData",
-    "BatchData",
-    "heterostatedata_from_obslist",
-    "Rollout",
-    "RolloutCollector",
-    "single_obs_to_heterostatedata",
     "IndexObsWrapper",
     "n_actions",
     "AddActionWrapper",

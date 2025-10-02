@@ -22,16 +22,22 @@ from .model import max_arity
 import gymnasium as gym
 from .wrappers.render_utils import to_graphviz
 from gymnasium.vector import SyncVectorEnv, AsyncVectorEnv
+from typing import Literal
 
+agent_classes = {
+    'GraphAgent': GraphAgent,
+    'RecurrentGraphAgent': RecurrentGraphAgent
+}
 
 def agent_from_env(
-    agent_class: type[GraphAgentInterface],
+    agent_class_type: Literal['GraphAgent', 'RecurrentGraphAgent'],
     env: gym.Env[HeteroObsData, MultiDiscrete]
     | gym.vector.SyncVectorEnv
     | gym.vector.AsyncVectorEnv,
     params: GNNParams,
     device: str = "cpu",
 ):
+    agent_class: type[GraphAgentInterface] = agent_classes[agent_class_type]
     obs_space, action_space = (
         (env.observation_space, env.action_space)
         if not isinstance(env, (SyncVectorEnv, AsyncVectorEnv))

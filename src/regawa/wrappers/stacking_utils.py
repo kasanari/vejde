@@ -3,9 +3,7 @@ from itertools import chain
 
 
 from regawa.data import ObsData, StackedStringFactorGraph
-from regawa.data.graph import StringVariables, VariableDomain
-from .utils import fn_map_graph_to_idx
-
+from regawa.data.graph import GraphTypes, StringVariables, VariableDomain
 
 def flatten(
     vals: Sequence[Sequence[VariableDomain]], vars: Sequence[str]
@@ -31,13 +29,8 @@ def flatten_values(
 
 
 def fn_flatten_map_graph_to_idx(
-    rel_to_idx: Callable[[str], int], type_to_idx: Callable[[str], int]
+    map_graph_to_idx: Callable[[GraphTypes, type], ObsData[VariableDomain]],
 ):
-    map_graph_to_idx = fn_map_graph_to_idx(
-        rel_to_idx,
-        type_to_idx,
-    )
-
     def flatten_map_graph_to_idx(
         factorgraph: StackedStringFactorGraph[VariableDomain],
         var_val_dtype: type,

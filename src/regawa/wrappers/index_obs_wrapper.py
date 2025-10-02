@@ -6,12 +6,28 @@ from functools import cached_property
 from regawa.data import HeteroObsData
 from regawa.model import GroundObs
 from regawa.model import BaseModel
-from .graph_utils import fn_heterograph_to_heteroobs, fn_regular_map_graph_to_idx
+from regawa.wrappers.utils import fn_graph_to_obsdata
+from .graph_utils import fn_heterograph_to_heteroobs
 from .stacking_utils import fn_flatten_map_graph_to_idx
 from .space import HeteroStateSpace
 from regawa.data import HeteroGraph
 
 logger = logging.getLogger(__name__)
+
+
+def fn_idx_obs(model: BaseModel, stacking: bool = False):
+    f = fn_graph_to_obsdata(
+        model.fluent_to_idx,
+        model.type_to_idx,
+    )
+
+    idx_func = fn_flatten_map_graph_to_idx(f) if stacking else f
+    create_obs_dict_fn = fn_heterograph_to_heteroobs(idx_func)
+
+    def graph_to_obsdata(g: HeteroGraph) -> HeteroObsData:
+        return create_obs_dict_fn(g)
+
+    return graph_to_obsdata
 
 
 class IndexObsWrapper(
@@ -36,18 +52,7 @@ class IndexObsWrapper(
         self.env = env
         self.model = model
         self._idx_to_object = ["None"]
-        idx_func = (
-            fn_flatten_map_graph_to_idx(
-                model.fluent_to_idx,
-                model.type_to_idx,
-            )
-            if stacking
-            else fn_regular_map_graph_to_idx(
-                model.fluent_to_idx,
-                model.type_to_idx,
-            )
-        )
-        self.create_obs_dict = fn_heterograph_to_heteroobs(idx_func)
+        self.create_obs_dict = fn_idx_obs(model, stacking=stacking)
 
     @cached_property
     def observation_space(self) -> HeteroStateSpace:  # type: ignore

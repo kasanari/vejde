@@ -1,15 +1,13 @@
 from collections.abc import Callable
 from regawa import GroundObs
-from regawa.wrappers.graph_utils import fn_regular_map_graph_to_idx
-from regawa.wrappers.stacking_utils import fn_flatten_map_graph_to_idx
-from regawa.data.graph import HeteroGraph, StringFactorGraph
+from regawa.wrappers.index_obs_wrapper import fn_idx_obs
+from regawa.data.graph import StringFactorGraph
 from regawa.policy import ActionMode
-from regawa.data.obs import HeteroObsData
 from regawa.policy import GraphAgent
 from regawa.model import BaseModel
 from typing import NamedTuple
 from torch import Tensor
-from regawa.wrappers import fn_obsdict_to_graph, fn_heterograph_to_heteroobs
+from regawa.wrappers import fn_groundobs_to_graph
 from regawa.wrappers import create_render_graph
 from regawa.wrappers.render_utils import RenderGraph
 import torch
@@ -37,42 +35,6 @@ def tensor_to_list(x: Tensor) -> list[float]:
     return list(x.squeeze().detach().cpu().numpy())  # type: ignore
 
 
-def fn_groundobs_to_graph(
-    bool_graph_cls: type[StringFactorGraph[np.bool_]]
-    | type[StackedStringFactorGraph[np.bool_]],
-    numeric_graph_cls: type[StringFactorGraph[np.float32]]
-    | type[StackedStringFactorGraph[np.float32]],
-    model: BaseModel,
-    wrapper_func: Callable[[GroundObs], GroundObs],
-) -> Callable[[GroundObs], HeteroGraph]:
-    create_graph_fn = fn_obsdict_to_graph(model, bool_graph_cls, numeric_graph_cls)
-
-    def groundobs_to_graph(obs: GroundObs) -> HeteroGraph:
-        return create_graph_fn(wrapper_func(obs))
-
-    return groundobs_to_graph
-
-
-def fn_graph_to_obsdata(model: BaseModel, stacking: bool = False):
-    idx_func = (
-        fn_flatten_map_graph_to_idx(
-            model.fluent_to_idx,
-            model.type_to_idx,
-        )
-        if stacking
-        else fn_regular_map_graph_to_idx(
-            model.fluent_to_idx,
-            model.type_to_idx,
-        )
-    )
-    create_obs_dict_fn = fn_heterograph_to_heteroobs(idx_func)
-
-    def graph_to_obsdata(g: HeteroGraph) -> HeteroObsData:
-        return create_obs_dict_fn(g)
-
-    return graph_to_obsdata
-
-
 @torch.inference_mode()
 def fn_get_agent_output(
     agent: GraphAgent,
@@ -87,14 +49,13 @@ def fn_get_agent_output(
         if stacking
         else (StringFactorGraph[np.bool_], StringFactorGraph[np.float32])
     )
-    obs_to_graph = fn_groundobs_to_graph(
-        bool_graph_cls, numeric_graph_cls, model, wrapper_func
-    )
-    graph_to_input = fn_graph_to_obsdata(model)
+    obs_to_graph = fn_groundobs_to_graph(model, bool_graph_cls, numeric_graph_cls)
+    graph_to_input = fn_idx_obs(model, stacking=stacking)
 
     def action_then_node(
         o: GroundObs,
     ):
+        o = wrapper_func(o)
         g = obs_to_graph(o)
         r_g = create_render_graph(g.boolean, g.numeric)
         objs = r_g.factor_labels

@@ -4,7 +4,6 @@ import torch.nn as nn
 from torch import Generator as Rngs
 from torch import Tensor, concatenate, zeros_like
 from regawa.data import TorchFactorGraph
-from regawa.data import SparseTensor
 
 from .mlp import MLPLayer
 from .mp_rendering import Lazy, to_graphviz

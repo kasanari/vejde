@@ -20,21 +20,19 @@ from regawa.data import (
     Edge,
     ObsData,
     Object,
-    StackedStringFactorGraph,
     Variables,
-    StringFactorGraph,
     StringVariables,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def fn_map_graph_to_idx(
+def fn_graph_to_obsdata(
     rel_to_idx: Callable[[str], int],
     type_to_idx: Callable[[str], int],
 ):
     def map_graph_to_idx(
-        g: StringFactorGraph[VariableDomain] | StackedStringFactorGraph[VariableDomain],
+        g: GraphTypes,
         var_val_dtype: type,
     ) -> ObsData[VariableDomain]:
         arr = np.asarray

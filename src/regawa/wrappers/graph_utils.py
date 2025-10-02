@@ -29,7 +29,6 @@ from regawa.data import (
 )
 from .utils import (
     generate_bipartite_obs_func,
-    fn_map_graph_to_idx,
     object_list,
 )
 
@@ -37,27 +36,6 @@ from .utils import (
 type StrToInt = Callable[[str], int]
 
 
-def fn_regular_map_graph_to_idx(rel_to_idx: StrToInt, type_to_idx: StrToInt):
-    """
-    Prepares a function that maps a FactorGraph with string attributes to a FactorGraph with integer attributes.
-    """
-    map_graph_to_idx = fn_map_graph_to_idx(
-        rel_to_idx,
-        type_to_idx,
-    )
-
-    def regular_map_graph_to_idx(
-        factorgraph: StringFactorGraph[VariableDomain], var_val_dtype: type
-    ):
-        """
-        Maps a FactorGraph with string attributes to a FactorGraph with integer attributes.
-        """
-        return map_graph_to_idx(
-            factorgraph,
-            var_val_dtype,
-        )
-
-    return regular_map_graph_to_idx
 
 
 def fn_heterograph_to_heteroobs(
@@ -106,7 +84,7 @@ BooleanGraphTypes = TypeVar(
 )
 
 
-def fn_obsdict_to_graph_boolean(
+def fn_groundobs_to_graph_boolean(
     model: BaseModel,
     graph_cls: type[BooleanGraphTypes],
 ):
@@ -142,7 +120,7 @@ NumericGraphTypes = TypeVar(
 )
 
 
-def fn_obsdict_to_graph_numeric(model: BaseModel, graph_cls: type[NumericGraphTypes]):
+def fn_groundobs_to_graph_numeric(model: BaseModel, graph_cls: type[NumericGraphTypes]):
     generate_bipartite_obs_numeric = generate_bipartite_obs_func(
         graph_cls,
         fn_valid_action_fluents_given_type(model),
@@ -168,7 +146,7 @@ def fn_obsdict_to_graph_numeric(model: BaseModel, graph_cls: type[NumericGraphTy
     return obsdict_to_graph
 
 
-def fn_obsdict_to_graph(
+def fn_groundobs_to_graph(
     model: BaseModel,
     bool_graph_cls: type[BooleanGraphTypes],
     numeric_graph_cls: type[NumericGraphTypes],
@@ -178,8 +156,8 @@ def fn_obsdict_to_graph(
     """
 
     objects_with_type = fn_objects_with_type(model.fluent_param)
-    bool_fn = fn_obsdict_to_graph_boolean(model, bool_graph_cls)
-    numeric_fn = fn_obsdict_to_graph_numeric(model, numeric_graph_cls)
+    bool_fn = fn_groundobs_to_graph_boolean(model, bool_graph_cls)
+    numeric_fn = fn_groundobs_to_graph_numeric(model, numeric_graph_cls)
 
     def obsdict_to_graph(rddl_obs: GroundObs) -> HeteroGraph:
         groundings = list(rddl_obs.keys())  # create an order.

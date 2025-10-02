@@ -3,7 +3,7 @@ from typing import Any, SupportsFloat
 import gymnasium as gym
 from regawa import BaseModel, GroundObs, Grounding
 from regawa.data import HeteroGraph, StringFactorGraph
-from .graph_utils import fn_obsdict_to_graph
+from .graph_utils import fn_groundobs_to_graph
 from .render_utils import create_render_graph, to_graphviz
 from .render_utils import RenderGraph
 import numpy as np
@@ -28,7 +28,7 @@ class GroundedGraphWrapper(
         self.last_action: Grounding | None = None
         self.last_g: RenderGraph | None = None
         self._object_to_type: dict[str, str] = {"None": "None"}
-        self.create_graphs = fn_obsdict_to_graph(
+        self.create_graphs = fn_groundobs_to_graph(
             model, StringFactorGraph[np.bool_], StringFactorGraph[np.float32]
         )
 

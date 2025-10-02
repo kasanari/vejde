@@ -4,7 +4,7 @@ import gymnasium as gym
 from regawa import BaseModel, GroundObs, Grounding
 from ..data.graph import HeteroGraph, StackedStringFactorGraph
 from regawa.model import StackedGroundObs
-from .graph_utils import fn_obsdict_to_graph
+from .graph_utils import fn_groundobs_to_graph
 from .render_utils import create_render_graph, to_graphviz
 from .render_utils import RenderGraph
 import numpy as np
@@ -32,7 +32,7 @@ class StackingGroundedGraphWrapper(
         self.last_action: Grounding | None = None
         self.last_g: RenderGraph | None = None
         self._object_to_type: dict[str, str] = {"None": "None"}
-        self.create_graphs = fn_obsdict_to_graph(
+        self.create_graphs = fn_groundobs_to_graph(
             model,
             StackedStringFactorGraph[np.bool_],
             StackedStringFactorGraph[np.float32],

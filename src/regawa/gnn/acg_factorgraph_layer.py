@@ -146,15 +146,8 @@ class FactorGraphLayer(nn.Module):
 
         logger.debug("New Factor\n%s", n_h_f)
 
-        new_fg = TorchFactorGraph(
-            fg.variables,
-            SparseTensor(n_h_f, fg.factors.indices),
-            fg.globals,
-            fg.v_to_f,
-            fg.f_to_v,
-            fg.edge_attr,
-            fg.n_variable,
-            fg.n_factor,
+        new_fg = fg._replace(
+            factors=fg.factors.replace_val(n_h_f),
         )
 
         n_h_v = self.factor2var(

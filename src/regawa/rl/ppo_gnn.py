@@ -669,7 +669,7 @@ def train(args: Args | None = None, batch_id: str | None = None):
     run_name = run_name + "__debug" if args.debug else run_name
     run_folder = create_run_folder(run_name)
     logger.addHandler(logging.FileHandler(run_folder / f"{run_name}.log"))
-    agent_class = AGENT_CLASSES[args.agent_class]
+    agent_class = args.agent_class
     envs = (
         gym.vector.AsyncVectorEnv(
             [

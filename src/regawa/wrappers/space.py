@@ -97,7 +97,7 @@ class FactorGraphSpace(Space[ObsData[VariableDomain]]):
 
         results = [
             item.var in self.var,
-            item.factor in self.factor,
+            item.factor.types in self.factor,
             item.action_masks.action_arity_mask in self.action_arity_mask,
             item.action_masks.action_type_mask in self.action_type_mask,
             item.edges.v_to_f in self.senders,

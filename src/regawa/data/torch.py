@@ -97,7 +97,7 @@ class TorchFactorGraph(NamedTuple):
     n_factor: Tensor
 
 
-@torch.jit.script  # type: ignore
+# @torch.jit.script  # type: ignore
 def concat_sparse(a: SparseTensor, b: SparseTensor) -> SparseTensor:
     return SparseTensor(
         concatenate((a.values, b.values)),

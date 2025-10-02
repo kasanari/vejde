@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.typing import NDArray
 
-from typing import Generic, NamedTuple
+from typing import Generic, NamedTuple, TypeVar
 
 from .graph import VariableDomain
 
@@ -38,6 +38,18 @@ class HeteroBatchData(NamedTuple):
     @property
     def n_graphs(self) -> np.int64:
         return self.boolean.n_graphs
+
+
+ArrayDomain = TypeVar("ArrayDomain", np.int8, np.float32, np.bool_, np.int64)
+
+
+def add_to_array(
+    arr: NDArray[ArrayDomain],
+    to_add: NDArray[ArrayDomain] | int,
+    start: int,
+    length: int,
+) -> None:
+    arr[start : start + length] = to_add
 
 
 def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
@@ -109,45 +121,38 @@ def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
         )  # account for stacking. each variable can have length
         num_vars = g.var.n_variable  # 1 length per variable, even with stacking
         edge_len = g.edges.v_to_f.size
-        var_value[variable_offsets : variable_offsets + flat_var_len] = g.var.value
-        var_type[variable_offsets : variable_offsets + flat_var_len] = g.var.types
-        var_batch[variable_offsets : variable_offsets + flat_var_len] = i
-        length[num_vars_offset : num_vars_offset + num_vars] = g.var.length
+        add_to_array(var_value, g.var.value, variable_offsets, flat_var_len)
+        add_to_array(var_type, g.var.types, variable_offsets, flat_var_len)
+        add_to_array(var_batch, i, variable_offsets, flat_var_len)
+        add_to_array(length, g.var.length, num_vars_offset, num_vars)
 
         # Factors
         fac_len = g.factor.n_factor
-        factor[factor_offsets : factor_offsets + fac_len] = g.factor.types
-        factor_batch[factor_offsets : factor_offsets + fac_len] = i
+        add_to_array(factor, g.factor.types, factor_offsets, fac_len)
+        add_to_array(factor_batch, i, factor_offsets, fac_len)
 
         # Edges
-        senders[edge_offsets : edge_offsets + edge_len] = (
-            g.edges.v_to_f + num_vars_offset
-        )  # don't offset vars by their full length, since the vars will be flattened before message passing
-        receivers[edge_offsets : edge_offsets + edge_len] = (
-            g.edges.f_to_v + factor_offsets
-        )
-        edge_attr[edge_offsets : edge_offsets + edge_len] = g.edges.edge_attr
+        # don't offset vars by their full length, since the vars will be flattened before message passing
+        add_to_array(senders, g.edges.v_to_f + num_vars_offset, edge_offsets, edge_len)
+        add_to_array(receivers, g.edges.f_to_v + factor_offsets, edge_offsets, edge_len)
+        add_to_array(edge_attr, g.edges.edge_attr, edge_offsets, edge_len)
 
         # Global Variables
         flat_globals_len = g.global_var.value.size
         num_globals_vars = g.global_var.length.shape[0]
-        global_vars[globals_offset : globals_offset + flat_globals_len] = (
-            g.global_var.types
+        add_to_array(global_vars, g.global_var.types, globals_offset, flat_globals_len)
+        add_to_array(global_vals, g.global_var.value, globals_offset, flat_globals_len)
+        add_to_array(
+            global_length, g.global_var.length, num_globals_offset, num_globals_vars
         )
-        global_vals[globals_offset : globals_offset + flat_globals_len] = (
-            g.global_var.value
-        )
-        global_length[num_globals_offset : num_globals_offset + num_globals_vars] = (
-            g.global_var.length
-        )
-        global_batch[globals_offset : globals_offset + flat_globals_len] = i
+        add_to_array(global_batch, i, globals_offset, flat_globals_len)
 
         # Action masks
-        action_arity_mask[factor_offsets : factor_offsets + fac_len] = (
-            g.action_masks.action_arity_mask
+        add_to_array(
+            action_arity_mask, g.action_masks.action_arity_mask, factor_offsets, fac_len
         )
-        action_type_mask[factor_offsets : factor_offsets + fac_len] = (
-            g.action_masks.action_type_mask
+        add_to_array(
+            action_type_mask, g.action_masks.action_type_mask, factor_offsets, fac_len
         )
 
         # Graph info

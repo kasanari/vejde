@@ -42,6 +42,11 @@ class SparseTensor(NamedTuple):
             concatenate((self.indices, other.indices)),
         )
 
+    def replace_val(self, values: Tensor) -> SparseTensor:
+        if values.shape != self.values.shape:
+            raise ValueError("New values must have the same shape as existing values")
+        return self._replace(values=values)
+
     @classmethod
     def from_sparse_array(cls, sparse_array: SparseArray[V]) -> SparseTensor:
         return cls(

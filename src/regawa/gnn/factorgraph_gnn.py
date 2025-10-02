@@ -4,7 +4,6 @@ import torch.nn as nn
 from torch import Generator as Rngs
 from torch import zeros
 from regawa.data import TorchFactorGraph
-from regawa.data import SparseTensor
 
 from .acg_factorgraph_layer import FactorGraphLayer
 from .attentional_aggregation import AttentionalAggregation
@@ -44,19 +43,9 @@ class BipartiteGNN(nn.Module):
         g = self.pre_aggr(fg.globals, n_g) if fg.globals.values.shape[0] > 0 else g
 
         # add global values to factors
-        factors = SparseTensor(
-            fg.factors.values + g[fg.factors.indices], fg.factors.indices
-        )
-        fg = TorchFactorGraph(
-            fg.variables,
-            factors,
-            fg.globals,
-            fg.v_to_f,
-            fg.f_to_v,
-            fg.edge_attr,
-            fg.n_variable,
-            fg.n_factor,
-        )
+        factors = fg.factors.replace_val(fg.factors.values + g[fg.factors.indices])
+
+        fg = fg._replace(factors=factors)
 
         i = 0
         logger.debug("Factor Graph")
@@ -68,15 +57,9 @@ class BipartiteGNN(nn.Module):
         for conv in self.convs:
             logger.debug("Layer %d", i)
             (variables, factors) = conv(fg)
-            fg = TorchFactorGraph(
-                SparseTensor(variables, fg.variables.indices),
-                SparseTensor(factors, fg.factors.indices),
-                fg.globals,
-                fg.v_to_f,
-                fg.f_to_v,
-                fg.edge_attr,
-                fg.n_variable,
-                fg.n_factor,
+            fg = fg._replace(
+                variables=fg.variables.replace_val(variables),
+                factors=fg.factors.replace_val(factors),
             )
             i += 1
 

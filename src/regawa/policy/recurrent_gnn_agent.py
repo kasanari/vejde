@@ -101,7 +101,7 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
             if gnn_params.action_mode == ActionMode.ACTION_THEN_NODE
             else NodeThenActionPolicy(*policy_args)
         )
-        self.device = device
+        self._device = device
         self.boolean_embedder = boolean_embedder
         self.numeric_embedder = numeric_embedder
         self.factor_embedding = factor_embedding
@@ -130,6 +130,15 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
                 ),
             ),
         )
+
+    @property
+    def device(self) -> str:
+        return self._device
+
+    @device.setter
+    def device(self, device: str) -> None:
+        self._device = device
+        self.to(device)
 
     # Listening to: Sagittarius by Daisuke Achiwa
     def embed(self, data: HeteroBatchData) -> TorchFactorGraph:

@@ -65,6 +65,12 @@ class GraphAgentInterface(ABC):
     @abstractmethod
     def check_compatability(self, model: BaseModel): ...
 
+    @property
+    def device(self) -> str: ...
+
+    @device.setter
+    def device(self, device: str) -> None: ...
+
 
 class GraphAgent(nn.Module, GraphAgentInterface):
     def __init__(
@@ -120,7 +126,7 @@ class GraphAgent(nn.Module, GraphAgentInterface):
             if gnn_params.action_mode == ActionMode.ACTION_THEN_NODE
             else NodeThenActionPolicy(*policy_args)
         )
-        self.device = device
+        self._device = device
         self.boolean_embedder = boolean_embedder
         self.numeric_embedder = numeric_embedder
         self.factor_embedding = factor_embedding
@@ -140,6 +146,15 @@ class GraphAgent(nn.Module, GraphAgentInterface):
                 edge_attr_embedding,
             ),
         )
+
+    @property
+    def device(self) -> str:
+        return self._device
+
+    @device.setter
+    def device(self, device: str) -> None:
+        self._device = device
+        self.to(device)
 
     def embed(self, data: HeteroBatchData) -> TorchFactorGraph:
         return self.message_pass(self.embed_heterobatch(data))

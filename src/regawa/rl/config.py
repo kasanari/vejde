@@ -15,7 +15,6 @@ class Args:
     multiprocess: bool = False
     """path to a model checkpoint to resume from"""
     debug: bool = False
-    exp_name: str = os.path.basename(__file__)[: -len(".py")]
     """the name of this experiment"""
     seed: int = 0
     """seed of the experiment"""

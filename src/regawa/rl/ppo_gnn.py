@@ -665,7 +665,7 @@ def train(args: Args | None = None, batch_id: str | None = None):
     device = npl.device(
         "cuda:0" if npl.cuda.is_available() and args.cuda else npl.device("cpu")
     )
-    run_name = f"{args.env_id}__{args.exp_name}__{args.seed}"
+    run_name = f"{args.env_id}__ppo"
     run_name = run_name + "__debug" if args.debug else run_name
     run_folder = create_run_folder(run_name)
     logger.addHandler(logging.FileHandler(run_folder / f"{run_name}.log"))

@@ -146,7 +146,7 @@ def fn_groundobs_to_graph_numeric(model: BaseModel, graph_cls: type[NumericGraph
     return obsdict_to_graph
 
 
-def fn_groundobs_to_graph(
+def fn_groundobs_to_heterograph(
     model: BaseModel,
     bool_graph_cls: type[BooleanGraphTypes],
     numeric_graph_cls: type[NumericGraphTypes],

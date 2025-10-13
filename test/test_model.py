@@ -5,7 +5,7 @@ import pytest
 from regawa.data.graph import StringFactorGraph
 from regawa.model import BaseGroundedModel, GroundObs, Grounding
 from regawa.model import check_model
-from regawa.wrappers.graph_utils import fn_groundobs_to_graph
+from regawa.wrappers.graph_utils import fn_groundobs_to_heterograph
 from regawa.wrappers.index_obs_wrapper import fn_idx_obs
 from regawa.wrappers.render_utils import render_lifted
 import numpy as np
@@ -165,7 +165,7 @@ class TestGroundedModel(BaseGroundedModel):
         return self._constants[constant_grounding]
 
     def create_obs(self, rddl_obs: GroundObs):
-        graph = fn_groundobs_to_graph(
+        graph = fn_groundobs_to_heterograph(
             self._model,
             StringFactorGraph[np.bool_],
             StringFactorGraph[np.float32],

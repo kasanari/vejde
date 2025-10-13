@@ -7,7 +7,7 @@ from regawa.policy import GraphAgent
 from regawa.model import BaseModel
 from typing import NamedTuple
 from torch import Tensor
-from regawa.wrappers import fn_groundobs_to_graph
+from regawa.wrappers import fn_groundobs_to_heterograph
 from regawa.wrappers import create_render_graph
 from regawa.wrappers.render_utils import RenderGraph
 import torch
@@ -49,7 +49,7 @@ def fn_get_agent_output(
         if stacking
         else (StringFactorGraph[np.bool_], StringFactorGraph[np.float32])
     )
-    obs_to_graph = fn_groundobs_to_graph(model, bool_graph_cls, numeric_graph_cls)
+    obs_to_graph = fn_groundobs_to_heterograph(model, bool_graph_cls, numeric_graph_cls)
     graph_to_input = fn_idx_obs(model, stacking=stacking)
 
     def action_then_node(

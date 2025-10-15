@@ -66,7 +66,7 @@ def agent_from_model(
     model: BaseModel,
     params: GNNParams,
     device: str = "cpu",
-):
+) -> GraphAgentInterface:
     n_types = model.num_types
     n_relations = model.num_fluents
     n_actions = model.num_actions
@@ -76,14 +76,13 @@ def agent_from_model(
         n_types,
         n_relations,
         n_actions,
-        remove_false_fluents=True,
         arity=arity,
         hyper_params=params,
     )
 
     rng = Generator()
 
-    return agent_class(config, rng, device)
+    return agent_class(config, rng, device).to(device)
 
 
 def step_func(agent: GraphAgent, env: gym.Env[Any, Any], deterministic: bool = True):

@@ -148,12 +148,17 @@ def fn_groundobs_to_graph_numeric(model: BaseModel, graph_cls: type[NumericGraph
 
 def fn_groundobs_to_heterograph(
     model: BaseModel,
-    bool_graph_cls: type[BooleanGraphTypes],
-    numeric_graph_cls: type[NumericGraphTypes],
+    stacking: bool = False,
 ) -> Callable[[GroundObs], HeteroGraph]:
     """
     Returns a function that takes an observation dictionary of groundings and values, and returns a heterogenous bipartite graph.
     """
+
+    bool_graph_cls, numeric_graph_cls = (
+        (StackedStringFactorGraph[np.bool_], StackedStringFactorGraph[np.float32])
+        if stacking
+        else (StringFactorGraph[np.bool_], StringFactorGraph[np.float32])
+    )
 
     objects_with_type = fn_objects_with_type(model.fluent_param)
     bool_fn = fn_groundobs_to_graph_boolean(model, bool_graph_cls)

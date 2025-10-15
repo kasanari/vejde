@@ -44,12 +44,8 @@ def fn_get_agent_output(
     deterministic: bool = True,
     stacking: bool = False,
 ):
-    bool_graph_cls, numeric_graph_cls = (
-        (StackedStringFactorGraph[np.bool_], StackedStringFactorGraph[np.float32])
-        if stacking
-        else (StringFactorGraph[np.bool_], StringFactorGraph[np.float32])
-    )
-    obs_to_graph = fn_groundobs_to_heterograph(model, bool_graph_cls, numeric_graph_cls)
+
+    obs_to_graph = fn_groundobs_to_heterograph(model, stacking)
     graph_to_input = fn_idx_obs(model, stacking=stacking)
 
     def action_then_node(

@@ -34,8 +34,7 @@ class StackingGroundedGraphWrapper(
         self._object_to_type: dict[str, str] = {"None": "None"}
         self.create_graphs = fn_groundobs_to_heterograph(
             model,
-            StackedStringFactorGraph[np.bool_],
-            StackedStringFactorGraph[np.float32],
+            stacking=True,
         )
 
         self.add_render_graph_to_info = add_render_graph_to_info

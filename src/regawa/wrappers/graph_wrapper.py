@@ -29,7 +29,7 @@ class GroundedGraphWrapper(
         self.last_g: RenderGraph | None = None
         self._object_to_type: dict[str, str] = {"None": "None"}
         self.create_graphs = fn_groundobs_to_heterograph(
-            model, StringFactorGraph[np.bool_], StringFactorGraph[np.float32]
+            model, stacking=False
         )
 
         self.add_render_graph_to_info = add_render_graph_to_info

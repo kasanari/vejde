@@ -1,7 +1,7 @@
 from .utils import from_dict_action, object_list
 from .add_constants_wrapper import AddConstantsWrapper, add_constants_fn
 from .index_action_wrapper import IndexActionWrapper
-from .index_obs_wrapper import IndexObsWrapper
+from .index_obs_wrapper import IndexObsWrapper, fn_idx_obs
 from .stacking_graph_wrapper import StackingGroundedGraphWrapper
 from .remove_false_wrapper import RemoveFalseWrapper, remove_false
 from .remove_none_wrapper import RemoveNoneWrapper
@@ -34,4 +34,5 @@ __all__ = [
     "IndexObsWrapper",
     "n_actions",
     "AddActionWrapper",
+    "fn_idx_obs",
 ]

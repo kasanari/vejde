@@ -153,25 +153,6 @@ def generate_bipartite_obs_func(
             lambda x: non_nullary_groundings[x], lambda x: object_indices[x], edges
         )
 
-        # calculate grounding-factor distance matrix
-        # use networkx
-        G = nx.Graph()
-        for edge in edges:
-            G.add_edge(str(edge[0]), str(edge[1]))
-        distances = dict(nx.shortest_path_length(G))
-        distance_list = [
-            (
-                non_nullary_groundings[i],
-                object_indices[j.name],
-                distances[str(i)][j.name],
-            )
-            for i in non_nullary_groundings
-            for j in object_nodes
-            if j.name in distances[str(i)]
-        ]
-
-        pass
-
         action_type_mask = [
             action_fluent_type_mask(obj_type) for obj_type in object_types
         ]

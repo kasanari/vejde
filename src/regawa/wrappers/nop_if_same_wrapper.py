@@ -56,7 +56,7 @@ class NoOpIfSameWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs])
         accumulated_reward = reward
 
         skipped_steps = 0
-        while check_if_equal(obs, self.last_obs):
+        while check_if_equal(obs, self.last_obs) and not (terminated or truncated):
             skipped_steps += 1
             obs, reward, terminated, truncated, info = self.env.step({})
             accumulated_reward += (self.discount ** float(skipped_steps)) * reward

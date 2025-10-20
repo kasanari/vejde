@@ -531,6 +531,11 @@ def main(
         if checkpoint_period > 0 and iteration % checkpoint_period == 0:
             artifact_name = f"runs/{run_name}/checkpoint_{iteration*batch_size}.pth"
             agent.agent.save_agent(artifact_name)
+            # hard link to "checkpoint_latest.pth"
+            latest_path = f"runs/{run_name}/checkpoint_latest.pth"
+            if os.path.exists(latest_path):
+                os.remove(latest_path)
+            os.link(artifact_name, latest_path)
 
         r = np.mean(r_data.returns) if r_data.returns else None
         length = np.mean(r_data.lengths) if r_data.lengths else None
@@ -594,6 +599,9 @@ def mlflow_log(
         "rollout/return_scale_high", carry.high_ema.item(), global_step
     ) if carry.high_ema is not None else None
     mlflow.log_metric("rollout/mean_reward", b.rewards.mean().item(), global_step)
+
+    mlflow.log_metric("rollout/num_resets", b.dones.sum().item(), global_step)
+
     if r is not None:
         mlflow.log_metric("rollout/mean_episodic_return", r, global_step)  # type: ignore
     if length is not None:

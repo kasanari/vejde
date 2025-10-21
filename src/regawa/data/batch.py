@@ -80,8 +80,8 @@ def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
 
     # Edges
     total_edges = sum(g.edges.v_to_f.size for g in graphs)
-    senders = np.empty((total_edges,), dtype=np.int64)
-    receivers = np.empty((total_edges,), dtype=np.int64)
+    v_to_f = np.empty((total_edges,), dtype=np.int64)
+    f_to_v = np.empty((total_edges,), dtype=np.int64)
     edge_attr = np.empty((total_edges,), dtype=np.int64)
 
     # Graph info
@@ -133,8 +133,8 @@ def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
 
         # Edges
         # don't offset vars by their full length, since the vars will be flattened before message passing
-        add_to_array(senders, g.edges.v_to_f + num_vars_offset, edge_offsets, edge_len)
-        add_to_array(receivers, g.edges.f_to_v + factor_offsets, edge_offsets, edge_len)
+        add_to_array(v_to_f, g.edges.v_to_f + num_vars_offset, edge_offsets, edge_len)
+        add_to_array(f_to_v, g.edges.f_to_v + factor_offsets, edge_offsets, edge_len)
         add_to_array(edge_attr, g.edges.edge_attr, edge_offsets, edge_len)
 
         # Global Variables
@@ -172,8 +172,8 @@ def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
         var_type=SparseArray(var_type, var_batch),
         factor=SparseArray(factor, factor_batch),
         edge_attr=edge_attr,
-        v_to_f=senders,
-        f_to_v=receivers,
+        v_to_f=v_to_f,
+        f_to_v=f_to_v,
         n_factor=n_factor,
         n_variable=n_variable,
         n_graphs=np.int64(num_graphs),

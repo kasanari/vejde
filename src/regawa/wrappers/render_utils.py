@@ -118,11 +118,9 @@ def create_render_graph(
         (bool_g.edge_attributes, numeric_g.edge_attributes)
     )  # type: ignore
 
-    senders = np.concatenate(
-        [bool_g.senders, numeric_g.senders + len(bool_g.variables)]
-    )
+    v_to_f = np.concatenate([bool_g.v_to_f, numeric_g.v_to_f + len(bool_g.variables)])
 
-    receivers = np.concatenate([bool_g.receivers, numeric_g.receivers])
+    f_to_v = np.concatenate([bool_g.f_to_v, numeric_g.f_to_v])
 
     global_numeric = [
         f"{key}={numeric_g.global_variables.values[idx]}"
@@ -135,7 +133,7 @@ def create_render_graph(
     global_labels = global_boolean + global_numeric
 
     return RenderGraph(
-        labels, factor_labels, senders, receivers, edge_attributes, global_labels
+        labels, factor_labels, v_to_f, f_to_v, edge_attributes, global_labels
     )
 
 
@@ -150,7 +148,7 @@ def render_lifted(model: BaseModel):
 
     o = sorted(set(chain(*[objects(a) for a in non_global_vars])))
 
-    senders, receivers = translate_edges(non_global_vars.index, o.index, edges)
+    v_to_f, f_to_v = translate_edges(non_global_vars.index, o.index, edges)
 
     edge_attributes = [key[2] for key in edges]
 
@@ -163,8 +161,8 @@ def render_lifted(model: BaseModel):
         ),
         factors=o,
         factor_types=o,
-        senders=senders,
-        receivers=receivers,
+        v_to_f=v_to_f,
+        f_to_v=f_to_v,
         edge_attributes=edge_attributes,
         global_variables=StringVariables[np.bool_](
             list(map(str, global_vars)),
@@ -182,8 +180,8 @@ def render_lifted(model: BaseModel):
         variables=StringVariables[np.float32]([], [], [], n_variable=0),
         factors=[],
         factor_types=[],
-        senders=np.array([], dtype=np.int64),
-        receivers=np.array([], dtype=np.int64),
+        v_to_f=np.array([], dtype=np.int64),
+        f_to_v=np.array([], dtype=np.int64),
         edge_attributes=[],
         global_variables=StringVariables[np.float32]([], [], [], n_variable=0),
         groundings=[],

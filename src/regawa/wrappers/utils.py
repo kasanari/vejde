@@ -56,8 +56,8 @@ def fn_graph_to_obsdata(
                 factor_type_idx.shape[0],  # number of factors
             ),
             edges=Edges(
-                g.senders,
-                g.receivers,
+                g.v_to_f,
+                g.f_to_v,
                 arr(g.edge_attributes, dtype=np.int64),
             ),
             global_var=Variables(
@@ -149,7 +149,7 @@ def generate_bipartite_obs_func(
         object_indices = {name: idx for idx, name in enumerate(object_names)}
 
         edges = create_edges(non_nullary_groundings.keys())
-        senders, receivers = translate_edges(
+        v_to_f, f_to_v = translate_edges(
             lambda x: non_nullary_groundings[x], lambda x: object_indices[x], edges
         )
 
@@ -164,10 +164,10 @@ def generate_bipartite_obs_func(
         global_lengths = [len(x) if isinstance(x, Sequence) else 1 for x in global_vals]
 
         if edges:
-            assert senders.max() < len(
+            assert v_to_f.max() < len(
                 factor_node_values
             ), "Senders index out of bounds."
-            assert receivers.max() < len(object_types), "Receivers index out of bounds."
+            assert f_to_v.max() < len(object_types), "Receivers index out of bounds."
 
         return cls(
             StringVariables[VariableDomain](  # type: ignore
@@ -178,8 +178,8 @@ def generate_bipartite_obs_func(
             ),
             object_names,
             object_types,
-            senders,
-            receivers,
+            v_to_f,
+            f_to_v,
             edge_attr(edges),
             StringVariables[VariableDomain](  # type: ignore
                 [predicate(g) for g in nullary_groundings],

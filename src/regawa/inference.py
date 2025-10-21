@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from regawa import GroundObs
+from regawa.data.obs import HeteroObsData
 from regawa.wrappers.index_obs_wrapper import fn_idx_obs
-from regawa.data.graph import StringFactorGraph
 from regawa.policy import ActionMode
 from regawa.policy import GraphAgent
 from regawa.model import BaseModel
@@ -11,8 +11,6 @@ from regawa.wrappers import fn_groundobs_to_heterograph
 from regawa.wrappers import create_render_graph
 from regawa.wrappers.render_utils import RenderGraph
 import torch
-import numpy as np
-from regawa.data.graph import StackedStringFactorGraph
 
 
 class NodeThenActionAgentOutput(NamedTuple):
@@ -44,20 +42,37 @@ def fn_get_agent_output(
     deterministic: bool = True,
     stacking: bool = False,
 ):
-
     obs_to_graph = fn_groundobs_to_heterograph(model, stacking)
     graph_to_input = fn_idx_obs(model, stacking=stacking)
 
+    modes = {
+        ActionMode.NODE_THEN_ACTION: fn_node_then_action,
+        ActionMode.ACTION_THEN_NODE: fn_action_then_node,
+    }
+
+    fn = modes[action_mode](agent, model, deterministic)
+
+    def get_agent_output(ground_obs: GroundObs):
+        hetero_graph = obs_to_graph(wrapper_func(ground_obs))
+        heteroobs = graph_to_input(hetero_graph)
+        r_g = create_render_graph(hetero_graph.boolean, hetero_graph.numeric)
+        return fn(heteroobs, r_g)
+
+    return get_agent_output
+
+def fn_action_then_node(
+    agent: GraphAgent,
+    model: BaseModel,
+    deterministic: bool = True,
+):
     def action_then_node(
-        o: GroundObs,
+        o: HeteroObsData,
+        g: RenderGraph,
     ):
-        o = wrapper_func(o)
-        g = obs_to_graph(o)
-        r_g = create_render_graph(g.boolean, g.numeric)
-        objs = r_g.factor_labels
+        objs = g.factor_labels
 
         action, _, _, _, p_a, p_n__a = agent.sample_from_obs(
-            graph_to_input(g), deterministic=deterministic
+            o, deterministic=deterministic
         )
         action_tup: tuple[int, int] = tuple(action.squeeze().detach().cpu().numpy())  # type: ignore
 
@@ -91,18 +106,25 @@ def fn_get_agent_output(
             weight_by_object=weight_by_factor,
             weight_by_action=weight_by_action,
             joint_probs=joint_probs,
-            graph=r_g,
+            graph=g,
         )
 
+    return action_then_node
+
+
+def fn_node_then_action(
+    agent: GraphAgent,
+    model: BaseModel,
+    deterministic: bool = True,
+):
     def node_then_action(
-        o: GroundObs,
+        o: HeteroObsData,
+        g: RenderGraph,
     ):
-        g = obs_to_graph(o)
-        r_g = create_render_graph(g.boolean, g.numeric)
-        objs = r_g.factor_labels
+        objs = g.factor_labels
 
         action, _, _, _, p_n, p_a__n = agent.sample_from_obs(
-            graph_to_input(g), deterministic=deterministic
+            o, deterministic=deterministic
         )
         action_tup: tuple[int, int] = tuple(action.squeeze().detach().cpu().numpy())  # type: ignore
 
@@ -134,12 +156,7 @@ def fn_get_agent_output(
             weight_by_object=weight_by_factor,
             weight_by_action=weight_by_action,
             joint_probs=joint_probs,
-            graph=r_g,
+            graph=g,
         )
 
-    modes = {
-        ActionMode.NODE_THEN_ACTION: node_then_action,
-        ActionMode.ACTION_THEN_NODE: action_then_node,
-    }
-
-    return modes[action_mode]
+    return node_then_action

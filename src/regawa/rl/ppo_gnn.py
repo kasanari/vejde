@@ -702,7 +702,7 @@ def train(args: Args | None = None, batch_id: str | None = None):
     if args.resume_from:
         agent, _ = load_agent(agent_class, args.resume_from, device)
     else:
-        agent = agent_from_env(agent_class, envs, args.agent_config, device)
+        agent = agent_from_env(args.agent_class, envs, args.agent_config, device)
 
     logged_config = vars(args) | asdict(agent.config)
     if args.track:
@@ -719,7 +719,7 @@ def train(args: Args | None = None, batch_id: str | None = None):
 
     try:
         mlflow.create_experiment(run_name)
-    except mlflow.exceptions.MlflowException:
+    except mlflow.MlflowException:
         pass
 
     mlflow.set_experiment(run_name)
@@ -736,7 +736,7 @@ def train(args: Args | None = None, batch_id: str | None = None):
             mlflow.log_artifact("pyproject.toml")
         if batch_id:
             mlflow.log_param("batch_id", batch_id)
-        run_id = mlflow.active_run().info.run_id
+        run_id = mlflow.active_run().info.run_id  # type: ignore
 
         agent = main(envs, run_name, args, device, agent)
 

@@ -49,8 +49,8 @@ def to_graphviz_alt(
 class RenderGraph(NamedTuple):
     variable_labels: Sequence[str]
     factor_labels: Sequence[str]
-    senders: NDArray[np.int64]
-    receivers: NDArray[np.int64]
+    v_to_f: NDArray[np.int64]
+    f_to_v: NDArray[np.int64]
     edge_attributes: Sequence[int]
     global_variables: Sequence[str]
 
@@ -66,28 +66,28 @@ def to_graphviz(
     graph += "\n" if pprint else " "
     graph += "overlap=false"
     graph += "\n" if pprint else " "
-    first_mapping = {}
-    second_mapping = {}
+    v_mapping = {}
+    f_mapping = {}
     global_idx = 0
     for idx, label in enumerate(fg.variable_labels):
         graph += f'"{global_idx}" [label="{label}"]'
         graph += "\n" if pprint else " "
-        first_mapping[idx] = global_idx
+        v_mapping[idx] = global_idx
         global_idx += 1
     for idx, label in enumerate(fg.factor_labels):
         graph += f'"{global_idx}" [label="{label}", shape=box]'
         graph += "\n" if pprint else " "
-        second_mapping[idx] = global_idx
+        f_mapping[idx] = global_idx
         global_idx += 1
     for idx, label in enumerate(fg.global_variables):
         graph += f'"{global_idx}" [label="{label}", shape=diamond]'
         graph += "\n" if pprint else " "
         global_idx += 1
 
-    for attribute, sender, receiver in zip(
-        fg.edge_attributes, fg.senders, fg.receivers
-    ):
-        graph += f'"{first_mapping[sender]}" -- "{second_mapping[receiver]}" [color="{colors[int(attribute)]}"]'
+    for attribute, v, f in zip(fg.edge_attributes, fg.v_to_f, fg.f_to_v):
+        graph += (
+            f'"{v_mapping[v]}" -- "{f_mapping[f]}" [color="{colors[int(attribute)]}"]'
+        )
         graph += "\n" if pprint else " "
     graph += "}"
     return graph
@@ -118,7 +118,9 @@ def create_render_graph(
         (bool_g.edge_attributes, numeric_g.edge_attributes)
     )  # type: ignore
 
-    v_to_f = np.concatenate([bool_g.v_to_f, numeric_g.v_to_f + len(bool_g.variables)])
+    v_to_f = np.concatenate(
+        [bool_g.v_to_f, numeric_g.v_to_f + len(bool_g.variables.values)]
+    )
 
     f_to_v = np.concatenate([bool_g.f_to_v, numeric_g.f_to_v])
 

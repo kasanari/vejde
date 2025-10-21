@@ -18,4 +18,6 @@ def load_agent(cls: type[T], path: str, device: str = "cpu") -> tuple[T, AgentCo
     agent = cls(config, None)
     agent.load_state_dict(data["state_dict"])
 
+    agent.device = device
+
     return agent, config

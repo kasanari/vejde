@@ -167,8 +167,7 @@ class TestGroundedModel(BaseGroundedModel):
     def create_obs(self, rddl_obs: GroundObs):
         graph = fn_groundobs_to_heterograph(
             self._model,
-            StringFactorGraph[np.bool_],
-            StringFactorGraph[np.float32],
+            stacking=False,
         )(rddl_obs)
 
         obs = fn_idx_obs(self._model)(graph)

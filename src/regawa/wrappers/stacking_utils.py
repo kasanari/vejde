@@ -5,6 +5,7 @@ from itertools import chain
 from regawa.data import ObsData, StackedStringFactorGraph
 from regawa.data.graph import GraphTypes, StringVariables, VariableDomain
 
+
 def flatten(
     vals: Sequence[Sequence[VariableDomain]], vars: Sequence[str]
 ) -> StringVariables[VariableDomain]:

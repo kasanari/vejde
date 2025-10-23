@@ -2,13 +2,11 @@ from typing import Any
 from regawa import BaseModel
 from functools import cached_property, cache
 import pytest
-from regawa.data.graph import StringFactorGraph
 from regawa.model import BaseGroundedModel, GroundObs, Grounding
 from regawa.model import check_model
 from regawa.wrappers.graph_utils import fn_groundobs_to_heterograph
 from regawa.wrappers.index_obs_wrapper import fn_idx_obs
 from regawa.wrappers.render_utils import render_lifted
-import numpy as np
 
 
 class TestModel(BaseModel):

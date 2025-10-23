@@ -36,8 +36,6 @@ from .utils import (
 type StrToInt = Callable[[str], int]
 
 
-
-
 def fn_heterograph_to_heteroobs(
     fn_graph_to_idx: Callable[
         [

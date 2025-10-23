@@ -60,6 +60,7 @@ def fn_get_agent_output(
 
     return get_agent_output
 
+
 def fn_action_then_node(
     agent: GraphAgent,
     model: BaseModel,

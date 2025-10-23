@@ -5,7 +5,6 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 import numpy as np
 from gymnasium.spaces import Dict
 from numpy.typing import NDArray
-import networkx as nx
 
 from regawa.data.actions import ActionMask
 from regawa.data.graph import Edges, GraphTypes, VariableDomain

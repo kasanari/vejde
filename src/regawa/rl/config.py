@@ -2,7 +2,6 @@ from typing import Literal
 from regawa import GNNParams
 
 
-import os
 from dataclasses import dataclass
 
 

@@ -24,13 +24,11 @@ from .wrappers.render_utils import to_graphviz
 from gymnasium.vector import SyncVectorEnv, AsyncVectorEnv
 from typing import Literal
 
-agent_classes = {
-    'GraphAgent': GraphAgent,
-    'RecurrentGraphAgent': RecurrentGraphAgent
-}
+agent_classes = {"GraphAgent": GraphAgent, "RecurrentGraphAgent": RecurrentGraphAgent}
+
 
 def agent_from_env(
-    agent_class_type: Literal['GraphAgent', 'RecurrentGraphAgent'],
+    agent_class_type: Literal["GraphAgent", "RecurrentGraphAgent"],
     env: gym.Env[HeteroObsData, MultiDiscrete]
     | gym.vector.SyncVectorEnv
     | gym.vector.AsyncVectorEnv,

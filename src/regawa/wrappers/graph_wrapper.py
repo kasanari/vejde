@@ -2,11 +2,10 @@ import logging
 from typing import Any, SupportsFloat
 import gymnasium as gym
 from regawa import BaseModel, GroundObs, Grounding
-from regawa.data import HeteroGraph, StringFactorGraph
+from regawa.data import HeteroGraph
 from .graph_utils import fn_groundobs_to_heterograph
 from .render_utils import create_render_graph, to_graphviz
 from .render_utils import RenderGraph
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +27,7 @@ class GroundedGraphWrapper(
         self.last_action: Grounding | None = None
         self.last_g: RenderGraph | None = None
         self._object_to_type: dict[str, str] = {"None": "None"}
-        self.create_graphs = fn_groundobs_to_heterograph(
-            model, stacking=False
-        )
+        self.create_graphs = fn_groundobs_to_heterograph(model, stacking=False)
 
         self.add_render_graph_to_info = add_render_graph_to_info
 

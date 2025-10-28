@@ -5,12 +5,13 @@ from collections.abc import Sequence
 import numpy as np
 
 type Grounding = tuple[str, ...]
+type TemporalGrounding = tuple[int, Grounding]
 type GroundingRange = bool | int | float | np.bool_
 type ObservableGroundingRange = GroundingRange | None
 GroundObs = Mapping[Grounding, GroundingRange]
 type ObservableGroundObs = Mapping[Grounding, ObservableGroundingRange]
 
-StackedGroundObs = Mapping[Grounding, Sequence[GroundingRange]]
+type TemporalGroundObs = Mapping[TemporalGrounding, GroundingRange]
 
 
 class BaseGroundedModel(ABC):

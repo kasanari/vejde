@@ -37,10 +37,31 @@ from regawa.data import (
 logger = logging.getLogger(__name__)
 
 
+def fn_variables_to_idx(
+    rel_to_idx: Callable[[str], int],
+):
+    def map_variables_to_idx(
+        variables: StringVariables[VariableDomain], var_val_dtype: type
+    ) -> Variables[VariableDomain]:
+        arr = np.asarray
+        idx_vars = arr([rel_to_idx(p) for p in variables.types], dtype=np.int64)
+
+        return Variables(
+            idx_vars,
+            arr(variables.values, dtype=var_val_dtype),
+            arr(variables.length),
+            n_variable=variables.n_variable,
+        )
+
+    return map_variables_to_idx
+
+
 def fn_graph_to_obsdata(
     rel_to_idx: Callable[[str], int],
     type_to_idx: Callable[[str], int],
 ):
+    variables_to_idx = fn_variables_to_idx(rel_to_idx)
+
     def map_graph_to_idx(
         g: StringFactorGraph[VariableDomain],
         var_val_dtype: type,
@@ -49,29 +70,15 @@ def fn_graph_to_obsdata(
         factor_type_idx = arr(
             [type_to_idx(f_type) for f_type in g.factors.types], dtype=np.int64
         )
-        idx_global_vars = arr(
-            [rel_to_idx(p) for p in g.global_variables.types], dtype=np.int64
-        )
-        idx_vars = arr([rel_to_idx(p) for p in g.variables.types], dtype=np.int64)
 
         return ObsData(
-            var=Variables(
-                idx_vars,
-                arr(g.variables.values, dtype=var_val_dtype),
-                arr(g.variables.length),
-                n_variable=g.variables.n_variable,
-            ),
+            var=variables_to_idx(g.variables, var_val_dtype),
             factor=Factors(
                 factor_type_idx,
                 factor_type_idx.shape[0],  # number of factors
             ),
             edges=g.edges,
-            global_var=Variables(
-                idx_global_vars,
-                arr(g.global_variables.values, dtype=var_val_dtype),
-                arr(g.global_variables.length),
-                n_variable=g.global_variables.n_variable,
-            ),
+            global_var=variables_to_idx(g.global_variables, var_val_dtype),
             action_masks=g.action_masks,
         )
 

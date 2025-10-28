@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from functools import cache, cached_property
 import numpy as np
 
@@ -11,6 +11,7 @@ GroundObs = Mapping[Grounding, GroundingRange]
 type ObservableGroundObs = Mapping[Grounding, ObservableGroundingRange]
 
 type TemporalGroundObs = Mapping[TemporalGrounding, GroundingRange]
+StackedGroundObs = Mapping[Grounding, Sequence[GroundingRange]]
 
 
 class BaseGroundedModel(ABC):

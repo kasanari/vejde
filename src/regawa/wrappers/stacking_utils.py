@@ -52,9 +52,6 @@ def flatten_stacked_graph(
             factorgraph.global_variables.groundings,
         ),
         factors=factorgraph.factors,
-        factor_types=factorgraph.factor_types,
-        v_to_f=factorgraph.v_to_f,
-        f_to_v=factorgraph.f_to_v,
-        edge_attributes=factorgraph.edge_attributes,
+        edges=factorgraph.edges,
         action_masks=factorgraph.action_masks,
     )

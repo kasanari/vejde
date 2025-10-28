@@ -104,7 +104,7 @@ class IndexObsWrapper(
     ]:
         graph, r, term, trunc, info = self.env.step(action)
 
-        info["idx_to_object"] = graph.boolean.factors
+        info["idx_to_object"] = graph.boolean.factors.names
         obs = self.create_obs_dict(graph)
 
         assert obs.bool.var.length.sum() == len(
@@ -125,7 +125,7 @@ class IndexObsWrapper(
     ) -> tuple[HeteroObsData, dict[str, Any]]:
         graph, info = self.env.reset(seed=seed)
 
-        info["idx_to_object"] = graph.boolean.factors
+        info["idx_to_object"] = graph.boolean.factors.names
         obs = self.create_obs_dict(graph)
 
         return obs, info

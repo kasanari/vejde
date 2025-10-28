@@ -7,7 +7,13 @@ from gymnasium.spaces import Dict
 from numpy.typing import NDArray
 
 from regawa.data.actions import ActionMask
-from regawa.data.graph import Edges, GraphTypes, StringFactorGraph, VariableDomain
+from regawa.data.graph import (
+    Edges,
+    GraphTypes,
+    StringFactorGraph,
+    StringFactors,
+    VariableDomain,
+)
 from regawa.data.obs import Factors
 from regawa.model import Grounding
 from regawa.model.base_model import BaseModel
@@ -41,7 +47,7 @@ def fn_graph_to_obsdata(
     ) -> ObsData[VariableDomain]:
         arr = np.asarray
         factor_type_idx = arr(
-            [type_to_idx(f_type) for f_type in g.factor_types], dtype=np.int64
+            [type_to_idx(f_type) for f_type in g.factors.types], dtype=np.int64
         )
         idx_global_vars = arr(
             [rel_to_idx(p) for p in g.global_variables.types], dtype=np.int64
@@ -59,11 +65,7 @@ def fn_graph_to_obsdata(
                 factor_type_idx,
                 factor_type_idx.shape[0],  # number of factors
             ),
-            edges=Edges(
-                g.v_to_f,
-                g.f_to_v,
-                arr(g.edge_attributes, dtype=np.int64),
-            ),
+            edges=g.edges,
             global_var=Variables(
                 idx_global_vars,
                 arr(g.global_variables.values, dtype=var_val_dtype),
@@ -112,8 +114,8 @@ def translate_edges(
     return senders, receivers
 
 
-def edge_attr(edges: Iterable[Edge]) -> Sequence[int]:
-    return [edge[2] for edge in edges]
+def edge_attr(edges: Iterable[Edge]) -> NDArray[np.int64]:
+    return np.asarray([edge[2] for edge in edges], dtype=np.int64)
 
 
 def object_list(
@@ -146,7 +148,7 @@ def generate_bipartite_obs_func(
 
         object_names = [obj.name for obj in object_nodes]
         object_types = [obj.type for obj in object_nodes]
-        object_indices = {name: idx for idx, name in enumerate(object_names)}
+        object_indices = {o.name: idx for idx, o in enumerate(object_nodes)}
 
         edges = create_edges(non_nullary_groundings.keys())
         v_to_f, f_to_v = translate_edges(
@@ -170,11 +172,11 @@ def generate_bipartite_obs_func(
                 len(non_nullary_groundings),
                 list(non_nullary_groundings.keys()),
             ),
-            object_names,
-            object_types,
-            v_to_f,
-            f_to_v,
-            edge_attr(edges),
+            StringFactors(
+                object_names,
+                object_types,
+            ),
+            Edges(v_to_f, f_to_v, edge_attr(edges)),
             StringVariables[VariableDomain](  # type: ignore
                 [predicate(g) for g in nullary_groundings],
                 global_vals,

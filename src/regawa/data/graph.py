@@ -69,16 +69,17 @@ class StringVariables(NamedTuple, Generic[VariableDomain]):
     n_variable: int  # number of groundings/variables. Will match len(length),
     groundings: Sequence[Grounding]
 
+class StringFactors(NamedTuple):
+    names: Sequence[str]  # object names
+    types: Sequence[str]  # object of grounding, e.g. "o"
+
 
 class StringFactorGraph(NamedTuple, Generic[VariableDomain]):
     """A FactorGraph with string attributes."""
 
     variables: StringVariables[VariableDomain]
-    factors: Sequence[str]
-    factor_types: Sequence[str]
-    v_to_f: NDArray[VariableTypeDomain]
-    f_to_v: NDArray[VariableTypeDomain]
-    edge_attributes: Sequence[int]
+    factors: StringFactors
+    edges: Edges
     global_variables: StringVariables[VariableDomain]
     action_masks: ActionMask
     # distance metrics, in a sparse format
@@ -87,11 +88,8 @@ class StringFactorGraph(NamedTuple, Generic[VariableDomain]):
 
 class StackedStringFactorGraph(NamedTuple, Generic[VariableDomain]):
     variables: StackedStringVariables[VariableDomain]
-    factors: Sequence[str]
-    factor_types: Sequence[str]
-    v_to_f: NDArray[VariableTypeDomain]
-    f_to_v: NDArray[VariableTypeDomain]
-    edge_attributes: Sequence[int]
+    factors: StringFactors
+    edges: Edges
     global_variables: StackedStringVariables[VariableDomain]
     action_masks: ActionMask
 

@@ -112,17 +112,17 @@ def create_render_graph(
 
     labels = boolean_labels + numeric_labels
 
-    factor_labels = [f"{key}" for key in bool_g.factors]
+    factor_labels = [f"{key}" for key in bool_g.factors.names]
 
     edge_attributes: Sequence[int] = np.concatenate(
-        (bool_g.edge_attributes, numeric_g.edge_attributes)
+        (bool_g.edges.edge_attr, numeric_g.edges.edge_attr)
     )  # type: ignore
 
     v_to_f = np.concatenate(
-        [bool_g.v_to_f, numeric_g.v_to_f + len(bool_g.variables.values)]
+        [bool_g.edges.v_to_f, numeric_g.edges.v_to_f + len(bool_g.variables.values)]
     )
 
-    f_to_v = np.concatenate([bool_g.f_to_v, numeric_g.f_to_v])
+    f_to_v = np.concatenate([bool_g.edges.f_to_v, numeric_g.edges.f_to_v])
 
     global_numeric = [
         f"{key}={numeric_g.global_variables.values[idx]}"

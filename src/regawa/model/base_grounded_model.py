@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from functools import cache, cached_property
-from collections.abc import Sequence
 import numpy as np
 
 type Grounding = tuple[str, ...]

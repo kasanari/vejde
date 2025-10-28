@@ -45,7 +45,7 @@ def packed_from_concatenated_sequences(
     data: Tensor,
     lengths: Tensor,
     include_sort_info: bool = True,
-) -> PackedSequence:
+):
     """
     Build a PackedSequence when rows are concatenated per sequence (sequence-major order).
     Example row order: [s0:t0, s0:t1, ..., s0:tL0-1, s1:t0, ..., sN-1:tL(N-1)-1]
@@ -111,14 +111,14 @@ def packed_from_concatenated_sequences(
     packed_data = data.index_select(0, perm)
 
     if include_sort_info:
-        return PackedSequence(
+        return (
             packed_data,
             batch_sizes,
             sorted_indices.to(data.device),
             unsorted_indices.to(data.device),
         )
     else:
-        return PackedSequence(packed_data, batch_sizes, None, None)
+        return (packed_data, batch_sizes, None, None)
 
 
 def compress_time(
@@ -155,15 +155,14 @@ class RecurrentEmbedder(nn.Module):
         self.recurrent.to(device)
         self.recurrent.flatten_parameters()
 
-    @torch.jit.export
     def compress_time(self, h: Tensor, length: Tensor) -> Tensor:
         custom_h_c = packed_from_concatenated_sequences(
             h, length, include_sort_info=True
         )
-        _, variables = self.recurrent.forward(custom_h_c, None)
+        packed_sequence = PackedSequence(*custom_h_c)
+        _, variables = self.recurrent.forward(packed_sequence, None)
         return variables
 
-    @torch.jit.export
     def forward(
         self,
         h: SparseTensor,

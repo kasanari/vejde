@@ -140,11 +140,6 @@ def generate_bipartite_obs_func(
         non_nullary_groundings = {
             g: idx for idx, g in enumerate(g for g in groundings if arity(g) > 0)
         }
-        factor_node_values = [observations[g] for g in non_nullary_groundings]
-
-        lengths = [len(x) if isinstance(x, Sequence) else 1 for x in factor_node_values]
-
-        factor_node_predicates = [predicate(g) for g in non_nullary_groundings]
 
         object_names = [obj.name for obj in object_nodes]
         object_types = [obj.type for obj in object_nodes]
@@ -155,37 +150,24 @@ def generate_bipartite_obs_func(
             lambda x: non_nullary_groundings[x], lambda x: object_indices[x], edges
         )
 
-        global_vals = [observations[g] for g in nullary_groundings]
-        global_lengths = [len(x) if isinstance(x, Sequence) else 1 for x in global_vals]
-
-        if edges:
-            assert v_to_f.max() < len(
-                factor_node_values
-            ), "Senders index out of bounds."
-            assert f_to_v.max() < len(object_types), "Receivers index out of bounds."
-
-        return cls(
-            StringVariables[VariableDomain](  # type: ignore
-                factor_node_predicates,
-                factor_node_values,
-                lengths,
-                len(non_nullary_groundings),
-                list(non_nullary_groundings.keys()),
-            ),
+        g = cls(
+            create_variables(observations, non_nullary_groundings.keys()),  # type: ignore
             StringFactors(
                 object_names,
                 object_types,
             ),
             Edges(v_to_f, f_to_v, edge_attr(edges)),
-            StringVariables[VariableDomain](  # type: ignore
-                [predicate(g) for g in nullary_groundings],
-                global_vals,
-                global_lengths,
-                len(nullary_groundings),
-                nullary_groundings,
-            ),
+            create_variables(observations, nullary_groundings),  # type: ignore
             action_mask_func(object_types),
         )
+
+        if g.edges:
+            assert v_to_f.max() < len(
+                g.variables.values
+            ), "Senders index out of bounds."
+            assert f_to_v.max() < len(object_types), "Receivers index out of bounds."
+
+        return g
 
     return f
 
@@ -211,3 +193,19 @@ def fn_action_masks(
         )
 
     return f
+
+
+def create_variables(
+    observations: Mapping[Grounding, VariableDomain],
+    groundings: Sequence[Grounding],
+) -> StringVariables[VariableDomain]:
+    factor_node_values = [observations[g] for g in groundings]
+    lengths = [len(x) if isinstance(x, Sequence) else 1 for x in factor_node_values]
+    factor_node_predicates = [predicate(g) for g in groundings]
+    return StringVariables[VariableDomain](  # type: ignore
+        factor_node_predicates,
+        factor_node_values,
+        lengths,
+        len(groundings),
+        groundings,
+    )

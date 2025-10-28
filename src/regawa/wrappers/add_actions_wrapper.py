@@ -14,7 +14,7 @@ from regawa.model.base_grounded_model import (
 def add_actions_to_obs(
     obs: dict[Grounding, GroundingRange], actions: dict[Grounding, GroundingRange]
 ) -> GroundObs:
-    obs_with_actions = {a: v for a, v in actions.items()} | obs
+    obs_with_actions = actions | obs
     return obs_with_actions
 
 

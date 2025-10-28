@@ -1,18 +1,42 @@
+from collections.abc import Callable
 import logging
 from typing import Any, SupportsFloat
 
 import gymnasium as gym
 from functools import cached_property
 from regawa.data import HeteroObsData
+from regawa.data.graph import (
+    StackedStringFactorGraph,
+    StringFactorGraph,
+    VariableDomain,
+)
+from regawa.data.obs import ObsData
 from regawa.model import GroundObs
 from regawa.model import BaseModel
 from regawa.wrappers.utils import fn_graph_to_obsdata
 from .graph_utils import fn_heterograph_to_heteroobs
-from .stacking_utils import fn_flatten_map_graph_to_idx
+from .stacking_utils import flatten_stacked_graph
 from .space import HeteroStateSpace
 from regawa.data import HeteroGraph
 
 logger = logging.getLogger(__name__)
+
+
+def fn_flatten_then_map_graph_to_idx(
+    map_graph_to_idx: Callable[
+        [StringFactorGraph[VariableDomain], type], ObsData[VariableDomain]
+    ],
+):
+    def flatten_map_graph_to_idx(
+        factorgraph: StackedStringFactorGraph[VariableDomain],
+        var_val_dtype: type,
+    ) -> ObsData[VariableDomain]:
+        return map_graph_to_idx(
+            flatten_stacked_graph(factorgraph),
+            var_val_dtype,
+        )
+
+    return flatten_map_graph_to_idx
 
 
 def fn_idx_obs(model: BaseModel, stacking: bool = False):
@@ -21,7 +45,7 @@ def fn_idx_obs(model: BaseModel, stacking: bool = False):
         model.type_to_idx,
     )
 
-    idx_func = fn_flatten_map_graph_to_idx(f) if stacking else f
+    idx_func = fn_flatten_then_map_graph_to_idx(f) if stacking else f
     create_obs_dict_fn = fn_heterograph_to_heteroobs(idx_func)
 
     def graph_to_obsdata(g: HeteroGraph) -> HeteroObsData:

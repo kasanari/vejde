@@ -7,7 +7,7 @@ from gymnasium.spaces import Dict
 from numpy.typing import NDArray
 
 from regawa.data.actions import ActionMask
-from regawa.data.graph import Edges, GraphTypes, VariableDomain
+from regawa.data.graph import Edges, GraphTypes, StringFactorGraph, VariableDomain
 from regawa.data.obs import Factors
 from regawa.model import Grounding
 from .grounding_utils import (
@@ -31,7 +31,7 @@ def fn_graph_to_obsdata(
     type_to_idx: Callable[[str], int],
 ):
     def map_graph_to_idx(
-        g: GraphTypes,
+        g: StringFactorGraph[VariableDomain],
         var_val_dtype: type,
     ) -> ObsData[VariableDomain]:
         arr = np.asarray

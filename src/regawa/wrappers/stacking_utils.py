@@ -1,9 +1,13 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from itertools import chain
 
 
-from regawa.data import ObsData, StackedStringFactorGraph
-from regawa.data.graph import GraphTypes, StringVariables, VariableDomain
+from regawa.data import StackedStringFactorGraph
+from regawa.data.graph import (
+    StringFactorGraph,
+    StringVariables,
+    VariableDomain,
+)
 
 
 def flatten(
@@ -29,26 +33,22 @@ def flatten_values(
     )
 
 
-def fn_flatten_map_graph_to_idx(
-    map_graph_to_idx: Callable[[GraphTypes, type], ObsData[VariableDomain]],
-):
-    def flatten_map_graph_to_idx(
-        factorgraph: StackedStringFactorGraph[VariableDomain],
-        var_val_dtype: type,
-    ) -> ObsData[VariableDomain]:
-        flattened_graph = factorgraph._replace(
-            variables=flatten(
-                factorgraph.variables.values, factorgraph.variables.types
-            ),
-            global_variables=flatten(
-                factorgraph.global_variables.values,
-                factorgraph.global_variables.types,
-            ),
-        )
-
-        return map_graph_to_idx(
-            flattened_graph,
-            var_val_dtype,
-        )
-
-    return flatten_map_graph_to_idx
+def flatten_stacked_graph(
+    factorgraph: StackedStringFactorGraph[VariableDomain],
+) -> StringFactorGraph[VariableDomain]:
+    return StringFactorGraph(
+        variables=flatten(factorgraph.variables.values, factorgraph.variables.types),
+        global_variables=flatten(
+            factorgraph.global_variables.values,
+            factorgraph.global_variables.types,
+        ),
+        factors=factorgraph.factors,
+        factor_types=factorgraph.factor_types,
+        v_to_f=factorgraph.v_to_f,
+        f_to_v=factorgraph.f_to_v,
+        edge_attributes=factorgraph.edge_attributes,
+        action_type_mask=factorgraph.action_type_mask,
+        action_arity_mask=factorgraph.action_arity_mask,
+        groundings=factorgraph.groundings,
+        global_groundings=factorgraph.global_groundings,
+    )

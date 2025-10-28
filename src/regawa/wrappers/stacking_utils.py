@@ -11,7 +11,9 @@ from regawa.data.graph import (
 
 
 def flatten(
-    vals: Sequence[Sequence[VariableDomain]], vars: Sequence[str]
+    vals: Sequence[Sequence[VariableDomain]],
+    vars: Sequence[str],
+    groundings: Sequence[Grounding],
 ) -> StringVariables[VariableDomain]:
     # Flatten the list of node history lists to account for different node history lengths
     flat_vals = list(chain(*vals))
@@ -19,7 +21,9 @@ def flatten(
     flat_vars = list(chain(*v))
     lengths = [len(v) for v in vals]  # lengths of each variable history
     n_variable = len(lengths)  # number of unique variables
-    return StringVariables(flat_vars, flat_vals, lengths, n_variable=n_variable)
+    return StringVariables(
+        flat_vars, flat_vals, lengths, n_variable=n_variable, groundings=groundings
+    )
 
 
 def flatten_values(
@@ -37,18 +41,20 @@ def flatten_stacked_graph(
     factorgraph: StackedStringFactorGraph[VariableDomain],
 ) -> StringFactorGraph[VariableDomain]:
     return StringFactorGraph(
-        variables=flatten(factorgraph.variables.values, factorgraph.variables.types),
+        variables=flatten(
+            factorgraph.variables.values,
+            factorgraph.variables.types,
+            factorgraph.variables.groundings,
+        ),
         global_variables=flatten(
             factorgraph.global_variables.values,
             factorgraph.global_variables.types,
+            factorgraph.global_variables.groundings,
         ),
         factors=factorgraph.factors,
         factor_types=factorgraph.factor_types,
         v_to_f=factorgraph.v_to_f,
         f_to_v=factorgraph.f_to_v,
         edge_attributes=factorgraph.edge_attributes,
-        action_type_mask=factorgraph.action_type_mask,
-        action_arity_mask=factorgraph.action_arity_mask,
-        groundings=factorgraph.groundings,
-        global_groundings=factorgraph.global_groundings,
+        action_masks=factorgraph.action_masks,
     )

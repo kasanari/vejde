@@ -3,6 +3,7 @@ from collections.abc import Sequence
 
 import numpy as np
 from numpy.typing import NDArray
+from regawa.data.actions import ActionMask
 from regawa.model import Grounding
 
 
@@ -58,6 +59,7 @@ class StackedStringVariables(NamedTuple, Generic[VariableDomain]):
     values: Sequence[Sequence[VariableDomain]]
     length: Sequence[int]
     n_variable: int
+    groundings: Sequence[Grounding]
 
 
 class StringVariables(NamedTuple, Generic[VariableDomain]):
@@ -65,6 +67,7 @@ class StringVariables(NamedTuple, Generic[VariableDomain]):
     values: Sequence[VariableDomain]
     length: Sequence[int]
     n_variable: int  # number of groundings/variables. Will match len(length),
+    groundings: Sequence[Grounding]
 
 
 class StringFactorGraph(NamedTuple, Generic[VariableDomain]):
@@ -77,11 +80,7 @@ class StringFactorGraph(NamedTuple, Generic[VariableDomain]):
     f_to_v: NDArray[VariableTypeDomain]
     edge_attributes: Sequence[int]
     global_variables: StringVariables[VariableDomain]
-    action_type_mask: Sequence[tuple[bool, ...]]
-    action_arity_mask: Sequence[tuple[bool, ...]]
-    groundings: Sequence[Grounding]
-    global_groundings: Sequence[Grounding]
-
+    action_masks: ActionMask
     # distance metrics, in a sparse format
     # distances: Distances
 
@@ -94,10 +93,7 @@ class StackedStringFactorGraph(NamedTuple, Generic[VariableDomain]):
     f_to_v: NDArray[VariableTypeDomain]
     edge_attributes: Sequence[int]
     global_variables: StackedStringVariables[VariableDomain]
-    action_type_mask: Sequence[tuple[bool, ...]]
-    action_arity_mask: Sequence[tuple[bool, ...]]
-    groundings: Sequence[Grounding]
-    global_groundings: Sequence[Grounding]
+    action_masks: ActionMask
 
 
 class HeteroGraph(NamedTuple):

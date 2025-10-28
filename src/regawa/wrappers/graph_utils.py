@@ -28,6 +28,7 @@ from regawa.data import (
     ObsData,
 )
 from .utils import (
+    fn_action_masks,
     generate_bipartite_obs_func,
     object_list,
 )
@@ -88,8 +89,7 @@ def fn_groundobs_to_graph_boolean(
 ):
     generate_bipartite_obs_bool = generate_bipartite_obs_func(
         graph_cls,
-        fn_valid_action_fluents_given_type(model),
-        fn_valid_action_fluents_given_arity(model),
+        fn_action_masks(model),
     )
 
     b_g = partial(
@@ -120,9 +120,7 @@ NumericGraphTypes = TypeVar(
 
 def fn_groundobs_to_graph_numeric(model: BaseModel, graph_cls: type[NumericGraphTypes]):
     generate_bipartite_obs_numeric = generate_bipartite_obs_func(
-        graph_cls,
-        fn_valid_action_fluents_given_type(model),
-        fn_valid_action_fluents_given_arity(model),
+        graph_cls, fn_action_masks(model)
     )
 
     n_g = partial(

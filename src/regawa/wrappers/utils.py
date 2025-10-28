@@ -10,6 +10,11 @@ from regawa.data.actions import ActionMask
 from regawa.data.graph import Edges, GraphTypes, StringFactorGraph, VariableDomain
 from regawa.data.obs import Factors
 from regawa.model import Grounding
+from regawa.model.base_model import BaseModel
+from regawa.model.utils import (
+    fn_valid_action_fluents_given_arity,
+    fn_valid_action_fluents_given_type,
+)
 from .grounding_utils import (
     arity,
     create_edges,
@@ -65,10 +70,7 @@ def fn_graph_to_obsdata(
                 arr(g.global_variables.length),
                 n_variable=g.global_variables.n_variable,
             ),
-            action_masks=ActionMask(
-                arr(g.action_type_mask, dtype=np.bool_),
-                arr(g.action_arity_mask, dtype=np.bool_),
-            ),
+            action_masks=g.action_masks,
         )
 
     return map_graph_to_idx
@@ -125,8 +127,7 @@ def object_list(
 
 def generate_bipartite_obs_func(
     cls: type[GraphTypes],
-    action_fluent_type_mask: Callable[[str], tuple[bool, ...]],
-    action_fluent_arity_mask: Callable[[str], tuple[bool, ...]],
+    action_mask_func: Callable[[Sequence[str]], ActionMask],
 ):
     def f(
         observations: Mapping[Grounding, VariableDomain],
@@ -152,13 +153,6 @@ def generate_bipartite_obs_func(
             lambda x: non_nullary_groundings[x], lambda x: object_indices[x], edges
         )
 
-        action_type_mask = [
-            action_fluent_type_mask(obj_type) for obj_type in object_types
-        ]
-        action_arity_mask = [
-            action_fluent_arity_mask(obj_type) for obj_type in object_types
-        ]
-
         global_vals = [observations[g] for g in nullary_groundings]
         global_lengths = [len(x) if isinstance(x, Sequence) else 1 for x in global_vals]
 
@@ -174,6 +168,7 @@ def generate_bipartite_obs_func(
                 factor_node_values,
                 lengths,
                 len(non_nullary_groundings),
+                list(non_nullary_groundings.keys()),
             ),
             object_names,
             object_types,
@@ -185,11 +180,32 @@ def generate_bipartite_obs_func(
                 global_vals,
                 global_lengths,
                 len(nullary_groundings),
+                nullary_groundings,
             ),
-            action_type_mask,
-            action_arity_mask,
-            list(non_nullary_groundings.keys()),
-            nullary_groundings,
+            action_mask_func(object_types),
+        )
+
+    return f
+
+
+def fn_action_masks(
+    model: BaseModel,
+):
+    action_fluent_type_mask = fn_valid_action_fluents_given_type(model)
+    action_fluent_arity_mask = fn_valid_action_fluents_given_arity(model)
+
+    def f(
+        object_types: Sequence[str],
+    ) -> ActionMask:
+        return ActionMask(
+            np.array(
+                tuple(map(action_fluent_type_mask, object_types)),
+                dtype=np.bool_,
+            ),
+            np.array(
+                tuple(map(action_fluent_arity_mask, object_types)),
+                dtype=np.bool_,
+            ),
         )
 
     return f

@@ -103,11 +103,11 @@ def create_render_graph(
 
     boolean_labels = [
         f"{format_label(key)}={bool_g.variables.values[idx]}"
-        for idx, key in enumerate(bool_g.groundings)
+        for idx, key in enumerate(bool_g.variables.groundings)
     ]
     numeric_labels = [
         f"{format_label(key)}={numeric_g.variables.values[idx]}"
-        for idx, key in enumerate(numeric_g.groundings)
+        for idx, key in enumerate(numeric_g.variables.groundings)
     ]
 
     labels = boolean_labels + numeric_labels
@@ -179,15 +179,13 @@ def render_lifted(model: BaseModel):
     )
 
     n_graph = StringFactorGraph[np.float32](
-        variables=StringVariables[np.float32]([], [], [], n_variable=0),
+        variables=StringVariables[np.float32]([], [], [], 0),
         factors=[],
         factor_types=[],
         v_to_f=np.array([], dtype=np.int64),
         f_to_v=np.array([], dtype=np.int64),
         edge_attributes=[],
-        global_variables=StringVariables[np.float32]([], [], [], n_variable=0),
-        groundings=[],
-        global_groundings=[],
+        global_variables=StringVariables[np.float32]([], [], [], [], 0),
         action_arity_mask=[(True,) for _ in o],
         action_type_mask=[(False,) for _ in o],
     )

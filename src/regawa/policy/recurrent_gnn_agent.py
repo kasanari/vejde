@@ -116,6 +116,7 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
                 ),
                 100,
                 gnn_params.embedding_dim,
+                device=device,
             ),
             fn_compress_time(
                 r_numeric_embedder,
@@ -126,6 +127,7 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
                 ),
                 100,
                 gnn_params.embedding_dim,
+                device=device,
             ),
         )
 

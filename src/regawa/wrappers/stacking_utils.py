@@ -8,6 +8,7 @@ from regawa.data.graph import (
     StringVariables,
     VariableDomain,
 )
+from regawa.model.base_grounded_model import Grounding
 
 
 def flatten(

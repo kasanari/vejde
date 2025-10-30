@@ -112,7 +112,6 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
                 fn_embed_graph(
                     boolean_embedder,
                     factor_embedding,
-                    boolean_embedder,
                     edge_attr_embedding,
                 ),
                 100,
@@ -123,7 +122,6 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
                 fn_embed_graph(
                     numeric_embedder,
                     factor_embedding,
-                    numeric_embedder,
                     edge_attr_embedding,
                 ),
                 100,
@@ -149,8 +147,7 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
         return self.policy(
             actions,
             fg.factors,
-            data.boolean.action_type_mask,
-            data.boolean.action_arity_mask,
+            data.boolean.action_masks,
             fg.n_factor,
         )
 
@@ -168,8 +165,7 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
         return self.policy.sample(
             fg.factors,
             fg.n_factor,
-            data.boolean.action_type_mask,
-            data.boolean.action_arity_mask,
+            data.boolean.action_masks,
             deterministic,
         )
 
@@ -178,8 +174,7 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
         return self.policy.value(
             fg.factors,
             fg.n_factor,
-            data.boolean.action_type_mask,
-            data.boolean.action_arity_mask,
+            data.boolean.action_masks,
         )
 
     def save_agent(self, path: str | Path):

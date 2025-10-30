@@ -2,7 +2,7 @@ from collections.abc import Callable
 from functools import partial
 import torch
 import torch.nn as nn
-from torch import Tensor, as_tensor, concatenate, int64
+from torch import FloatTensor, IntTensor, LongTensor, Tensor, as_tensor, concatenate, int64
 from typing import TypeVar
 import numpy as np
 from regawa.data import (
@@ -11,7 +11,7 @@ from regawa.data import (
     sparsify,
 )
 from regawa.data.batch import BatchData, HeteroBatchData
-from regawa.data.torch import concat_sparse
+from regawa.data.torch import TorchBatchData, concat_sparse
 from regawa.embedding.positional import pos_emb, rotate
 from .recurrent import RecurrentEmbedder
 from .boolean import (
@@ -63,7 +63,7 @@ def merge_graphs(
 
 
 def fn_embed_heterobatch(
-    boolean_embedder: Callable[[BatchData[np.bool]], TorchFactorGraph],
+    boolean_embedder: Callable[[BatchData[np.int8]], TorchFactorGraph],
     numeric_embedder: Callable[[BatchData[np.float32]], TorchFactorGraph],
 ):
     def embed_heterobatch(data: HeteroBatchData) -> TorchFactorGraph:
@@ -79,12 +79,12 @@ def fn_embed_heterobatch(
     return embed_heterobatch
 
 
-def fn_embed_variables(
-    var_embedder: Callable[[Tensor, Tensor], Tensor],
+def fn_embed_variables[V: FloatTensor | IntTensor](
+    var_embedder: Callable[[V, LongTensor], FloatTensor],
 ):
     def embed_variables(
-        var_values: SparseTensor, var_types: SparseTensor
-    ) -> SparseTensor:
+        var_values: SparseTensor[V], var_types: SparseTensor[V]
+    ) -> SparseTensor[FloatTensor]:
         return (
             SparseTensor(
                 var_embedder(
@@ -104,34 +104,30 @@ def fn_embed_variables(
 
 
 def fn_embed_graph(
-    var_embedder: Callable[[Tensor, Tensor], Tensor],
-    factor_embedding: Callable[[Tensor], Tensor],
-    global_var_embedder: Callable[[Tensor, Tensor], Tensor],
+    var_embedder: Callable[[Tensor, LongTensor], FloatTensor],
+    factor_embedding: Callable[[LongTensor], FloatTensor],
     edge_attr_emb: nn.Module,
 ):
     var_embed = fn_embed_variables(var_embedder)
-    global_var_embed = fn_embed_variables(global_var_embedder)
     factor_embed = sparsify(factor_embedding)
 
-    def embed_graph(data: BatchData[V]) -> TorchFactorGraph:
+    def embed_graph[V: FloatTensor | IntTensor](data: TorchBatchData[V]) -> TorchFactorGraph:
         return TorchFactorGraph(
-            var_embed(data.var_value, data.var_type),
-            factor_embed(data.factor),
-            global_var_embed(data.global_vals, data.global_vars),
-            data.v_to_f,
-            data.f_to_v,
-            edge_attr_emb(data.edge_attr),
-            data.n_variable,
-            data.n_factor,
+            var_embed(data.variables.var_value, data.variables.var_type),
+            factor_embed(data.factor.factor),
+            var_embed(data.global_variables.var_value, data.global_variables.var_type),
+            data.edges.v_to_f,
+            data.edges.f_to_v,
+            edge_attr_emb(data.edges.edge_attr),
+            data.variables.n_variable,
+            data.factor.n_factor,
         )
 
     return embed_graph
 
 
 def fn_compress_time(
-    recurrent: Callable[
-        [SparseTensor, NDArray[np.int64], NDArray[np.int64]], SparseTensor
-    ],
+    recurrent: Callable[[SparseTensor[FloatTensor], NDArray[np.int64]], SparseTensor[FloatTensor]],
     embed_fn: Callable[[BatchData[V]], TorchFactorGraph],
     maxlen: int,
     dim: int,
@@ -147,12 +143,14 @@ def fn_compress_time(
     def compress_time(data: BatchData[V]) -> TorchFactorGraph:
         g = embed_fn(data)
 
-        start_times = data.times[:, 0]
+        start_times = data.variables.times[:, 0]
         # end_times = data.times[:, 1]
-        durations = data.times[:, 1] - data.times[:, 0]
-        global_start_times = data.global_times[:, 0]
+        durations = data.variables.times[:, 1] - data.variables.times[:, 0]
+        global_start_times = data.global_variables.times[:, 0]
         # global_end_times = data.global_times[:, 1]
-        global_durations = data.global_times[:, 1] - data.global_times[:, 0]
+        global_durations = (
+            data.global_variables.times[:, 1] - data.global_variables.times[:, 0]
+        )
 
         variables_values = (
             g.variables.replace_val(
@@ -183,10 +181,10 @@ def fn_compress_time(
         )
 
         return g._replace(
-            variables=recurrent(variables_values, data.length)
+            variables=recurrent(variables_values, data.variables.length)
             if g.variables.values.shape[0] > 0
             else g.variables,
-            globals=recurrent(globals_values, data.global_length)
+            globals=recurrent(globals_values, data.global_variables.length)
             if g.globals.values.shape[0] > 0
             else g.globals,
         )

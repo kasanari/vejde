@@ -3,32 +3,36 @@ from numpy.typing import NDArray
 
 from typing import Generic, NamedTuple, TypeVar
 
-from .graph import VariableDomain
+from .actions import ActionMask
+
+from .graph import VariableDomain, Edges
 
 from .obs import ObsData
 from .sparse import SparseArray
 
 
+class BatchedVariables(NamedTuple, Generic[VariableDomain]):
+    var_value: SparseArray[VariableDomain]
+    var_type: SparseArray[np.int64]
+    n_variable: NDArray[np.int64]
+    length: NDArray[np.int64]
+    times: NDArray[np.int64]
+
+
+class BatchedFactors(NamedTuple):
+    factor: SparseArray[np.int64]
+    n_factor: NDArray[np.int64]
+
+
 class BatchData(NamedTuple, Generic[VariableDomain]):
     """This represents a batch of multiple factor graphs."""
 
-    var_value: SparseArray[VariableDomain]
-    var_type: SparseArray[np.int64]
-    factor: SparseArray[np.int64]
-    v_to_f: NDArray[np.int64]  # variable
-    f_to_v: NDArray[np.int64]  # factor
-    edge_attr: NDArray[np.int64]
-    n_factor: NDArray[np.int64]
-    n_variable: NDArray[np.int64]
+    factor: BatchedFactors
+    variables: BatchedVariables[VariableDomain]
+    edges: Edges
     n_graphs: np.int64
-    length: NDArray[np.int64]
-    global_vars: SparseArray[np.int64]
-    global_vals: SparseArray[VariableDomain]
-    global_length: NDArray[np.int64]
-    action_arity_mask: NDArray[np.bool_]
-    action_type_mask: NDArray[np.bool_]
-    times: NDArray[np.int64]
-    global_times: NDArray[np.int64]
+    global_variables: BatchedVariables[VariableDomain]
+    action_masks: ActionMask
 
 
 class HeteroBatchData(NamedTuple):
@@ -99,7 +103,7 @@ def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
     global_vals = np.empty((flat_total_globals,), dtype=g0.global_var.value.dtype)
     global_length = np.empty((total_global_vars,), dtype=np.int64)
     global_batch = np.empty((flat_total_globals,), dtype=np.int64)
-    global_times = np.empty((flat_total_globals,2), dtype=np.int64)
+    global_times = np.empty((flat_total_globals, 2), dtype=np.int64)
 
     # Action masks
     action_arity_mask = np.empty(
@@ -151,7 +155,9 @@ def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
             global_length, g.global_var.length, num_globals_offset, num_globals_vars
         )
         add_to_array(global_batch, i, globals_offset, flat_globals_len)
-        add_to_array(global_times, g.global_var.times, globals_offset, flat_globals_len) if g.global_var.times.size > 0 else None
+        add_to_array(
+            global_times, g.global_var.times, globals_offset, flat_globals_len
+        ) if g.global_var.times.size > 0 else None
 
         # Action masks
         add_to_array(
@@ -174,21 +180,27 @@ def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
         num_globals_offset += num_globals_vars
 
     return BatchData(
-        var_value=SparseArray(var_value, var_batch),
-        var_type=SparseArray(var_type, var_batch),
-        factor=SparseArray(factor, factor_batch),
-        edge_attr=edge_attr,
-        v_to_f=v_to_f,
-        f_to_v=f_to_v,
-        n_factor=n_factor,
-        n_variable=n_variable,
+        variables=BatchedVariables(
+            var_value=SparseArray(var_value, var_batch),
+            var_type=SparseArray(var_type, var_batch),
+            n_variable=n_variable,
+            length=length,
+            times=times,
+        ),
+        edges=Edges(v_to_f=v_to_f, f_to_v=f_to_v, edge_attr=edge_attr),
+        factor=BatchedFactors(
+            factor=SparseArray(factor, factor_batch),
+            n_factor=n_factor,
+        ),
         n_graphs=np.int64(num_graphs),
-        length=length,
-        global_vars=SparseArray(global_vars, global_batch),
-        global_vals=SparseArray(global_vals, global_batch),
-        global_length=global_length,
-        action_arity_mask=action_arity_mask,
-        action_type_mask=action_type_mask,
-        times=times,
-        global_times=global_times,
+        global_variables=BatchedVariables(
+            var_value=SparseArray(global_vals, global_batch),
+            var_type=SparseArray(global_vars, global_batch),
+            n_variable=global_length,
+            length=global_length,
+            times=global_times,
+        ),
+        action_masks=ActionMask(
+            action_arity_mask=action_arity_mask, action_type_mask=action_type_mask
+        ),
     )

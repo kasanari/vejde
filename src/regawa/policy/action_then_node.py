@@ -2,7 +2,7 @@ from collections.abc import Callable
 from functools import partial
 
 from torch import Generator as Rngs
-from torch import Tensor, nn
+from torch import Tensor, nn, float32
 
 from gnn_policy.functional import (
     eval_action_then_node,
@@ -12,6 +12,7 @@ from gnn_policy.functional import (
     segment_softmax,
     segment_sum,
 )
+from regawa.data.torch import TorchActionMask
 from regawa.functional import (
     action_then_node_value_estimate,
     num_graphs,
@@ -47,9 +48,8 @@ class ActionThenNodePolicy(nn.Module):
 
     def f(
         self,
-        h: SparseTensor,
-        action_type_mask: Tensor,
-        action_arity_mask: Tensor,
+        h: SparseTensor[float32],
+        action_masks: TorchActionMask,
         n_nodes: Tensor,
         x: PolicyFunc,
     ):
@@ -57,8 +57,8 @@ class ActionThenNodePolicy(nn.Module):
         action_given_node_logits = self.action_given_node_prob(h.values)  # ~ln(p(a|n))
         node_given_action_logits = self.node_given_action_prob(h.values)  # ~ln(p(n|a))
         n_g = num_graphs(h.indices)
-        action_given_node_mask = action_type_mask
-        node_given_action_mask = action_arity_mask.logical_and(action_type_mask)
+        action_given_node_mask = action_masks.action_type_mask
+        node_given_action_mask = action_masks.action_arity_mask.logical_and(action_masks.action_type_mask)
 
         actions, logprob, entropy, p_a, _ = x(
             node_logits,
@@ -94,40 +94,37 @@ class ActionThenNodePolicy(nn.Module):
     def forward(
         self,
         a: Tensor,
-        h: SparseTensor,
-        action_type_mask: Tensor,
-        action_arity_mask: Tensor,
+        h: SparseTensor[float32],
+        action_masks: TorchActionMask,
         n_nodes: Tensor,
     ):
         def p_func(*args):  # type: ignore
             return a, *self.eval_func(a, *args)  # type: ignore
 
-        return self.f(h, action_type_mask, action_arity_mask, n_nodes, p_func)[1:]  # type: ignore
+        return self.f(h, action_masks, n_nodes, p_func)[1:]  # type: ignore
 
     def sample(
         self,
-        h: SparseTensor,
+        h: SparseTensor[float32],
         n_nodes: Tensor,
-        action_type_mask: Tensor,
-        action_arity_mask: Tensor,
+        action_masks: TorchActionMask,
         deterministic: bool = False,
     ):
         p_func = partial(self.sample_func, deterministic=deterministic)  # type: ignore
-        return self.f(h, action_type_mask, action_arity_mask, n_nodes, p_func)
+        return self.f(h, action_masks, n_nodes, p_func)
 
     def value(
         self,
-        h: SparseTensor,
+        h: SparseTensor[float32],
         n_nodes: Tensor,
-        action_type_mask: Tensor,
-        action_arity_mask: Tensor,
+        action_masks: TorchActionMask,
     ) -> Tensor:
         node_logits = self.node_prob(h.values).squeeze(-1)  # ~ln(p(n))
         action_given_node_logits = self.action_given_node_prob(h.values)
         node_given_action_logits = self.node_given_action_prob(h.values)
 
-        action_given_node_mask = action_type_mask
-        node_given_action_mask = action_arity_mask.logical_and(action_type_mask)
+        action_given_node_mask = action_masks.action_type_mask
+        node_given_action_mask = action_masks.action_arity_mask.logical_and(action_masks.action_type_mask)
 
         n_g = n_nodes.shape[0]
         p_a = marginalize(

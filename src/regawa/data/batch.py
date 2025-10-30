@@ -27,6 +27,8 @@ class BatchData(NamedTuple, Generic[VariableDomain]):
     global_length: NDArray[np.int64]
     action_arity_mask: NDArray[np.bool_]
     action_type_mask: NDArray[np.bool_]
+    times: NDArray[np.int64]
+    global_times: NDArray[np.int64]
 
 
 class HeteroBatchData(NamedTuple):
@@ -72,6 +74,7 @@ def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
     var_type = np.empty((total_variables,), dtype=np.int64)
     var_batch = np.empty((total_variables,), dtype=np.int64)
     length = np.empty((total_length,), dtype=np.int64)
+    times = np.empty((total_variables, 2), dtype=np.int64)
 
     # Factors
     total_factors = sum(g.factor.n_factor for g in graphs)
@@ -96,6 +99,7 @@ def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
     global_vals = np.empty((flat_total_globals,), dtype=g0.global_var.value.dtype)
     global_length = np.empty((total_global_vars,), dtype=np.int64)
     global_batch = np.empty((flat_total_globals,), dtype=np.int64)
+    global_times = np.empty((flat_total_globals,2), dtype=np.int64)
 
     # Action masks
     action_arity_mask = np.empty(
@@ -124,6 +128,7 @@ def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
         add_to_array(var_value, g.var.value, variable_offsets, flat_var_len)
         add_to_array(var_type, g.var.types, variable_offsets, flat_var_len)
         add_to_array(var_batch, i, variable_offsets, flat_var_len)
+        add_to_array(times, g.var.times, variable_offsets, flat_var_len)
         add_to_array(length, g.var.length, num_vars_offset, num_vars)
 
         # Factors
@@ -146,6 +151,7 @@ def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
             global_length, g.global_var.length, num_globals_offset, num_globals_vars
         )
         add_to_array(global_batch, i, globals_offset, flat_globals_len)
+        add_to_array(global_times, g.global_var.times, globals_offset, flat_globals_len) if g.global_var.times.size > 0 else None
 
         # Action masks
         add_to_array(
@@ -183,4 +189,6 @@ def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
         global_length=global_length,
         action_arity_mask=action_arity_mask,
         action_type_mask=action_type_mask,
+        times=times,
+        global_times=global_times,
     )

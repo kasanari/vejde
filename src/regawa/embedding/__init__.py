@@ -1,4 +1,6 @@
 from collections.abc import Callable
+from functools import partial
+import torch
 import torch.nn as nn
 from torch import Tensor, as_tensor, concatenate, int64
 from typing import TypeVar
@@ -10,6 +12,7 @@ from regawa.data import (
 )
 from regawa.data.batch import BatchData, HeteroBatchData
 from regawa.data.torch import concat_sparse
+from regawa.embedding.positional import pos_emb, rotate
 from .recurrent import RecurrentEmbedder
 from .boolean import (
     BooleanEmbedder,
@@ -126,16 +129,64 @@ def fn_embed_graph(
 
 
 def fn_compress_time(
-    recurrent: Callable[[SparseTensor, NDArray[np.int64]], SparseTensor],
+    recurrent: Callable[
+        [SparseTensor, NDArray[np.int64], NDArray[np.int64]], SparseTensor
+    ],
     embed_fn: Callable[[BatchData[V]], TorchFactorGraph],
+    maxlen: int,
+    dim: int,
+    k: float = 1e2,
+    device: str | torch.device = "cpu",
 ):
+    sin_freqs, cos_freqs = pos_emb(maxlen, dim, k)
+    sin_freqs = as_tensor(sin_freqs, device=device, dtype=torch.float32)
+    cos_freqs = as_tensor(cos_freqs, device=device, dtype=torch.float32)
+
+    rot = partial(rotate, sin_freqs=sin_freqs, cos_freqs=cos_freqs)
+
     def compress_time(data: BatchData[V]) -> TorchFactorGraph:
         g = embed_fn(data)
+
+        start_times = data.times[:, 0]
+        # end_times = data.times[:, 1]
+        durations = data.times[:, 1] - data.times[:, 0]
+        global_start_times = data.global_times[:, 0]
+        # global_end_times = data.global_times[:, 1]
+        global_durations = data.global_times[:, 1] - data.global_times[:, 0]
+
+        variables_values = (
+            g.variables.replace_val(
+                rot(
+                    rot(
+                        g.variables.values,
+                        as_tensor(start_times),
+                    ),
+                    as_tensor(durations),
+                )
+            )
+            if g.variables.values.shape[0] > 0
+            else g.variables
+        )
+
+        globals_values = (
+            g.globals.replace_val(
+                rot(
+                    rot(
+                        g.globals.values,
+                        as_tensor(global_start_times),
+                    ),
+                    as_tensor(global_durations),
+                )
+            )
+            if g.globals.values.shape[0] > 0
+            else g.globals
+        )
+
         return g._replace(
-            variables=recurrent(g.variables, data.length)
+            variables=recurrent(variables_values, data.length)
             if g.variables.values.shape[0] > 0
             else g.variables,
-            globals=recurrent(g.globals, data.global_length)
+            globals=recurrent(globals_values, data.global_length)
             if g.globals.values.shape[0] > 0
             else g.globals,
         )

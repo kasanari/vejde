@@ -46,11 +46,14 @@ def fn_variables_to_idx(
         arr = np.asarray
         idx_vars = arr([rel_to_idx(p) for p in variables.types], dtype=np.int64)
 
+        times, variable_values = zip(*variables.values) if variables.values else ([], [])
+
         return Variables(
             idx_vars,
-            arr(variables.values, dtype=var_val_dtype),
+            arr(variable_values, dtype=var_val_dtype),
             arr(variables.length),
             n_variable=variables.n_variable,
+            times=arr(times, dtype=np.int64),
         )
 
     return map_variables_to_idx

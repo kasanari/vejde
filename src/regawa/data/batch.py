@@ -132,7 +132,9 @@ def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
         add_to_array(var_value, g.var.value, variable_offsets, flat_var_len)
         add_to_array(var_type, g.var.types, variable_offsets, flat_var_len)
         add_to_array(var_batch, i, variable_offsets, flat_var_len)
-        add_to_array(times, g.var.times, variable_offsets, flat_var_len)
+        add_to_array(
+            times, g.var.times, variable_offsets, flat_var_len
+        ) if g.var.times.size > 0 else None
         add_to_array(length, g.var.length, num_vars_offset, num_vars)
 
         # Factors

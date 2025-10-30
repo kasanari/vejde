@@ -171,7 +171,7 @@ def generate_bipartite_obs_func(
             action_mask_func(object_types),
         )
 
-        if g.edges:
+        if edges:
             assert v_to_f.max() < len(
                 g.variables.values
             ), "Senders index out of bounds."

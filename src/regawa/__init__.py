@@ -4,7 +4,7 @@ from gymnasium.spaces import MultiDiscrete
 
 from regawa.policy.gnn_agent import GraphAgentInterface
 from .data.obs import HeteroObsData
-from .policy import ActionMode, GNNParams, AgentConfig
+from .policy import ActionMode, GNNParams, AgentConfig, load_agent
 from .model import (
     Grounding,
     GroundObs,
@@ -115,4 +115,5 @@ __all__ = [
     "ObservableGroundingRange",
     "GroundObs",
     "GroundingRange",
+    "load_agent",
 ]

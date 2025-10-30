@@ -113,7 +113,7 @@ class IndexActionWrapper(
 
         info["action_fluents"] = self.model.action_fluents
 
-        self._idx_to_object = graph.boolean.factors
+        self._idx_to_object = graph.boolean.factors.names
         self._object_to_type = dict(
             zip(graph.boolean.factors.names, graph.boolean.factors.types)
         )

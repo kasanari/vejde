@@ -222,11 +222,11 @@ def fn_action_masks(
             np.array(
                 tuple(map(action_fluent_type_mask, object_types)),
                 dtype=np.bool_,
-            ),
+            ), # n_object x n_actions 
             np.array(
                 tuple(map(action_fluent_arity_mask, object_types)),
                 dtype=np.bool_,
-            ),
+            ), # n_object x n_actions 
         )
 
     return f

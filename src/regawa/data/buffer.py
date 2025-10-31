@@ -36,32 +36,27 @@ class GraphBuffer(Generic[VariableDomain]):
 
 class HeteroGraphBuffer:
     def __init__(self) -> None:
-        self.buffers = {
-            "bool": GraphBuffer[np.bool_](),
-            "float": GraphBuffer[np.float32](),
-        }
+        self.boolean = GraphBuffer[np.int8]()
+        self.numeric = GraphBuffer[np.float32]()
 
     def extend(self, obs: list[HeteroObsData]) -> None:
         for o in obs:
-            for t in self.buffers:
-                self.buffers[t].add_single(o.__getattribute__(t))
-
-    def __iter__(self):
-        return self.buffers.__iter__()
+            self.boolean.add_single(o.bool)
+            self.numeric.add_single(o.float)
 
     def add_single_dict(self, obs: HeteroObsData) -> None:
-        for t in self.buffers:
-            self.buffers[t].add_single_dict(obs.__getattribute__(t))
+        self.boolean.add_single_dict(obs.bool)
+        self.numeric.add_single_dict(obs.float)
 
     @property
     def batch(self) -> HeteroBatchData:
         return HeteroBatchData(
-            boolean=batch(list(self.buffers["bool"].data)),
-            numeric=batch(list(self.buffers["float"].data)),
+            boolean=batch(list(self.boolean.data)),
+            numeric=batch(list(self.numeric.data)),
         )
 
     def minibatch(self, indices: Iterable[int]) -> HeteroBatchData:
         return HeteroBatchData(
-            boolean=batch([self.buffers["bool"].data[i] for i in indices]),
-            numeric=batch([self.buffers["float"].data[i] for i in indices]),
+            boolean=batch([self.boolean.data[i] for i in indices]),
+            numeric=batch([self.numeric.data[i] for i in indices]),
         )

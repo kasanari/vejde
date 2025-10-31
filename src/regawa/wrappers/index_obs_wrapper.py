@@ -13,7 +13,13 @@ from regawa.data.graph import (
 from regawa.data.obs import ObsData
 from regawa.model import GroundObs
 from regawa.model import BaseModel
-from regawa.wrappers.utils import fn_graph_to_obsdata
+from regawa.wrappers.utils import (
+    factor_to_idx,
+    fn_graph_to_obsdata,
+    fn_variables_to_idx_with_time,
+)
+
+from regawa.wrappers.utils import fn_variables_to_idx
 from .graph_utils import fn_heterograph_to_heteroobs
 from .stacking_utils import flatten_stacked_graph
 from .space import HeteroStateSpace
@@ -41,8 +47,10 @@ def fn_flatten_then_map_graph_to_idx(
 
 def fn_idx_obs(model: BaseModel, stacking: bool = False):
     f = fn_graph_to_obsdata(
-        model.fluent_to_idx,
-        model.type_to_idx,
+        fn_variables_to_idx_with_time(model.fluent_to_idx)
+        if stacking
+        else fn_variables_to_idx(model.fluent_to_idx),
+        factor_to_idx(model.type_to_idx),
     )
 
     idx_func = fn_flatten_then_map_graph_to_idx(f) if stacking else f

@@ -44,12 +44,31 @@ def fn_variables_to_idx(
         variables: StringVariables[VariableDomain], var_val_dtype: type
     ) -> Variables[VariableDomain]:
         arr = np.asarray
-        idx_vars = arr([rel_to_idx(p) for p in variables.types], dtype=np.int64)
+        return Variables(
+            arr([rel_to_idx(p) for p in variables.types], dtype=np.int64),
+            arr(variables.values, dtype=var_val_dtype),
+            arr(variables.length),
+            n_variable=variables.n_variable,
+            times=np.zeros((variables.n_variable, 2), dtype=np.int64),
+        )
 
-        times, variable_values = zip(*variables.values) if variables.values else ([], [])
+    return map_variables_to_idx
+
+
+def fn_variables_to_idx_with_time(
+    rel_to_idx: Callable[[str], int],
+):
+    def map_variables_to_idx(
+        variables: StringVariables[VariableDomain], var_val_dtype: type
+    ) -> Variables[VariableDomain]:
+        arr = np.asarray
+
+        times, variable_values = (
+            zip(*variables.values) if variables.values else ([], [])
+        )
 
         return Variables(
-            idx_vars,
+            arr([rel_to_idx(p) for p in variables.types], dtype=np.int64),
             arr(variable_values, dtype=var_val_dtype),
             arr(variables.length),
             n_variable=variables.n_variable,
@@ -59,27 +78,35 @@ def fn_variables_to_idx(
     return map_variables_to_idx
 
 
-def fn_graph_to_obsdata(
-    rel_to_idx: Callable[[str], int],
-    type_to_idx: Callable[[str], int],
-):
-    variables_to_idx = fn_variables_to_idx(rel_to_idx)
+def factor_to_idx(type_to_idx: Callable[[str], int]):
+    def map_factors_to_idx(
+        factors: StringFactors,
+    ) -> Factors:
+        arr = np.asarray
+        factor_type_idx = arr(
+            [type_to_idx(f_type) for f_type in factors.types], dtype=np.int64
+        )
+        return Factors(
+            factor_type_idx,
+            factor_type_idx.shape[0],  # number of factors
+        )
 
+    return map_factors_to_idx
+
+
+def fn_graph_to_obsdata(
+    variables_to_idx: Callable[
+        [StringVariables[VariableDomain], type], Variables[VariableDomain]
+    ],
+    factor_to_idx: Callable[[StringFactors], Factors],
+):
     def map_graph_to_idx(
         g: StringFactorGraph[VariableDomain],
         var_val_dtype: type,
     ) -> ObsData[VariableDomain]:
-        arr = np.asarray
-        factor_type_idx = arr(
-            [type_to_idx(f_type) for f_type in g.factors.types], dtype=np.int64
-        )
-
         return ObsData(
             var=variables_to_idx(g.variables, var_val_dtype),
-            factor=Factors(
-                factor_type_idx,
-                factor_type_idx.shape[0],  # number of factors
-            ),
+            factor=factor_to_idx(g.factors),
             edges=g.edges,
             global_var=variables_to_idx(g.global_variables, var_val_dtype),
             action_masks=g.action_masks,

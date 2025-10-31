@@ -6,11 +6,12 @@ from torch import Tensor
 from typing import Generic, NamedTuple
 
 from regawa.data.graph import VariableDomain
+from regawa.data.obs import HeteroObsData
 
 
-class RolloutData(NamedTuple, Generic[VariableDomain]):
+class RolloutData(NamedTuple):
     obs: HeteroGraphBuffer
-    last_obs: dict[str, list[ObsData[VariableDomain]]]
+    last_obs: dict[str, list[HeteroObsData]]
     last_done: Tensor
     global_step: int
     returns: list[float]
@@ -25,6 +26,7 @@ class BatchData(NamedTuple):
     values: Tensor
     rewards: Tensor
     dones: Tensor
+
 
 class LossData(NamedTuple):
     loss: Tensor
@@ -52,9 +54,9 @@ class PPOParams(NamedTuple):
     target_kl: float | None
 
 
-class IterationCarry(NamedTuple, Generic[VariableDomain]):
+class IterationCarry(NamedTuple):
     b: BatchData
-    next_obs: dict[str, list[ObsData[VariableDomain]]]
+    next_obs: dict[str, list[HeteroObsData]]
     next_done: Tensor
     global_step: int
     low_ema: Tensor | None = None

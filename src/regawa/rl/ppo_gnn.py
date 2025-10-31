@@ -2,6 +2,7 @@
 import logging
 import os
 
+from regawa.data.torch import TorchHeteroBatchData
 from regawa.policy.gnn_agent import GraphAgent
 from regawa.policy.recurrent_gnn_agent import RecurrentGraphAgent
 
@@ -81,41 +82,11 @@ def explained_variance(y_pred: Tensor, y_true: Tensor) -> float:
     return npl.nan if var_y == 0 else float(1 - npl.var(y_true - y_pred) / var_y)
 
 
-def minibatch_step(
-    update_func: Callable[[HeteroBatchData, BatchData], UpdateData],
-    device: str | npl.device,
-):
-    def _minibatch_step(
-        start: int,
-        end: int,
-        b_inds: NDArray[np.int32],
-        obs: HeteroGraphBuffer,
-        b: BatchData,
-    ):
-        mb_inds = b_inds[start:end]
-        minibatch = heterostatedata_to_tensors(obs.minibatch(mb_inds), device)
-        return update_func(
-            minibatch,
-            BatchData(
-                b.actions[mb_inds],
-                b.logprobs[mb_inds],
-                b.advantages[mb_inds],
-                b.returns[mb_inds],
-                b.values[mb_inds],
-                b.rewards[mb_inds],
-                b.dones[mb_inds],
-            ),
-        )
-
-    return _minibatch_step
-
-
 def update_step(
     batch_size: int,
     minibatch_size: int,
-    mb_step: Callable[
-        [int, int, NDArray[np.int32], HeteroGraphBuffer, BatchData], UpdateData
-    ],
+    update_func: Callable[[TorchHeteroBatchData, BatchData], UpdateData],
+    device: str | npl.device,
 ):
     def _update_step(
         obs: HeteroGraphBuffer,
@@ -126,13 +97,20 @@ def update_step(
         u_datas: list[UpdateData] = []
         stop_training = False
         for start in range(0, batch_size, minibatch_size):
-            u_data = mb_step(
-                start,
-                start + minibatch_size,
-                b_inds,
-                obs,
-                b,
+            mb_inds = b_inds[start : start + minibatch_size]
+            u_data = update_func(
+                heterostatedata_to_tensors(obs.minibatch(mb_inds), device),
+                BatchData(
+                    b.actions[mb_inds],
+                    b.logprobs[mb_inds],
+                    b.advantages[mb_inds],
+                    b.returns[mb_inds],
+                    b.values[mb_inds],
+                    b.rewards[mb_inds],
+                    b.dones[mb_inds],
+                ),
             )
+
             u_datas.append(u_data)
             if u_data.stop_training:
                 stop_training = True
@@ -153,7 +131,7 @@ def iteration_step(
     learning_rate: float,
     num_iterations: int,
     rollout_func: Callable[
-        [dict[str, list[ObsData[V]]], Tensor, BatchData, int],
+        [dict[str, list[HeteroObsData]], Tensor, BatchData, int],
         tuple[RolloutData, BatchData],
     ],
     gae_func: Callable[[Tensor, Tensor, Tensor, Tensor, Tensor], tuple[Tensor, Tensor]],
@@ -341,7 +319,7 @@ def approximate_kl(logprob_new: Tensor, logprob_old: Tensor) -> tuple[Tensor, Te
 
 
 def calculate_loss(agent: Agent, params: PPOParams):
-    def f(s: HeteroBatchData, b: BatchData):
+    def f(s: TorchHeteroBatchData, b: BatchData):
         actions, logprob_old, advantages, returns, values_old, _, _ = b
         (
             clip_coef,
@@ -408,7 +386,7 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
     loss_func = calculate_loss(agent, params)
 
     def _update(
-        s: HeteroBatchData,
+        s: TorchHeteroBatchData,
         b: BatchData,
     ) -> UpdateData:
         loss = loss_func(s, b)
@@ -431,7 +409,7 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
         #     }
         #     logger.warning(f"v_loss: {v_loss.item()}")
         #     logger.warning(f"per_param_grad: {per_param_grad}")
-
+        
         optimizer.step()
 
         return UpdateData(
@@ -489,21 +467,19 @@ def main(
         update_step(
             batch_size,
             minibatch_size,
-            minibatch_step(
-                update(
-                    agent,
-                    optimizer,
-                    PPOParams(
-                        args.clip_coef,
-                        args.norm_adv,
-                        args.clip_vloss,
-                        args.ent_coef,
-                        args.vf_coef,
-                        args.max_grad_norm,
-                        args.target_kl,
-                    ),
+            device=device,
+            update_func=update(
+                agent,
+                optimizer,
+                PPOParams(
+                    args.clip_coef,
+                    args.norm_adv,
+                    args.clip_vloss,
+                    args.ent_coef,
+                    args.vf_coef,
+                    args.max_grad_norm,
+                    args.target_kl,
                 ),
-                device,
             ),
         ),
         lambda_return.lambda_returns(args.gamma, args.gae_lambda),

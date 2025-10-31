@@ -1,4 +1,5 @@
 from regawa.data import HeteroBatchData
+from regawa.data.torch import TorchHeteroBatchData
 from regawa.policy import GraphAgentInterface
 from .symexp import symexp
 
@@ -35,7 +36,7 @@ class Agent(nn.Module):
     def evaluate_action_and_value(
         self,
         action: Tensor,
-        s: HeteroBatchData,
+        s: TorchHeteroBatchData,
     ) -> tuple[Tensor, Tensor, Tensor]:
         # num_graphs = batch_idx.max() + 1
         # action_mask = action_mask.reshape(num_graphs, -1)

@@ -29,6 +29,7 @@ from .config import Args
 from .types import (
     BatchData,
     IterationCarry,
+    LossData,
     PPOParams,
     RolloutData,
     UpdateData,
@@ -241,7 +242,7 @@ def iteration_step(
             u_datas.extend(u_data)
             if stop_training:
                 logger.info(
-                    f"Early stopping at step {epoch} due to reaching max kl: {u_datas[-1].approx_kl:.2f}"
+                    f"Early stopping at step {epoch} due to reaching max kl: {u_datas[-1].loss.approx_kl:.2f}"
                 )
 
         carry = IterationCarry(
@@ -339,11 +340,8 @@ def approximate_kl(logprob_new: Tensor, logprob_old: Tensor) -> tuple[Tensor, Te
     return old_approx_kl, approx_kl
 
 
-def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
-    def _update(
-        s: HeteroBatchData,
-        b: BatchData,
-    ) -> UpdateData:
+def calculate_loss(agent: Agent, params: PPOParams):
+    def f(s: HeteroBatchData, b: BatchData):
         actions, logprob_old, advantages, returns, values_old, _, _ = b
         (
             clip_coef,
@@ -351,8 +349,8 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
             clip_range_vf,
             ent_coef,
             vf_coef,
-            max_grad_norm,
-            target_kl,
+            _,
+            _,
         ) = params
 
         logprob_new, entropy, values_new = agent.evaluate_action_and_value(
@@ -393,15 +391,38 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
         loss = pg_loss - ent_coef * entropy_loss + value_loss * vf_coef
 
         assert not npl.isnan(loss).any(), loss
-
-        optimizer.zero_grad()
-        loss.backward()  # type: ignore
-        grad_norm = nn.utils.clip_grad_norm_(
-            agent.parameters(), max_grad_norm, error_if_nonfinite=True
+        return LossData(
+            loss,
+            pg_loss,
+            value_loss,
+            entropy_loss,
+            old_approx_kl,
+            approx_kl,
+            clipfrac,
         )
 
-        stop_training = target_kl is not None and bool(
-            (approx_kl > 1.5 * target_kl).item()
+    return f
+
+
+def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
+    loss_func = calculate_loss(agent, params)
+
+    def _update(
+        s: HeteroBatchData,
+        b: BatchData,
+    ) -> UpdateData:
+        loss = loss_func(s, b)
+
+        assert not npl.isnan(loss.loss).any(), loss
+
+        optimizer.zero_grad()
+        loss.loss.backward()  # type: ignore
+        grad_norm = nn.utils.clip_grad_norm_(
+            agent.parameters(), params.max_grad_norm, error_if_nonfinite=True
+        )
+
+        stop_training = params.target_kl is not None and bool(
+            (loss.approx_kl > 1.5 * params.target_kl).item()
         )
 
         # if v_loss.item() > 500.0:
@@ -415,13 +436,7 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
 
         return UpdateData(
             loss,
-            pg_loss,
-            value_loss,
-            entropy_loss,
-            old_approx_kl,
-            approx_kl,
             grad_norm,
-            clipfrac,
             stop_training,
         )
 
@@ -540,9 +555,12 @@ def main(
         r = np.mean(r_data.returns) if r_data.returns else None
         length = np.mean(r_data.lengths) if r_data.lengths else None
 
-        entropy_loss = np.mean([u.entropy_loss.item() for u in u_data])
-        value_loss = np.mean([u.v_loss.item() for u in u_data])
-        pg_loss = np.mean([u.pg_loss.item() for u in u_data])
+        loss_data = [u.loss for u in u_data]
+        grad_norm = np.mean([u.grad_norm.item() for u in u_data])
+        total_loss = np.mean([u.loss.item() for u in loss_data])
+        entropy_loss = np.mean([u.entropy_loss.item() for u in loss_data])
+        value_loss = np.mean([u.v_loss.item() for u in loss_data])
+        pg_loss = np.mean([u.pg_loss.item() for u in loss_data])
 
         disp_r = f"{r:.2f}" if r is not None else "None"
         disp_l = f"{length:.2f}" if length is not None else "None"
@@ -554,6 +572,8 @@ def main(
             artifact_name,
             optimizer.param_groups[0]["lr"],
             u_data,
+            total_loss,
+            grad_norm,
             value_loss,
             pg_loss,
             entropy_loss,
@@ -575,6 +595,8 @@ def mlflow_log(
     artifact_name: str | None,
     learning_rate: float,
     u_data: list[UpdateData],
+    total_loss: float,
+    grad_norm: float,
     value_loss: float,
     pg_loss: float,
     entropy_loss: float,
@@ -608,12 +630,12 @@ def mlflow_log(
         mlflow.log_metric("rollout/mean_episodic_length", length, global_step)  # type: ignore
     mlflow.log_metric(
         "losses/total_loss",
-        np.mean([u.loss.item() for u in u_data]),  # type: ignore
+        total_loss,  # type: ignore
         global_step,
     )
     mlflow.log_metric(
         "losses/grad_norm",
-        np.mean([u.grad_norm.item() for u in u_data]),  # type: ignore
+        grad_norm,  # type: ignore
         global_step,
     )  # type: ignore
     mlflow.log_metric("losses/value_loss", value_loss, global_step)  # type: ignore
@@ -629,16 +651,16 @@ def mlflow_log(
     )  # type: ignore
     mlflow.log_metric(
         "losses/old_approx_kl",
-        np.mean([u.old_approx_kl.item() for u in u_data]),
+        np.mean([u.loss.old_approx_kl.item() for u in u_data]),
         global_step,
     )  # type: ignore
     mlflow.log_metric(
         "losses/approx_kl",
-        np.mean([u.approx_kl.item() for u in u_data]),
+        np.mean([u.loss.approx_kl.item() for u in u_data]),
         global_step,
     )  # type: ignore
     mlflow.log_metric(
-        "losses/clipfrac", np.mean([u.clipfrac for u in u_data]), global_step
+        "losses/clipfrac", np.mean([u.loss.clipfrac for u in u_data]), global_step
     )  # type: ignore
     mlflow.log_metric("losses/explained_variance", explained_var, global_step)  # type: ignore
     mlflow.log_metric(

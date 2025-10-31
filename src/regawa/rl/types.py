@@ -26,16 +26,19 @@ class BatchData(NamedTuple):
     rewards: Tensor
     dones: Tensor
 
-
-class UpdateData(NamedTuple):
+class LossData(NamedTuple):
     loss: Tensor
     pg_loss: Tensor
     v_loss: Tensor
     entropy_loss: Tensor
     old_approx_kl: Tensor
     approx_kl: Tensor
-    grad_norm: Tensor
     clipfrac: float
+
+
+class UpdateData(NamedTuple):
+    loss: LossData
+    grad_norm: Tensor
     stop_training: bool
 
 

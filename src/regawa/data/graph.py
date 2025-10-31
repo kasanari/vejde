@@ -41,7 +41,8 @@ class Variables(NamedTuple, Generic[VariableDomain]):
     length: NDArray[VariableTypeDomain]
     # number of groundings/variables. Will match len(length), even with stacking. Will match len(var_value) without stacking.
     n_variable: int  # number of groundings/variables. Will match len(length), even with stacking. Will match len(var_value) without stacking.
-    times: NDArray[np.int64] # time steps of variables
+    times: NDArray[np.int64]  # time steps of variables
+
 
 class Edge(NamedTuple):
     grounding: Grounding
@@ -68,6 +69,7 @@ class StringVariables(NamedTuple, Generic[VariableDomain]):
     length: Sequence[int]
     n_variable: int  # number of groundings/variables. Will match len(length),
     groundings: Sequence[Grounding]
+
 
 class StringFactors(NamedTuple):
     names: Sequence[str]  # object names

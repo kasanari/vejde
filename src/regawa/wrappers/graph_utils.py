@@ -7,10 +7,6 @@ import numpy as np
 from regawa.data.graph import GraphTypes, VariableDomain
 from regawa.model.base_grounded_model import Grounding
 from regawa import BaseModel
-from regawa.model import (
-    fn_valid_action_fluents_given_arity,
-    fn_valid_action_fluents_given_type,
-)
 from regawa import GroundObs
 from .grounding_utils import (
     bool_groundings,

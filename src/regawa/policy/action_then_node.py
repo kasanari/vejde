@@ -58,7 +58,9 @@ class ActionThenNodePolicy(nn.Module):
         node_given_action_logits = self.node_given_action_prob(h.values)  # ~ln(p(n|a))
         n_g = num_graphs(h.indices)
         action_given_node_mask = action_masks.action_type_mask
-        node_given_action_mask = action_masks.action_arity_mask.logical_and(action_masks.action_type_mask)
+        node_given_action_mask = action_masks.action_arity_mask.logical_and(
+            action_masks.action_type_mask
+        )
 
         actions, logprob, entropy, p_a, _ = x(
             node_logits,
@@ -124,7 +126,9 @@ class ActionThenNodePolicy(nn.Module):
         node_given_action_logits = self.node_given_action_prob(h.values)
 
         action_given_node_mask = action_masks.action_type_mask
-        node_given_action_mask = action_masks.action_arity_mask.logical_and(action_masks.action_type_mask)
+        node_given_action_mask = action_masks.action_arity_mask.logical_and(
+            action_masks.action_type_mask
+        )
 
         n_g = n_nodes.shape[0]
         p_a = marginalize(

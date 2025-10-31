@@ -31,7 +31,6 @@ def rotate(
     sin_freqs: Tensor,
     cos_freqs: Tensor,
 ):
-
     # (T, d)*(T, dq) + (T, dq)*(T, dq)
     x = x * cos_freqs[positions, :] + minus_swap_alternate(x) * sin_freqs[positions, :]
     return x  # (T, d)

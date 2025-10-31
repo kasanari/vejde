@@ -46,9 +46,7 @@ import os
 from regawa.policy import GraphAgentInterface
 from regawa.data import (
     HeteroGraphBuffer,
-    ObsData,
     heterostatedata,
-    HeteroBatchData,
     heterostatedata_to_tensors,
 )
 from . import lambda_return
@@ -409,7 +407,7 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
         #     }
         #     logger.warning(f"v_loss: {v_loss.item()}")
         #     logger.warning(f"per_param_grad: {per_param_grad}")
-        
+
         optimizer.step()
 
         return UpdateData(

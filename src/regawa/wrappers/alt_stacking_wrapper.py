@@ -10,6 +10,7 @@ from regawa.model.base_grounded_model import (
     TemporalGroundObs,
 )
 
+
 def compress_stack(o: Sequence[tuple[int, GroundingRange]]):
     """
     [(time1: int, grounding_range1: GroundingRange), (time2: int, grounding_range2: GroundingRange), ...]

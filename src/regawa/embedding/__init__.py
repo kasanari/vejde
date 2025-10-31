@@ -2,7 +2,15 @@ from collections.abc import Callable
 from functools import partial
 import torch
 import torch.nn as nn
-from torch import FloatTensor, IntTensor, LongTensor, Tensor, as_tensor, concatenate, int64
+from torch import (
+    FloatTensor,
+    IntTensor,
+    LongTensor,
+    Tensor,
+    as_tensor,
+    concatenate,
+    int64,
+)
 from typing import TypeVar
 import numpy as np
 from regawa.data import (
@@ -111,7 +119,9 @@ def fn_embed_graph(
     var_embed = fn_embed_variables(var_embedder)
     factor_embed = sparsify(factor_embedding)
 
-    def embed_graph[V: FloatTensor | IntTensor](data: TorchBatchData[V]) -> TorchFactorGraph:
+    def embed_graph[V: FloatTensor | IntTensor](
+        data: TorchBatchData[V],
+    ) -> TorchFactorGraph:
         return TorchFactorGraph(
             var_embed(data.variables.var_value, data.variables.var_type),
             factor_embed(data.factor.factor),
@@ -127,7 +137,9 @@ def fn_embed_graph(
 
 
 def fn_compress_time(
-    recurrent: Callable[[SparseTensor[FloatTensor], NDArray[np.int64]], SparseTensor[FloatTensor]],
+    recurrent: Callable[
+        [SparseTensor[FloatTensor], NDArray[np.int64]], SparseTensor[FloatTensor]
+    ],
     embed_fn: Callable[[BatchData[V]], TorchFactorGraph],
     maxlen: int,
     dim: int,

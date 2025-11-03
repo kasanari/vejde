@@ -665,14 +665,15 @@ def train(args: Args | None = None, batch_id: str | None = None):
     np.random.seed(args.seed)
     npl.manual_seed(args.seed)  # type: ignore
     npl.backends.cudnn.deterministic = args.torch_deterministic
+    run_name = f"{args.env_id}__ppo"
+    run_name = run_name + "__debug" if args.debug else run_name
+    run_folder = create_run_folder(run_name)
+    logger.addHandler(logging.FileHandler(run_folder / f"{run_name}.log", mode="w"))
     logger.info("Attempting to connect to mlflow...")
     device = npl.device(
         "cuda:0" if npl.cuda.is_available() and args.cuda else npl.device("cpu")
     )
-    run_name = f"{args.env_id}__ppo"
-    run_name = run_name + "__debug" if args.debug else run_name
-    run_folder = create_run_folder(run_name)
-    logger.addHandler(logging.FileHandler(run_folder / f"{run_name}.log"))
+    logger.info(f"Using device: {device}")
     agent_class = AGENT_CLASSES[args.agent_class]
     envs = (
         gym.vector.AsyncVectorEnv(
@@ -734,7 +735,11 @@ def train(args: Args | None = None, batch_id: str | None = None):
             mlflow.log_param("batch_id", batch_id)
         run_id = mlflow.active_run().info.run_id  # type: ignore
 
-        agent = main(envs, run_name, args, device, agent)
+        try:
+            agent = main(envs, run_name, args, device, agent)
+        except Exception as e:
+            logger.exception("Exception during training:")
+            raise e
 
         agent.agent.save_agent(run_folder / f"{run_name}.pth")
         mlflow.log_artifact(str(run_folder / f"{run_name}.pth"))

@@ -15,7 +15,7 @@ def load_agent(cls: type[T], path: str, device: str = "cpu") -> tuple[T, AgentCo
     data["config"]["hyper_params"] = GNNParams(**data["config"]["hyper_params"])
 
     config = AgentConfig(**data["config"])
-    agent = cls(config, None)
+    agent = cls(config, None, device=device)
     agent.load_state_dict(data["state_dict"])
 
     agent.device = device

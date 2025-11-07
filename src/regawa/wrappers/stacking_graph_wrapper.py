@@ -30,7 +30,6 @@ class StackingGroundedGraphWrapper(
         self.model = model
         self.last_action: Grounding | None = None
         self.last_g: RenderGraph | None = None
-        self._object_to_type: dict[str, str] = {"None": "None"}
         self.create_graphs = fn_groundobs_to_heterograph(
             model,
             stacking=True,

@@ -26,7 +26,6 @@ class GroundedGraphWrapper(
         self.model = model
         self.last_action: Grounding | None = None
         self.last_g: RenderGraph | None = None
-        self._object_to_type: dict[str, str] = {"None": "None"}
         self.create_graphs = fn_groundobs_to_heterograph(model, stacking=False)
 
         self.add_render_graph_to_info = add_render_graph_to_info

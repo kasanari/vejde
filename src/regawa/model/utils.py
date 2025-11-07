@@ -2,6 +2,8 @@
 
 from functools import cache
 
+from regawa.model.null import NullConst
+
 from .base_model import BaseModel
 
 
@@ -79,7 +81,7 @@ def fn_valid_action_fluents_given_arity(model: BaseModel):
             True
             if model.arity(fluent) > 0
             else o_t
-            == "None"  # Assume "None" is a valid object type for 0-arity fluents
+            == NullConst.type  # Assume NULL_TYPE is a valid object type for 0-arity fluents
         )
 
     @cache

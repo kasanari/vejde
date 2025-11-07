@@ -8,6 +8,7 @@ import numpy as np
 
 from regawa.model import GroundObs, Grounding
 from regawa.data import Edge, Object
+from regawa.model.null import NullConst
 
 logger = logging.getLogger(__name__)
 
@@ -75,16 +76,17 @@ def to_dict_action(
 ) -> GroundObs:
     """
     Converts an action (Grounding) to a dictionary representation. Going from (predicate, obj1, obj2) to {(predicate, obj1, obj2): True}.
-    If the action has invalid parameters, it is converted to a no-op action (i.e. "None" predicate).
+    If the action has invalid parameters, it is converted to a no-op action (i.e. "NOP" predicate).
     No-op actions are represented as an empty dictionary.
     """
     action_fluent = predicate(action)
+    is_nop = action_fluent == NullConst.action
     action_arity = len(fluent_params(action_fluent))
     if action_arity == 0:
-        return {} if action_fluent == "None" else {(action_fluent,): np.bool_(True)}
+        return {} if is_nop else {(action_fluent,): np.bool_(True)}
 
     has_valid_param = has_valid_parameters(action, obj_to_type, fluent_params)
-    action_fluent = "None" if not has_valid_param else action_fluent
+    action_fluent = NullConst.action if not has_valid_param else action_fluent
 
     num_params = len(fluent_params(action_fluent))
 
@@ -93,7 +95,7 @@ def to_dict_action(
 
     a = (action_fluent, *objects(action)[:num_params])
 
-    action_dict = {} if action_fluent == "None" else {a: np.bool_(True)}
+    action_dict = {} if is_nop else {a: np.bool_(True)}
 
     return action_dict
 

@@ -1,3 +1,4 @@
+from .null import NullConst
 from . import BaseModel, BaseGroundedModel
 
 
@@ -14,11 +15,15 @@ def _check_model(model: BaseModel) -> bool:
         len(model.fluents) == model.num_fluents
     ), "Fluents length does not match num_fluents."
 
-    assert model.fluents[0] == "None", "First fluent must be 'None' for padding."
     assert (
-        model.action_fluents[0] == "None"
+        model.fluents[NullConst.idx] == NullConst.action
+    ), "First fluent must be 'None' for padding."
+    assert (
+        model.action_fluents[NullConst.idx] == NullConst.action
     ), "First action fluent must be 'None' for padding."
-    assert model.types[0] == "None", "First type must be 'None' for padding."
+    assert (
+        model.types[NullConst.idx] == NullConst.type
+    ), "First type must be 'None' for padding."
     return True
 
 

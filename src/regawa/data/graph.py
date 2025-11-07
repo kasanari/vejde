@@ -11,6 +11,7 @@ from typing import Generic, NamedTuple
 
 
 from typing import TypeVar
+from regawa.model.null import NullConst
 
 VariableDomain = TypeVar(
     "VariableDomain",
@@ -54,6 +55,7 @@ class Object(NamedTuple):
     name: str
     type: str
 
+NullObject = Object(NullConst.id, NullConst.type)
 
 class StackedStringVariables(NamedTuple, Generic[VariableDomain]):
     types: Sequence[str]

@@ -5,6 +5,7 @@ import gymnasium as gym
 
 from regawa.model import GroundObs, Grounding
 from regawa.model import BaseModel
+from regawa.model.null import NullConst
 from .grounding_utils import to_dict_action
 from regawa.data import HeteroGraph
 from collections.abc import Callable
@@ -45,15 +46,15 @@ class IndexActionWrapper(
         super().__init__(env)
         self.env = env
         self.model = model
-        self._idx_to_object = ["None"]
-        self._object_to_type: dict[str, str] = {"None": "None"}
+        self._idx_to_object = [NullConst.id]
+        self._object_to_type: dict[str, str] = {NullConst.id: NullConst.type}
 
     def idx_to_object(self, idx: int) -> str:
         try:
             return self._idx_to_object[idx]
         except IndexError:
             logger.warning(f"Index {idx} not found in idx_to_object")
-            return "None"
+            return NullConst.id
 
     def _to_rddl_action(self, action: Grounding) -> GroundObs:
         return to_dict_action(action, self.obj_to_type, self.model.fluent_params)
@@ -103,7 +104,7 @@ class IndexActionWrapper(
         obj_type = self._object_to_type.get(obj, None)
         if obj_type is None:
             logger.warning(f"Object '{obj}' not found in object-to-type mapping.")
-            return "None"
+            return NullConst.type
         return obj_type
 
     def reset(

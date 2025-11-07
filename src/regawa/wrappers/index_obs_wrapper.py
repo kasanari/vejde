@@ -83,7 +83,6 @@ class IndexObsWrapper(
         super().__init__(env)
         self.env = env
         self.model = model
-        self._idx_to_object = ["None"]
         self.create_obs_dict = fn_idx_obs(model, stacking=stacking)
 
     @cached_property

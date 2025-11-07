@@ -13,10 +13,14 @@ from regawa.data.graph import (
     StringFactorGraph,
     StringFactors,
     VariableDomain,
+    NullObject,
+    Edge,
+    Object,
+    StringVariables,
+    Variables,
 )
-from regawa.data.obs import Factors
-from regawa.model import Grounding
-from regawa.model.base_model import BaseModel
+from regawa.data.obs import Factors, ObsData
+from regawa.model import Grounding, BaseModel
 from regawa.model.utils import (
     fn_valid_action_fluents_given_arity,
     fn_valid_action_fluents_given_type,
@@ -25,13 +29,6 @@ from .grounding_utils import (
     arity,
     create_edges,
     predicate,
-)
-from regawa.data import (
-    Edge,
-    ObsData,
-    Object,
-    Variables,
-    StringVariables,
 )
 
 logger = logging.getLogger(__name__)
@@ -161,7 +158,7 @@ def object_list(
 ) -> Sequence[Object]:
     unique_objects = {obj for key in obs_keys for obj in objects_with_type(key)}
     # sorted_objects = unique_objects
-    return [Object("None", "None")] + list(unique_objects)
+    return [NullObject] + list(unique_objects)
 
 
 def generate_bipartite_obs_func(
@@ -222,11 +219,11 @@ def fn_action_masks(
             np.array(
                 tuple(map(action_fluent_type_mask, object_types)),
                 dtype=np.bool_,
-            ), # n_object x n_actions 
+            ),  # n_object x n_actions
             np.array(
                 tuple(map(action_fluent_arity_mask, object_types)),
                 dtype=np.bool_,
-            ), # n_object x n_actions 
+            ),  # n_object x n_actions
         )
 
     return f

@@ -6,18 +6,19 @@ from regawa.model import BaseGroundedModel, GroundObs, Grounding
 from regawa.model import check_model
 from regawa.wrappers.graph_utils import fn_groundobs_to_heterograph
 from regawa.wrappers.index_obs_wrapper import fn_idx_obs
+from regawa.model.null import NullConst
 from regawa.wrappers.render_utils import render_lifted
 
 
 class TestModel(BaseModel):
     """Sample model for testing purposes. Loosely based on block stacking problems."""
 
-    _types = ("None", "block", "table")
-    _fluents = ("None", "at", "on", "weight")
-    _actions = ("None", "pickup", "put")
+    _types = (NullConst.type, "block", "table")
+    _fluents = (NullConst.action, "at", "on", "weight", "pickup", "put")
+    _actions = (NullConst.action, "pickup", "put")
 
     _params = {
-        "None": (),
+        NullConst.action: (),
         "at": ("block", "table"),
         "on": ("block", "block"),
         "pickup": ("block",),
@@ -26,7 +27,7 @@ class TestModel(BaseModel):
     }
 
     _ranges = {
-        "None": bool,
+        NullConst.action: bool,
         "at": bool,
         "on": bool,
         "pickup": bool,
@@ -48,7 +49,10 @@ class TestModel(BaseModel):
 
     @cache
     def fluent_params(self, fluent: str) -> tuple[str, ...]:
-        return self._params[fluent]
+        try:
+            return self._params[fluent]
+        except KeyError:
+            raise KeyError(f"Fluent {fluent} not found in model parameters.")
 
     @cache
     def fluent_param(self, fluent: str, position: int) -> str:
@@ -194,8 +198,8 @@ def test_sample_obs():
 
     assert graph.boolean.factors == graph.numeric.factors
 
-    assert set(graph.boolean.factors) == {
-        "None",
+    assert set(graph.boolean.factors.names) == {
+        NullConst.id,
         "block1",
         "block3",
         "table2",
@@ -203,8 +207,8 @@ def test_sample_obs():
         "table1",
     }
 
-    assert set(graph.boolean.factor_types) == {
-        "None",
+    assert set(graph.boolean.factors.types) == {
+        NullConst.type,
         "block",
         "block",
         "table",

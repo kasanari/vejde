@@ -5,12 +5,15 @@ from typing import NamedTuple
 import numpy as np
 from numpy.typing import NDArray
 
+from regawa.data.actions import ActionMask
 from regawa.model import Grounding
 from regawa.model import BaseModel
 from .grounding_utils import create_edges, objects
 from regawa.data.graph import (
+    Edges,
     StackedStringFactorGraph,
     StringFactorGraph,
+    StringFactors,
     StringVariables,
 )
 from .utils import translate_edges
@@ -152,7 +155,7 @@ def render_lifted(model: BaseModel):
 
     v_to_f, f_to_v = translate_edges(non_global_vars.index, o.index, edges)
 
-    edge_attributes = [key[2] for key in edges]
+    edge_attributes = np.array([key[2] for key in edges])
 
     graph = StringFactorGraph(
         StringVariables[np.bool_](
@@ -160,34 +163,46 @@ def render_lifted(model: BaseModel):
             [np.bool_(True) for _ in non_global_vars],
             [1 for _ in non_global_vars],
             n_variable=len(non_global_vars),
+            groundings=non_global_vars,
         ),
-        factors=o,
-        factor_types=o,
-        v_to_f=v_to_f,
-        f_to_v=f_to_v,
-        edge_attributes=edge_attributes,
+        factors=StringFactors(
+            types=o,
+            names=o,
+        ),
+        edges=Edges(
+            v_to_f=v_to_f,
+            f_to_v=f_to_v,
+            edge_attr=edge_attributes,
+        ),
         global_variables=StringVariables[np.bool_](
             list(map(str, global_vars)),
             [np.bool_(True) for _ in global_vars],
             [1 for _ in global_vars],
             n_variable=len(global_vars),
+            groundings=global_vars,
         ),
-        groundings=non_global_vars,
-        global_groundings=global_vars,
-        action_arity_mask=[(True,) for _ in o],
-        action_type_mask=[(False,) for _ in o],
+        action_masks=ActionMask(
+            action_arity_mask=np.array([(True,) for _ in o]),
+            action_type_mask=np.array([(False,) for _ in o]),
+        ),
     )
 
     n_graph = StringFactorGraph[np.float32](
-        variables=StringVariables[np.float32]([], [], [], 0),
-        factors=[],
-        factor_types=[],
-        v_to_f=np.array([], dtype=np.int64),
-        f_to_v=np.array([], dtype=np.int64),
-        edge_attributes=[],
-        global_variables=StringVariables[np.float32]([], [], [], [], 0),
-        action_arity_mask=[(True,) for _ in o],
-        action_type_mask=[(False,) for _ in o],
+        variables=StringVariables[np.float32]([], [], [], 0, []),
+        factors=StringFactors(
+            names=[],
+            types=[],
+        ),
+        edges=Edges(
+            v_to_f=np.array([], dtype=np.int64),
+            f_to_v=np.array([], dtype=np.int64),
+            edge_attr=np.array([]),
+        ),
+        global_variables=StringVariables[np.float32]([], [], [], 0, []),
+        action_masks=ActionMask(
+            action_arity_mask=np.array([(True,) for _ in o]),
+            action_type_mask=np.array([(False,) for _ in o]),
+        ),
     )
 
     render_g = create_render_graph(graph, n_graph)

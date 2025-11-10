@@ -536,8 +536,8 @@ def main(
         value_loss = np.mean([u.v_loss.item() for u in loss_data])
         pg_loss = np.mean([u.pg_loss.item() for u in loss_data])
 
-        disp_r = f"{r:.2f}" if r is not None else "None"
-        disp_l = f"{length:.2f}" if length is not None else "None"
+        disp_r = f"{r:.2f}" if r is not None else "N/A"
+        disp_l = f"{length:.2f}" if length is not None else "N/A"
         desc = f"R:{disp_r} | L:{disp_l} | ENT:{entropy_loss:.2f} | V: {value_loss:.2f} | PG: {pg_loss:.2f} | EXPL_VARIANCE:{explained_var:.2f}"
         pbar.set_description(desc)
         pbar.update(1)

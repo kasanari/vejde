@@ -4,6 +4,8 @@ from functools import cached_property, cache
 import pytest
 from regawa.model import BaseGroundedModel, GroundObs, Grounding
 from regawa.model import check_model
+from regawa.model.generic_model import GenericModel
+from regawa.model.utils import to_json
 from regawa.wrappers.graph_utils import fn_groundobs_to_heterograph
 from regawa.wrappers.index_obs_wrapper import fn_idx_obs
 from regawa.model.null import NullConst
@@ -230,6 +232,29 @@ def test_render_lifted():
     with open("test_lifted.dot", "w") as f:
         f.write(graph)
     assert graph is not None
+
+
+def test_serialization():
+    model = TestModel()
+    json_data = to_json(model)
+
+    new_model = GenericModel.from_json(json_data)
+
+    assert check_model(new_model)
+
+    assert new_model.fluents == model.fluents
+    assert new_model.types == model.types
+    assert new_model.action_fluents == model.action_fluents
+    for fluent in model.fluents:
+        assert new_model.arity(fluent) == model.arity(fluent)
+        assert new_model.fluent_params(fluent) == model.fluent_params(fluent)
+        assert new_model.fluent_range(fluent) == model.fluent_range(fluent)
+    for t in model.types:
+        assert new_model.type_to_idx(t) == model.type_to_idx(t)
+        assert new_model.idx_to_type(model.type_to_idx(t)) == t
+    for action in model.action_fluents:
+        assert new_model.action_to_idx(action) == model.action_to_idx(action)
+        assert new_model.idx_to_action(model.action_to_idx(action)) == action
 
 
 if __name__ == "__main__":

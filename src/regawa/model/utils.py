@@ -89,3 +89,15 @@ def fn_valid_action_fluents_given_arity(model: BaseModel):
         return tuple(is_valid(fluent, obj_type) for fluent in model.action_fluents)
 
     return valid_action_fluents_given_arity
+
+def to_json(model: BaseModel) -> str:
+    import json
+
+    model_dict = {
+        "types": model.types,
+        "fluents": model.fluents,
+        "action_fluents": model.action_fluents,
+        "fluent_ranges": {f: model.fluent_range(f).__name__ for f in model.fluents},
+        "fluent_params": {f: model.fluent_params(f) for f in model.fluents},
+    }
+    return json.dumps(model_dict, indent=4)

@@ -3,7 +3,6 @@
 from functools import cache
 
 from regawa.model.null import NullConst
-
 from .base_model import BaseModel
 
 
@@ -90,7 +89,7 @@ def fn_valid_action_fluents_given_arity(model: BaseModel):
 
     return valid_action_fluents_given_arity
 
-def to_json(model: BaseModel) -> str:
+def model_to_json(model: BaseModel) -> str:
     import json
 
     model_dict = {
@@ -101,3 +100,9 @@ def to_json(model: BaseModel) -> str:
         "fluent_params": {f: model.fluent_params(f) for f in model.fluents},
     }
     return json.dumps(model_dict, indent=4)
+
+
+def model_from_json(model_json: str) -> BaseModel:
+    from regawa.model.generic_model import GenericModel
+
+    return GenericModel.from_json(model_json)

@@ -128,7 +128,7 @@ def idx_action_to_ground_value(
     idx_to_obj: Callable[[int], str],
 ) -> Grounding:
     action_name = idx_to_action(action[0])
-    o = tuple(idx_to_obj(obj_idx) for obj_idx in action[1:] if obj_idx != 0)
+    o = tuple(idx_to_obj(obj_idx) for obj_idx in action[1:])
     return (action_name, *o)
 
 

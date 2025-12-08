@@ -130,15 +130,13 @@ def compress_time(
     _, variables = recurrent(custom_h_c)
     return variables
 
-
-class RecurrentEmbedder(nn.Module):
+class RNNLayer(nn.Module):
     def __init__(
         self,
         embedding_dim: int,
         device: str | torch.device = "cpu",
-    ):
+    ) -> None:
         super().__init__()  # type: ignore
-
         recurrent = nn.RNN(
             embedding_dim,
             embedding_dim,
@@ -155,13 +153,83 @@ class RecurrentEmbedder(nn.Module):
         self.recurrent.to(device)
         self.recurrent.flatten_parameters()
 
+    def forward(self, packed_sequence: PackedSequence) -> Tensor:
+        _, variables = self.recurrent.forward(packed_sequence, None)
+        return variables
+
+
+class LSTMLayer(nn.Module):
+    def __init__(
+        self,
+        embedding_dim: int,
+        device: str | torch.device = "cpu",
+    ) -> None:
+        super().__init__()  # type: ignore
+        recurrent = nn.LSTM(
+            embedding_dim,
+            embedding_dim,
+            batch_first=True,
+        )
+
+        for name, param in recurrent.named_parameters():
+            if "weight" in name:
+                init.orthogonal_(param)  # type: ignore
+            elif "bias" in name:
+                init.zeros_(param)
+
+        self.recurrent = recurrent  # type: ignore
+        self.recurrent.to(device)
+        self.recurrent.flatten_parameters()
+
+    def forward(self, packed_sequence: PackedSequence) -> Tensor:
+        _, (variables, _) = self.recurrent.forward(packed_sequence, None)
+        return variables
+    
+
+class GRULayer(nn.Module):
+    def __init__(
+        self,
+        embedding_dim: int,
+        device: str | torch.device = "cpu",
+    ) -> None:
+        super().__init__()  # type: ignore
+        recurrent = nn.GRU(
+            embedding_dim,
+            embedding_dim,
+            batch_first=True,
+        )
+
+        for name, param in recurrent.named_parameters():
+            if "weight" in name:
+                init.orthogonal_(param)  # type: ignore
+            elif "bias" in name:
+                init.zeros_(param)
+
+        self.recurrent = recurrent  # type: ignore
+        self.recurrent.to(device)
+        self.recurrent.flatten_parameters()
+
+    def forward(self, packed_sequence: PackedSequence) -> Tensor:
+        _, variables = self.recurrent.forward(packed_sequence, None)
+        return variables
+
+
+
+class RecurrentEmbedder(nn.Module):
+    def __init__(
+        self,
+        embedding_dim: int,
+        device: str | torch.device = "cpu",
+    ):
+        super().__init__()  # type: ignore
+        self.recurrent = RNNLayer(embedding_dim, device)
+
     def compress_time(self, h: Tensor, length: Tensor) -> Tensor:
         custom_h_c = packed_from_concatenated_sequences(
             h, length, include_sort_info=True
         )
         packed_sequence = PackedSequence(*custom_h_c)
-        _, variables = self.recurrent.forward(packed_sequence, None)
-        return variables
+        return self.recurrent.forward(packed_sequence)
 
     def forward(
         self,

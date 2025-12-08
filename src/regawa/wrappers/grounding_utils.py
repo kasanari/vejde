@@ -80,20 +80,23 @@ def to_dict_action(
     No-op actions are represented as an empty dictionary.
     """
     action_fluent = predicate(action)
+    num_params = len(fluent_params(action_fluent))
     is_nop = action_fluent == NullConst.action
     action_arity = len(fluent_params(action_fluent))
+    
+    if is_nop:
+        return {}
+    
     if action_arity == 0:
-        return {} if is_nop else {(action_fluent,): np.bool_(True)}
+        return {(action_fluent,): np.bool_(True)}
 
     has_valid_param = has_valid_parameters(action, obj_to_type, fluent_params)
     action_fluent = NullConst.action if not has_valid_param else action_fluent
 
-    num_params = len(fluent_params(action_fluent))
-
     if not has_valid_param:
         logger.warning(f"Invalid parameters for action {action}")
 
-    a = (action_fluent, *objects(action)[:num_params])
+    a = (action_fluent, *objects(action)[:num_params]) if has_valid_param else (NullConst.action, NullConst.id)
 
     action_dict = {} if is_nop else {a: np.bool_(True)}
 

@@ -52,6 +52,7 @@ class ReplayBuffer:
         device: device | str = "auto",
         n_envs: int = 1,
         optimize_memory_usage: bool = False,
+        seed: int | None = None,
     ):
         self.buffer_size = buffer_size
         self.observation_space = observation_space
@@ -62,7 +63,7 @@ class ReplayBuffer:
         self.full = False
         self.device = device
         self.n_envs = n_envs
-        self.rng = np.random.default_rng()
+        self.rng = np.random.default_rng() if seed is None else np.random.default_rng(seed)
 
         # Adjust buffer size
         self.buffer_size = max(buffer_size // n_envs, 1)

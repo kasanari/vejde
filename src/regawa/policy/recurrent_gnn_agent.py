@@ -92,21 +92,7 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
         )
 
         policy_args = (config.num_actions, gnn_params.embedding_dim, rngs)
-        self.policy = (
-            ActionThenNodePolicy(*policy_args)
-            if gnn_params.action_mode == ActionMode.ACTION_THEN_NODE
-            else NodeThenActionPolicy(*policy_args)
-        )
-        self._device = device
-        self.boolean_embedder = boolean_embedder
-        self.numeric_embedder = numeric_embedder
-        self.factor_embedding = factor_embedding
-        self.edge_attr_embedding = edge_attr_embedding
-        self.predicate_embedding = predicate_embedding
-        self.r_numeric_embedder = r_numeric_embedder
-        self.r_boolean_embedder = r_boolean_embedder
-
-        self.embed_heterobatch = fn_embed_heterobatch(
+        embed_batch_func = fn_embed_heterobatch(
             fn_compress_time(
                 r_boolean_embedder,
                 fn_embed_graph(
@@ -130,6 +116,21 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
                 device=device,
             ),
         )
+
+        self.policy = (
+            ActionThenNodePolicy(*policy_args)
+            if gnn_params.action_mode == ActionMode.ACTION_THEN_NODE
+            else NodeThenActionPolicy(*policy_args)
+        )
+        self._device = device
+        self.boolean_embedder = boolean_embedder
+        self.numeric_embedder = numeric_embedder
+        self.factor_embedding = factor_embedding
+        self.edge_attr_embedding = edge_attr_embedding
+        self.predicate_embedding = predicate_embedding
+        self.r_numeric_embedder = r_numeric_embedder
+        self.r_boolean_embedder = r_boolean_embedder
+        self.embed_heterobatch = embed_batch_func
 
     @property
     def device(self) -> str:

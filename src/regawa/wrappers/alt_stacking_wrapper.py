@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any, SupportsFloat
+from typing import Any, NamedTuple, SupportsFloat
 from itertools import groupby
 import gymnasium as gym
 
@@ -11,6 +11,11 @@ from regawa.model.base_grounded_model import (
 )
 
 
+class TimeEntry(NamedTuple):
+    start_time: int
+    duration: int
+
+
 def compress_stack(o: Sequence[tuple[int, GroundingRange]]):
     """
     [(time1: int, grounding_range1: GroundingRange), (time2: int, grounding_range2: GroundingRange), ...]
@@ -18,29 +23,31 @@ def compress_stack(o: Sequence[tuple[int, GroundingRange]]):
     [(start_time1: int, end_time1: int, grounding_range1: GroundingRange), (start_time2: int, end_time2: GroundingRange), ...]
     """
 
-    compressed_stack: list[tuple[tuple[int, int], GroundingRange]] = []
+    compressed_stack: list[tuple[TimeEntry, GroundingRange]] = []
 
-    start_time, prev_time, prev_value = o[0][0], o[0][0], o[0][1]
+    first_entry = o[0]
+
+    start_time, prev_time, prev_value = first_entry[0], first_entry[0], first_entry[1]
 
     for time, value in o[1:]:
-        time_skip = time != prev_time + 1
-        value_skip = value != prev_value
+        time_skip = time != prev_time + 1  # check for gaps in the sequence
+        value_skip = value != prev_value  # check for changes in value
 
         if time_skip:
             compressed_stack.append(
-                ((start_time, prev_time), prev_value)
+                (TimeEntry(start_time, prev_time), prev_value)
             )  # add the previous segment
             start_time = time  # start a new segment
             prev_value = value
 
         if value_skip:
-            compressed_stack.append(((start_time, time), prev_value))
+            compressed_stack.append((TimeEntry(start_time, time), prev_value))
             start_time = time  # start a new segment
             prev_value = value
 
         prev_time = time
 
-    compressed_stack.append(((start_time, prev_time), prev_value))
+    compressed_stack.append((TimeEntry(start_time, prev_time), prev_value))
 
     return compressed_stack
 

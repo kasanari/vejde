@@ -426,7 +426,7 @@ def main(
     device: str | npl.device,
     graph_agent: GraphAgentInterface,
 ):
-    batch_size = int(args.num_envs * args.num_steps)
+    batch_size = int(args.num_envs * args.rollout_length)
     minibatch_size = int(batch_size // args.num_minibatches)
     num_iterations = args.total_timesteps // batch_size
     pbar = tqdm(total=num_iterations)
@@ -460,8 +460,8 @@ def main(
         optimizer,
         args.learning_rate,
         num_iterations,
-        rollout(agent, envs, args.num_steps, args.num_envs, device),
-        gae(args.num_steps, args.gamma, args.gae_lambda, device),
+        rollout(agent, envs, args.rollout_length, args.num_envs, device),
+        gae(args.rollout_length, args.gamma, args.gae_lambda, device),
         update_step(
             batch_size,
             minibatch_size,
@@ -486,16 +486,16 @@ def main(
     )
 
     actions = npl.zeros(
-        (args.num_steps, args.num_envs) + envs.single_action_space.shape  # type: ignore
+        (args.rollout_length, args.num_envs) + envs.single_action_space.shape  # type: ignore
     ).to(device)
     b = BatchData(
         actions,
-        npl.zeros((args.num_steps, args.num_envs)).to(device),
-        npl.zeros((args.num_steps, args.num_envs)).to(device),
-        npl.zeros((args.num_steps, args.num_envs)).to(device),
-        npl.zeros((args.num_steps, args.num_envs)).to(device),
-        npl.zeros((args.num_steps, args.num_envs)).to(device),
-        npl.zeros((args.num_steps, args.num_envs)).to(device),
+        npl.zeros((args.rollout_length, args.num_envs)).to(device),
+        npl.zeros((args.rollout_length, args.num_envs)).to(device),
+        npl.zeros((args.rollout_length, args.num_envs)).to(device),
+        npl.zeros((args.rollout_length, args.num_envs)).to(device),
+        npl.zeros((args.rollout_length, args.num_envs)).to(device),
+        npl.zeros((args.rollout_length, args.num_envs)).to(device),
     )
 
     next_obs, _ = envs.reset(seed=args.seed)  # type: ignore

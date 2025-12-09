@@ -28,12 +28,12 @@ def return_scale(
     returns: Tensor, low_ema: Tensor | None, high_ema: Tensor | None, decay: float
 ) -> tuple[Tensor, Tensor, Tensor]:
     low, high = returns.quantile(0.05), returns.quantile(0.95)
-    low_ema = low if low_ema is None else decay * low_ema + (1 - decay) * low  # type: ignore
-    high_ema = (
+    new_low_ema = low if low_ema is None else decay * low_ema + (1 - decay) * low  # type: ignore
+    new_high_ema = (
         high if high_ema is None else decay * high_ema + (1 - decay) * high  # type: ignore
     )
-    s = high_ema - low_ema
-    return s, low_ema, high_ema
+    s = new_high_ema - new_low_ema
+    return s, new_low_ema, new_high_ema
 
 
 def test_lambda_return():

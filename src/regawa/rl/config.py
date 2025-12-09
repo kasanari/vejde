@@ -30,8 +30,10 @@ class Args:
     mlflow_tracking_uri: str = ""
     """the tracking uri for mlflow. If empty, mlflow will log locally"""
     # Algorithm specific arguments
-    total_timesteps: int = 2000
+    total_timesteps: int | None = None
     """total timesteps of the experiments"""
+    total_updates: int | None = None
+    """total number of model updates, if set overrides total_timesteps"""
     learning_rate: float = 1.0e-2
     """the learning rate of the optimizer"""
     weight_decay: float = 0.1

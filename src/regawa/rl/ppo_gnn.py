@@ -41,7 +41,6 @@ from gymnasium.spaces import Dict, MultiDiscrete
 from numpy.typing import NDArray
 from torch import Tensor
 from tqdm import tqdm
-import os
 
 from regawa.policy import GraphAgentInterface
 from regawa.data import (
@@ -90,10 +89,11 @@ def update_step(
         obs: HeteroGraphBuffer,
         b: BatchData,
         b_inds: NDArray[np.int32],
-    ) -> tuple[list[UpdateData], bool]:
+    ):
         np.random.shuffle(b_inds)
         u_datas: list[UpdateData] = []
         stop_training = False
+        num_updates = 0  # count number of gradient updates
         for start in range(0, batch_size, minibatch_size):
             mb_inds = b_inds[start : start + minibatch_size]
             u_data = update_func(
@@ -113,8 +113,9 @@ def update_step(
             if u_data.stop_training:
                 stop_training = True
                 break
+            num_updates += 1
 
-        return u_datas, stop_training
+        return u_datas, stop_training, num_updates
 
     return _update_step
 
@@ -124,7 +125,7 @@ def iteration_step(
     agent: Agent,
     batch_size: int,
     update_epochs: int,
-    envs: gym.vector.SyncVectorEnv,
+    envs: gym.vector.VectorEnv[HeteroObsData, NDArray[np.int32], NDArray[np.int32]],
     optimizer: npl.optim.Optimizer,
     learning_rate: float,
     num_iterations: int,
@@ -135,7 +136,7 @@ def iteration_step(
     gae_func: Callable[[Tensor, Tensor, Tensor, Tensor, Tensor], tuple[Tensor, Tensor]],
     update_func: Callable[
         [HeteroGraphBuffer, BatchData, NDArray[np.int32]],
-        tuple[list[UpdateData], bool],
+        tuple[list[UpdateData], bool, int],
     ],
     lambda_return_func: Callable[[Tensor, Tensor, Tensor], Tensor],
     ema_decay: float,
@@ -213,16 +214,27 @@ def iteration_step(
         b_inds = np.arange(batch_size)
         u_datas: list[UpdateData] = []
 
+        total_num_updates = carry.num_updates
+
         for epoch in range(update_epochs):
-            u_data, stop_training = update_func(r_data.obs, flattened_b, b_inds)
+            u_data, stop_training, num_updates = update_func(
+                r_data.obs, flattened_b, b_inds
+            )
             u_datas.extend(u_data)
+            total_num_updates += num_updates
             if stop_training:
                 logger.info(
                     f"Early stopping at step {epoch} due to reaching max kl: {u_datas[-1].loss.approx_kl:.2f}"
                 )
 
         carry = IterationCarry(
-            b, r_data.last_obs, r_data.last_done, r_data.global_step, low_ema, high_ema
+            b,
+            r_data.last_obs,
+            r_data.last_done,
+            r_data.global_step,
+            total_num_updates,
+            low_ema,
+            high_ema,
         )
         return r_data, u_datas, explained_variance(b_values, b_returns), s, carry
 
@@ -244,7 +256,7 @@ def make_env(
 
 def rollout(
     agent: Agent,
-    envs: gym.vector.SyncVectorEnv,
+    envs: gym.vector.VectorEnv[HeteroObsData, NDArray[np.int32], NDArray[np.int32]],
     num_steps: int,
     num_envs: int,
     device: npl.device | str,
@@ -262,6 +274,7 @@ def rollout(
 
         is_final = prev_is_final
         obs = prev_obs
+        next_obs: HeteroObsData
         for step in range(0, num_steps):
             s = heterostatedata(obs)
             s = heterostatedata_to_tensors(s, device)
@@ -270,8 +283,8 @@ def rollout(
             assert action.shape[0] == num_envs
             assert logprob.dim() == 1
 
-            next_obs, reward, terminations, truncations, infos = envs.step(  # type: ignore
-                action.cpu().numpy()  # type: ignore
+            next_obs, reward, terminations, truncations, infos = envs.step(
+                action.cpu().numpy()
             )
             next_is_final = np.logical_or(terminations, truncations)
 
@@ -306,7 +319,7 @@ def rollout(
     return _rollout
 
 
-@npl.no_grad()
+@npl.no_grad()  # type: ignore
 def approximate_kl(logprob_new: Tensor, logprob_old: Tensor) -> tuple[Tensor, Tensor]:
     # calculate approx_kl http://joschu.net/blog/kl-approx.html
     log_ratio = logprob_new - logprob_old
@@ -393,6 +406,15 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
 
         optimizer.zero_grad()
         loss.loss.backward()  # type: ignore
+
+        # per_param_grad = {
+        #         k: v.grad for k, v in dict(agent.named_parameters()).items()
+        #     }
+        # per_param_grad_norm = {k: v.norm().item() if v is not None else None for k, v in per_param_grad.items()}
+        # sorted_per_param_grad = sorted(
+        #         per_param_grad_norm.items(), key=lambda item: item[1] if item[1] is not None else -1, reverse=True
+        # )
+
         grad_norm = nn.utils.clip_grad_norm_(
             agent.parameters(), params.max_grad_norm, error_if_nonfinite=True
         )
@@ -401,12 +423,9 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
             (loss.approx_kl > 1.5 * params.target_kl).item()
         )
 
-        # if v_loss.item() > 500.0:
-        #     per_param_grad = {
-        #         k: v.grad for k, v in dict(agent.named_parameters()).items()
-        #     }
-        #     logger.warning(f"v_loss: {v_loss.item()}")
-        #     logger.warning(f"per_param_grad: {per_param_grad}")
+        if grad_norm.item() > 100.0:
+            logger.warning(f"grad_norm: {grad_norm.item()}")
+            # logger.warning(f"per_param_grad: {per_param_grad}")
 
         optimizer.step()
 
@@ -428,13 +447,24 @@ def main(
 ):
     batch_size = int(args.num_envs * args.rollout_length)
     minibatch_size = int(batch_size // args.num_minibatches)
-    num_iterations = args.total_timesteps // batch_size
+    num_iterations = 0
+
+    if args.total_timesteps:
+        num_iterations = args.total_timesteps // batch_size
+
+    if args.total_updates:
+        inner_updates = (batch_size // minibatch_size) * args.update_epochs
+        assert (
+            args.total_updates % inner_updates == 0
+        ), "total_updates must be multiple of (batch_size / minibatch_size) * update_epochs"
+        num_iterations = args.total_updates * inner_updates
+
     pbar = tqdm(total=num_iterations)
     checkpoint_period = args.checkpoint_period // batch_size
     start_time = time.time()
     artifact_name = None
 
-    mlflow.log_params(
+    mlflow.log_params(  # type: ignore
         {
             "batch_size": batch_size,
             "minibatch_size": minibatch_size,
@@ -504,6 +534,7 @@ def main(
         next_obs,
         npl.zeros(args.num_envs).to(device),
         0,
+        0,
     )
 
     if args.track:
@@ -527,15 +558,15 @@ def main(
                 os.remove(latest_path)
             os.link(artifact_name, latest_path)
 
-        r = np.mean(r_data.returns) if r_data.returns else None
-        length = np.mean(r_data.lengths) if r_data.lengths else None
+        r = float(np.mean(r_data.returns)) if r_data.returns else None
+        length = float(np.mean(r_data.lengths)) if r_data.lengths else None
 
         loss_data = [u.loss for u in u_data]
-        grad_norm = np.mean([u.grad_norm.item() for u in u_data])
-        total_loss = np.mean([u.loss.item() for u in loss_data])
-        entropy_loss = np.mean([u.entropy_loss.item() for u in loss_data])
-        value_loss = np.mean([u.v_loss.item() for u in loss_data])
-        pg_loss = np.mean([u.pg_loss.item() for u in loss_data])
+        grad_norm = float(np.mean([u.grad_norm.item() for u in u_data]))
+        total_loss = float(np.mean([u.loss.item() for u in loss_data]))
+        entropy_loss = float(np.mean([u.entropy_loss.item() for u in loss_data]))
+        value_loss = float(np.mean([u.v_loss.item() for u in loss_data]))
+        pg_loss = float(np.mean([u.pg_loss.item() for u in loss_data]))
 
         disp_r = f"{r:.2f}" if r is not None else "N/A"
         disp_l = f"{length:.2f}" if length is not None else "N/A"
@@ -560,6 +591,7 @@ def main(
             length,
             carry.global_step,
             start_time,
+            carry.num_updates,
         )
 
     envs.close()
@@ -583,6 +615,7 @@ def mlflow_log(
     length: float | None,
     global_step: int,
     start_time: float,
+    gradient_steps: int,
 ):
     mlflow.log_artifact(
         artifact_name, artifact_path="checkpoints"
@@ -592,6 +625,7 @@ def mlflow_log(
     mlflow.log_metric(
         "rollout/return_scale_low", carry.low_ema.item(), global_step
     ) if carry.low_ema is not None else None
+    mlflow.log_metric("charts/num_gradient_steps", gradient_steps, global_step)
     mlflow.log_metric(
         "rollout/return_scale_high", carry.high_ema.item(), global_step
     ) if carry.high_ema is not None else None
@@ -763,7 +797,7 @@ def train(args: Args | None = None, batch_id: str | None = None):
 
 
 def eval(agent: GraphAgentInterface, env_id: str, device: str):
-    eval_env = gym.make(
+    eval_env = gym.make(  # type: ignore
         env_id,
     )
 

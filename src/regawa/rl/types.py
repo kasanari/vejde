@@ -58,5 +58,6 @@ class IterationCarry(NamedTuple):
     next_obs: dict[str, list[HeteroObsData]]
     next_done: Tensor
     global_step: int
+    num_updates: int
     low_ema: Tensor | None = None
     high_ema: Tensor | None = None

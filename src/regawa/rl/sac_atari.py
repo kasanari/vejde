@@ -251,6 +251,7 @@ poetry run pip install "stable_baselines3==2.0.0a1" "gymnasium[atari,accept-rom-
         envs.single_action_space,
         device,
         handle_timeout_termination=False,
+        seed=args.seed,
     )
     start_time = time.time()
 

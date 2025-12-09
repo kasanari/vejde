@@ -66,3 +66,5 @@ class Args:
     """the target KL divergence threshold"""
     checkpoint_period: int = 0
     """period in number of iterations to save a checkpoint, 0 means no checkpoint"""
+    ema_decay: float = 0.99
+    """decay for the exponential moving average of the returns scale"""

@@ -138,6 +138,7 @@ def iteration_step(
         tuple[list[UpdateData], bool],
     ],
     lambda_return_func: Callable[[Tensor, Tensor, Tensor], Tensor],
+    ema_decay: float,
     device: str | npl.device,
 ):
     def _iteration_step(
@@ -177,10 +178,9 @@ def iteration_step(
         b_returns = returns.reshape(-1)
         b_values = b.values.reshape(-1)
 
-        decay = 0.99
         lambda_r = lambda_return_func(b.rewards, b.values, b.dones)
         s, low_ema, high_ema = lambda_return.return_scale(
-            lambda_r, carry.low_ema, carry.high_ema, decay
+            lambda_r, carry.low_ema, carry.high_ema, ema_decay
         )
         b_advantages = b_advantages / max(1.0, s.item())
 
@@ -481,7 +481,8 @@ def main(
             ),
         ),
         lambda_return.lambda_returns(args.gamma, args.gae_lambda),
-        device,
+        device=device,
+        ema_decay=args.ema_decay,
     )
 
     actions = npl.zeros(

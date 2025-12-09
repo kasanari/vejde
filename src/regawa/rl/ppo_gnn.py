@@ -447,19 +447,19 @@ def main(
 ):
     batch_size = int(args.num_envs * args.rollout_length)
     minibatch_size = int(batch_size // args.num_minibatches)
-    num_iterations = 0
+    num_rollouts = 0
 
     if args.total_timesteps:
-        num_iterations = args.total_timesteps // batch_size
+        num_rollouts = args.total_timesteps // batch_size
 
     if args.total_updates:
         inner_updates = (batch_size // minibatch_size) * args.update_epochs
         assert (
             args.total_updates % inner_updates == 0
         ), "total_updates must be multiple of (batch_size / minibatch_size) * update_epochs"
-        num_iterations = args.total_updates * inner_updates
+        num_rollouts = args.total_updates // inner_updates
 
-    pbar = tqdm(total=num_iterations)
+    pbar = tqdm(total=num_rollouts)
     checkpoint_period = args.checkpoint_period // batch_size
     start_time = time.time()
     artifact_name = None
@@ -468,7 +468,7 @@ def main(
         {
             "batch_size": batch_size,
             "minibatch_size": minibatch_size,
-            "num_iterations": num_iterations,
+            "num_iterations": num_rollouts,
         }
     )
 
@@ -489,7 +489,7 @@ def main(
         envs,
         optimizer,
         args.learning_rate,
-        num_iterations,
+        num_rollouts,
         rollout(agent, envs, args.rollout_length, args.num_envs, device),
         gae(args.rollout_length, args.gamma, args.gae_lambda, device),
         update_step(
@@ -540,7 +540,7 @@ def main(
     if args.track:
         wandb.watch(agent, log_freq=10, log="all")  # type: ignore
 
-    for iteration in range(1, num_iterations + 1):
+    for iteration in range(1, num_rollouts + 1):
         (
             r_data,
             u_data,

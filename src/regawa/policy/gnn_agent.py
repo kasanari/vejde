@@ -29,7 +29,7 @@ from regawa.embedding import (
 )
 from .agent_config import ActionMode, AgentConfig
 from abc import ABC, abstractmethod
-
+from regawa.policy.types import PolicyOutput
 
 class GraphAgentInterface(ABC):
     @abstractmethod
@@ -39,19 +39,19 @@ class GraphAgentInterface(ABC):
     def embed(self, data: HeteroBatchData) -> TorchFactorGraph: ...
 
     @abstractmethod
-    def forward(self, actions: Tensor, data: HeteroBatchData) -> tuple[Tensor, ...]: ...
+    def forward(self, actions: Tensor, data: HeteroBatchData) -> PolicyOutput: ...
 
     @abstractmethod
     def sample_from_obs(
         self,
         obs: HeteroObsData,
         deterministic: bool = False,
-    ) -> tuple[Tensor, ...]: ...
+    ) -> PolicyOutput: ...
 
     @abstractmethod
     def sample(
         self, data: HeteroBatchData, deterministic: bool = False
-    ) -> tuple[Tensor, ...]: ...
+    ) -> PolicyOutput: ...
 
     @abstractmethod
     def value(self, data: HeteroBatchData) -> Tensor: ...

@@ -12,6 +12,7 @@ from gnn_policy.functional import mask_logits, segment_sum
 from regawa.data.torch import TorchActionMask
 from regawa.functional import node_then_action_value_estimate
 from regawa.data import SparseTensor
+from .types import PolicyOutput
 
 PolicyFunc = Callable[
     [Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor],
@@ -42,7 +43,7 @@ class NodeThenActionPolicy(nn.Module):
         action_masks: TorchActionMask,
         n_nodes: Tensor,
         x: PolicyFunc,
-    ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
+    ) -> PolicyOutput:
         action_given_node_mask = action_masks.action_type_mask
         node_given_action_mask = action_masks.action_arity_mask.logical_and(
             action_masks.action_type_mask
@@ -73,7 +74,7 @@ class NodeThenActionPolicy(nn.Module):
             p_n,  # type: ignore
             partial(segment_sum, index=h.indices, num_segments=n_g),  # type: ignore
         )
-        return actions, logprob, entropy, value, p_n, p_a__n  # type: ignore
+        return PolicyOutput(actions, logprob, entropy, value, p_n, p_a__n)  # type: ignore
 
     # differentiable action evaluation
     def forward(

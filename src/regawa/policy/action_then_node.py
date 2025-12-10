@@ -18,6 +18,7 @@ from regawa.functional import (
     num_graphs,
 )
 from regawa.data import SparseTensor
+from .types import PolicyOutput
 
 PolicyFunc = Callable[
     [Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor],
@@ -90,7 +91,7 @@ class ActionThenNodePolicy(nn.Module):
             segsum,  # type: ignore
         )
 
-        return actions, logprob, entropy, value, p_a, p_n__a  # type: ignore
+        return PolicyOutput(actions, logprob, entropy, value, p_a, p_n__a)  # type: ignore
 
     # differentiable action evaluation
     def forward(

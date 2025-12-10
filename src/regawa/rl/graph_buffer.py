@@ -7,9 +7,9 @@ from torch import Tensor, as_tensor, device
 
 from regawa.data import (
     HeteroBatchData,
-    ObsData,
     heterostatedata_from_obslist_alt,
 )
+from regawa.data.obs import HeteroObsData
 from regawa.wrappers import n_actions
 
 V = TypeVar("V", np.float32, np.bool_, np.int64)
@@ -25,11 +25,10 @@ class ReplayBufferSamples(NamedTuple):
 
 def get_single_env(
     obs: dict[str, dict[str, tuple[Any, ...]]], i: int
-) -> dict[str, ObsData[V]]:
-    def _get_single_env(x):
-        return {k: v[i] for k, v in x.items()}
+) -> dict[str, HeteroObsData]:
 
-    return {k: _get_single_env(x) for k, x in obs.items()}
+
+    return obs[i]
 
 
 def get_by_type(t: str, buffer):
@@ -38,8 +37,8 @@ def get_by_type(t: str, buffer):
 
 
 class ReplayBuffer:
-    observations: list[tuple[ObsData]]
-    next_observations: list[tuple[ObsData]]
+    observations: list[tuple[HeteroObsData]]
+    next_observations: list[tuple[HeteroObsData]]
     actions: npt.NDArray[np.int32]
     rewards: npt.NDArray[np.float32]
     dones: npt.NDArray[np.float32]
@@ -85,8 +84,8 @@ class ReplayBuffer:
 
     def add(
         self,
-        obs: tuple[ObsData],
-        next_obs: tuple[ObsData],
+        obs: tuple[HeteroObsData],
+        next_obs: tuple[HeteroObsData],
         action: npt.NDArray[np.int32],
         reward: npt.NDArray[np.float32],
         done: npt.NDArray[np.float32],

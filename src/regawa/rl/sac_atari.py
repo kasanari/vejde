@@ -3,32 +3,41 @@
 import os
 import random
 import time
-from dataclasses import dataclass
+from typing import NamedTuple
 
-import ale_py
 import gymnasium as gym
+from gymnasium.spaces import Dict, MultiDiscrete
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from collections import deque
+from tqdm import tqdm
 import tyro
-from stable_baselines3.common.atari_wrappers import (
-    ClipRewardEnv,
-    EpisodicLifeEnv,
-    FireResetEnv,
-    MaxAndSkipEnv,
-    NoopResetEnv,
+
+import mlflow
+
+from gnn_policy.functional import segment_sum
+
+
+from regawa.data import (
+    heterostatedata,
+    heterostatedata_to_tensors,
 )
-from stable_baselines3.common.buffers import ReplayBuffer
-from torch.distributions.categorical import Categorical
-from torch.utils.tensorboard import SummaryWriter
 
-gym.register_envs(ale_py)
+from regawa.policy.q_agent.gnn_q_agent import GraphQAgent
+from regawa.rl.graph_buffer import ReplayBuffer
+from regawa import agent_from_env
+from regawa import GNNParams
 
 
-@dataclass
-class Args:
+class SACArgs(NamedTuple):
+    env_id: str
+    """the id of the environment"""
+    agent_class: str
+    """the agent class to use"""
+    agent_config: GNNParams
     exp_name: str = os.path.basename(__file__)[: -len(".py")]
     """the name of this experiment"""
     seed: int = 1
@@ -37,21 +46,17 @@ class Args:
     """if toggled, `torch.backends.cudnn.deterministic=False`"""
     cuda: bool = True
     """if toggled, cuda will be enabled by default"""
-    track: bool = False
-    """if toggled, this experiment will be tracked with Weights and Biases"""
-    wandb_project_name: str = "cleanRL"
-    """the wandb's project name"""
-    wandb_entity: str = None
-    """the entity (team) of wandb's project"""
-    capture_video: bool = False
-    """whether to capture videos of the agent performances (check out `videos` folder)"""
-
+    track: bool = True
+    mlflow_tracking_uri: str = ""
+    """the tracking uri for mlflow. If empty, mlflow will log locally"""
+    multiprocess: bool = False
+    """whether to use multiprocessed envs"""
+    num_envs: int = 8
+    """the number of parallel game environments"""
     # Algorithm specific arguments
-    env_id: str = "BeamRiderNoFrameskip-v4"
-    """the id of the environment"""
     total_timesteps: int = 5000000
     """total timesteps of the experiments"""
-    buffer_size: int = int(1e6)
+    buffer_size: int = int(100)
     """the replay memory buffer size"""  # smaller than in original paper but evaluation is done only for 100k steps anyway
     gamma: float = 0.99
     """the discount factor gamma"""
@@ -59,7 +64,7 @@ class Args:
     """target smoothing coefficient (default: 1)"""
     batch_size: int = 64
     """the batch size of sample from the reply memory"""
-    learning_starts: int = 1
+    learning_starts: int = 0
     """timestep to start learning"""
     policy_lr: float = 3e-4
     """the learning rate of the policy network optimizer"""
@@ -75,6 +80,10 @@ class Args:
     """automatic tuning of the entropy coefficient"""
     target_entropy_scale: float = 0.89
     """coefficient for scaling the autotune entropy target"""
+    weight_decay: float = 0.0
+    """weight decay for optimizers"""
+    debug: bool = False
+    """whether to run in debug mode"""
 
 
 def make_env(
@@ -111,23 +120,13 @@ poetry run pip install "stable_baselines3==2.0.0a1" "gymnasium[atari,accept-rom-
     args = tyro.cli(Args)
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
     if args.track:
-        import wandb
-
-        wandb.init(
-            project=args.wandb_project_name,
-            entity=args.wandb_entity,
-            sync_tensorboard=True,
-            config=vars(args),
-            name=run_name,
-            monitor_gym=True,
-            save_code=True,
-        )
-    writer = SummaryWriter(f"runs/{run_name}")
-    writer.add_text(
-        "hyperparameters",
-        "|param|value|\n|-|-|\n%s"
-        % ("\n".join([f"|{key}|{value}|" for key, value in vars(args).items()])),
-    )
+        mlflow.enable_system_metrics_logging()
+        mlflow.set_tracking_uri(uri=args.mlflow_tracking_uri)
+        try:
+            mlflow.create_experiment(run_name)
+        except mlflow.MlflowException:
+            pass
+        mlflow.set_experiment(run_name)
 
     # TRY NOT TO MODIFY: seeding
     random.seed(args.seed)
@@ -137,8 +136,10 @@ poetry run pip install "stable_baselines3==2.0.0a1" "gymnasium[atari,accept-rom-
 
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
+    pbar = tqdm(range(args.total_timesteps), dynamic_ncols=True)
+
     # env setup
-    envs = (
+    envs: gym.vector.VectorEnv = (
         gym.vector.AsyncVectorEnv(
             [
                 make_env(
@@ -188,23 +189,23 @@ poetry run pip install "stable_baselines3==2.0.0a1" "gymnasium[atari,accept-rom-
         envs.single_observation_space,
         envs.single_action_space,
         device,
-        handle_timeout_termination=False,
         seed=args.seed,
+        n_envs=args.num_envs,
     )
     start_time = time.time()
     returns: deque[float] = deque()
     lengths: deque[int] = deque()
 
-    # TRY NOT TO MODIFY: start the game
     obs, _ = envs.reset(seed=args.seed)
     for global_step in range(args.total_timesteps):
-        # ALGO LOGIC: put action logic here
         if global_step < args.learning_starts:
             actions = np.array(
                 [envs.single_action_space.sample() for _ in range(envs.num_envs)]
             )
         else:
-            actions, _, _ = actor.get_action(torch.Tensor(obs).to(device))
+            actions, *_ = actor.sample(
+                heterostatedata_to_tensors(heterostatedata(obs), device=device)
+            )
             actions = actions.detach().cpu().numpy()
 
         # TRY NOT TO MODIFY: execute the game and log data.
@@ -217,6 +218,9 @@ poetry run pip install "stable_baselines3==2.0.0a1" "gymnasium[atari,accept-rom-
                     if f:
                         returns.append(r)
                         lengths.append(length)
+
+        dones = np.logical_or(terminations, truncations)
+        rb.add(obs, next_obs, actions, rewards, dones, infos)
 
         # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
         obs = next_obs
@@ -297,27 +301,41 @@ poetry run pip install "stable_baselines3==2.0.0a1" "gymnasium[atari,accept-rom-
                     )
 
             if global_step % 100 == 0:
-                writer.add_scalar(
-                    "losses/qf1_values", qf1_a_values.mean().item(), global_step
+                mlflow.log_param(
+                    "agent/qf1_values", qf1_a_values.mean().item(), global_step
                 )
-                writer.add_scalar(
-                    "losses/qf2_values", qf2_a_values.mean().item(), global_step
+                mlflow.log_param(
+                    "agent/qf2_values", qf2_a_values.mean().item(), global_step
                 )
-                writer.add_scalar("losses/qf1_loss", qf1_loss.item(), global_step)
-                writer.add_scalar("losses/qf2_loss", qf2_loss.item(), global_step)
-                writer.add_scalar("losses/qf_loss", qf_loss.item() / 2.0, global_step)
-                writer.add_scalar("losses/actor_loss", actor_loss.item(), global_step)
-                writer.add_scalar("losses/alpha", alpha, global_step)
-                print("SPS:", int(global_step / (time.time() - start_time)))
-                writer.add_scalar(
+                mlflow.log_param("losses/qf1_loss", qf1_loss.item(), global_step)
+                mlflow.log_param("losses/qf2_loss", qf2_loss.item(), global_step)
+                mlflow.log_param("losses/qf_loss", qf_loss.item() / 2.0, global_step)
+                mlflow.log_param("losses/actor_loss", actor_loss.item(), global_step)
+                mlflow.log_param("losses/alpha", alpha, global_step)
+                # tw("SPS:", int(global_step / (time.time() - start_time)))
+                pbar.update(100)
+                avg_episodic_return = (
+                    sum(returns) / len(returns) if len(returns) > 0 else 0.0
+                )
+                avg_episodic_length = (
+                    sum(lengths) / len(lengths) if len(lengths) > 0 else 0.0
+                )
+                pbar.set_description(
+                    f"Step: {global_step}, R: {avg_episodic_return.item():.2f}, L: {avg_episodic_length.item():.2f}"
+                )
+                mlflow.log_param(
                     "charts/SPS",
                     int(global_step / (time.time() - start_time)),
                     global_step,
                 )
                 if args.autotune:
-                    writer.add_scalar(
+                    mlflow.log_param(
                         "losses/alpha_loss", alpha_loss.item(), global_step
                     )
 
     envs.close()
-    writer.close()
+
+
+if __name__ == "__main__":
+    args: SACArgs = tyro.cli(SACArgs)
+    train(args)

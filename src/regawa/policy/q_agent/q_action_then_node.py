@@ -2,7 +2,7 @@ from torch import Tensor, nn
 
 from gnn_policy.functional import segment_sum  # type: ignore
 from regawa.functional import num_graphs
-from regawa.gnn import SparseTensor
+from regawa.data import SparseTensor
 
 
 class QActionThenNode(nn.Module):

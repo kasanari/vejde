@@ -81,10 +81,9 @@ def to_dict_action(
     """
     action_fluent = predicate(action)
     num_params = len(fluent_params(action_fluent))
-    is_nop = action_fluent == NullConst.action
     action_arity = len(fluent_params(action_fluent))
     
-    if is_nop:
+    if action_fluent == NullConst.action:
         return {}
     
     if action_arity == 0:
@@ -98,7 +97,7 @@ def to_dict_action(
 
     a = (action_fluent, *objects(action)[:num_params]) if has_valid_param else (NullConst.action, NullConst.id)
 
-    action_dict = {} if is_nop else {a: np.bool_(True)}
+    action_dict = {} if action_fluent == NullConst.action else {a: np.bool_(True)}
 
     return action_dict
 

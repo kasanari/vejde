@@ -202,12 +202,26 @@ poetry run pip install "stable_baselines3==2.0.0a1" "gymnasium[atari,accept-rom-
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
     # env setup
-    envs = gym.vector.SyncVectorEnv(
-        [make_env(args.env_id, args.seed, 0, args.capture_video, run_name)]
+    envs = (
+        gym.vector.AsyncVectorEnv(
+            [
+                make_env(
+                    args.env_id,
+                )
+                for _ in range(args.num_envs)
+            ],
+            shared_memory=False,
+        )
+        if args.multiprocess
+        else gym.vector.SyncVectorEnv(
+            [
+                make_env(
+                    args.env_id,
+                )
+                for _ in range(args.num_envs)
+            ]
     )
-    assert isinstance(
-        envs.single_action_space, gym.spaces.Discrete
-    ), "only discrete action space is supported"
+    )
 
     actor = Actor(envs).to(device)
     qf1 = SoftQNetwork(envs).to(device)

@@ -24,7 +24,7 @@ from .wrappers.render_utils import to_graphviz
 from gymnasium.vector import SyncVectorEnv, AsyncVectorEnv
 from typing import Literal
 from regawa.policy.q_agent.gnn_q_agent import GraphQAgent
-
+import torch
 _agent_classes = [GraphAgent, RecurrentGraphAgent, GraphQAgent]
 agent_classes = {
     cls.__name__: cls for cls in _agent_classes
@@ -36,7 +36,7 @@ def agent_from_env(
     | gym.vector.SyncVectorEnv
     | gym.vector.AsyncVectorEnv,
     params: GNNParams,
-    device: str = "cpu",
+    device: str | torch.device = "cpu",
 ):
     agent_class: type[GraphAgentInterface] = agent_classes[agent_class_type]
     obs_space, action_space = (

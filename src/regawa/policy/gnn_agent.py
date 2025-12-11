@@ -8,6 +8,7 @@ from torch import Tensor
 from regawa.data import TorchFactorGraph, heterostatedata_to_tensors
 from regawa.data import HeteroObsData
 
+from regawa.data.torch import TorchHeteroBatchData
 from regawa.embedding import (
     NegativeBiasBooleanEmbedder,
     NumericEmbedder,
@@ -50,7 +51,7 @@ class GraphAgentInterface(ABC):
 
     @abstractmethod
     def sample(
-        self, data: HeteroBatchData, deterministic: bool = False
+        self, data: TorchHeteroBatchData, deterministic: bool = False
     ) -> PolicyOutput: ...
 
     @abstractmethod
@@ -175,7 +176,7 @@ class GraphAgent(nn.Module, GraphAgentInterface):
         s = heterostatedata_to_tensors(s, device=self.device)
         return self.sample(s, deterministic=deterministic)
 
-    def sample(self, data: HeteroBatchData, deterministic: bool = False):
+    def sample(self, data: TorchHeteroBatchData, deterministic: bool = False):
         fg = self.embed(data)
         return self.policy.sample(
             fg.factors,

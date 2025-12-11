@@ -1,4 +1,3 @@
-# type: ignore
 # docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/sac/#sac_ataripy
 import os
 import random
@@ -14,6 +13,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from collections import deque
 from tqdm import tqdm
+from regawa.data.torch import SparseTensor
 from regawa.rl.sac import (
     sac_action_then_node_entropy,
     sac_action_then_node_value_estimate,
@@ -21,7 +21,7 @@ from regawa.rl.sac import (
 )
 import tyro
 from functools import partial
-
+from numpy.typing import NDArray
 import mlflow
 
 from gnn_policy.functional import (
@@ -39,10 +39,15 @@ from regawa.data import (
 )
 
 from regawa.policy.q_agent.gnn_q_agent import GraphQAgent
-from regawa.rl.graph_buffer import ReplayBuffer
+from regawa.rl.graph_buffer import ReplayBuffer, ReplayBufferSamples
 from regawa import agent_from_env
-from regawa import GNNParams
+from regawa import GNNParams, GraphAgent
 from regawa.policy.q_agent.q_value import QValue
+from regawa.policy.types import PolicyOutput
+
+from regawa.data.torch import TorchHeteroBatchData
+from regawa.policy.gnn_agent import GraphAgentInterface
+
 
 class SACArgs(NamedTuple):
     env_id: str
@@ -111,7 +116,7 @@ def make_env(
     return thunk
 
 
-def layer_init(layer, bias_const=0.0):
+def layer_init(layer: nn.Linear, bias_const: float = 0.0):
     nn.init.kaiming_normal_(layer.weight)
     torch.nn.init.constant_(layer.bias, bias_const)
     return layer
@@ -119,22 +124,211 @@ def layer_init(layer, bias_const=0.0):
 
 class DoubleQNetwork(nn.Module):
     def __init__(self, a1: GraphQAgent, a2: GraphQAgent):
-        super(DoubleQNetwork, self).__init__()
+        super(DoubleQNetwork, self).__init__()  # type: ignore
         self.q1 = a1
         self.q2 = a2
 
     def forward(
         self,
-        obs: HeteroBatchData,
+        obs: TorchHeteroBatchData,
     ) -> tuple[QValue, QValue]:
         return (self.q1(obs), self.q2(obs))
 
-    def min(self, obs: HeteroBatchData) -> QValue:
+    def min(self, obs: TorchHeteroBatchData) -> QValue:
         q1_values, q2_values = self.forward(obs)
         return q1_values.min(q2_values)
 
 
-def train(args: SACArgs) -> None:
+@torch.no_grad()  # type: ignore
+def get_next_q_value(
+    actor: GraphAgentInterface,
+    target_net: DoubleQNetwork,
+    data: ReplayBufferSamples,
+    alpha: float,
+    gamma: float,
+) -> torch.Tensor:
+    next_obs_as_tensor = heterostatedata_to_tensors(data.next_observations)
+    x = actor.sample(next_obs_as_tensor)
+
+    target_q_next = target_net.min(next_obs_as_tensor)
+    assert isinstance(x.p_a1, torch.Tensor)
+    assert isinstance(x.p_a2, SparseTensor)
+    assert isinstance(target_q_next.q2, SparseTensor)
+    log_p_a = torch.log(x.p_a1)
+    log_p_n__a = x.p_a2.map(lambda x: torch.log(x + 1e-10))
+    # we can use the action probabilities instead of MC sampling to estimate the expectation
+    vf_target = sac_action_then_node_value_estimate(
+        x.p_a2,
+        target_q_next.q2,
+        x.p_a1,
+        log_p_a,
+        log_p_n__a,
+        alpha,
+        n_graphs=int(data.next_observations.n_graphs),
+    )
+    next_q_value = (
+        data.rewards.flatten() + (1 - data.dones.flatten()) * gamma * vf_target
+    )
+    return next_q_value
+
+
+def update_q_net(
+    obs: TorchHeteroBatchData,
+    actions: torch.Tensor,
+    q_net: DoubleQNetwork,
+    q_optimizer: optim.Optimizer,
+    next_q_value: torch.Tensor,
+    device: torch.device,
+):
+    # use Q-values only for the taken actions
+
+    qs = q_net.forward(obs)
+
+    _, data_starts = data_splits_and_starts(obs.n_factor)
+
+    def q_loss(q_values: QValue) -> torch.Tensor:
+        assert isinstance(q_values.q2, SparseTensor)
+        # q values for all nodes given action a
+        q_action = node_logits_given_action(
+            q_values.q2.values, actions[:, 0], q_values.q2.indices
+        )
+        # one q value per graph, for the taken node action
+        q_action = segmented_gather(q_action, actions[:, 1], data_starts)
+        return F.mse_loss(q_action, next_q_value)
+
+    qf_loss = torch.sum(torch.stack([q_loss(q) for q in qs]))
+
+    q_optimizer.zero_grad()
+    qf_loss.backward()  # type: ignore
+    q_optimizer.step()
+    return qf_loss
+
+
+def update_actor(
+    actor: GraphAgentInterface,
+    q_net: DoubleQNetwork,
+    obs_as_tensor: TorchHeteroBatchData,
+    alpha: float,
+    actor_optimizer: optim.Optimizer,
+):
+    x = actor.sample(obs_as_tensor)
+    with torch.no_grad():
+        qf_values = q_net.min(obs_as_tensor)
+    # no need for reparameterization, the expectation can be calculated for discrete actions
+    assert isinstance(x.p_a1, torch.Tensor)
+    assert isinstance(x.p_a2, SparseTensor)
+    assert isinstance(qf_values.q2, SparseTensor)
+    assert isinstance(x.p_a1, torch.Tensor)
+    actor_loss = sac_action_then_node_policy_loss(
+        x.p_a2,
+        qf_values.q2,
+        x.p_a1,
+        torch.log(x.p_a1),
+        x.p_a2.map(lambda x: torch.log(x + 1e-10)),
+        alpha,
+        num_graphs=int(obs_as_tensor.n_graphs),
+    )
+
+    actor_optimizer.zero_grad()
+    actor_loss.backward()  # type: ignore
+    actor_optimizer.step()
+    return x, qf_values, actor_loss
+
+
+def update_alpha(
+    policy_output: PolicyOutput,
+    log_alpha: torch.Tensor,
+    a_optimizer: optim.Optimizer,
+    target_a: torch.Tensor,
+    n_factor: torch.Tensor,
+    n_graphs: int,
+    target_entropy_scale: float,
+) -> tuple[float, torch.Tensor]:
+    # re-use action probabilities for temperature loss
+    assert isinstance(policy_output.p_a2, SparseTensor)
+    batch_index = policy_output.p_a2.indices
+    target_p = -target_entropy_scale * torch.log(1 / n_factor)
+    target_p = target_p[batch_index].unsqueeze(-1)
+    assert isinstance(policy_output.p_a1, torch.Tensor)
+    assert isinstance(log_alpha, torch.Tensor)
+    assert isinstance(batch_index, torch.Tensor)
+
+    alpha_loss = sac_action_then_node_entropy(
+        policy_output.p_a2,
+        policy_output.p_a1,
+        torch.log(policy_output.p_a1),
+        policy_output.p_a2.map(lambda x: torch.log(x + 1e-10)),
+        log_alpha,
+        target_a,
+        target_p,
+        n_graphs,
+    )
+
+    a_optimizer.zero_grad()
+    alpha_loss.backward()  # type: ignore
+    a_optimizer.step()
+    alpha = log_alpha.exp().item()
+    return alpha, alpha_loss
+
+
+class UpdateModelsOutput(NamedTuple):
+    new_alpha: float
+    alpha_loss: torch.Tensor
+    actor_loss: torch.Tensor
+    qf_loss: torch.Tensor
+
+
+def update_models(
+    data: ReplayBufferSamples,
+    actor: GraphAgentInterface,
+    log_alpha: torch.Tensor | None,
+    target_q_net: DoubleQNetwork,
+    q_net: DoubleQNetwork,
+    alpha: float,
+    device: torch.device,
+    target_a: torch.Tensor,
+    q_optimizer: optim.Optimizer,
+    actor_optimizer: optim.Optimizer,
+    alpha_optimizer: optim.Optimizer | None,
+    gamma: float,
+    target_entropy_scale: float,
+) -> UpdateModelsOutput:
+    obs_as_tensor = heterostatedata_to_tensors(data.observations, device=device)
+    next_q_value = get_next_q_value(actor, target_q_net, data, alpha, gamma)
+
+    # CRITIC training
+    qf_loss = update_q_net(
+        obs_as_tensor, data.actions.long(), q_net, q_optimizer, next_q_value, device
+    )
+
+    # ACTOR training
+    policy_output, qf_values, actor_loss = update_actor(
+        actor,
+        q_net,
+        obs_as_tensor,
+        alpha,
+        actor_optimizer,
+    )
+
+    # ALPHA training
+    if log_alpha is not None and alpha_optimizer is not None:
+        new_alpha, alpha_loss = update_alpha(
+            policy_output,
+            log_alpha,
+            alpha_optimizer,
+            target_a,
+            obs_as_tensor.n_factor,
+            obs_as_tensor.n_graphs,
+            target_entropy_scale,
+        )
+    else:
+        new_alpha = alpha
+        alpha_loss = torch.tensor(0.0)
+
+    return UpdateModelsOutput(new_alpha, alpha_loss, actor_loss, qf_loss)
+
+
+def train(args: SACArgs) -> GraphAgentInterface:
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
     if args.track:
         mlflow.enable_system_metrics_logging()
@@ -148,7 +342,7 @@ def train(args: SACArgs) -> None:
     # TRY NOT TO MODIFY: seeding
     random.seed(args.seed)
     np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
+    torch.manual_seed(args.seed)  # type: ignore
     torch.backends.cudnn.deterministic = args.torch_deterministic
 
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
@@ -156,7 +350,9 @@ def train(args: SACArgs) -> None:
     pbar = tqdm(range(args.total_timesteps), dynamic_ncols=True)
 
     # env setup
-    envs: gym.vector.VectorEnv = (
+    envs: gym.vector.VectorEnv[
+        HeteroBatchData, NDArray[np.int64], NDArray[np.int64]
+    ] = (
         gym.vector.AsyncVectorEnv(
             [
                 make_env(
@@ -196,6 +392,8 @@ def train(args: SACArgs) -> None:
         a_optimizer = optim.Adam([log_alpha], lr=args.q_lr, eps=1e-4)
     else:
         alpha = args.alpha
+        log_alpha = None
+        a_optimizer = None
 
     rb = ReplayBuffer(
         args.buffer_size,
@@ -208,6 +406,11 @@ def train(args: SACArgs) -> None:
     start_time = time.time()
     returns: deque[float] = deque()
     lengths: deque[int] = deque()
+
+    # Since the number of actions per node is constant, we can precompute the target entropy
+    target_a = -args.target_entropy_scale * torch.log(
+        1 / torch.tensor(envs.single_action_space.nvec[0])
+    )
 
     obs, _ = envs.reset(seed=args.seed)
     for global_step in range(args.total_timesteps):
@@ -238,116 +441,33 @@ def train(args: SACArgs) -> None:
         # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
         obs = next_obs
 
+        update_data = UpdateModelsOutput(
+            new_alpha=alpha,
+            alpha_loss=torch.tensor(0.0),
+            actor_loss=torch.tensor(0.0),
+            qf_loss=torch.tensor(0.0),
+        )
+
         # ALGO LOGIC: training.
         if global_step > args.learning_starts:
             if global_step % args.update_frequency == 0:
                 data = rb.sample(args.batch_size)
-                # CRITIC training
-                with torch.no_grad():
-                    next_obs_as_tensor = heterostatedata_to_tensors(
-                        data.next_observations
-                    )
-                    x = actor.sample(next_obs_as_tensor)
-
-                    target_q_next = target_net.min(next_obs_as_tensor)
-                    log_p_a = torch.log(x.p_a1)
-                    log_p_n__a = torch.log(x.p_a2 + 1e-10)
-                    # we can use the action probabilities instead of MC sampling to estimate the expectation
-                    vf_target = sac_action_then_node_value_estimate(
-                        x.p_a2,
-                        target_q_next.q2.values,
-                        x.p_a1,
-                        log_p_a,
-                        log_p_n__a,
-                        alpha,
-                        partial(
-                            segment_sum,
-                            index=target_q_next.q2.indices,
-                            num_segments=data.next_observations.n_graphs,
-                        ),
-                    )
-                    next_q_value = (
-                        data.rewards.flatten()
-                        + (1 - data.dones.flatten()) * args.gamma * vf_target
-                    )
-
-                # use Q-values only for the taken actions
-                obs_as_tensor = heterostatedata_to_tensors(
-                    data.observations, device=device
-                )
-                qs = q_net.forward(obs_as_tensor)
-
-                _, data_starts = data_splits_and_starts(obs_as_tensor.n_factor)
-
-                def q_loss(q_values: QValue) -> torch.Tensor:
-                    a = data.actions.long()
-                    # q values for all nodes given action a
-                    q_action = node_logits_given_action(
-                        q_values.q2.values, a[:, 0], q_values.q2.indices
-                    )
-                    # one q value per graph, for the taken node action
-                    q_action = segmented_gather(q_action, a[:, 1], data_starts)
-                    return F.mse_loss(q_action, next_q_value)
-
-                qf_loss = torch.sum(torch.stack([q_loss(q) for q in qs]))
-
-                q_optimizer.zero_grad()
-                qf_loss.backward()
-                q_optimizer.step()
-
-                # ACTOR training
-                x = actor.sample(obs_as_tensor)
-                with torch.no_grad():
-                    qf_values = q_net.min(obs_as_tensor)
-                # no need for reparameterization, the expectation can be calculated for discrete actions
-                actor_loss = sac_action_then_node_policy_loss(
-                    x.p_a2,
-                    qf_values.q2.values,
-                    x.p_a1,
-                    torch.log(x.p_a1),
-                    torch.log(x.p_a2 + 1e-10),
+                update_data = update_models(
+                    data,
+                    actor,
+                    log_alpha,
+                    target_net,
+                    q_net,
                     alpha,
-                    partial(
-                        segment_sum,
-                        index=qf_values.q2.indices,
-                        num_segments=obs_as_tensor.n_graphs,
-                    ),
+                    device,
+                    target_a,
+                    q_optimizer,
+                    actor_optimizer,
+                    a_optimizer,
+                    args.gamma,
+                    args.target_entropy_scale,
                 )
-
-                actor_optimizer.zero_grad()
-                actor_loss.backward()
-                actor_optimizer.step()
-
-                if args.autotune:
-                    # re-use action probabilities for temperature loss
-                    batch_idx = qf_values.q2.indices
-                    target_p = -args.target_entropy_scale * torch.log(
-                        1 / obs_as_tensor.boolean.factor.n_factor
-                    )
-                    target_p = target_p[batch_idx].unsqueeze(-1)
-                    target_a = -args.target_entropy_scale * torch.log(
-                        1 / torch.tensor(envs.single_action_space.nvec[0])
-                    )
-
-                    alpha_loss = sac_action_then_node_entropy(
-                        x.p_a2,
-                        x.p_a1,
-                        torch.log(x.p_a1),
-                        torch.log(x.p_a2 + 1e-10),
-                        log_alpha,
-                        target_a,
-                        target_p,
-                        partial(
-                            segment_sum,
-                            index=qf_values.q2.indices,
-                            num_segments=obs_as_tensor.n_graphs,
-                        ),
-                    )
-
-                    a_optimizer.zero_grad()
-                    alpha_loss.backward()
-                    a_optimizer.step()
-                    alpha = log_alpha.exp().item()
+                alpha = update_data.new_alpha
 
             # update the target networks
             if global_step % args.target_network_frequency == 0:
@@ -366,8 +486,12 @@ def train(args: SACArgs) -> None:
                 #     "agent/qf2_values", qf2_a_values.mean().item(), global_step
                 # )
 
-                mlflow.log_metric("losses/qf_loss", qf_loss.item() / 2.0, global_step)
-                mlflow.log_metric("losses/actor_loss", actor_loss.item(), global_step)
+                mlflow.log_metric(
+                    "losses/qf_loss", update_data.qf_loss.item() / 2.0, global_step
+                )
+                mlflow.log_metric(
+                    "losses/actor_loss", update_data.actor_loss.item(), global_step
+                )
                 mlflow.log_metric("losses/alpha", alpha, global_step)
                 # tw("SPS:", int(global_step / (time.time() - start_time)))
                 pbar.update(100)
@@ -378,7 +502,7 @@ def train(args: SACArgs) -> None:
                     sum(lengths) / len(lengths) if len(lengths) > 0 else 0.0
                 )
                 pbar.set_description(
-                    f"Step: {global_step}, R: {avg_episodic_return.item():.2f}, L: {avg_episodic_length.item():.2f}"
+                    f"Step: {global_step}, R: {avg_episodic_return:.2f}, L: {avg_episodic_length:.2f}"
                 )
                 mlflow.log_metric(
                     "charts/SPS",
@@ -387,22 +511,22 @@ def train(args: SACArgs) -> None:
                 )
                 mlflow.log_metric(
                     "charts/avg_episodic_return",
-                    avg_episodic_return.item(),
+                    avg_episodic_return,
                     global_step,
                 )
                 mlflow.log_metric(
                     "charts/avg_episodic_length",
-                    avg_episodic_length.item(),
+                    avg_episodic_length,
                     global_step,
                 )
                 if args.autotune:
                     mlflow.log_metric(
-                        "losses/alpha_loss", alpha_loss.item(), global_step
+                        "losses/alpha_loss", update_data.alpha_loss.item(), global_step
                     )
 
     envs.close()
+    return actor
 
 
 if __name__ == "__main__":
-    args: SACArgs = tyro.cli(SACArgs)
-    train(args)
+    train(tyro.cli(SACArgs))

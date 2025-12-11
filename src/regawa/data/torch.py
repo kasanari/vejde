@@ -24,8 +24,8 @@ from .sparse import SparseArray
 
 def heterostatedata_to_tensors(
     data: HeteroBatchData, device: str | torch.device = "cpu"
-) -> HeteroBatchData:
-    return HeteroBatchData(
+) -> TorchHeteroBatchData:
+    return TorchHeteroBatchData(
         statedata_to_tensors(data.boolean, device),
         statedata_to_tensors(data.numeric, device),
     )
@@ -74,6 +74,10 @@ class TorchHeteroBatchData(NamedTuple):
     @property
     def n_graphs(self) -> int:
         return self.boolean.n_graphs
+
+    @property
+    def n_factor(self) -> LongTensor:
+        return self.boolean.factor.n_factor
 
 
 class TorchEdges(NamedTuple):

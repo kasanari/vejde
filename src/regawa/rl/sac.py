@@ -9,6 +9,7 @@ def sac_action_then_node_policy_loss(
     p_n__a: SparseTensor[FloatTensor],  # p(n|a)
     q_n__a: SparseTensor[FloatTensor],  # Q(n|a)
     p_a: Tensor,  # p(a)
+    q_a: Tensor,  # Q(a)
     logp_a: Tensor,  # log p(a)
     logp_n__a: SparseTensor[FloatTensor],  # log p(n|a)
     alpha: float,  # entropy coefficient
@@ -21,7 +22,7 @@ def sac_action_then_node_policy_loss(
         (
             p_a
             * (
-                (alpha * logp_a)
+                (alpha * logp_a - q_a)
                 + segsum((alpha * logp_n__a.values - q_n__a.values) * p_n__a.values)
             )
         )
@@ -77,6 +78,7 @@ def sac_action_then_node_value_estimate(
     p_n__a: SparseTensor[FloatTensor],  # p(n|a)
     q_n__a: SparseTensor[FloatTensor],  # Q(n|a)
     p_a: Tensor,  # p(a)
+    q_a: Tensor,  # Q(a)
     logp_a: Tensor,  # log p(a)
     logp_n__a: SparseTensor[FloatTensor],  # log p(n|a)
     alpha: float,  # entropy coefficient
@@ -89,7 +91,7 @@ def sac_action_then_node_value_estimate(
     return (
         p_a
         * (
-            (-alpha * logp_a)
+            (q_a - alpha * logp_a)
             + segsum((q_n__a.values - alpha * logp_n__a.values) * p_n__a.values)
         )
     ).sum(ACTION_DIM)  # type: ignore

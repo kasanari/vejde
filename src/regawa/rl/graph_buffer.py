@@ -7,7 +7,7 @@ from torch import Tensor, as_tensor, device
 
 from regawa.data import (
     HeteroBatchData,
-    heterostatedata_from_obslist_alt,
+    heterostatedata_from_obslist,
 )
 from regawa.data.obs import HeteroObsData
 from regawa.wrappers import n_actions
@@ -129,20 +129,14 @@ class ReplayBuffer:
         next_obs = (
             self.observations[(batch_inds + 1) % self.buffer_size][env_indices]
             if self.optimize_memory_usage
-            else heterostatedata_from_obslist_alt(
-                [
-                    get_single_env(self.next_observations[b], e)
-                    for b, e in zip(batch_inds, env_indices)
-                ]
+            else heterostatedata_from_obslist(
+                [self.next_observations[b][e] for b, e in zip(batch_inds, env_indices)]
             )
         )
 
         data = ReplayBufferSamples(
-            heterostatedata_from_obslist_alt(
-                [
-                    get_single_env(self.observations[b], e)
-                    for b, e in zip(batch_inds, env_indices)
-                ]
+            heterostatedata_from_obslist(
+                [self.observations[b][e] for b, e in zip(batch_inds, env_indices)]
             ),
             next_obs,
             as_tensor(self.actions[batch_inds, env_indices, :]),

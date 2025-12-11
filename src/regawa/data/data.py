@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections.abc import Iterable
 import json
 from itertools import chain
 
@@ -38,7 +39,7 @@ attrs_from_obs = [
 
 
 def heterostatedata(
-    obs: list[HeteroObsData],
+    obs: Iterable[HeteroObsData],
 ) -> HeteroBatchData:
     return HeteroBatchData(
         boolean=batch([o.bool for o in obs]),
@@ -73,17 +74,7 @@ def heterostatedata_from_buffer(
     )
 
 
-def heterostatedata_from_obslist(obs: list[HeteroObsData]) -> HeteroBatchData:
-    boolean_data = list([d.bool for d in obs])
-    numeric_data = list([d.float for d in obs])
-
-    return HeteroBatchData(
-        boolean=batch(boolean_data),
-        numeric=batch(numeric_data),
-    )
-
-
-def heterostatedata_from_obslist_alt(obs: list[HeteroObsData]) -> HeteroBatchData:
+def heterostatedata_from_obslist(obs: Iterable[HeteroObsData]) -> HeteroBatchData:
     boolean_data = [d.bool for d in obs]
     numeric_data = [d.float for d in obs]
 

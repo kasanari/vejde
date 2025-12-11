@@ -5,7 +5,7 @@ from .batch import BatchData, HeteroBatchData
 from .torch import TorchFactorGraph, SparseTensor, sparsify, heterostatedata_to_tensors
 from .data import (
     heterostatedata,
-    heterostatedata_from_obslist_alt,
+    heterostatedata_from_obslist,
     single_obs_to_heterostatedata,
 )
 from .rollout import Rollout, RolloutCollector
@@ -32,7 +32,7 @@ __all__ = [
     "Variables",
     "Rollout",
     "RolloutCollector",
-    "heterostatedata_from_obslist_alt",
+    "heterostatedata_from_obslist",
     "BatchData",
     "single_obs_to_heterostatedata",
     "sparsify",

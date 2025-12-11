@@ -157,13 +157,14 @@ def get_next_q_value(
     assert isinstance(x.p_a1, torch.Tensor)
     assert isinstance(x.p_a2, SparseTensor)
     assert isinstance(target_q_next.q2, SparseTensor)
+    assert isinstance(target_q_next.q1, torch.Tensor)
     log_p_a = torch.log(x.p_a1)
     log_p_n__a = x.p_a2.map(lambda x: torch.log(x + 1e-10))
-    # we can use the action probabilities instead of MC sampling to estimate the expectation
     vf_target = sac_action_then_node_value_estimate(
         x.p_a2,
         target_q_next.q2,
         x.p_a1,
+        target_q_next.q1,
         log_p_a,
         log_p_n__a,
         alpha,
@@ -221,11 +222,13 @@ def update_actor(
     assert isinstance(x.p_a1, torch.Tensor)
     assert isinstance(x.p_a2, SparseTensor)
     assert isinstance(qf_values.q2, SparseTensor)
+    assert isinstance(qf_values.q1, torch.Tensor)
     assert isinstance(x.p_a1, torch.Tensor)
     actor_loss = sac_action_then_node_policy_loss(
         x.p_a2,
         qf_values.q2,
         x.p_a1,
+        qf_values.q1,
         torch.log(x.p_a1),
         x.p_a2.map(lambda x: torch.log(x + 1e-10)),
         alpha,
@@ -502,6 +505,8 @@ def train(args: SACArgs) -> GraphAgentInterface:
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)  # type: ignore
     torch.backends.cudnn.deterministic = args.torch_deterministic
+
+    mlflow.log_params(args._asdict())
 
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 

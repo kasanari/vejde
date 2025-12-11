@@ -14,7 +14,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from collections import deque
 from tqdm import tqdm
-from regawa.sac import (
+from regawa.rl.sac import (
     sac_action_then_node_entropy,
     sac_action_then_node_value_estimate,
     sac_action_then_node_policy_loss,

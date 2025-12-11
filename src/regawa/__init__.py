@@ -23,12 +23,15 @@ import gymnasium as gym
 from .wrappers.render_utils import to_graphviz
 from gymnasium.vector import SyncVectorEnv, AsyncVectorEnv
 from typing import Literal
+from regawa.policy.q_agent.gnn_q_agent import GraphQAgent
 
-agent_classes = {"GraphAgent": GraphAgent, "RecurrentGraphAgent": RecurrentGraphAgent}
-
+_agent_classes = [GraphAgent, RecurrentGraphAgent, GraphQAgent]
+agent_classes = {
+    cls.__name__: cls for cls in _agent_classes
+}
 
 def agent_from_env(
-    agent_class_type: Literal["GraphAgent", "RecurrentGraphAgent"],
+    agent_class_type: Literal["GraphAgent", "RecurrentGraphAgent", "GraphQAgent"],
     env: gym.Env[HeteroObsData, MultiDiscrete]
     | gym.vector.SyncVectorEnv
     | gym.vector.AsyncVectorEnv,

@@ -14,23 +14,35 @@ import torch.nn.functional as F
 import torch.optim as optim
 from collections import deque
 from tqdm import tqdm
+from regawa.sac import (
+    sac_action_then_node_entropy,
+    sac_action_then_node_value_estimate,
+    sac_action_then_node_policy_loss,
+)
 import tyro
+from functools import partial
 
 import mlflow
 
-from gnn_policy.functional import segment_sum
+from gnn_policy.functional import (
+    segment_sum,
+    segmented_gather,
+    data_splits_and_starts,
+    node_logits_given_action,
+)
 
 
 from regawa.data import (
     heterostatedata,
     heterostatedata_to_tensors,
+    HeteroBatchData,
 )
 
 from regawa.policy.q_agent.gnn_q_agent import GraphQAgent
 from regawa.rl.graph_buffer import ReplayBuffer
 from regawa import agent_from_env
 from regawa import GNNParams
-
+from regawa.policy.q_agent.q_value import QValue
 
 class SACArgs(NamedTuple):
     env_id: str
@@ -105,19 +117,24 @@ def layer_init(layer, bias_const=0.0):
     return layer
 
 
+class DoubleQNetwork(nn.Module):
+    def __init__(self, a1: GraphQAgent, a2: GraphQAgent):
+        super(DoubleQNetwork, self).__init__()
+        self.q1 = a1
+        self.q2 = a2
+
+    def forward(
+        self,
+        obs: HeteroBatchData,
+    ) -> tuple[QValue, QValue]:
+        return (self.q1(obs), self.q2(obs))
+
+    def min(self, obs: HeteroBatchData) -> QValue:
+        q1_values, q2_values = self.forward(obs)
+        return q1_values.min(q2_values)
 
 
-if __name__ == "__main__":
-    import stable_baselines3 as sb3
-
-    if sb3.__version__ < "2.0":
-        raise ValueError(
-            """Ongoing migration: run the following command to install the new dependencies:
-
-poetry run pip install "stable_baselines3==2.0.0a1" "gymnasium[atari,accept-rom-license]==0.28.1"  "ale-py==0.8.1" 
-"""
-        )
-    args = tyro.cli(Args)
+def train(args: SACArgs) -> None:
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
     if args.track:
         mlflow.enable_system_metrics_logging()
@@ -157,27 +174,23 @@ poetry run pip install "stable_baselines3==2.0.0a1" "gymnasium[atari,accept-rom-
                 )
                 for _ in range(args.num_envs)
             ]
-    )
+        )
     )
 
-    actor = Actor(envs).to(device)
-    qf1 = SoftQNetwork(envs).to(device)
-    qf2 = SoftQNetwork(envs).to(device)
-    qf1_target = SoftQNetwork(envs).to(device)
-    qf2_target = SoftQNetwork(envs).to(device)
-    qf1_target.load_state_dict(qf1.state_dict())
-    qf2_target.load_state_dict(qf2.state_dict())
+    actor = agent_from_env("GraphAgent", envs, args.agent_config, device)
+    qf1 = agent_from_env("GraphQAgent", envs, args.agent_config, device)
+    qf2 = agent_from_env("GraphQAgent", envs, args.agent_config, device)
+    q_net = DoubleQNetwork(qf1, qf2).to(device)
+    qf1_target = agent_from_env("GraphQAgent", envs, args.agent_config, device)
+    qf2_target = agent_from_env("GraphQAgent", envs, args.agent_config, device)
+    target_net = DoubleQNetwork(qf1_target, qf2_target).to(device)
+    q_net.load_state_dict(target_net.state_dict())
     # TRY NOT TO MODIFY: eps=1e-4 increases numerical stability
-    q_optimizer = optim.Adam(
-        list(qf1.parameters()) + list(qf2.parameters()), lr=args.q_lr, eps=1e-4
-    )
-    actor_optimizer = optim.Adam(list(actor.parameters()), lr=args.policy_lr, eps=1e-4)
+    q_optimizer = optim.Adam(q_net.parameters(), lr=args.q_lr, eps=1e-4)
+    actor_optimizer = optim.Adam(actor.parameters(), lr=args.policy_lr, eps=1e-4)
 
     # Automatic entropy tuning
     if args.autotune:
-        target_entropy = -args.target_entropy_scale * torch.log(
-            1 / torch.tensor(envs.single_action_space.n)
-        )
         log_alpha = torch.zeros(1, requires_grad=True, device=device)
         alpha = log_alpha.exp().item()
         a_optimizer = optim.Adam([log_alpha], lr=args.q_lr, eps=1e-4)
@@ -212,12 +225,12 @@ poetry run pip install "stable_baselines3==2.0.0a1" "gymnasium[atari,accept-rom-
         next_obs, rewards, terminations, truncations, infos = envs.step(actions)
 
         if "episode" in infos:
-                for f, r, length in zip(
-                    infos["_episode"], infos["episode"]["r"], infos["episode"]["l"]
-                ):
-                    if f:
-                        returns.append(r)
-                        lengths.append(length)
+            for f, r, length in zip(
+                infos["_episode"], infos["episode"]["r"], infos["episode"]["l"]
+            ):
+                if f:
+                    returns.append(r)
+                    lengths.append(length)
 
         dones = np.logical_or(terminations, truncations)
         rb.add(obs, next_obs, actions, rewards, dones, infos)
@@ -231,43 +244,75 @@ poetry run pip install "stable_baselines3==2.0.0a1" "gymnasium[atari,accept-rom-
                 data = rb.sample(args.batch_size)
                 # CRITIC training
                 with torch.no_grad():
-                    _, next_state_log_pi, next_state_action_probs = actor.get_action(
+                    next_obs_as_tensor = heterostatedata_to_tensors(
                         data.next_observations
                     )
-                    qf1_next_target = qf1_target(data.next_observations)
-                    qf2_next_target = qf2_target(data.next_observations)
+                    x = actor.sample(next_obs_as_tensor)
+
+                    target_q_next = target_net.min(next_obs_as_tensor)
+                    log_p_a = torch.log(x.p_a1)
+                    log_p_n__a = torch.log(x.p_a2 + 1e-10)
                     # we can use the action probabilities instead of MC sampling to estimate the expectation
-                    min_qf_next_target = next_state_action_probs * (
-                        torch.min(qf1_next_target, qf2_next_target)
-                        - alpha * next_state_log_pi
+                    vf_target = sac_action_then_node_value_estimate(
+                        x.p_a2,
+                        target_q_next.q2.values,
+                        x.p_a1,
+                        log_p_a,
+                        log_p_n__a,
+                        alpha,
+                        partial(
+                            segment_sum,
+                            index=target_q_next.q2.indices,
+                            num_segments=data.next_observations.n_graphs,
+                        ),
                     )
-                    # adapt Q-target for discrete Q-function
-                    min_qf_next_target = min_qf_next_target.sum(axis=1)
-                    next_q_value = data.rewards.flatten() + (
-                        1 - data.dones.flatten()
-                    ) * args.gamma * (min_qf_next_target)
+                    next_q_value = (
+                        data.rewards.flatten()
+                        + (1 - data.dones.flatten()) * args.gamma * vf_target
+                    )
 
                 # use Q-values only for the taken actions
-                qf1_values = qf1(data.observations)
-                qf2_values = qf2(data.observations)
-                qf1_a_values = qf1_values.gather(1, data.actions.long()).view(-1)
-                qf2_a_values = qf2_values.gather(1, data.actions.long()).view(-1)
-                qf1_loss = F.mse_loss(qf1_a_values, next_q_value)
-                qf2_loss = F.mse_loss(qf2_a_values, next_q_value)
-                qf_loss = qf1_loss + qf2_loss
+                obs_as_tensor = heterostatedata_to_tensors(
+                    data.observations, device=device
+                )
+                qs = q_net.forward(obs_as_tensor)
+
+                _, data_starts = data_splits_and_starts(obs_as_tensor.n_factor)
+
+                def q_loss(q_values: QValue) -> torch.Tensor:
+                    a = data.actions.long()
+                    # q values for all nodes given action a
+                    q_action = node_logits_given_action(
+                        q_values.q2.values, a[:, 0], q_values.q2.indices
+                    )
+                    # one q value per graph, for the taken node action
+                    q_action = segmented_gather(q_action, a[:, 1], data_starts)
+                    return F.mse_loss(q_action, next_q_value)
+
+                qf_loss = torch.sum(torch.stack([q_loss(q) for q in qs]))
 
                 q_optimizer.zero_grad()
                 qf_loss.backward()
                 q_optimizer.step()
 
                 # ACTOR training
-                _, log_pi, action_probs = actor.get_action(data.observations)
+                x = actor.sample(obs_as_tensor)
                 with torch.no_grad():
-                    qf1_values = qf1(data.observations)
-                    qf2_values = qf2(data.observations)
-                    min_qf_values = torch.min(qf1_values, qf2_values)
+                    qf_values = q_net.min(obs_as_tensor)
                 # no need for reparameterization, the expectation can be calculated for discrete actions
-                actor_loss = (action_probs * ((alpha * log_pi) - min_qf_values)).mean()
+                actor_loss = sac_action_then_node_policy_loss(
+                    x.p_a2,
+                    qf_values.q2.values,
+                    x.p_a1,
+                    torch.log(x.p_a1),
+                    torch.log(x.p_a2 + 1e-10),
+                    alpha,
+                    partial(
+                        segment_sum,
+                        index=qf_values.q2.indices,
+                        num_segments=obs_as_tensor.n_graphs,
+                    ),
+                )
 
                 actor_optimizer.zero_grad()
                 actor_loss.backward()
@@ -275,10 +320,29 @@ poetry run pip install "stable_baselines3==2.0.0a1" "gymnasium[atari,accept-rom-
 
                 if args.autotune:
                     # re-use action probabilities for temperature loss
-                    alpha_loss = (
-                        action_probs.detach()
-                        * (-log_alpha.exp() * (log_pi + target_entropy).detach())
-                    ).mean()
+                    batch_idx = qf_values.q2.indices
+                    target_p = -args.target_entropy_scale * torch.log(
+                        1 / obs_as_tensor.boolean.factor.n_factor
+                    )
+                    target_p = target_p[batch_idx].unsqueeze(-1)
+                    target_a = -args.target_entropy_scale * torch.log(
+                        1 / torch.tensor(envs.single_action_space.nvec[0])
+                    )
+
+                    alpha_loss = sac_action_then_node_entropy(
+                        x.p_a2,
+                        x.p_a1,
+                        torch.log(x.p_a1),
+                        torch.log(x.p_a2 + 1e-10),
+                        log_alpha,
+                        target_a,
+                        target_p,
+                        partial(
+                            segment_sum,
+                            index=qf_values.q2.indices,
+                            num_segments=obs_as_tensor.n_graphs,
+                        ),
+                    )
 
                     a_optimizer.zero_grad()
                     alpha_loss.backward()
@@ -288,30 +352,23 @@ poetry run pip install "stable_baselines3==2.0.0a1" "gymnasium[atari,accept-rom-
             # update the target networks
             if global_step % args.target_network_frequency == 0:
                 for param, target_param in zip(
-                    qf1.parameters(), qf1_target.parameters()
-                ):
-                    target_param.data.copy_(
-                        args.tau * param.data + (1 - args.tau) * target_param.data
-                    )
-                for param, target_param in zip(
-                    qf2.parameters(), qf2_target.parameters()
+                    q_net.parameters(), target_net.parameters()
                 ):
                     target_param.data.copy_(
                         args.tau * param.data + (1 - args.tau) * target_param.data
                     )
 
             if global_step % 100 == 0:
-                mlflow.log_param(
-                    "agent/qf1_values", qf1_a_values.mean().item(), global_step
-                )
-                mlflow.log_param(
-                    "agent/qf2_values", qf2_a_values.mean().item(), global_step
-                )
-                mlflow.log_param("losses/qf1_loss", qf1_loss.item(), global_step)
-                mlflow.log_param("losses/qf2_loss", qf2_loss.item(), global_step)
-                mlflow.log_param("losses/qf_loss", qf_loss.item() / 2.0, global_step)
-                mlflow.log_param("losses/actor_loss", actor_loss.item(), global_step)
-                mlflow.log_param("losses/alpha", alpha, global_step)
+                # mlflow.log_param(
+                #     "agent/qf1_values", qf1_a_values.mean().item(), global_step
+                # )
+                # mlflow.log_param(
+                #     "agent/qf2_values", qf2_a_values.mean().item(), global_step
+                # )
+
+                mlflow.log_metric("losses/qf_loss", qf_loss.item() / 2.0, global_step)
+                mlflow.log_metric("losses/actor_loss", actor_loss.item(), global_step)
+                mlflow.log_metric("losses/alpha", alpha, global_step)
                 # tw("SPS:", int(global_step / (time.time() - start_time)))
                 pbar.update(100)
                 avg_episodic_return = (
@@ -323,13 +380,23 @@ poetry run pip install "stable_baselines3==2.0.0a1" "gymnasium[atari,accept-rom-
                 pbar.set_description(
                     f"Step: {global_step}, R: {avg_episodic_return.item():.2f}, L: {avg_episodic_length.item():.2f}"
                 )
-                mlflow.log_param(
+                mlflow.log_metric(
                     "charts/SPS",
                     int(global_step / (time.time() - start_time)),
                     global_step,
                 )
+                mlflow.log_metric(
+                    "charts/avg_episodic_return",
+                    avg_episodic_return.item(),
+                    global_step,
+                )
+                mlflow.log_metric(
+                    "charts/avg_episodic_length",
+                    avg_episodic_length.item(),
+                    global_step,
+                )
                 if args.autotune:
-                    mlflow.log_param(
+                    mlflow.log_metric(
                         "losses/alpha_loss", alpha_loss.item(), global_step
                     )
 

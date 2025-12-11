@@ -101,6 +101,12 @@ class SparseTensor[V: Tensor](NamedTuple):
     @property
     def shape(self) -> Size:
         return self.values.shape
+    
+    def min(self, other: SparseTensor[V]) -> SparseTensor[V]:
+        return SparseTensor(
+            torch.min(self.values, other.values),
+            self.indices,
+        )
 
     def concat(self, other: SparseTensor[V]) -> SparseTensor[V]:
         return SparseTensor(

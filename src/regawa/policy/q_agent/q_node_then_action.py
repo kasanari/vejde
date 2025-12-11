@@ -1,7 +1,7 @@
 from torch import nn
 
 from regawa.data import SparseTensor
-
+from .q_value import QValue
 
 class QNodeThenAction(nn.Module):
     def __init__(self, num_actions: int, node_dim: int):
@@ -12,7 +12,7 @@ class QNodeThenAction(nn.Module):
     def forward(
         self,
         h: SparseTensor,
-    ) -> tuple[SparseTensor, SparseTensor]:
+    ) -> QValue:
         q_n = self.q_node(h.values)
         q_a__n = self.q_action__node(h.values)
-        return SparseTensor(q_n, h.indices), SparseTensor(q_a__n, h.indices)  # type: ignore
+        return QValue(SparseTensor(q_n, h.indices), SparseTensor(q_a__n, h.indices))

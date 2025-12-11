@@ -1,8 +1,8 @@
-from collections.abc import Callable
-
-from torch import Tensor
+from torch import FloatTensor, Tensor
 
 from gnn_policy.functional import segment_sum
+from functools import partial
+from regawa.data.torch import SparseTensor
 
 
 def node_mask(action_mask: Tensor) -> Tensor:
@@ -21,33 +21,35 @@ ACTION_DIM = 1
 
 
 def action_then_node_value_estimate(
-    p_n__a: Tensor,  # p(n|a)
-    q_n__a: Tensor,  # Q(n|a)
+    p_n__a: SparseTensor[FloatTensor],  # p(n|a)
+    q_n__a: SparseTensor[FloatTensor],  # Q(n|a)
     p_a: Tensor,  # p(a)
-    segsum: Callable[[Tensor], Tensor],
+    num_graphs: int,
 ) -> Tensor:
     # Estimate value as the sum of the Q-values of the actions weighted by the probability of the actions
-
     # V(N) =  Σ_a p(a) Σ_(n) p(n|a) * Q(n|a)
-    return (p_a * segsum(q_n__a * p_n__a)).sum(ACTION_DIM)  # type: ignore
+    segsum = partial(segment_sum, index=p_n__a.indices, num_segments=num_graphs)
+    return (p_a * segsum(q_n__a.values * p_n__a.values)).sum(ACTION_DIM) 
 
 
 def node_then_action_value_estimate(
-    p_a__n: Tensor,  # p(a|n)
-    q_a__n: Tensor,  # Q(a|n)
+    p_a__n: SparseTensor[FloatTensor],  # p(a|n)
+    q_a__n: SparseTensor[FloatTensor],  # Q(a|n)
     p_n: Tensor,  # p(n)
-    segsum: Callable[[Tensor], Tensor],
+    num_graphs: int,
 ) -> Tensor:
     # Estimate value as the sum of the Q-values of the actions weighted by the probability of the actions
     # V(N) =  Σ_n p(n) Σ_(a) p(a|n) * Q(a|n)
-    return segsum(p_n * (q_a__n * p_a__n).sum(ACTION_DIM))  # type: ignore
+    segsum = partial(segment_sum, index=p_a__n.indices, num_segments=num_graphs)
+    return segsum(p_n * (q_a__n.values * p_a__n.values).sum(ACTION_DIM))  
 
 
 def action_and_node_value_estimate(
     p_a: Tensor,  # p(a)
     q_a: Tensor,  # Q(a)
-    p_n: Tensor,  # p(n)
-    q_n: Tensor,  # Q(n)
-    segsum: Callable[[Tensor], Tensor],
+    p_n: SparseTensor[FloatTensor],  # p(n)
+    q_n: SparseTensor[FloatTensor],  # Q(n)
+    num_graphs: int,
 ) -> Tensor:
-    return (q_a * p_a).sum(ACTION_DIM) + segsum(q_n * p_n)
+    segsum = partial(segment_sum, index=p_n.indices, num_segments=num_graphs)
+    return (q_a * p_a).sum(ACTION_DIM) + segsum(q_n.values * p_n.values)

@@ -62,7 +62,7 @@ class TorchBatchData[T: Tensor](NamedTuple):
     edges: TorchEdges
     global_variables: TorchBatchedVariables[T]
     action_masks: TorchActionMask
-    n_graphs: torch.long
+    n_graphs: int
 
 
 class TorchHeteroBatchData(NamedTuple):
@@ -72,7 +72,7 @@ class TorchHeteroBatchData(NamedTuple):
     numeric: TorchBatchData[FloatTensor]
 
     @property
-    def n_graphs(self) -> torch.int64:
+    def n_graphs(self) -> int:
         return self.boolean.n_graphs
 
 
@@ -95,13 +95,19 @@ class SparseTensor[V: Tensor](NamedTuple):
     indices = [0, 0, 0, 1, 1, 2, 2, 2, 2]
     """
 
-    values: V
+    values: Tensor
     indices: Tensor
 
     @property
     def shape(self) -> Size:
         return self.values.shape
-    
+
+    def map(self, func: Callable[[Tensor], Tensor]) -> SparseTensor[V]:
+        return SparseTensor(
+            func(self.values),
+            self.indices,
+        )
+
     def min(self, other: SparseTensor[V]) -> SparseTensor[V]:
         return SparseTensor(
             torch.min(self.values, other.values),

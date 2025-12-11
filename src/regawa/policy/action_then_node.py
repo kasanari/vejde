@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from functools import partial
 
-from torch import Generator as Rngs
+from torch import FloatTensor, Generator as Rngs
 from torch import Tensor, nn, float32
 
 from gnn_policy.functional import (
@@ -10,7 +10,6 @@ from gnn_policy.functional import (
     mask_logits,
     sample_action_then_node,
     segment_softmax,
-    segment_sum,
 )
 from regawa.data.torch import TorchActionMask
 from regawa.functional import (
@@ -49,14 +48,14 @@ class ActionThenNodePolicy(nn.Module):
 
     def f(
         self,
-        h: SparseTensor[float32],
+        h: SparseTensor[FloatTensor],
         action_masks: TorchActionMask,
         n_nodes: Tensor,
         x: PolicyFunc,
     ):
         node_logits = self.node_prob(h.values).squeeze(-1)  # ~ln(p(n))
-        action_given_node_logits = self.action_given_node_prob(h.values)  # ~ln(p(a|n))
-        node_given_action_logits = self.node_given_action_prob(h.values)  # ~ln(p(n|a))
+        action_given_node_logits = h.map(self.action_given_node_prob)  # ~ln(p(a|n))
+        node_given_action_logits = h.map(self.node_given_action_prob)  # ~ln(p(n|a))
         n_g = num_graphs(h.indices)
         action_given_node_mask = action_masks.action_type_mask
         node_given_action_mask = action_masks.action_arity_mask.logical_and(
@@ -65,39 +64,42 @@ class ActionThenNodePolicy(nn.Module):
 
         actions, logprob, entropy, p_a, _ = x(
             node_logits,
-            action_given_node_logits,
-            node_given_action_logits,
+            action_given_node_logits.values,
+            node_given_action_logits.values,
             action_given_node_mask,
             node_given_action_mask,
             h.indices,
             n_nodes,
         )
 
-        p_n__a = segment_softmax(  # type: ignore
-            mask_logits(node_given_action_logits, node_given_action_mask),
-            h.indices,
-            n_g,
-        )
-        segsum = partial(segment_sum, index=h.indices, num_segments=n_g)  # type: ignore
+        def p_n_given_a(x: Tensor):
+            return segment_softmax(
+                mask_logits(x, node_given_action_mask),
+                h.indices,
+                n_g,
+            )
 
-        q = self.q_node__action(h.values)
-        q = q.view(-1, self.critic_heads, self.num_actions)
-        q = q.mean(axis=1)
+        p_n__a = node_given_action_logits.map(p_n_given_a)
 
         value = action_then_node_value_estimate(
-            p_n__a,  # type: ignore
-            q,
+            p_n__a,
+            h.map(self.q_func),
             p_a,
-            segsum,  # type: ignore
+            n_g,
         )
 
-        return PolicyOutput(actions, logprob, entropy, value, p_a, p_n__a)  # type: ignore
+        return PolicyOutput(actions, logprob, entropy, value, p_a, p_n__a)
+
+    def q_func(self, x: Tensor):
+        q = self.q_node__action(x)
+        q = q.view(-1, self.critic_heads, self.num_actions)
+        return q.mean(axis=1)
 
     # differentiable action evaluation
     def forward(
         self,
         a: Tensor,
-        h: SparseTensor[float32],
+        h: SparseTensor[FloatTensor],
         action_masks: TorchActionMask,
         n_nodes: Tensor,
     ):
@@ -108,7 +110,7 @@ class ActionThenNodePolicy(nn.Module):
 
     def sample(
         self,
-        h: SparseTensor[float32],
+        h: SparseTensor[FloatTensor],
         n_nodes: Tensor,
         action_masks: TorchActionMask,
         deterministic: bool = False,
@@ -118,13 +120,13 @@ class ActionThenNodePolicy(nn.Module):
 
     def value(
         self,
-        h: SparseTensor[float32],
+        h: SparseTensor[FloatTensor],
         n_nodes: Tensor,
         action_masks: TorchActionMask,
     ) -> Tensor:
         node_logits = self.node_prob(h.values).squeeze(-1)  # ~ln(p(n))
-        action_given_node_logits = self.action_given_node_prob(h.values)
-        node_given_action_logits = self.node_given_action_prob(h.values)
+        action_given_node_logits = h.map(self.action_given_node_prob)
+        node_given_action_logits = h.map(self.node_given_action_prob)
 
         action_given_node_mask = action_masks.action_type_mask
         node_given_action_mask = action_masks.action_arity_mask.logical_and(
@@ -134,25 +136,23 @@ class ActionThenNodePolicy(nn.Module):
         n_g = n_nodes.shape[0]
         p_a = marginalize(
             node_logits,
-            mask_logits(action_given_node_logits, action_given_node_mask),
+            mask_logits(action_given_node_logits.values, action_given_node_mask),
             h.indices,
             n_g,
         )
 
-        p_n__a = segment_softmax(  # type: ignore
-            mask_logits(node_given_action_logits, node_given_action_mask),
-            h.indices,
-            n_g,
-        )
-        segsum = partial(segment_sum, index=h.indices, num_segments=n_g)  # type: ignore
+        def p_n_given_a(x: Tensor):
+            return segment_softmax(
+                mask_logits(x, node_given_action_mask),
+                h.indices,
+                n_g,
+            )
 
-        q = self.q_node__action(h.values)
-        q = q.view(-1, self.critic_heads, self.num_actions)
-        q = q.mean(axis=1)
+        p_n__a = node_given_action_logits.map(p_n_given_a)
 
         return action_then_node_value_estimate(
-            p_n__a,  # type: ignore
-            q,
+            p_n__a,
+            h.map(self.q_func),
             p_a,
-            segsum,  # type: ignore
+            n_g,
         )

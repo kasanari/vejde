@@ -61,7 +61,7 @@ def evaluate(
         next_obs, reward, terminated, truncated, info = env.step(action.squeeze(0))  # type: ignore
 
         factor_weights = (
-            p_n__a.T[action[:, 0]].detach().squeeze().round(decimals=2).cpu().numpy()
+            p_n__a.values.T[action[:, 0]].detach().squeeze().round(decimals=2).cpu().numpy()
         )
 
         weight_by_factor = (

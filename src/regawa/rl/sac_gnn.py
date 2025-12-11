@@ -1,8 +1,9 @@
 # docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/sac/#sac_ataripy
+from collections.abc import Iterable
 import os
 import random
 import time
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 import gymnasium as gym
 from gymnasium.spaces import Dict, MultiDiscrete
@@ -13,6 +14,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from collections import deque
 from tqdm import tqdm
+from regawa.data.obs import HeteroObsData
 from regawa.data.torch import SparseTensor
 from regawa.rl.sac import (
     sac_action_then_node_entropy,
@@ -101,6 +103,7 @@ class SACArgs(NamedTuple):
     """weight decay for optimizers"""
     debug: bool = False
     """whether to run in debug mode"""
+    logging_interval: int = 100
 
 
 def make_env(
@@ -327,9 +330,164 @@ def update_models(
 
     return UpdateModelsOutput(new_alpha, alpha_loss, actor_loss, qf_loss)
 
+def log_to_mlflow(
+    global_step: int,
+    update_data: UpdateModelsOutput,
+    alpha: float,
+    avg_episodic_return: float,
+    avg_episodic_length: float,
+    start_time: float,
+    args: SACArgs,
+):
+    # mlflow.log_param(
+    #     "agent/qf1_values", qf1_a_values.mean().item(), global_step
+    # )
+    # mlflow.log_param(
+    #     "agent/qf2_values", qf2_a_values.mean().item(), global_step
+    # )
+
+    mlflow.log_metric("losses/qf_loss", update_data.qf_loss.item() / 2.0, global_step)
+    mlflow.log_metric("losses/actor_loss", update_data.actor_loss.item(), global_step)
+    mlflow.log_metric("losses/alpha", alpha, global_step)
+    # tw("SPS:", int(global_step / (time.time() - start_time)))
+
+    mlflow.log_metric(
+        "charts/SPS",
+        int(global_step / (time.time() - start_time)),
+        global_step,
+    )
+    mlflow.log_metric(
+        "charts/avg_episodic_return",
+        avg_episodic_return,
+        global_step,
+    )
+    mlflow.log_metric(
+        "charts/avg_episodic_length",
+        avg_episodic_length,
+        global_step,
+    )
+    if args.autotune:
+        mlflow.log_metric(
+            "losses/alpha_loss", update_data.alpha_loss.item(), global_step
+        )
+
+
+def step_fn(
+    start_time: float,
+    actor: GraphAgentInterface,
+    q_net: DoubleQNetwork,
+    log_alpha: torch.Tensor | None,
+    target_net: DoubleQNetwork,
+    a_optimizer: optim.Optimizer | None,
+    q_optimizer: optim.Optimizer,
+    device: torch.device,
+    target_a: torch.Tensor,
+    actor_optimizer: optim.Optimizer,
+    envs: gym.vector.VectorEnv[HeteroBatchData, NDArray[np.int64], NDArray[np.int64]],
+    pbar: tqdm,
+    args: SACArgs,
+):
+    def step(
+        obs: Iterable[HeteroObsData],
+        rb: ReplayBuffer,
+        global_step: int,
+        returns: deque[float],
+        lengths: deque[int],
+        alpha: float,
+    ):
+        if global_step < args.learning_starts:
+            actions = np.array(
+                [envs.single_action_space.sample() for _ in range(envs.num_envs)]
+            )
+        else:
+            actions, *_ = actor.sample(
+                heterostatedata_to_tensors(heterostatedata(obs), device=device)
+            )
+            actions = actions.detach().cpu().numpy()
+
+        # TRY NOT TO MODIFY: execute the game and log data.
+        next_obs, rewards, terminations, truncations, infos = envs.step(actions)
+
+        if "episode" in infos:
+            for f, r, length in zip(
+                infos["_episode"], infos["episode"]["r"], infos["episode"]["l"]
+            ):
+                if f:
+                    returns.append(r)
+                    lengths.append(length)
+
+        dones = np.logical_or(terminations, truncations)
+        rb.add(obs, next_obs, actions, rewards, dones, infos)
+
+        # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
+        obs = next_obs
+
+        update_data = UpdateModelsOutput(
+            new_alpha=alpha,
+            alpha_loss=torch.tensor(0.0),
+            actor_loss=torch.tensor(0.0),
+            qf_loss=torch.tensor(0.0),
+        )
+
+        # ALGO LOGIC: training.
+        if global_step > args.learning_starts:
+            if global_step % args.update_frequency == 0:
+                data = rb.sample(args.batch_size)
+                update_data = update_models(
+                    data,
+                    actor,
+                    log_alpha,
+                    target_net,
+                    q_net,
+                    alpha,
+                    device,
+                    target_a,
+                    q_optimizer,
+                    actor_optimizer,
+                    a_optimizer,
+                    args.gamma,
+                    args.target_entropy_scale,
+                )
+                alpha = update_data.new_alpha
+
+            # update the target networks
+            if global_step % args.target_network_frequency == 0:
+                for param, target_param in zip(
+                    q_net.parameters(), target_net.parameters()
+                ):
+                    target_param.data.copy_(
+                        args.tau * param.data + (1 - args.tau) * target_param.data
+                    )
+
+            if global_step % args.logging_interval == 0 and global_step > 0:
+                pbar.update(args.logging_interval)
+                avg_episodic_return = (
+                    sum(returns) / len(returns) if len(returns) > 0 else 0.0
+                )
+                avg_episodic_length = (
+                    sum(lengths) / len(lengths) if len(lengths) > 0 else 0.0
+                )
+
+                log_to_mlflow(
+                    global_step,
+                    update_data,
+                    alpha,
+                    avg_episodic_return,
+                    avg_episodic_length,
+                    start_time,
+                    args,
+                )
+                pbar.set_description(
+                    f"Step: {global_step}, R: {avg_episodic_return:.2f}, L: {avg_episodic_length:.2f}"
+                )
+        return obs, alpha, returns, lengths
+
+    return step
+
 
 def train(args: SACArgs) -> GraphAgentInterface:
-    run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
+    run_name = f"{args.env_id}__sac"
+    run_name = run_name + "__debug" if args.debug else run_name
     if args.track:
         mlflow.enable_system_metrics_logging()
         mlflow.set_tracking_uri(uri=args.mlflow_tracking_uri)
@@ -397,132 +555,47 @@ def train(args: SACArgs) -> GraphAgentInterface:
 
     rb = ReplayBuffer(
         args.buffer_size,
-        envs.single_observation_space,
         envs.single_action_space,
         device,
         seed=args.seed,
         n_envs=args.num_envs,
     )
     start_time = time.time()
-    returns: deque[float] = deque()
-    lengths: deque[int] = deque()
+    returns: deque[float] = deque(maxlen=args.logging_interval)
+    lengths: deque[int] = deque(maxlen=args.logging_interval)
 
     # Since the number of actions per node is constant, we can precompute the target entropy
     target_a = -args.target_entropy_scale * torch.log(
         1 / torch.tensor(envs.single_action_space.nvec[0])
     )
 
+    step = step_fn(
+        start_time,
+        actor,
+        q_net,
+        log_alpha,
+        target_net,
+        a_optimizer,
+        q_optimizer,
+        device,
+        target_a,
+        actor_optimizer,
+        envs,
+        pbar,
+        args,
+    )
+
+    obs: Iterable[HeteroObsData]
     obs, _ = envs.reset(seed=args.seed)
     for global_step in range(args.total_timesteps):
-        if global_step < args.learning_starts:
-            actions = np.array(
-                [envs.single_action_space.sample() for _ in range(envs.num_envs)]
-            )
-        else:
-            actions, *_ = actor.sample(
-                heterostatedata_to_tensors(heterostatedata(obs), device=device)
-            )
-            actions = actions.detach().cpu().numpy()
-
-        # TRY NOT TO MODIFY: execute the game and log data.
-        next_obs, rewards, terminations, truncations, infos = envs.step(actions)
-
-        if "episode" in infos:
-            for f, r, length in zip(
-                infos["_episode"], infos["episode"]["r"], infos["episode"]["l"]
-            ):
-                if f:
-                    returns.append(r)
-                    lengths.append(length)
-
-        dones = np.logical_or(terminations, truncations)
-        rb.add(obs, next_obs, actions, rewards, dones, infos)
-
-        # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
-        obs = next_obs
-
-        update_data = UpdateModelsOutput(
-            new_alpha=alpha,
-            alpha_loss=torch.tensor(0.0),
-            actor_loss=torch.tensor(0.0),
-            qf_loss=torch.tensor(0.0),
+        obs, alpha, returns, lengths = step(
+            obs,
+            rb,
+            global_step,
+            returns,
+            lengths,
+            alpha,
         )
-
-        # ALGO LOGIC: training.
-        if global_step > args.learning_starts:
-            if global_step % args.update_frequency == 0:
-                data = rb.sample(args.batch_size)
-                update_data = update_models(
-                    data,
-                    actor,
-                    log_alpha,
-                    target_net,
-                    q_net,
-                    alpha,
-                    device,
-                    target_a,
-                    q_optimizer,
-                    actor_optimizer,
-                    a_optimizer,
-                    args.gamma,
-                    args.target_entropy_scale,
-                )
-                alpha = update_data.new_alpha
-
-            # update the target networks
-            if global_step % args.target_network_frequency == 0:
-                for param, target_param in zip(
-                    q_net.parameters(), target_net.parameters()
-                ):
-                    target_param.data.copy_(
-                        args.tau * param.data + (1 - args.tau) * target_param.data
-                    )
-
-            if global_step % 100 == 0:
-                # mlflow.log_param(
-                #     "agent/qf1_values", qf1_a_values.mean().item(), global_step
-                # )
-                # mlflow.log_param(
-                #     "agent/qf2_values", qf2_a_values.mean().item(), global_step
-                # )
-
-                mlflow.log_metric(
-                    "losses/qf_loss", update_data.qf_loss.item() / 2.0, global_step
-                )
-                mlflow.log_metric(
-                    "losses/actor_loss", update_data.actor_loss.item(), global_step
-                )
-                mlflow.log_metric("losses/alpha", alpha, global_step)
-                # tw("SPS:", int(global_step / (time.time() - start_time)))
-                pbar.update(100)
-                avg_episodic_return = (
-                    sum(returns) / len(returns) if len(returns) > 0 else 0.0
-                )
-                avg_episodic_length = (
-                    sum(lengths) / len(lengths) if len(lengths) > 0 else 0.0
-                )
-                pbar.set_description(
-                    f"Step: {global_step}, R: {avg_episodic_return:.2f}, L: {avg_episodic_length:.2f}"
-                )
-                mlflow.log_metric(
-                    "charts/SPS",
-                    int(global_step / (time.time() - start_time)),
-                    global_step,
-                )
-                mlflow.log_metric(
-                    "charts/avg_episodic_return",
-                    avg_episodic_return,
-                    global_step,
-                )
-                mlflow.log_metric(
-                    "charts/avg_episodic_length",
-                    avg_episodic_length,
-                    global_step,
-                )
-                if args.autotune:
-                    mlflow.log_metric(
-                        "losses/alpha_loss", update_data.alpha_loss.item(), global_step
-                    )
 
     envs.close()
     return actor

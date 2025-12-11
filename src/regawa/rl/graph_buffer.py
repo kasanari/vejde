@@ -46,7 +46,6 @@ class ReplayBuffer:
     def __init__(
         self,
         buffer_size: int,
-        observation_space: spaces.Dict,
         action_space: spaces.MultiDiscrete,
         device: device | str = "auto",
         n_envs: int = 1,
@@ -54,8 +53,6 @@ class ReplayBuffer:
         seed: int | None = None,
     ):
         self.buffer_size = buffer_size
-        self.observation_space = observation_space
-        self.action_space = action_space
 
         self.action_dim = n_actions(action_space)
         self.pos = 0

@@ -147,8 +147,9 @@ def get_next_q_value(
     data: ReplayBufferSamples,
     alpha: float,
     gamma: float,
+    device: torch.device,
 ) -> torch.Tensor:
-    next_obs_as_tensor = heterostatedata_to_tensors(data.next_observations)
+    next_obs_as_tensor = heterostatedata_to_tensors(data.next_observations, device)
     x = actor.sample(next_obs_as_tensor)
 
     target_q_next = target_net.min(next_obs_as_tensor)
@@ -303,7 +304,7 @@ def update_models(
     target_entropy_scale: float,
 ) -> UpdateModelsOutput:
     obs_as_tensor = heterostatedata_to_tensors(data.observations, device=device)
-    next_q_value = get_next_q_value(actor, target_q_net, data, alpha, gamma)
+    next_q_value = get_next_q_value(actor, target_q_net, data, alpha, gamma, device)
 
     # CRITIC training
     qf_loss = update_q_net(

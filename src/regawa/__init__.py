@@ -59,7 +59,7 @@ def agent_from_env(
 
     rng = Generator()
 
-    return agent_class(config, rng, device=device)
+    return agent_class(config, rng, device=device).to(device)
 
 
 def agent_from_model(

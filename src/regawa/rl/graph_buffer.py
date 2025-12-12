@@ -139,10 +139,10 @@ class ReplayBuffer:
                 [self.observations[b][e] for b, e in zip(batch_inds, env_indices)]
             ),
             next_obs,
-            as_tensor(self.actions[batch_inds, env_indices, :]),
+            as_tensor(self.actions[batch_inds, env_indices, :], device=self.device),
             # Only use dones that are not due to timeouts
             # deactivated by default (timeouts is initialized as an array of False)
-            as_tensor(self.dones[batch_inds, env_indices].reshape(-1, 1)),
-            as_tensor(self.rewards[batch_inds, env_indices].reshape(-1, 1)),
+            as_tensor(self.dones[batch_inds, env_indices].reshape(-1, 1), device=self.device),
+            as_tensor(self.rewards[batch_inds, env_indices].reshape(-1, 1), device=self.device),
         )
         return data

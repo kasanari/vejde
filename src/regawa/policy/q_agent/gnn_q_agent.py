@@ -72,8 +72,14 @@ class GraphQAgent(nn.Module):
                 edge_attr_embedding,
             ),
         )
+        self.predicate_embedding = predicate_embedding
+        self.factor_embedding = factor_embedding
+        self.numeric_embedder = numeric_embedder
+        self.edge_attr_embedding = edge_attr_embedding
+        self.boolean_embedder = boolean_embedder
         self.config = config
         self._device = device
+        self.to(device)
 
         qfunc = (
             QActionThenNode

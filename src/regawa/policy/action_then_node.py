@@ -2,7 +2,7 @@ from collections.abc import Callable
 from functools import partial
 
 from torch import FloatTensor, Generator as Rngs
-from torch import Tensor, nn, float32
+from torch import Tensor, nn
 
 from gnn_policy.functional import (
     eval_action_then_node,

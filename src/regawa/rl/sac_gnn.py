@@ -3,7 +3,7 @@ from collections.abc import Iterable
 import os
 import random
 import time
-from typing import Any, NamedTuple
+from typing import NamedTuple
 
 import gymnasium as gym
 from gymnasium.spaces import Dict, MultiDiscrete
@@ -22,12 +22,10 @@ from regawa.rl.sac import (
     sac_action_then_node_policy_loss,
 )
 import tyro
-from functools import partial
 from numpy.typing import NDArray
 import mlflow
 
 from gnn_policy.functional import (
-    segment_sum,
     segmented_gather,
     data_splits_and_starts,
     node_logits_given_action,
@@ -43,7 +41,7 @@ from regawa.data import (
 from regawa.policy.q_agent.gnn_q_agent import GraphQAgent
 from regawa.rl.graph_buffer import ReplayBuffer, ReplayBufferSamples
 from regawa import agent_from_env
-from regawa import GNNParams, GraphAgent
+from regawa import GNNParams
 from regawa.policy.q_agent.q_value import QValue
 from regawa.policy.types import PolicyOutput
 

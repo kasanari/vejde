@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import NamedTuple, TypeVar
 import torch
+from torch_scatter import scatter_mean
 from torch import (
     BoolTensor,
     FloatTensor,
@@ -106,6 +107,11 @@ class SparseTensor[V: Tensor](NamedTuple):
     def shape(self) -> Size:
         return self.values.shape
 
+    def segment_mean(self) -> Tensor:
+        num_segments = self.indices.max().item() + 1
+        return scatter_mean(self.values, self.indices, dim=0, dim_size=num_segments)
+        
+
     def map(self, func: Callable[[Tensor], Tensor]) -> SparseTensor[V]:
         return SparseTensor(
             func(self.values),
@@ -170,7 +176,7 @@ def statedata_to_tensors(
 def sparsify(
     operation: Callable[[Tensor], Tensor],
 ) -> Callable[[SparseTensor[V]], SparseTensor[V]]:
-    def wrapper(x: SparseTensor) -> SparseTensor:
+    def wrapper(x: SparseTensor[V]) -> SparseTensor[V]:
         return SparseTensor(operation(x.values), x.indices)
 
     return wrapper

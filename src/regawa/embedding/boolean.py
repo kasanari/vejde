@@ -2,7 +2,7 @@ from regawa.embedding.node_embedders import EmbeddingLayer, logger
 
 
 import torch.nn as nn
-from torch import Generator as Rngs, Tensor, zeros
+from torch import Generator as Rngs, Tensor, as_tensor, zeros
 
 
 class BooleanEmbedder(nn.Module):
@@ -57,7 +57,7 @@ class NegativeBiasBooleanEmbedder(nn.Module):
         logger.debug(
             "predicate_embedding:\n%s", predicate_embedding.transform[0].weight
         )
-        num_predicates = predicate_embedding.transform[0].weight.size(0)
+        num_predicates = int(predicate_embedding.transform[0].weight.size(0))  # type: ignore
         self.bias = nn.Parameter(zeros(num_predicates, embedding_dim))
 
     def forward(
@@ -88,9 +88,11 @@ class PositiveNegativeBooleanEmbedder(nn.Module):
         logger.debug(
             "predicate_embedding:\n%s", predicate_embedding.transform[0].weight
         )
-        num_predicates = predicate_embedding.transform[0].weight.size(0)
+        num_predicates = predicate_embedding.transform[0].weight.size(0)  # type: ignore
         self.neg_predicate_embedding = EmbeddingLayer(
-            num_predicates, embedding_dim, rngs
+            num_predicates,  # type: ignore
+            embedding_dim,
+            rngs,
         )
 
     def forward(
@@ -105,6 +107,6 @@ class PositiveNegativeBooleanEmbedder(nn.Module):
         # logger.debug("preds:\n%s", preds)
         h = (
             var_val.unsqueeze(1) * postive_preds
-            + (1 - var_val).unsqueeze(1) * negative_preds
+            + as_tensor(1 - var_val).unsqueeze(1) * negative_preds
         )
         return h

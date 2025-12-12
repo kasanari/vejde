@@ -157,7 +157,7 @@ def get_next_q_value(
     assert isinstance(target_q_next.q2, SparseTensor)
     assert isinstance(target_q_next.q1, torch.Tensor)
     log_p_a = torch.log(x.p_a1)
-    log_p_n__a = x.p_a2.map(lambda x: torch.log(x + 1e-10))
+    log_p_n__a = x.p_a2.map(lambda x: torch.where(x == 0, 1, x)).map(torch.log)
     vf_target = sac_action_then_node_value_estimate(
         x.p_a2,
         target_q_next.q2,
@@ -222,13 +222,15 @@ def update_actor(
     assert isinstance(qf_values.q2, SparseTensor)
     assert isinstance(qf_values.q1, torch.Tensor)
     assert isinstance(x.p_a1, torch.Tensor)
+
+    p_a2 = x.p_a2.map(lambda x: torch.where(x == 0, 1, x)).map(torch.log)
     actor_loss = sac_action_then_node_policy_loss(
         x.p_a2,
         qf_values.q2,
         x.p_a1,
         qf_values.q1,
         torch.log(x.p_a1),
-        x.p_a2.map(lambda x: torch.log(x + 1e-10)),
+        p_a2,
         alpha,
         num_graphs=int(obs_as_tensor.n_graphs),
     )
@@ -256,12 +258,12 @@ def update_alpha(
     assert isinstance(policy_output.p_a1, torch.Tensor)
     assert isinstance(log_alpha, torch.Tensor)
     assert isinstance(batch_index, torch.Tensor)
-
+    p_a2 = policy_output.p_a2.map(lambda x: torch.where(x == 0, 1, x)).map(torch.log)
     alpha_loss = sac_action_then_node_entropy(
         policy_output.p_a2,
         policy_output.p_a1,
         torch.log(policy_output.p_a1),
-        policy_output.p_a2.map(lambda x: torch.log(x + 1e-10)),
+        p_a2,
         log_alpha,
         target_a,
         target_p,
@@ -280,6 +282,9 @@ class UpdateModelsOutput(NamedTuple):
     alpha_loss: torch.Tensor
     actor_loss: torch.Tensor
     qf_loss: torch.Tensor
+    next_q_value: float
+    q1_mean: float
+    q2_mean: float
 
 
 def update_models(
@@ -329,7 +334,19 @@ def update_models(
         new_alpha = alpha
         alpha_loss = torch.tensor(0.0)
 
-    return UpdateModelsOutput(new_alpha, alpha_loss, actor_loss, qf_loss)
+    average_next_q_value = next_q_value.mean().item()
+    q1_mean = qf_values.q1.mean().item()
+    q2_mean = qf_values.q2.segment_mean().mean().item()
+    return UpdateModelsOutput(
+        new_alpha,
+        alpha_loss,
+        actor_loss,
+        qf_loss,
+        average_next_q_value,
+        q1_mean,
+        q2_mean,
+    )
+
 
 def log_to_mlflow(
     global_step: int,
@@ -352,6 +369,10 @@ def log_to_mlflow(
     mlflow.log_metric("losses/alpha", alpha, global_step)
     # tw("SPS:", int(global_step / (time.time() - start_time)))
 
+    mlflow.log_metric("stats/next_q_value", update_data.next_q_value, global_step)
+    mlflow.log_metric("stats/q1_mean", update_data.q1_mean, global_step)
+    mlflow.log_metric("stats/q2_mean", update_data.q2_mean, global_step)
+
     mlflow.log_metric(
         "charts/SPS",
         int(global_step / (time.time() - start_time)),
@@ -371,6 +392,15 @@ def log_to_mlflow(
         mlflow.log_metric(
             "losses/alpha_loss", update_data.alpha_loss.item(), global_step
         )
+
+
+def sample_action(obs: HeteroObsData):
+    a1_mask = obs.bool.action_masks.action_arity_mask
+    a2_mask = obs.float.action_masks.action_type_mask
+    mask = a1_mask & a2_mask
+    action = np.flip(np.stack(np.where(mask)).T)
+    idx = np.random.choice(action.shape[0])
+    return action[idx]  # type: ignore
 
 
 def step_fn(
@@ -397,9 +427,7 @@ def step_fn(
         alpha: float,
     ):
         if global_step < args.learning_starts:
-            actions = np.array(
-                [envs.single_action_space.sample() for _ in range(envs.num_envs)]
-            )
+            actions = np.array([sample_action(o) for o in obs])
         else:
             actions, *_ = actor.sample(
                 heterostatedata_to_tensors(heterostatedata(obs), device=device)
@@ -428,6 +456,9 @@ def step_fn(
             alpha_loss=torch.tensor(0.0),
             actor_loss=torch.tensor(0.0),
             qf_loss=torch.tensor(0.0),
+            next_q_value=0.0,
+            q1_mean=0.0,
+            q2_mean=0.0,
         )
 
         # ALGO LOGIC: training.

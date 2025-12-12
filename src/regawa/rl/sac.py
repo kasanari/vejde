@@ -5,30 +5,7 @@ from gnn_policy.functional import segment_sum
 
 from torch import FloatTensor, Tensor
 
-def sac_action_then_node_policy_loss(
-    p_n__a: SparseTensor[FloatTensor],  # p(n|a)
-    q_n__a: SparseTensor[FloatTensor],  # Q(n|a)
-    p_a: Tensor,  # p(a)
-    q_a: Tensor,  # Q(a)
-    logp_a: Tensor,  # log p(a)
-    logp_n__a: SparseTensor[FloatTensor],  # log p(n|a)
-    alpha: float,  # entropy coefficient
-    num_graphs: int,
-) -> Tensor:
-    # Policy loss for action-then-node policy
-    # J_π = E_a~π [ α log p(a) - Σ_n p(n|a) [Q(n|a) - α log p(n|a)] ]
-    segsum = partial(segment_sum, index=p_n__a.indices, num_segments=num_graphs)
-    return (
-        (
-            p_a
-            * (
-                (alpha * logp_a - q_a)
-                + segsum((alpha * logp_n__a.values - q_n__a.values) * p_n__a.values)
-            )
-        )
-        .sum(ACTION_DIM)
-        .mean()
-    )  # type: ignore
+
 
 
 def sac_node_then_action_value_estimate(
@@ -47,8 +24,8 @@ def sac_node_then_action_value_estimate(
     return segsum(
         p_n.values
         * (
-            (-alpha * logp_n.values)
-            + (q_a__n.values - alpha * logp_a__n.values) * p_a__n.values
+            #(-alpha * logp_n.values) +
+            (q_a__n.values - alpha * logp_a__n.values) * p_a__n.values
         ).sum(ACTION_DIM)
     )  # type: ignore
 
@@ -68,11 +45,35 @@ def sac_node_then_action_policy_loss(
     return segsum(
         p_n.values
         * (
-            (alpha * logp_n.values)
-            + (alpha * logp_a__n.values - q_a__n.values) * p_a__n.values
+            #(alpha * logp_n.values) +
+            (alpha * logp_a__n.values - q_a__n.values) * p_a__n.values
         ).sum(ACTION_DIM)
     ).mean()  # type: ignore
 
+def sac_action_then_node_policy_loss(
+    p_n__a: SparseTensor[FloatTensor],  # p(n|a)
+    q_n__a: SparseTensor[FloatTensor],  # Q(n|a)
+    p_a: Tensor,  # p(a)
+    q_a: Tensor,  # Q(a)
+    logp_a: Tensor,  # log p(a)
+    logp_n__a: SparseTensor[FloatTensor],  # log p(n|a)
+    alpha: float,  # entropy coefficient
+    num_graphs: int,
+) -> Tensor:
+    # Policy loss for action-then-node policy
+    # J_π = E_a~π [ α log p(a) - Σ_n p(n|a) [Q(n|a) - α log p(n|a)] ]
+    segsum = partial(segment_sum, index=p_n__a.indices, num_segments=num_graphs)
+    return (
+        (
+            p_a
+            * (
+                #(alpha * logp_a - q_a) + 
+                segsum((alpha * logp_n__a.values - q_n__a.values) * p_n__a.values)
+            )
+        )
+        .sum(ACTION_DIM)
+        .mean()
+    )  # type: ignore
 
 def sac_action_then_node_value_estimate(
     p_n__a: SparseTensor[FloatTensor],  # p(n|a)
@@ -91,8 +92,8 @@ def sac_action_then_node_value_estimate(
     return (
         p_a
         * (
-            (q_a - alpha * logp_a)
-            + segsum((q_n__a.values - alpha * logp_n__a.values) * p_n__a.values)
+            #(q_a - alpha * logp_a) +
+            segsum((q_n__a.values - alpha * logp_n__a.values) * p_n__a.values)
         )
     ).sum(ACTION_DIM)  # type: ignore
 
@@ -113,8 +114,8 @@ def sac_action_then_node_entropy(
     entropy = (
         p_a.detach()
         * (
-            -alpha * (logp_a + entropy_target_a).detach()
-            + segsum(
+            #-alpha * (logp_a + entropy_target_a).detach() + 
+            segsum(
                 -alpha.exp()
                 * (logp_n__a.values + entropy_target_n__a).detach()
                 * p_n__a.values.detach()

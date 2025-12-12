@@ -12,9 +12,9 @@ def plot_embeddings(num_embeddings: int, embedding: Embedding):
     import matplotlib.pyplot as plt
 
     for i in range(num_embeddings):
-        plt.scatter(embedding.weight[i][0].item(), embedding.weight[i][1].item())
+        plt.scatter(embedding.weight[i][0].item(), embedding.weight[i][1].item())  # type: ignore
         # draw arrow from origin to point (x,y)
-        plt.arrow(
+        plt.arrow(  # type: ignore
             0,
             0,
             embedding.weight[i][0].item(),
@@ -24,7 +24,7 @@ def plot_embeddings(num_embeddings: int, embedding: Embedding):
             fc="r",
             ec="r",
         )
-    plt.savefig("embedding.png")
+    plt.savefig("embedding.png")  # type: ignore
     plt.close()
 
 
@@ -46,7 +46,7 @@ class EmbeddingLayer(Module):
         init.orthogonal_(embedding.weight)  # type: ignore
 
         if use_padding:
-            embedding._fill_padding_idx_with_zero()
+            embedding._fill_padding_idx_with_zero()  # type: ignore
         layer_norm = LayerNorm(embedding_dim, elementwise_affine=True)
         # init.ones_(self.embedding.weight)
 

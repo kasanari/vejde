@@ -37,10 +37,10 @@ class GraphAgentInterface(ABC):
     def __init__(self, config: AgentConfig, rngs: Rngs, device: str = "cpu"): ...
 
     @abstractmethod
-    def embed(self, data: HeteroBatchData) -> TorchFactorGraph: ...
+    def embed(self, data: TorchHeteroBatchData) -> TorchFactorGraph: ...
 
     @abstractmethod
-    def forward(self, actions: Tensor, data: HeteroBatchData) -> PolicyOutput: ...
+    def forward(self, actions: Tensor, data: TorchHeteroBatchData) -> PolicyOutput: ...
 
     @abstractmethod
     def sample_from_obs(
@@ -55,7 +55,7 @@ class GraphAgentInterface(ABC):
     ) -> PolicyOutput: ...
 
     @abstractmethod
-    def value(self, data: HeteroBatchData) -> Tensor: ...
+    def value(self, data: TorchHeteroBatchData) -> Tensor: ...
 
     @abstractmethod
     def save_agent(self, path: str | Path): ...
@@ -155,10 +155,10 @@ class GraphAgent(nn.Module, GraphAgentInterface):
         self._device = device
         self.to(device)
 
-    def embed(self, data: HeteroBatchData) -> TorchFactorGraph:
+    def embed(self, data: TorchHeteroBatchData) -> TorchFactorGraph:
         return self.message_pass(self.embed_heterobatch(data))
 
-    def forward(self, actions: Tensor, data: HeteroBatchData):
+    def forward(self, actions: Tensor, data: TorchHeteroBatchData):
         fg = self.embed(data)
         return self.policy(
             actions,

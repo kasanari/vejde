@@ -19,7 +19,7 @@ from regawa.data import (
     sparsify,
 )
 from regawa.data.batch import BatchData, HeteroBatchData
-from regawa.data.torch import TorchBatchData, concat_sparse
+from regawa.data.torch import TorchBatchData, TorchHeteroBatchData, concat_sparse
 from regawa.embedding.positional import pos_emb, rotate
 from .recurrent import RecurrentEmbedder
 from .boolean import (
@@ -71,10 +71,10 @@ def merge_graphs(
 
 
 def fn_embed_heterobatch(
-    boolean_embedder: Callable[[BatchData[np.int8]], TorchFactorGraph],
-    numeric_embedder: Callable[[BatchData[np.float32]], TorchFactorGraph],
+    boolean_embedder: Callable[[TorchBatchData[IntTensor]], TorchFactorGraph],
+    numeric_embedder: Callable[[TorchBatchData[FloatTensor]], TorchFactorGraph],
 ):
-    def embed_heterobatch(data: HeteroBatchData) -> TorchFactorGraph:
+    def embed_heterobatch(data: TorchHeteroBatchData) -> TorchFactorGraph:
         return merge_graphs(
             boolean_embedder(
                 data.boolean,
@@ -140,7 +140,7 @@ def fn_compress_time(
     recurrent: Callable[
         [SparseTensor[FloatTensor], NDArray[np.int64]], SparseTensor[FloatTensor]
     ],
-    embed_fn: Callable[[BatchData[V]], TorchFactorGraph],
+    embed_fn: Callable[[TorchBatchData[V]], TorchFactorGraph],
     maxlen: int,
     dim: int,
     k: float = 1e2,

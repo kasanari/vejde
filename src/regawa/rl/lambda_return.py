@@ -43,12 +43,9 @@ def test_lambda_return():
     rewards = torch.tensor([0.0, 0.0, 0.0, 1.0, 1.0, 0.0])
     values = torch.tensor([2.0, 2.0, 2.0, 2.0, 1.0, 0.0])
     dones = torch.tensor([0, 0, 0, 0, 0, 1])
-    last_values = torch.tensor([0.0])
-    next_step_is_terminal = False
-    adv, ret = compute_lambda_values(
-        rewards, values, dones, last_values, next_step_is_terminal
-    )
-    pass
+    ret = compute_lambda_values(rewards, values, dones)
+    assert ret.shape == rewards.shape
+    print("Returns:", ret)
 
 
 if __name__ == "__main__":

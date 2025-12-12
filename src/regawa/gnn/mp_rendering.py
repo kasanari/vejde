@@ -1,3 +1,5 @@
+# type: ignore
+
 from collections.abc import Callable
 from torch import Tensor, norm
 

@@ -10,6 +10,7 @@ from regawa.data import TorchFactorGraph
 from regawa.data import single_obs_to_heterostatedata
 from regawa.data import heterostatedata_to_tensors
 from regawa.data.data import HeteroObsData
+from regawa.data.torch import TorchHeteroBatchData
 from regawa.embedding import (
     PositiveNegativeBooleanEmbedder,
     NumericEmbedder,
@@ -23,9 +24,6 @@ from . import ActionMode, AgentConfig
 
 from .node_then_action import NodeThenActionPolicy
 from .action_then_node import ActionThenNodePolicy
-from regawa.data import (
-    HeteroBatchData,
-)
 from regawa.gnn import BipartiteGNN
 from regawa.embedding import EmbeddingLayer, fn_compress_time, fn_embed_heterobatch
 from regawa.embedding import fn_embed_graph
@@ -142,10 +140,10 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
         self.to(device)
 
     # Listening to: Sagittarius by Daisuke Achiwa
-    def embed(self, data: HeteroBatchData) -> TorchFactorGraph:
+    def embed(self, data: TorchHeteroBatchData) -> TorchFactorGraph:
         return self.p_gnn(self.embed_heterobatch(data))
 
-    def forward(self, actions: Tensor, data: HeteroBatchData):
+    def forward(self, actions: Tensor, data: TorchHeteroBatchData):
         fg = self.embed(data)
         return self.policy(
             actions,
@@ -163,7 +161,7 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
         s = heterostatedata_to_tensors(s, device=self.device)
         return self.sample(s, deterministic=deterministic)
 
-    def sample(self, data: HeteroBatchData, deterministic: bool = False):
+    def sample(self, data: TorchHeteroBatchData, deterministic: bool = False):
         fg = self.embed(data)
         return self.policy.sample(
             fg.factors,
@@ -172,7 +170,7 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
             deterministic,
         )
 
-    def value(self, data: HeteroBatchData):
+    def value(self, data: TorchHeteroBatchData):
         fg = self.embed(data)
         return self.policy.value(
             fg.factors,

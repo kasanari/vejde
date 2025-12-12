@@ -23,13 +23,13 @@ def gae(
         last_gae_lam = 0
         for t in reversed(range(num_steps)):
             if t == num_steps - 1:
-                next_is_not_terminal = 1.0 - next_step_is_terminal.float()
+                next_is_not_terminal = 1.0 - next_step_is_terminal.float()  # type: ignore
                 next_values = next_value
             else:
-                next_is_not_terminal = 1.0 - dones[t + 1]
+                next_is_not_terminal = 1.0 - dones[t + 1]  # type: ignore
                 next_values = values[t + 1]
-            delta = rewards[t] + gamma * next_values * next_is_not_terminal - values[t]
-            last_gae_lam = (
+            delta = rewards[t] + gamma * next_values * next_is_not_terminal - values[t]  # type: ignore
+            last_gae_lam = (  # type: ignore
                 delta + gamma * gae_lambda * next_is_not_terminal * last_gae_lam
             )
             advantages[t] = last_gae_lam

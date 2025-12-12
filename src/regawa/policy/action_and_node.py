@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from functools import partial
 
-from torch import Tensor, nn
+from torch import FloatTensor, Tensor, nn
 
 from gnn_policy.functional import (
     eval_action_and_node,
@@ -32,7 +32,13 @@ class ActionThenNodePolicy(nn.Module):
         self.q_action__node = nn.Linear(node_dim, num_actions)  # Q(a|n)
         self.q_node = nn.Linear(node_dim, 1)  # Q(n)
 
-    def f(self, h: SparseTensor, action_mask: Tensor, n_nodes: Tensor, x: PolicyFunc):
+    def f(
+        self,
+        h: SparseTensor[FloatTensor],
+        action_mask: Tensor,
+        n_nodes: Tensor,
+        x: PolicyFunc,
+    ):
         node_logits = self.node_prob(h.values).squeeze(-1)  # ~ln(p(n))
         action_given_node_logits = self.action_given_node_prob(h.values)  # ~ln(p(a|n))
         node_given_action_logits = self.node_given_action_prob(h.values)  # ~ln(p(n|a))
@@ -68,7 +74,7 @@ class ActionThenNodePolicy(nn.Module):
     def forward(
         self,
         a: Tensor,
-        h: SparseTensor,
+        h: SparseTensor[FloatTensor],
         action_mask: Tensor,
         n_nodes: Tensor,
     ) -> tuple[Tensor, Tensor, Tensor]:
@@ -79,7 +85,7 @@ class ActionThenNodePolicy(nn.Module):
 
     def sample(
         self,
-        h: SparseTensor,
+        h: SparseTensor[FloatTensor],
         n_nodes: Tensor,
         action_mask: Tensor,
         deterministic: bool = False,

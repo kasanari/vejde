@@ -95,7 +95,8 @@ class SACArgs(NamedTuple):
     """Entropy regularization coefficient."""
     autotune: bool = True
     """automatic tuning of the entropy coefficient"""
-    target_entropy_scale: float = 0.89
+    target_entropy_scale_a1: float = 0.89
+    target_entropy_scale_a2: float = 0.3
     """coefficient for scaling the autotune entropy target"""
     weight_decay: float = 0.0
     """weight decay for optimizers"""
@@ -479,7 +480,7 @@ def step_fn(
                     actor_optimizer,
                     a_optimizer,
                     args.gamma,
-                    args.target_entropy_scale,
+                    args.target_entropy_scale_a2,
                 )
                 alpha = update_data.new_alpha
 
@@ -600,7 +601,7 @@ def train(args: SACArgs) -> GraphAgentInterface:
     lengths: deque[int] = deque(maxlen=args.logging_interval)
 
     # Since the number of actions per node is constant, we can precompute the target entropy
-    target_a = -args.target_entropy_scale * torch.log(
+    target_a = -args.target_entropy_scale_a1 * torch.log(
         1 / torch.tensor(envs.single_action_space.nvec[0])
     )
 

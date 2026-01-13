@@ -12,8 +12,8 @@ requires-python = ">=3.11"
 dependencies = [
   "gnn-policy",
   "gymnasium>=1.1.1",
-  "psutil>=7.0.0",
   "tqdm>=4.67.1",
+  "tyro>=0.9.17",
 ]
 
 
@@ -22,7 +22,7 @@ cpu = ["torch==2.8.0", "torch_scatter==2.1.2+pt28cpu"]
 cu128 = ["torch==2.8.0", "torch_scatter==2.1.2+pt28cu128", "nvidia-ml-py"]
 jax_cpu = ["jax", "optax", "flax"]
 jax_gpu = ["jax[cuda12]", "optax", "flax"]
-rl = ["mlflow>=2.21.0", "tyro>=0.9.17", "wandb>=0.19.8"]
+rl = ["mlflow>=2.21.0", "wandb>=0.19.8"]
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
@@ -60,3 +60,7 @@ find-links = [
   "https://data.pyg.org/whl/torch-2.8.0+cpu.html",
 ]
 conflicts = [[{ extra = "cpu" }, { extra = "cu128" }]]
+
+
+[project.scripts]
+render_obs = "scripts:render_obs.cli"

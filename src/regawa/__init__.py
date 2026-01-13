@@ -10,9 +10,9 @@ from regawa.data.space import n_actions, n_relations, n_types
 from regawa.policy.gnn_agent import GraphAgentInterface
 from regawa.policy.q_agent.gnn_q_agent import GraphQAgent
 
-from .data.space import max_arity
 from .data.obs import HeteroObsData
 from .data.render import to_graphviz
+from .data.space import max_arity
 from .model import (
     BaseGroundedModel,
     BaseModel,

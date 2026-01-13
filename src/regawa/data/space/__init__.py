@@ -1,5 +1,5 @@
 from .space import HeteroStateSpace
-from .space_func import n_actions, n_relations, n_types, max_arity
+from .space_func import max_arity, n_actions, n_relations, n_types
 
 __all__ = [
 	"n_actions",

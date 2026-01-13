@@ -9,12 +9,12 @@ from regawa.data.batch import (
     HeteroBatchData,
     create_batch,
 )
+from regawa.data.graph import (
+    VariableDomain,
+)
 from regawa.data.obs import (
     HeteroObsData,
     ObsData,
-)
-from regawa.data.graph import (
-    VariableDomain,
 )
 
 

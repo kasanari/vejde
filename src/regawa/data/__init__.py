@@ -27,7 +27,7 @@ from .obs import (
     fn_variables_to_idx_with_time,
 )
 from .render import RenderGraph, create_render_graph, to_graphviz
-from .space import HeteroStateSpace, n_actions, max_arity
+from .space import HeteroStateSpace, max_arity, n_actions
 from .sparse import SparseArray
 from .stacked import StackedStringFactorGraph
 from .torch import (

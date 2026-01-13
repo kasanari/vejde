@@ -1,9 +1,9 @@
+import logging
 from typing import Any, SupportsFloat
 
 import gymnasium as gym
-import logging
-from regawa import GroundObs
-from regawa.model.base_grounded_model import TemporalGroundObs
+
+from regawa.model import GroundObs, TemporalGroundObs
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,8 @@ def merge_obs[T: GroundObs | TemporalGroundObs](obs: T, prev_obs: T) -> T:
 class CumulativeObsWrapper[T: GroundObs | TemporalGroundObs](
     gym.Wrapper[T, GroundObs, T, GroundObs]
 ):
-    """A wrapper that accumulates observations over time. Existing keys are updated, new keys are added."""
+    """A wrapper that accumulates observations over time.
+    Existing keys are updated, new keys are added."""
 
     def __init__(
         self,

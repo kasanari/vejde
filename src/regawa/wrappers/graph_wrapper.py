@@ -1,11 +1,16 @@
 import logging
 from typing import Any, SupportsFloat
+
 import gymnasium as gym
-from regawa import BaseModel, GroundObs, Grounding
-from regawa.data.heterograph import HeteroGraph
-from ..data.graph_func import fn_groundobs_to_heterograph
-from ..data.render_utils import create_render_graph, to_graphviz
-from ..data.render_utils import RenderGraph
+
+from regawa import BaseModel, Grounding, GroundObs
+from regawa.data import (
+    HeteroGraph,
+    RenderGraph,
+    create_render_graph,
+    fn_groundobs_to_heterograph,
+    to_graphviz,
+)
 
 logger = logging.getLogger(__name__)
 

@@ -1,8 +1,7 @@
-from regawa.embedding.node_embedders import EmbeddingLayer
-
-
 import torch.nn as nn
 from torch import Tensor
+
+from regawa.embedding.node_embedders import EmbeddingLayer
 
 
 class NumericEmbedder(nn.Module):

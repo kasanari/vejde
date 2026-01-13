@@ -1,17 +1,12 @@
 from __future__ import annotations
+
 from collections.abc import Sequence
+from typing import Generic, NamedTuple, TypeVar
 
 import numpy as np
 from numpy.typing import NDArray
-from .actions import ActionMask
-from regawa.model import Grounding
 
-
-from typing import Generic, NamedTuple
-
-
-from typing import TypeVar
-from regawa.model.null import NullConst
+from regawa.model import Grounding, NullConst
 
 VariableDomain = TypeVar(
     "VariableDomain",
@@ -23,6 +18,12 @@ VariableDomain = TypeVar(
 
 VariableTypeDomain = np.int64
 EdgeIndexDomain = np.int64
+
+class ActionMask(NamedTuple):
+    # mask that indicates which actions are valid for each factor, given the predicate type. Length matches factor.
+    action_type_mask: NDArray[np.bool_]
+    # mask that indicates which actions are valid for each factor, given the predicate arity. Objects are not valid for predicates with no arguments. Length matches factor.
+    action_arity_mask: NDArray[np.bool_]
 
 
 class Distances(NamedTuple):
@@ -59,14 +60,6 @@ class Object(NamedTuple):
 NullObject = Object(NullConst.id, NullConst.type)
 
 
-class StackedStringVariables(NamedTuple, Generic[VariableDomain]):
-    types: Sequence[str]
-    values: Sequence[Sequence[VariableDomain]]
-    length: Sequence[int]
-    n_variable: int
-    groundings: Sequence[Grounding]
-
-
 class StringVariables(NamedTuple, Generic[VariableDomain]):
     types: Sequence[str]
     values: Sequence[VariableDomain]
@@ -80,18 +73,6 @@ class StringFactors(NamedTuple):
     types: Sequence[str]  # object of grounding, e.g. "o"
 
 
-class StringFactorGraph(NamedTuple, Generic[VariableDomain]):
-    """A FactorGraph with string attributes."""
-
-    variables: StringVariables[VariableDomain]
-    factors: StringFactors
-    edges: Edges
-    global_variables: StringVariables[VariableDomain]
-    action_masks: ActionMask
-    # distance metrics, in a sparse format
-    # distances: Distances
-
-
 class Edges(NamedTuple):
     # mappings from grounding to object. Length matches var_value
     v_to_f: NDArray[EdgeIndexDomain]
@@ -100,7 +81,9 @@ class Edges(NamedTuple):
     # edge attributes, e.g. position in predicate. Length matches v_to_f and f_to_v
     edge_attr: NDArray[EdgeIndexDomain]
 
+    # distance metrics, in a sparse format
+    # distances: Distances
 
-class Factors(NamedTuple):
-    types: NDArray[np.int64]  # object of grounding, e.g. "o"
-    n_factor: int  # number of objects/factors.
+
+
+

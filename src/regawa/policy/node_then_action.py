@@ -1,17 +1,20 @@
 from collections.abc import Callable
 from functools import partial
 
-from torch import FloatTensor, Generator as Rngs
-from torch import Tensor, nn
+from gnn_policy.functional import (
+    eval_node_then_action,
+    mask_logits,
+    sample_node_then_action,
+    segmented_softmax,
+    softmax,
+)
+from torch import FloatTensor, Tensor, nn
+from torch import Generator as Rngs
 
-from gnn_policy.functional import eval_node_then_action
-from gnn_policy.functional import sample_node_then_action
-from gnn_policy.functional import segmented_softmax
-from gnn_policy.functional import softmax
-from gnn_policy.functional import mask_logits
+from regawa.data import SparseTensor
 from regawa.data.torch import TorchActionMask
 from regawa.functional import node_then_action_value_estimate
-from regawa.data import SparseTensor
+
 from .types import PolicyOutput
 
 PolicyFunc = Callable[

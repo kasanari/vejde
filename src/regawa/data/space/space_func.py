@@ -1,6 +1,7 @@
 from gymnasium.spaces import Dict, MultiDiscrete
-from .space import HeteroStateSpace
 from gymnasium.vector.utils.space_utils import batch_differing_spaces  # type: ignore
+
+from .space import HeteroStateSpace
 
 
 def max_arity(observation_space: Dict) -> int:

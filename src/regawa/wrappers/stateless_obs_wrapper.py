@@ -18,7 +18,8 @@ def create_stateless_wrapper(
     gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs],
 ]:
     """
-    Creates a stateless observation wrapper that applies a transformation to the observations.
+    Creates a stateless observation wrapper
+    that applies a transformation to the observations.
     """
 
     def wrapper(env: gym.Env[GroundObs, GroundObs]) -> StateLessWrapper:

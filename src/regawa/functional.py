@@ -1,7 +1,8 @@
-from torch import FloatTensor, Tensor
+from functools import partial
 
 from gnn_policy.functional import segment_sum
-from functools import partial
+from torch import FloatTensor, Tensor
+
 from regawa.data.torch import SparseTensor
 
 

@@ -14,7 +14,7 @@ mlartifacts
 *.md
 *.yml
 build
-render
+rendered_graphs
 images
 *.log
 frames

@@ -1,7 +1,8 @@
+import logging
 from typing import Any, SupportsFloat
 
 import gymnasium as gym
-import logging
+
 from regawa import GroundObs
 
 logger = logging.getLogger(__name__)
@@ -24,11 +25,7 @@ def check_if_equal(obs1: GroundObs, obs2: GroundObs | None) -> bool:
         return False
 
     # Check if all values are the same
-    for key in keys1:
-        if obs1[key] != obs2[key]:
-            return False
-
-    return True
+    return all(obs1[key] == obs2[key] for key in keys1)
 
 
 class NoOpIfSameWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs]):

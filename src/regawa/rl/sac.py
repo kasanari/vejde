@@ -1,9 +1,10 @@
 from functools import partial
+
+from gnn_policy.functional import segment_sum
+from torch import FloatTensor, Tensor
+
 from regawa.data.torch import SparseTensor
 from regawa.functional import ACTION_DIM
-from gnn_policy.functional import segment_sum
-
-from torch import FloatTensor, Tensor
 
 
 def sac_node_then_action_value_estimate(

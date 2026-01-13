@@ -1,14 +1,11 @@
+from typing import Generic, NamedTuple, TypeVar
+
 import numpy as np
 from numpy.typing import NDArray
 
-from typing import Generic, NamedTuple, TypeVar
-
-
-from .actions import ActionMask
-
-from .graph import VariableDomain, Edges
-
-from .sparse import SparseArray
+from regawa.data.graph import VariableDomain
+from regawa.data.graph.graph import ActionMask, Edges
+from regawa.data.sparse import SparseArray
 
 
 class BatchedVariables(NamedTuple, Generic[VariableDomain]):

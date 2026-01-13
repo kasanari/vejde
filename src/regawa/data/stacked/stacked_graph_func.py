@@ -1,14 +1,15 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from itertools import chain
 
-from .stacked_graph import StackedStringFactorGraph
-
-from .graph import (
-    StringFactorGraph,
+from regawa.data.factor_graph import StringFactorGraph
+from regawa.data.graph import (
     StringVariables,
     VariableDomain,
 )
+from regawa.data.obs.obs import ObsData
 from regawa.model import Grounding
+
+from .stacked_graph import StackedStringFactorGraph
 
 
 def flatten(
@@ -56,3 +57,20 @@ def flatten_stacked_graph(
         edges=factorgraph.edges,
         action_masks=factorgraph.action_masks,
     )
+
+
+def fn_flatten_then_map_graph_to_idx(
+    map_graph_to_idx: Callable[
+        [StringFactorGraph[VariableDomain], type], ObsData[VariableDomain]
+    ],
+):
+    def flatten_map_graph_to_idx(
+        factorgraph: StackedStringFactorGraph[VariableDomain],
+        var_val_dtype: type,
+    ) -> ObsData[VariableDomain]:
+        return map_graph_to_idx(
+            flatten_stacked_graph(factorgraph),
+            var_val_dtype,
+        )
+
+    return flatten_map_graph_to_idx

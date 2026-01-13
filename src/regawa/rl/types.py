@@ -1,10 +1,8 @@
-from regawa.data import HeteroGraphBuffer
-
+from typing import NamedTuple
 
 from torch import Tensor
 
-from typing import NamedTuple
-
+from regawa.data import HeteroGraphBuffer
 from regawa.data.obs import HeteroObsData
 
 

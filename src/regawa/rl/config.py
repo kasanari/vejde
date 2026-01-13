@@ -1,8 +1,7 @@
-from typing import Literal
-from regawa import GNNParams
-
-
 from dataclasses import dataclass
+from typing import Literal
+
+from regawa import GNNParams
 
 
 @dataclass

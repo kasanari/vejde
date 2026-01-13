@@ -1,11 +1,12 @@
 from collections.abc import Sequence
-from typing import Any, NamedTuple, SupportsFloat
 from itertools import groupby
+from typing import Any, NamedTuple, SupportsFloat
+
 import gymnasium as gym
 
-from regawa.model.base_grounded_model import (
-    GroundObs,
+from regawa.model import (
     GroundingRange,
+    GroundObs,
     StackedGroundObs,
     TemporalGroundObs,
 )
@@ -74,9 +75,11 @@ def get_time_entry(
 
 def compress_stack(o: Sequence[tuple[int, GroundingRange]]):
     """
-    [(time1: int, grounding_range1: GroundingRange), (time2: int, grounding_range2: GroundingRange), ...]
+    [(time1: int, grounding_range1: GroundingRange),
+    (time2: int, grounding_range2: GroundingRange), ...]
     ->
-    [(start_time1: int, end_time1: int, grounding_range1: GroundingRange), (start_time2: int, end_time2: GroundingRange), ...]
+    [(start_time1: int, end_time1: int, grounding_range1: GroundingRange),
+    (start_time2: int, end_time2: GroundingRange), ...]
     """
 
     compressed_stack: list[tuple[TimeEntry, GroundingRange]] = []
@@ -146,7 +149,8 @@ def compress_stacked_obs(
     grounding2: str, [(time1: int, value1: Any), (time2: int, value1: Any), ...]),
     }
     ->
-    grounding1: str, [(start_time1: int, end_time1: int, value1: Any), (start_time2: int, end_time2: int, value2: Any), ...]),
+    grounding1: str, [(start_time1: int, end_time1: int, value1: Any),
+    (start_time2: int, end_time2: int, value2: Any), ...]),
     grounding2: str, [(start_time1: int, end_time1: Any), ...]),
     """
 

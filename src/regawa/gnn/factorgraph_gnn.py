@@ -3,11 +3,11 @@ import logging
 import torch.nn as nn
 from torch import Generator as Rngs
 from torch import zeros
+
 from regawa.data import TorchFactorGraph
 
 from .acg_factorgraph_layer import FactorGraphLayer
 from .attentional_aggregation import AttentionalAggregation
-
 
 logger = logging.getLogger(__name__)
 
@@ -47,21 +47,20 @@ class BipartiteGNN(nn.Module):
 
         fg = fg._replace(factors=factors)
 
-        i = 0
         logger.debug("Factor Graph")
         logger.debug("Factors:\n%s", fg.factors)
         # logger.debug("Variables:\n%s", variables)
         logger.debug("Edge Index:\n%s", (fg.v_to_f, fg.f_to_v))
         logger.debug("----\n")
 
-        for conv in self.convs:
+        for i, conv in enumerate(self.convs):
             logger.debug("Layer %d", i)
             (variables, factors) = conv(fg)
             fg = fg._replace(
                 variables=fg.variables.replace_val(variables),
                 factors=fg.factors.replace_val(factors),
             )
-            i += 1
+
 
         logger.debug("Global Node\n%s", g)
         logger.debug("Message Passing Done\n")

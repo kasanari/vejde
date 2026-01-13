@@ -3,10 +3,10 @@ from typing import Any, SupportsFloat
 
 import gymnasium as gym
 
-from regawa.model.base_grounded_model import (
-    GroundObs,
+from regawa.model import (
     Grounding,
     GroundingRange,
+    GroundObs,
     StackedGroundObs,
 )
 
@@ -39,7 +39,7 @@ def stack_obs(
             if len(result[k]) < horizon:
                 result[k] += [None] * (horizon - len(result[k]))
 
-    for k, v in result.items():
+    for v in result.values():
         assert len(v) == horizon
 
     return result, lengths

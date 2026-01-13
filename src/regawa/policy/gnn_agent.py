@@ -1,36 +1,35 @@
 from __future__ import annotations
+
+from abc import ABC, abstractmethod
 from pathlib import Path
 
 import torch.nn as nn
 from torch import Generator as Rngs
 from torch import Tensor
 
-from regawa.data import TorchFactorGraph, heterostatedata_to_tensors
-from regawa.data import HeteroObsData
-
-from regawa.data.batch_func import single_obs_to_heterostatedata
-from regawa.data.torch import TorchHeteroBatchData
-from regawa.embedding import (
-    NegativeBiasBooleanEmbedder,
-    NumericEmbedder,
-)
-from regawa.model import BaseModel
-from regawa.policy.save import save_agent
-
-from .node_then_action import NodeThenActionPolicy
-from .action_then_node import ActionThenNodePolicy
 from regawa.data import (
     HeteroBatchData,
+    HeteroObsData,
+    TorchFactorGraph,
+    TorchHeteroBatchData,
+    heterostatedata_to_tensors,
+    single_obs_to_heterostatedata,
 )
-from regawa.gnn import BipartiteGNN
 from regawa.embedding import (
     EmbeddingLayer,
+    NegativeBiasBooleanEmbedder,
+    NumericEmbedder,
     fn_embed_graph,
     fn_embed_heterobatch,
 )
+from regawa.gnn import BipartiteGNN
+from regawa.model import BaseModel
+
+from .action_then_node import ActionThenNodePolicy
 from .agent_config import ActionMode, AgentConfig
-from abc import ABC, abstractmethod
-from regawa.policy.types import PolicyOutput
+from .node_then_action import NodeThenActionPolicy
+from .save import save_agent
+from .types import PolicyOutput
 
 
 class GraphAgentInterface(ABC):
@@ -68,9 +67,11 @@ class GraphAgentInterface(ABC):
     def check_compatability(self, model: BaseModel): ...
 
     @property
+    @abstractmethod
     def device(self) -> str: ...
 
     @device.setter
+    @abstractmethod
     def device(self, device: str) -> None: ...
 
 
@@ -203,16 +204,10 @@ class GraphAgent(nn.Module, GraphAgentInterface):
     def check_compatability(self, model: BaseModel):
         assert (
             self.config.num_object_classes == model.num_types
-        ), "Mismatch in number of variable types, agent expects {}, model has {}".format(
-            self.config.num_object_classes, model.num_types
-        )
+        ), f"Mismatch in number of variable types, agent expects {self.config.num_object_classes}, model has {model.num_types}"
         assert (
             self.config.num_predicate_classes == model.num_fluents
-        ), "Mismatch in number of predicates, agent expects {}, model has {}".format(
-            self.config.num_predicate_classes, model.num_fluents
-        )
+        ), f"Mismatch in number of predicates, agent expects {self.config.num_predicate_classes}, model has {model.num_fluents}"
         assert (
             self.config.num_actions == model.num_actions
-        ), "Mismatch in number of action types, agent expects {}, model has {}".format(
-            self.config.num_actions, model.num_actions
-        )
+        ), f"Mismatch in number of action types, agent expects {self.config.num_actions}, model has {model.num_actions}"

@@ -1,14 +1,12 @@
+import json
 from collections import deque
+from typing import NamedTuple
 
 import numpy as np
 from numpy.typing import NDArray
+
 from regawa.data.buffer import HeteroGraphBuffer
-
-
-from typing import NamedTuple
-
 from regawa.data.obs import HeteroObsData
-import json
 
 
 class Rollout(NamedTuple):
@@ -35,7 +33,7 @@ def save_rollout(rollout: Rollout, path: str):
 
 
 def load_rollout(path: str) -> Rollout:
-    with open(path, "r") as f:
+    with open(path) as f:
         data = json.load(f)
     return Rollout(**data)
 

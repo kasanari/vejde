@@ -1,9 +1,9 @@
+import logging
 from typing import Any, SupportsFloat
 
 import gymnasium as gym
-import logging
-from regawa import GroundObs
-from regawa.model.base_grounded_model import TemporalGroundObs
+
+from regawa.model import GroundObs, TemporalGroundObs
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,10 @@
 from __future__ import annotations
-from torch import FloatTensor, Tensor, min
-from regawa.data import SparseTensor
+
 from typing import NamedTuple
+
+from torch import FloatTensor, Tensor, min
+
+from regawa.data import SparseTensor
 
 
 class QValue(NamedTuple):

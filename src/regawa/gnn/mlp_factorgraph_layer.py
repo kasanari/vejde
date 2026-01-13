@@ -1,12 +1,14 @@
+import logging
+
 import torch.nn as nn
-from torch import Generator as Rngs, concatenate
-from torch import Tensor
+from torch import Generator as Rngs
+from torch import Tensor, concatenate
 from torch_scatter import scatter
 
 from regawa.data import TorchFactorGraph
+
 from .mlp import MLPLayer
 from .mp_rendering import Lazy, to_graphviz_bp
-import logging
 
 render_logger = logging.getLogger("message_pass_render")
 

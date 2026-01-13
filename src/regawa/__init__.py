@@ -1,33 +1,51 @@
-from typing import Any
-from torch import Generator
-from gymnasium.spaces import MultiDiscrete
+from typing import Any, Literal
 
+import gymnasium as gym
+import torch
+from gymnasium.spaces import MultiDiscrete
+from gymnasium.vector import AsyncVectorEnv, SyncVectorEnv
+from torch import Generator
+
+from regawa.data.space import n_actions, n_relations, n_types
 from regawa.policy.gnn_agent import GraphAgentInterface
+from regawa.policy.q_agent.gnn_q_agent import GraphQAgent
+
+from .data.space import max_arity
 from .data.obs import HeteroObsData
-from .policy import ActionMode, GNNParams, AgentConfig, load_agent
+from .data.render import to_graphviz
 from .model import (
+    BaseGroundedModel,
+    BaseModel,
     Grounding,
-    GroundObs,
     GroundingRange,
+    GroundObs,
     ObservableGroundingRange,
     ObservableGroundObs,
 )
-from .model import BaseGroundedModel
-from .model import BaseModel
-from .wrappers import StackingGroundedGraphWrapper
-from .wrappers import GroundedGraphWrapper
-from .policy import GraphAgent, RecurrentGraphAgent
-from .data import space_func
-from .model import max_arity
-import gymnasium as gym
-from .data.render_utils import to_graphviz
-from gymnasium.vector import SyncVectorEnv, AsyncVectorEnv
-from typing import Literal
-from regawa.policy.q_agent.gnn_q_agent import GraphQAgent
-import torch
+from .policy import (
+    ActionMode,
+    AgentConfig,
+    GNNParams,
+    GraphAgent,
+    RecurrentGraphAgent,
+    load_agent,
+)
+from .wrappers import GroundedGraphWrapper, StackingGroundedGraphWrapper
 
 _agent_classes = [GraphAgent, RecurrentGraphAgent, GraphQAgent]
 agent_classes = {cls.__name__: cls for cls in _agent_classes}
+
+
+def agent_config_from_space(
+    obs_space: HeteroObsData, action_space: MultiDiscrete, gnn_params: GNNParams
+) -> AgentConfig:
+    return AgentConfig(
+        n_types(obs_space),  # type: ignore
+        n_relations(obs_space),  # type: ignore
+        n_actions(action_space),  # type: ignore
+        arity=max_arity(obs_space),  # type: ignore
+        hyper_params=gnn_params,
+    )
 
 
 def agent_from_env(
@@ -41,25 +59,15 @@ def agent_from_env(
     agent_class: type[GraphAgentInterface] = agent_classes[agent_class_type]
     obs_space, action_space = (
         (env.observation_space, env.action_space)
-        if not isinstance(env, (SyncVectorEnv, AsyncVectorEnv))
+        if not isinstance(env, SyncVectorEnv | AsyncVectorEnv)
         else (env.single_observation_space, env.single_action_space)
     )
 
-    n_types = space_func.n_types(obs_space)  # type: ignore
-    n_relations = space_func.n_relations(obs_space)  # type: ignore
-    n_actions = space_func.n_actions(action_space)  # type: ignore
-
-    config = AgentConfig(
-        n_types,
-        n_relations,
-        n_actions,
-        arity=space_func.max_arity(obs_space),  # type: ignore
-        hyper_params=params,
-    )
-
-    rng = Generator()
-
-    return agent_class(config, rng, device=device).to(device)
+    return agent_class(
+        agent_config_from_space(obs_space, action_space, params),
+        Generator(),
+        device=device,
+    ).to(device)
 
 
 def agent_from_model(
@@ -119,4 +127,5 @@ __all__ = [
     "GroundObs",
     "GroundingRange",
     "load_agent",
+    "GraphAgentInterface",
 ]

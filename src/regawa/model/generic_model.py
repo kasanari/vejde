@@ -1,7 +1,9 @@
 from __future__ import annotations
-from functools import cache, cached_property
+
 from collections.abc import Sequence
-from regawa import BaseModel
+from functools import cache, cached_property
+
+from .base_model import BaseModel
 
 
 class GenericModel(BaseModel):

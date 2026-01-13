@@ -1,11 +1,10 @@
-from functools import cache
 import logging
-from collections.abc import Callable
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from functools import cache
 
 import numpy as np
 
-from .base_grounded_model import GroundObs, Grounding
+from .base_grounded_model import Grounding, GroundObs
 from .null import NullConst
 
 logger = logging.getLogger(__name__)
@@ -44,7 +43,7 @@ def has_valid_parameters(
     if len(param_types) != len(params):
         return False
 
-    for intended_param, param in zip(param_types, params):
+    for intended_param, param in zip(param_types, params, strict=False):
         if intended_param != obj_to_type(param):
             return False
 
@@ -132,3 +131,18 @@ def bool_groundings(
     Returns a list of boolean groundings from the given list of groundings.
     """
     return [g for g in groundings if is_bool(g)]
+
+
+def filter_none_groundings(rddl_obs: GroundObs) -> GroundObs:
+    filtered_groundings = [
+        g
+        for g in rddl_obs
+        if rddl_obs[g] is not None  # type: ignore
+    ]
+
+    filtered_obs: GroundObs = {k: rddl_obs[k] for k in filtered_groundings}
+    return filtered_obs
+
+
+def remove_false(obs: GroundObs) -> GroundObs:
+    return {a: v for a, v in obs.items() if v is not False and v is not np.bool_(False)}

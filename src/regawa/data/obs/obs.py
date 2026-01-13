@@ -1,11 +1,25 @@
+from typing import Generic, NamedTuple, TypeVar
+
 import numpy as np
+from numpy.typing import NDArray
+
+from regawa.data.factor_graph import StringFactorGraph
+from regawa.data.graph import ActionMask, VariableDomain, Variables
+from regawa.data.graph.graph import Edges
+from regawa.data.stacked import StackedStringFactorGraph
+
+GraphTypes = TypeVar(
+    "GraphTypes",
+    StringFactorGraph[np.int8],
+    StackedStringFactorGraph[np.int8],
+    StringFactorGraph[np.float32],
+    StackedStringFactorGraph[np.float32],
+)
 
 
-from typing import Generic, NamedTuple
-
-
-from .actions import ActionMask
-from .graph import Edges, Factors, Variables, VariableDomain
+class Factors(NamedTuple):
+    types: NDArray[np.int64]  # object of grounding, e.g. "o"
+    n_factor: int  # number of objects/factors.
 
 
 class ObsData(NamedTuple, Generic[VariableDomain]):

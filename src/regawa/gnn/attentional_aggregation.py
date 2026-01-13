@@ -1,9 +1,8 @@
 import logging
 
 import torch.nn as nn
-from torch import Tensor
-
 from gnn_policy.functional import segment_sum, segmented_softmax
+from torch import Tensor
 
 from regawa.data import SparseTensor
 

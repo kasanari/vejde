@@ -1,5 +1,6 @@
-from torch import FloatTensor, Tensor
 from typing import NamedTuple
+
+from torch import FloatTensor, Tensor
 
 from regawa.data.torch import SparseTensor
 

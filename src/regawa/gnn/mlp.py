@@ -1,5 +1,6 @@
 import torch.nn.init as init
-from torch import Generator as Rngs, Tensor
+from torch import Generator as Rngs
+from torch import Tensor
 from torch.nn import LayerNorm, Linear, Module, Sequential
 
 

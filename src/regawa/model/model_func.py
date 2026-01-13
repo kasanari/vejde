@@ -3,6 +3,7 @@
 from functools import cache
 
 from regawa.model.null import NullConst
+
 from .base_model import BaseModel
 
 

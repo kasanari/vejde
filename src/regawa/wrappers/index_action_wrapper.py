@@ -1,17 +1,13 @@
 import logging
+from collections.abc import Callable
 from typing import Any, SupportsFloat
 
 import gymnasium as gym
-
-from regawa.model import GroundObs, Grounding
-from regawa.model import BaseModel
-from regawa.model.null import NullConst
-from ..model.grounding_func import to_dict_action
-from regawa.data.heterograph import HeteroGraph
-from collections.abc import Callable
 import numpy as np
-from ..data.actions import idx_action_to_ground_value
 from gymnasium.spaces import MultiDiscrete
+
+from regawa.data import HeteroGraph, idx_action_to_ground_value
+from regawa.model import BaseModel, Grounding, GroundObs, NullConst, to_dict_action
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +91,7 @@ class IndexActionWrapper(
 
         self._idx_to_object = graph.boolean.factors.names
         self._object_to_type = dict(
-            zip(graph.boolean.factors.names, graph.boolean.factors.types)
+            zip(graph.boolean.factors.names, graph.boolean.factors.types, strict=False)
         )
 
         return graph, r, term, trunc, info
@@ -116,7 +112,7 @@ class IndexActionWrapper(
 
         self._idx_to_object = graph.boolean.factors.names
         self._object_to_type = dict(
-            zip(graph.boolean.factors.names, graph.boolean.factors.types)
+            zip(graph.boolean.factors.names, graph.boolean.factors.types, strict=False)
         )
 
         return graph, info

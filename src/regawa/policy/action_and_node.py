@@ -1,15 +1,15 @@
 from collections.abc import Callable
 from functools import partial
 
-from torch import FloatTensor, Tensor, nn
-
 from gnn_policy.functional import (
     eval_action_and_node,
     sample_action_and_node,
     segment_sum,
 )
-from regawa.functional import action_and_node_value_estimate, num_graphs, predicate_mask
+from torch import FloatTensor, Tensor, nn
+
 from regawa.data import SparseTensor
+from regawa.functional import action_and_node_value_estimate, num_graphs, predicate_mask
 
 PolicyFunc = Callable[
     [Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor],

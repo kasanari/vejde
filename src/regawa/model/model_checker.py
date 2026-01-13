@@ -1,5 +1,5 @@
+from . import BaseGroundedModel, BaseModel
 from .null import NullConst
-from . import BaseModel, BaseGroundedModel
 
 
 def _check_model(model: BaseModel) -> bool:

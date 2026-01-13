@@ -1,8 +1,8 @@
-from regawa.embedding.node_embedders import EmbeddingLayer, logger
-
-
 import torch.nn as nn
-from torch import Generator as Rngs, Tensor, as_tensor, zeros
+from torch import Generator as Rngs
+from torch import Tensor, as_tensor, zeros
+
+from regawa.embedding.node_embedders import EmbeddingLayer, logger
 
 
 class BooleanEmbedder(nn.Module):

@@ -1,9 +1,14 @@
 from collections.abc import Iterable
 from itertools import chain
+
 import numpy as np
 from numpy.typing import NDArray
 
-from .actions import ActionMask
+from regawa.data.graph import VariableDomain
+from regawa.data.graph.graph import ActionMask, Edges
+from regawa.data.obs import HeteroObsData, ObsData
+from regawa.data.sparse import SparseArray
+
 from .batch import (
     ArrayDomain,
     BatchData,
@@ -11,9 +16,6 @@ from .batch import (
     BatchedVariables,
     HeteroBatchData,
 )
-from .graph import Edges, VariableDomain
-from .obs import HeteroObsData, ObsData
-from .sparse import SparseArray
 
 
 def add_to_array(

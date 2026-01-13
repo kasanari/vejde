@@ -1,14 +1,11 @@
 from typing import Any
+
+import numpy as np
 from gymnasium import Space
 from gymnasium.spaces import Box, Discrete, Sequence
-import numpy as np
 
-from regawa.data.graph import VariableDomain
-
-from .obs import HeteroObsData
-from .obs import ObsData
-from .graph import Variables
-
+from regawa.data.graph import VariableDomain, Variables
+from regawa.data.obs import HeteroObsData, ObsData
 
 BIG_NUMBER = 2000
 

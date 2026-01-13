@@ -3,12 +3,7 @@ from typing import Any, SupportsFloat
 import gymnasium as gym
 import numpy as np
 
-from regawa.model import GroundObs
-from regawa.model.base_grounded_model import (
-    BaseGroundedModel,
-    Grounding,
-    GroundingRange,
-)
+from regawa.model import BaseGroundedModel, Grounding, GroundingRange, GroundObs
 
 
 def add_actions_to_obs(
@@ -25,7 +20,7 @@ def fn_add_actions_to_obs(grounded_model: BaseGroundedModel):
         boolean_actions = {k: np.bool_(v) for k, v in actions.items()}
 
         new_actions = {
-            k: boolean_actions.get(k, None) for k in action_groundings if k not in obs
+            k: boolean_actions.get(k) for k in action_groundings if k not in obs
         }
 
         obs_with_actions = add_actions_to_obs(obs, new_actions)  # type: ignore
@@ -44,7 +39,8 @@ def dynamic_add_actions_to_obs(
 
 class AddActionWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs]):
     """
-    Adds the previous action to the observation. Only the most recent action is set to true.
+    Adds the previous action to the observation.
+    Only the most recent action is set to true.
     """
 
     def __init__(

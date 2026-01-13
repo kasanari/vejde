@@ -1,9 +1,9 @@
 import logging
 
 import torch.nn.init as init
-from torch.nn import Embedding, LayerNorm, Module, Sequential
 from torch import Generator as Rngs
 from torch import Tensor
+from torch.nn import Embedding, LayerNorm, Module, Sequential
 
 logger = logging.getLogger(__name__)
 

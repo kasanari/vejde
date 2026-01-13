@@ -1,9 +1,9 @@
 from __future__ import annotations
-import numpy as np
-from numpy.typing import NDArray
-
 
 from typing import Generic, NamedTuple, TypeVar
+
+import numpy as np
+from numpy.typing import NDArray
 
 V = TypeVar("V", np.float32, np.bool_, np.int64, np.int8)
 

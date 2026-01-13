@@ -1,65 +1,18 @@
-from collections.abc import Callable
 import logging
+from functools import cached_property
 from typing import Any, SupportsFloat
 
 import gymnasium as gym
-from functools import cached_property
-from regawa.data import HeteroObsData
-from regawa.data.graph import (
-    StringFactorGraph,
-    VariableDomain,
-)
-from regawa.data.graph_func import factor_to_idx
-from regawa.data.obs import ObsData
-from regawa.data.obs_func import fn_graph_to_obsdata
-from regawa.data.stacked_graph import StackedStringFactorGraph
-from regawa.model import GroundObs
-from regawa.model import BaseModel
-from regawa.data.graph_func import (
-    fn_variables_to_idx_with_time,
-)
 
-from regawa.data.graph_func import fn_variables_to_idx
-from ..data.obs_func import fn_heterograph_to_heteroobs
-from ..data.stacked_graph_func import flatten_stacked_graph
-from ..data.space import HeteroStateSpace
-from regawa.data.heterograph import HeteroGraph
+from regawa.data import (
+    HeteroGraph,
+    HeteroObsData,
+    HeteroStateSpace,
+    fn_idx_obs,
+)
+from regawa.model import BaseModel, GroundObs
 
 logger = logging.getLogger(__name__)
-
-
-def fn_flatten_then_map_graph_to_idx(
-    map_graph_to_idx: Callable[
-        [StringFactorGraph[VariableDomain], type], ObsData[VariableDomain]
-    ],
-):
-    def flatten_map_graph_to_idx(
-        factorgraph: StackedStringFactorGraph[VariableDomain],
-        var_val_dtype: type,
-    ) -> ObsData[VariableDomain]:
-        return map_graph_to_idx(
-            flatten_stacked_graph(factorgraph),
-            var_val_dtype,
-        )
-
-    return flatten_map_graph_to_idx
-
-
-def fn_idx_obs(model: BaseModel, stacking: bool = False):
-    f = fn_graph_to_obsdata(
-        fn_variables_to_idx_with_time(model.fluent_to_idx)
-        if stacking
-        else fn_variables_to_idx(model.fluent_to_idx),
-        factor_to_idx(model.type_to_idx),
-    )
-
-    idx_func = fn_flatten_then_map_graph_to_idx(f) if stacking else f
-    create_obs_dict_fn = fn_heterograph_to_heteroobs(idx_func)
-
-    def graph_to_obsdata(g: HeteroGraph) -> HeteroObsData:
-        return create_obs_dict_fn(g)
-
-    return graph_to_obsdata
 
 
 class IndexObsWrapper(
@@ -116,14 +69,10 @@ class IndexObsWrapper(
 
         assert obs.bool.var.length.sum() == len(
             obs.bool.var.value
-        ), "Expected {} but got {}".format(
-            obs.bool.var.length.sum(), len(obs.bool.var.value)
-        )
+        ), f"Expected {obs.bool.var.length.sum()} but got {len(obs.bool.var.value)}"
         assert obs.float.var.length.sum() == len(
             obs.float.var.value
-        ), "Expected {} but got {}".format(
-            obs.float.var.length.sum(), len(obs.float.var.value)
-        )
+        ), f"Expected {obs.float.var.length.sum()} but got {len(obs.float.var.value)}"
 
         return obs, r, term, trunc, info
 

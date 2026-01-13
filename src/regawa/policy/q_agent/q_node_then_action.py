@@ -1,6 +1,7 @@
 from torch import nn
 
 from regawa.data import SparseTensor
+
 from .q_value import QValue
 
 

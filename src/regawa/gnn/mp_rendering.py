@@ -1,6 +1,7 @@
 # type: ignore
 
 from collections.abc import Callable
+
 from torch import Tensor, norm
 
 
@@ -36,10 +37,10 @@ def to_graphviz_bp(
     for i, f in enumerate(f_norm):
         output += f'"{i}_f" [label="{f.item():0.2f}", shape=rectangle, color=red];\n'
 
-    for f, v, m in zip(f_to_v, v_to_f, sum_vector(m_f_to_v)):
+    for f, v, m in zip(f_to_v, v_to_f, sum_vector(m_f_to_v), strict=False):
         output += f'"{int(f)}_f" -> "{int(v)}_v" [label="{m.item():0.2f}"];\n'
 
-    for v, f, m in zip(v_to_f, f_to_v, sum_vector(m_v_to_f)):
+    for v, f, m in zip(v_to_f, f_to_v, sum_vector(m_v_to_f), strict=False):
         output += f'"{int(v)}_v" -> "{int(f)}_f" [label="{m.item():0.2f}"];\n'
 
     output += "}"
@@ -77,7 +78,7 @@ def to_graphviz(
     for i, f in enumerate(f_norm):
         output += f'"{i}_f" [label="{f:0.2f}", shape=rectangle, color=red];'
 
-    for s, r, m in zip(senders, receivers, m_norm):
+    for s, r, m in zip(senders, receivers, m_norm, strict=False):
         output += f'{edge_string(s, r)} [label="{m:0.2f}"];'
 
     output += "}"

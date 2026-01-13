@@ -1,15 +1,21 @@
-import numpy as np
-from regawa.data.batch import BatchData, HeteroBatchData
-from regawa.data.batch_func import batch
-from regawa.data.graph import VariableDomain
-from regawa.data.obs import ObsData
-
-
 from collections import deque
 from collections.abc import Iterable
 from typing import Generic
 
-from regawa.data.obs import HeteroObsData
+import numpy as np
+
+from regawa.data.batch import (
+    BatchData,
+    HeteroBatchData,
+    create_batch,
+)
+from regawa.data.obs import (
+    HeteroObsData,
+    ObsData,
+)
+from regawa.data.graph import (
+    VariableDomain,
+)
 
 
 class GraphBuffer(Generic[VariableDomain]):
@@ -26,13 +32,13 @@ class GraphBuffer(Generic[VariableDomain]):
         self.data.append(obs)
 
     def batch(self) -> BatchData[VariableDomain]:
-        return batch(list(self.data))
+        return create_batch(list(self.data))
 
     def __getitem__(self, index: int) -> ObsData[VariableDomain]:
         return self.data[index]
 
     def minibatch(self, indices: Iterable[int]) -> BatchData[VariableDomain]:
-        return batch([self.data[i] for i in indices])
+        return create_batch([self.data[i] for i in indices])
 
 
 class HeteroGraphBuffer:
@@ -52,12 +58,12 @@ class HeteroGraphBuffer:
     @property
     def batch(self) -> HeteroBatchData:
         return HeteroBatchData(
-            boolean=batch(list(self.boolean.data)),
-            numeric=batch(list(self.numeric.data)),
+            boolean=create_batch(list(self.boolean.data)),
+            numeric=create_batch(list(self.numeric.data)),
         )
 
     def minibatch(self, indices: Iterable[int]) -> HeteroBatchData:
         return HeteroBatchData(
-            boolean=batch([self.boolean.data[i] for i in indices]),
-            numeric=batch([self.numeric.data[i] for i in indices]),
+            boolean=create_batch([self.boolean.data[i] for i in indices]),
+            numeric=create_batch([self.numeric.data[i] for i in indices]),
         )

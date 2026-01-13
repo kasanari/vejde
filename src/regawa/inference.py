@@ -1,16 +1,16 @@
 from collections.abc import Callable
+from typing import NamedTuple
+
+import torch
+from torch import Tensor
+
 from regawa import GroundObs
 from regawa.data.obs import HeteroObsData
-from regawa.wrappers.index_obs_wrapper import fn_idx_obs
-from regawa.policy import ActionMode
-from regawa.policy import GraphAgent
-from regawa.model import BaseModel
-from typing import NamedTuple
-from torch import Tensor
-from regawa.wrappers import fn_groundobs_to_heterograph
-from regawa.wrappers import create_render_graph
+from regawa.data.obs.obs_func import fn_idx_obs
 from regawa.data.render_utils import RenderGraph
-import torch
+from regawa.model import BaseModel
+from regawa.policy import ActionMode, GraphAgent
+from regawa.wrappers import create_render_graph, fn_groundobs_to_heterograph
 
 
 class NodeThenActionAgentOutput(NamedTuple):
@@ -80,7 +80,7 @@ def fn_action_then_node(
         weight_by_factor = {
             a: {
                 k: float(v)
-                for k, v in zip(objs, tensor_to_list(p_n__a[:, i]))
+                for k, v in zip(objs, tensor_to_list(p_n__a[:, i]), strict=False)
                 if v > 1e-4
             }
             for i, a in enumerate(model.action_fluents)
@@ -91,6 +91,7 @@ def fn_action_then_node(
             for k, v in zip(
                 model.action_fluents,
                 tensor_to_list(p_a),
+                strict=False,
             )
             if v > 1e-4
         }
@@ -130,7 +131,9 @@ def fn_node_then_action(
         action_tup: tuple[int, int] = tuple(action.squeeze().detach().cpu().numpy())  # type: ignore
 
         weight_by_factor = {
-            k: float(v) for k, v in zip(objs, tensor_to_list(p_n)) if v > 0.0
+            k: float(v)
+            for k, v in zip(objs, tensor_to_list(p_n), strict=False)
+            if v > 0.0
         }
 
         weight_by_action = {
@@ -139,6 +142,7 @@ def fn_node_then_action(
                 for k, v in zip(
                     model.action_fluents,
                     tensor_to_list(p_a__n[i, :]),
+                    strict=False,
                 )
                 if v > 1e-4
             }

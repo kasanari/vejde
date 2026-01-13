@@ -12,16 +12,19 @@ from torch.utils._foreach_utils import _group_tensors_by_device_and_dtype
 
 from regawa.data import (
     HeteroBatchData,
+    HeteroObsData,
+    RenderGraph,
+    heterostatedata_to_tensors,
+    single_obs_to_heterostatedata,
+)
+from regawa.io import obs_to_json_friendly_obs
+from regawa.model import GroundObs
+from regawa.policy import GraphAgent
+
+from .rollout import (
     Rollout,
     RolloutCollector,
 )
-from regawa.data.batch_func import single_obs_to_heterostatedata
-from regawa.data.obs import HeteroObsData
-from regawa.model.base_grounded_model import GroundObs
-from regawa.policy import GraphAgent
-from regawa.data import heterostatedata_to_tensors
-from regawa.io import obs_to_json_friendly_obs
-from regawa.data.render_utils import RenderGraph
 
 
 @th.no_grad()
@@ -70,7 +73,11 @@ def evaluate(
         )
 
         weight_by_factor = (
-            {k: float(v) for k, v in zip(g.factor_labels, factor_weights) if v > 0.0}
+            {
+                k: float(v)
+                for k, v in zip(g.factor_labels, factor_weights, strict=False)
+                if v > 0.0
+            }
             if g is not None
             else {}
         )
@@ -84,6 +91,7 @@ def evaluate(
                     .round(decimals=2)
                     .cpu()
                     .numpy(),
+                    strict=False,
                 )
                 if v > 0.0
             }
@@ -128,7 +136,7 @@ def grad_norm_(
     ] = _group_tensors_by_device_and_dtype([grads])  # type: ignore[assignment]
 
     norms: list[Tensor] = []
-    for (device, _), ([device_grads], _) in grouped_grads.items():  # type: ignore[assignment]
+    for (_, _), ([device_grads], _) in grouped_grads.items():  # type: ignore[assignment]
         norms.extend([th.linalg.vector_norm(g, norm_type) for g in device_grads])  # type: ignore[operator]
 
     total_norm = th.linalg.vector_norm(  # type: ignore[call-arg]
@@ -245,7 +253,7 @@ def rollout(
     collector = RolloutCollector()
     while not done:
         action = expert_policy(
-            info["rddl_state"], lambda x: info["idx_to_object"].index(x)
+            info["rddl_state"], lambda x, y=info: y["idx_to_object"].index(x)
         )
         next_obs, reward, terminated, truncated, info = env.step(action)
 
@@ -287,7 +295,7 @@ def writable_eval_data(data: dict[str, Any]) -> str:
                 "obj_weights": a_weight,
                 "action_weights": o_weight,
             }
-            for r, s, a, a_weight, o_weight in zip(*episode)
+            for r, s, a, a_weight, o_weight in zip(*episode, strict=False)
         ]
 
     return json.dumps(

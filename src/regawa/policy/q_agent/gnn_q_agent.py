@@ -1,22 +1,20 @@
 # type: ignore
 import torch.nn as nn
+from torch import Generator as Rngs
 
-from regawa.embedding.boolean import PositiveNegativeBooleanEmbedder
-from regawa.embedding.numeric import NumericEmbedder
-from regawa.policy import ActionMode, AgentConfig
-from .q_action_then_node import QActionThenNode
-from .q_node_then_action import QNodeThenAction
-
-from regawa.data import TorchFactorGraph, HeteroBatchData
-from regawa.gnn import BipartiteGNN
+from regawa.data import HeteroBatchData, TorchFactorGraph
 from regawa.embedding import (
     EmbeddingLayer,
-)
-from torch import Generator as Rngs
-from regawa.embedding import (
     fn_embed_graph,
     fn_embed_heterobatch,
 )
+from regawa.embedding.boolean import PositiveNegativeBooleanEmbedder
+from regawa.embedding.numeric import NumericEmbedder
+from regawa.gnn import BipartiteGNN
+from regawa.policy import ActionMode, AgentConfig
+
+from .q_action_then_node import QActionThenNode
+from .q_node_then_action import QNodeThenAction
 
 
 class GraphQAgent(nn.Module):

@@ -1,11 +1,10 @@
 from collections.abc import Callable
-from torch.nn.utils.rnn import PackedSequence
 
+import torch
 import torch.nn as nn
 import torch.nn.init as init
 from torch import Tensor, arange
-
-import torch
+from torch.nn.utils.rnn import PackedSequence
 
 from regawa.data.torch import SparseTensor
 

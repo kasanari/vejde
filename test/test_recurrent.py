@@ -1,33 +1,27 @@
 from itertools import chain
+
 import torch
-
 from regawa.embedding.recurrent import packed_from_concatenated_sequences
-
 
 # def test_segmented_sort():
 #     lengths = torch.tensor([3, 2, 5, 4, 3], dtype=torch.long)
 #     indices = torch.tensor([0, 0, 1, 1, 1], dtype=torch.long)
 #     n_variables = torch.tensor([2, 3], dtype=torch.long)
-
 #     sort, new_indices = sort_segments(lengths, n_variables)
 #     assert torch.equal(sort, torch.tensor([5, 4, 3, 3, 2], dtype=torch.long))
 #     assert torch.equal(new_indices, torch.tensor([2, 3, 0, 4, 1], dtype=torch.long))
-
 #     lengths = torch.tensor([5, 3, 2, 4, 3], dtype=torch.long)
 #     indices = torch.tensor([0, 0, 0, 1, 1], dtype=torch.long)
 #     n_variables = torch.tensor([3, 2], dtype=torch.long)
-
 #     sort, new_indices = sort_segments(lengths, n_variables)
 #     assert torch.equal(sort, torch.tensor([5, 4, 3, 3, 2], dtype=torch.long))
 #     assert torch.equal(new_indices, torch.tensor([0, 3, 1, 4, 2], dtype=torch.long))
-
-
 from torch import Tensor
 
 
 def get_packed(h: Tensor, length: Tensor) -> Tensor:
+    from torch import cumsum, roll, zeros
     from torch.nn.utils.rnn import pack_padded_sequence
-    from torch import zeros, roll, cumsum
 
     padded = zeros(
         length.size(0),

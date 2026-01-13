@@ -1,6 +1,7 @@
+from functools import cache
+
 import numpy as np
 from torch import Tensor, stack
-from functools import cache
 
 
 @cache

@@ -1,7 +1,11 @@
 from collections.abc import Callable
 from functools import partial
+from typing import TypeVar
+
+import numpy as np
 import torch
 import torch.nn as nn
+from numpy.typing import NDArray
 from torch import (
     FloatTensor,
     IntTensor,
@@ -11,27 +15,27 @@ from torch import (
     concatenate,
     int64,
 )
-from typing import TypeVar
-import numpy as np
+
 from regawa.data import (
-    TorchFactorGraph,
     SparseTensor,
+    TorchBatchData,
+    TorchFactorGraph,
+    TorchHeteroBatchData,
+    concat_sparse,
     sparsify,
 )
-from regawa.data.batch import BatchData
-from regawa.data.torch import TorchBatchData, TorchHeteroBatchData, concat_sparse
 from regawa.embedding.positional import pos_emb, rotate
-from .recurrent import RecurrentEmbedder
+
 from .boolean import (
     BooleanEmbedder,
     NegativeBiasBooleanEmbedder,
     PositiveNegativeBooleanEmbedder,
 )
-from .numeric import NumericEmbedder
-from numpy.typing import NDArray
 from .node_embedders import (
     EmbeddingLayer,
 )
+from .numeric import NumericEmbedder
+from .recurrent import RecurrentEmbedder
 
 __all__ = [
     "BooleanEmbedder",
@@ -152,7 +156,7 @@ def fn_compress_time(
 
     rot = partial(rotate, sin_freqs=sin_freqs, cos_freqs=cos_freqs)
 
-    def compress_time(data: BatchData[V]) -> TorchFactorGraph:
+    def compress_time(data: TorchBatchData[V]) -> TorchFactorGraph:
         g = embed_fn(data)
 
         start_times = data.variables.times[:, 0]

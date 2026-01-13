@@ -1,52 +1,47 @@
 # docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/sac/#sac_ataripy
-from collections.abc import Iterable
+import contextlib
 import os
 import random
 import time
+from collections import deque
+from collections.abc import Iterable
 from typing import NamedTuple
 
 import gymnasium as gym
-from gymnasium.spaces import Dict, MultiDiscrete
+import mlflow
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from collections import deque
-from tqdm import tqdm
-from regawa.data.batch_func import heterostatedata
-from regawa.data.obs import HeteroObsData
-from regawa.data.torch import SparseTensor
-from regawa.rl.sac import (
-    sac_action_then_node_entropy,
-    sac_action_then_node_value_estimate,
-    sac_action_then_node_policy_loss,
-)
 import tyro
-from numpy.typing import NDArray
-import mlflow
-
 from gnn_policy.functional import (
-    segmented_gather,
     data_splits_and_starts,
     node_logits_given_action,
+    segmented_gather,
 )
+from gymnasium.spaces import Dict, MultiDiscrete
+from numpy.typing import NDArray
+from tqdm import tqdm
 
-
+from regawa import GNNParams, agent_from_env
 from regawa.data import (
-    heterostatedata_to_tensors,
     HeteroBatchData,
+    heterostatedata_to_tensors,
 )
-
+from regawa.data.batch_func import heterostatedata
+from regawa.data.obs import HeteroObsData
+from regawa.data.torch import SparseTensor, TorchHeteroBatchData
+from regawa.policy.gnn_agent import GraphAgentInterface
 from regawa.policy.q_agent.gnn_q_agent import GraphQAgent
-from regawa.rl.graph_buffer import ReplayBuffer, ReplayBufferSamples
-from regawa import agent_from_env
-from regawa import GNNParams
 from regawa.policy.q_agent.q_value import QValue
 from regawa.policy.types import PolicyOutput
-
-from regawa.data.torch import TorchHeteroBatchData
-from regawa.policy.gnn_agent import GraphAgentInterface
+from regawa.rl.graph_buffer import ReplayBuffer, ReplayBufferSamples
+from regawa.rl.sac import (
+    sac_action_then_node_entropy,
+    sac_action_then_node_policy_loss,
+    sac_action_then_node_value_estimate,
+)
 
 
 class SACArgs(NamedTuple):
@@ -73,8 +68,8 @@ class SACArgs(NamedTuple):
     # Algorithm specific arguments
     total_timesteps: int = 5000000
     """total timesteps of the experiments"""
-    buffer_size: int = int(100)
-    """the replay memory buffer size"""  # smaller than in original paper but evaluation is done only for 100k steps anyway
+    buffer_size: int = 100
+    """the replay memory buffer size"""
     gamma: float = 0.99
     """the discount factor gamma"""
     tau: float = 1.0
@@ -126,7 +121,7 @@ def layer_init(layer: nn.Linear, bias_const: float = 0.0):
 
 class DoubleQNetwork(nn.Module):
     def __init__(self, a1: GraphQAgent, a2: GraphQAgent):
-        super(DoubleQNetwork, self).__init__()  # type: ignore
+        super().__init__()  # type: ignore
         self.q1 = a1
         self.q2 = a2
 
@@ -441,7 +436,10 @@ def step_fn(
 
         if "episode" in infos:
             for f, r, length in zip(
-                infos["_episode"], infos["episode"]["r"], infos["episode"]["l"]
+                infos["_episode"],
+                infos["episode"]["r"],
+                infos["episode"]["l"],
+                strict=False,
             ):
                 if f:
                     returns.append(r)
@@ -487,7 +485,7 @@ def step_fn(
             # update the target networks
             if global_step % args.target_network_frequency == 0:
                 for param, target_param in zip(
-                    q_net.parameters(), target_net.parameters()
+                    q_net.parameters(), target_net.parameters(), strict=False
                 ):
                     target_param.data.copy_(
                         args.tau * param.data + (1 - args.tau) * target_param.data
@@ -525,10 +523,8 @@ def train(args: SACArgs) -> GraphAgentInterface:
     if args.track:
         mlflow.enable_system_metrics_logging()
         mlflow.set_tracking_uri(uri=args.mlflow_tracking_uri)
-        try:
+        with contextlib.suppress(mlflow.MlflowException):
             mlflow.create_experiment(run_name)
-        except mlflow.MlflowException:
-            pass
         mlflow.set_experiment(run_name)
 
     # TRY NOT TO MODIFY: seeding

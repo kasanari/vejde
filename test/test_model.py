@@ -1,15 +1,19 @@
+from functools import cache, cached_property
 from typing import Any
-from regawa import BaseModel
-from functools import cached_property, cache
+
 import pytest
-from regawa.model import BaseGroundedModel, GroundObs, Grounding
-from regawa.model import check_model
-from regawa.model.generic_model import GenericModel
-from regawa.model.utils import to_json
-from regawa.data.graph_func import fn_groundobs_to_heterograph
-from regawa.wrappers.index_obs_wrapper import fn_idx_obs
-from regawa.model.null import NullConst
-from regawa.data.render_utils import render_lifted
+from regawa import BaseModel
+from regawa.data import fn_groundobs_to_heterograph, render_lifted
+from regawa.data.obs.obs_func import fn_idx_obs
+from regawa.model import (
+    BaseGroundedModel,
+    GenericModel,
+    Grounding,
+    GroundObs,
+    NullConst,
+    check_model,
+    to_json,
+)
 
 
 class TestModel(BaseModel):
@@ -53,8 +57,8 @@ class TestModel(BaseModel):
     def fluent_params(self, fluent: str) -> tuple[str, ...]:
         try:
             return self._params[fluent]
-        except KeyError:
-            raise KeyError(f"Fluent {fluent} not found in model parameters.")
+        except KeyError as e:
+            raise KeyError(f"Fluent {fluent} not found in model parameters.") from e
 
     @cache
     def fluent_param(self, fluent: str, position: int) -> str:
@@ -143,7 +147,8 @@ class TestGroundedModel(BaseGroundedModel):
                         for i in range(self._model.arity(relation))
                         if self._model.fluent_param(relation, i)
                         == self._object_types[obj]
-                    ]
+                    ],
+                    strict=False,
                 )
             ]
         )
@@ -209,19 +214,19 @@ def test_sample_obs():
         "table1",
     }
 
-    assert set(graph.boolean.factors.types) == {
+    assert list(graph.boolean.factors.types) == [
         NullConst.type,
         "block",
         "block",
         "table",
         "block",
         "table",
-    }
+    ]
 
-    assert set(graph.boolean.variables.values) == {True, True, False}
+    assert set(graph.boolean.variables.values) == {True, False}
     assert set(graph.numeric.variables.values) == {1.0, 3.0, 2.0}
-    assert set(graph.boolean.variables.types) == {"at", "at", "on"}
-    assert set(graph.numeric.variables.types) == {"weight", "weight", "weight"}
+    assert set(graph.boolean.variables.types) == {"at", "on"}
+    assert set(graph.numeric.variables.types) == {"weight"}
 
     pass
 

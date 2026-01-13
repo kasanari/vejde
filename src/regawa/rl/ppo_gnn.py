@@ -2,12 +2,16 @@
 import logging
 import os
 
-from regawa.data.batch_func import heterostatedata
-from regawa.data.torch import TorchHeteroBatchData
-from regawa.policy.gnn_agent import GraphAgent
-from regawa.policy.recurrent_gnn_agent import RecurrentGraphAgent
+from regawa.data import (
+    HeteroGraphBuffer,
+    HeteroObsData,
+    TorchHeteroBatchData,
+    heterostatedata,
+    heterostatedata_to_tensors,
+)
 
 os.environ["DO_NOT_TRACK"] = "true"
+import contextlib
 import random
 import time
 from collections import deque
@@ -18,16 +22,30 @@ from typing import TypeVar
 
 import gymnasium as gym
 import mlflow
-import torch.nn as nn
-import torch.optim as optim
 import numpy as np
 import torch
+import torch.nn as nn
+import torch.optim as optim
+import tyro
+import wandb
+from gymnasium.spaces import Dict, MultiDiscrete
+from numpy.typing import NDArray
+from torch import Tensor
+from tqdm import tqdm
 
-from regawa import agent_from_env
-from regawa.data import HeteroObsData
-from regawa.policy.load import load_agent
+from regawa import (
+    GraphAgent,
+    GraphAgentInterface,
+    RecurrentGraphAgent,
+    agent_from_env,
+    load_agent,
+)
+
+from . import lambda_return
 from .agent import Agent
 from .config import Args
+from .gae import gae
+from .symexp import symlog
 from .types import (
     BatchData,
     IterationCarry,
@@ -36,22 +54,7 @@ from .types import (
     RolloutData,
     UpdateData,
 )
-import tyro
-import wandb
-from gymnasium.spaces import Dict, MultiDiscrete
-from numpy.typing import NDArray
-from torch import Tensor
-from tqdm import tqdm
-
-from regawa.policy import GraphAgentInterface
-from regawa.data import (
-    HeteroGraphBuffer,
-    heterostatedata_to_tensors,
-)
-from . import lambda_return
-from .gae import gae
 from .util import evaluate, save_eval_data
-from .symexp import symlog
 
 logger = logging.getLogger(__name__)
 
@@ -302,7 +305,10 @@ def rollout(
 
             if "episode" in infos:
                 for f, r, length in zip(
-                    infos["_episode"], infos["episode"]["r"], infos["episode"]["l"]
+                    infos["_episode"],
+                    infos["episode"]["r"],
+                    infos["episode"]["l"],
+                    strict=False,
                 ):
                     if f:
                         returns.append(r)
@@ -749,10 +755,8 @@ def train(args: Args | None = None, batch_id: str | None = None):
     mlflow.enable_system_metrics_logging()
     mlflow.set_tracking_uri(uri=args.mlflow_tracking_uri)
 
-    try:
+    with contextlib.suppress(mlflow.MlflowException):
         mlflow.create_experiment(run_name)
-    except mlflow.MlflowException:
-        pass
 
     mlflow.set_experiment(run_name)
 
@@ -807,7 +811,7 @@ def eval(agent: GraphAgentInterface, env_id: str, device: str):
         evaluate(eval_env, agent, seed, deterministic=True, device=device)
         for seed in seeds
     ]
-    rewards, *_ = zip(*data)
+    rewards, *_ = zip(*data, strict=False)
     avg_mean_reward = np.mean([np.mean(r) for r in rewards])
     returns = [np.sum(r).item() for r in rewards]
 

@@ -1,8 +1,8 @@
+from gnn_policy.functional import segment_sum  # type: ignore
 from torch import Tensor, nn
 
-from gnn_policy.functional import segment_sum  # type: ignore
-from regawa.functional import num_graphs
 from regawa.data import SparseTensor
+from regawa.functional import num_graphs
 from regawa.policy.q_agent.q_value import QValue
 
 

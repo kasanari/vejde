@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from enum import Enum
-
+from regawa.data.obs.obs import HeteroObsData
+from regawa.data.space import n_actions, n_relations, n_types, max_arity
 import torch.nn as nn
-
+from gymnasium.spaces import MultiDiscrete
 
 class ActionMode(Enum):
     ACTION_THEN_NODE = 0

@@ -1,23 +1,21 @@
 from collections.abc import Callable, Sequence
 from itertools import chain
-from typing import NamedTuple
 
 import numpy as np
-from numpy.typing import NDArray
 
-from regawa.data.actions import ActionMask
-from regawa.data.stacked_graph import StackedStringFactorGraph
-from .graph_func import create_edges
-from regawa.model import Grounding
-from regawa.model import BaseModel
-from ..model.grounding_func import objects
+from regawa.data.factor_graph import StringFactorGraph
 from regawa.data.graph import (
-    Edges,
-    StringFactorGraph,
     StringFactors,
     StringVariables,
+    create_edges,
+    translate_edges,
 )
-from .graph_func import translate_edges
+from regawa.data.graph.graph import ActionMask, Edges
+from regawa.data.stacked import StackedStringFactorGraph
+from regawa.model import BaseModel, Grounding
+from regawa.model.grounding_func import objects
+
+from .render_graph import RenderGraph
 
 
 def to_graphviz_alt(
@@ -44,19 +42,10 @@ def to_graphviz_alt(
         graph += f'"{global_idx}" [label="{idx_to_type(data)}", shape=box]\n'
         second_mapping[idx] = global_idx
         global_idx += 1
-    for attribute, edge in zip(edge_attributes, edges):
+    for attribute, edge in zip(edge_attributes, edges, strict=False):
         graph += f'"{first_mapping[edge[0]]}" -- "{second_mapping[edge[1]]}" [color="{colors[attribute]}"]\n'
     graph += "}"
     return graph
-
-
-class RenderGraph(NamedTuple):
-    variable_labels: Sequence[str]
-    factor_labels: Sequence[str]
-    v_to_f: NDArray[np.int64]
-    f_to_v: NDArray[np.int64]
-    edge_attributes: Sequence[int]
-    global_variables: Sequence[str]
 
 
 def to_graphviz(
@@ -83,12 +72,12 @@ def to_graphviz(
         graph += "\n" if pprint else " "
         f_mapping[idx] = global_idx
         global_idx += 1
-    for idx, label in enumerate(fg.global_variables):
+    for _, label in enumerate(fg.global_variables):
         graph += f'"{global_idx}" [label="{label}", shape=diamond]'
         graph += "\n" if pprint else " "
         global_idx += 1
 
-    for attribute, v, f in zip(fg.edge_attributes, fg.v_to_f, fg.f_to_v):
+    for attribute, v, f in zip(fg.edge_attributes, fg.v_to_f, fg.f_to_v, strict=False):
         graph += (
             f'"{v_mapping[v]}" -- "{f_mapping[f]}" [color="{colors[int(attribute)]}"]'
         )
@@ -98,7 +87,7 @@ def to_graphviz(
 
 
 def create_render_graph(
-    bool_g: StringFactorGraph[np.bool_] | StackedStringFactorGraph[np.bool_],
+    bool_g: StringFactorGraph[np.int8] | StackedStringFactorGraph[np.int8],
     numeric_g: StringFactorGraph[np.float32] | StackedStringFactorGraph[np.float32],
 ) -> RenderGraph:
     def format_label(key: Grounding) -> str:

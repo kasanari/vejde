@@ -1,10 +1,10 @@
-from regawa.data.torch import TorchFactorGraph, SparseTensor
+from regawa.data.torch import SparseTensor, TorchFactorGraph
 from regawa.embedding import merge_graphs
 
 
 def test_merge_graph():
-    from torch import tensor
     import torch
+    from torch import tensor
 
     boolean = TorchFactorGraph(
         variables=SparseTensor(

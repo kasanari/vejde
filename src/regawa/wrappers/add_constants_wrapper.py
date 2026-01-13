@@ -2,8 +2,7 @@ from typing import Any, SupportsFloat
 
 import gymnasium as gym
 
-from regawa import GroundObs
-from regawa.model import BaseGroundedModel
+from regawa.model import BaseGroundedModel, GroundObs
 
 
 def add_constants_fn(ground_model: BaseGroundedModel):
@@ -19,7 +18,8 @@ def add_constants_fn(ground_model: BaseGroundedModel):
 
 class AddConstantsWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs]):
     """
-    Adds constant values to the observation, if there are constants defined in a grounded model.
+    Adds constant values to the observation,
+    if there are constants defined in a grounded model.
     When `only_add_on_reset` is True, constants are only added in the first step.
     """
 

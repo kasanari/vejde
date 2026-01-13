@@ -1,5 +1,6 @@
-from regawa import Grounding, GroundingRange
 import json
+
+from regawa import Grounding, GroundingRange
 
 
 def obs_to_json_friendly_obs(

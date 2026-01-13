@@ -9,7 +9,7 @@ from numpy.typing import NDArray
 from regawa.data.actions import ActionMask
 from regawa.data.graph import (
     Edges,
-    GraphTypes,
+    Factors,
     StringFactorGraph,
     StringFactors,
     VariableDomain,
@@ -19,15 +19,15 @@ from regawa.data.graph import (
     StringVariables,
     Variables,
 )
-from regawa.data.obs import Factors, ObsData
+from regawa.data.graph_func import GraphTypes, create_edges
+from regawa.data.obs import ObsData
 from regawa.model import Grounding, BaseModel
 from regawa.model.utils import (
     fn_valid_action_fluents_given_arity,
     fn_valid_action_fluents_given_type,
 )
-from .grounding_utils import (
+from regawa.model.grounding_func import (
     arity,
-    create_edges,
     predicate,
 )
 
@@ -60,7 +60,7 @@ def fn_variables_to_idx_with_time(
     ) -> Variables[VariableDomain]:
         arr = np.asarray
 
-        times, variable_values = (
+        times, variable_values = (  # type: ignore
             zip(*variables.values) if variables.values else ([], [])
         )
 

@@ -14,6 +14,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from collections import deque
 from tqdm import tqdm
+from regawa.data.batch_func import heterostatedata
 from regawa.data.obs import HeteroObsData
 from regawa.data.torch import SparseTensor
 from regawa.rl.sac import (
@@ -33,7 +34,6 @@ from gnn_policy.functional import (
 
 
 from regawa.data import (
-    heterostatedata,
     heterostatedata_to_tensors,
     HeteroBatchData,
 )

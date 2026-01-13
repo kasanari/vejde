@@ -2,6 +2,7 @@
 import logging
 import os
 
+from regawa.data.batch_func import heterostatedata
 from regawa.data.torch import TorchHeteroBatchData
 from regawa.policy.gnn_agent import GraphAgent
 from regawa.policy.recurrent_gnn_agent import RecurrentGraphAgent
@@ -45,7 +46,6 @@ from tqdm import tqdm
 from regawa.policy import GraphAgentInterface
 from regawa.data import (
     HeteroGraphBuffer,
-    heterostatedata,
     heterostatedata_to_tensors,
 )
 from . import lambda_return

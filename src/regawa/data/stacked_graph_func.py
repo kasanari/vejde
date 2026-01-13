@@ -1,14 +1,14 @@
 from collections.abc import Sequence
 from itertools import chain
 
+from .stacked_graph import StackedStringFactorGraph
 
-from regawa.data import StackedStringFactorGraph
-from regawa.data.graph import (
+from .graph import (
     StringFactorGraph,
     StringVariables,
     VariableDomain,
 )
-from regawa.model.base_grounded_model import Grounding
+from regawa.model import Grounding
 
 
 def flatten(
@@ -27,15 +27,15 @@ def flatten(
     )
 
 
-def flatten_values(
-    factorgraph: StackedStringFactorGraph[VariableDomain],
-) -> tuple[StringVariables[VariableDomain], StringVariables[VariableDomain]]:
-    return (
-        flatten(factorgraph.variables.values, factorgraph.variables.types),
-        flatten(
-            factorgraph.global_variables.values, factorgraph.global_variables.types
-        ),
-    )
+# def flatten_values(
+#     factorgraph: StackedStringFactorGraph[VariableDomain],
+# ) -> tuple[StringVariables[VariableDomain], StringVariables[VariableDomain]]:
+#     return (
+#         flatten(factorgraph.variables.values, factorgraph.variables.types),
+#         flatten(
+#             factorgraph.global_variables.values, factorgraph.global_variables.types
+#         ),
+#     )
 
 
 def flatten_stacked_graph(

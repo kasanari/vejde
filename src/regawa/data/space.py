@@ -8,7 +8,6 @@ from regawa.data.graph import VariableDomain
 from .obs import HeteroObsData
 from .obs import ObsData
 from .graph import Variables
-from gymnasium.vector.utils.space_utils import batch_differing_spaces
 
 
 BIG_NUMBER = 2000
@@ -34,7 +33,7 @@ class VariableSpace(Space[Variables[VariableDomain]]):
 
     def __contains__(self, item: Any) -> bool:
         """Check whether `item` is in this space."""
-        if not isinstance(item, Variables):  # type: ignore
+        if isinstance(item, Variables):
             return False
 
         results = [
@@ -118,7 +117,7 @@ class HeteroStateSpace(Space[HeteroObsData]):
         num_actions: int,
         seed: int | np.random.Generator | None = None,
     ):
-        bool_space = Discrete(2)
+        bool_space: Discrete[np.int8] = Discrete(2)
         number_space = Box(
             low=np.finfo(np.float32).min,
             high=np.finfo(np.float32).max,
@@ -152,8 +151,3 @@ class HeteroStateSpace(Space[HeteroObsData]):
             return False
 
         return item.bool in self.bool and item.float in self.float
-
-
-@batch_differing_spaces.register(HeteroStateSpace)  # type: ignore
-def batch_differing_spaces(spaces: list[HeteroStateSpace]):
-    return spaces

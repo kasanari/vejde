@@ -7,9 +7,9 @@ from torch import Generator as Rngs
 from torch import Tensor
 
 from regawa.data import TorchFactorGraph
-from regawa.data import single_obs_to_heterostatedata
+from regawa.data.batch_func import single_obs_to_heterostatedata
 from regawa.data import heterostatedata_to_tensors
-from regawa.data.data import HeteroObsData
+from regawa.data.obs_func import HeteroObsData
 from regawa.data.torch import TorchHeteroBatchData
 from regawa.embedding import (
     PositiveNegativeBooleanEmbedder,

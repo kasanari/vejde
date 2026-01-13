@@ -1,4 +1,5 @@
-from ..data.utils import from_dict_action, object_list
+from ..data.actions import from_dict_action
+from ..data.graph_func import object_list
 from .add_constants_wrapper import AddConstantsWrapper, add_constants_fn
 from .index_action_wrapper import IndexActionWrapper
 from .index_obs_wrapper import IndexObsWrapper, fn_idx_obs

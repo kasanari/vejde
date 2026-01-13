@@ -1,27 +1,26 @@
+from .heterograph import HeteroGraph
+from .batch_func import heterostatedata, heterostatedata_from_obslist
+from .stacked_graph import StackedStringFactorGraph
 from .obs import HeteroObsData, ObsData
 from .buffer import HeteroGraphBuffer
 from .sparse import SparseArray
 from .batch import BatchData, HeteroBatchData
 from .torch import TorchFactorGraph, SparseTensor, sparsify, heterostatedata_to_tensors
-from .data import (
-    heterostatedata,
-    heterostatedata_from_obslist,
+from .batch_func import (
     single_obs_to_heterostatedata,
 )
 from .rollout import Rollout, RolloutCollector
 from .graph import (
-    HeteroGraph,
     Object,
-    StackedStringFactorGraph,
     StringFactorGraph,
     Edge,
     Variables,
     StringVariables,
 )
-from .graph_utils import fn_groundobs_to_heterograph
-from .graph_utils import fn_heterograph_to_heteroobs
+from .graph_func import fn_groundobs_to_heterograph
+from .obs_func import fn_heterograph_to_heteroobs
 from .render_utils import create_render_graph, to_graphviz
-from .gym_utils import n_actions
+from .space_func import n_actions
 from .render_utils import RenderGraph
 
 

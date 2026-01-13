@@ -86,9 +86,9 @@ def packed_from_concatenated_sequences(
 
     # --- 2) Batch sizes and per-time-step start offsets in the packed output ---
     lengths_sorted = lengths.index_select(0, sorted_indices)  # [B]
-    batch_sizes = _batch_sizes_from_lengths(lengths_sorted)  # [T]
-    time_offsets = (
-        batch_sizes.cumsum(0) - batch_sizes
+    batch_sizes = _batch_sizes_from_lengths(lengths_sorted)  # [T] # type: ignore
+    time_offsets: Tensor = (
+        batch_sizes.cumsum(0) - batch_sizes  # type: ignore
     )  # [T], start index of each time block
 
     # --- 3) For each input row, compute its (time_index, rank) in O(N) ---

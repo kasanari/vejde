@@ -17,7 +17,7 @@ from .model import BaseModel
 from .wrappers import StackingGroundedGraphWrapper
 from .wrappers import GroundedGraphWrapper
 from .policy import GraphAgent, RecurrentGraphAgent
-from .data import gym_utils
+from .data import space_func
 from .model import max_arity
 import gymnasium as gym
 from .data.render_utils import to_graphviz
@@ -45,15 +45,15 @@ def agent_from_env(
         else (env.single_observation_space, env.single_action_space)
     )
 
-    n_types = gym_utils.n_types(obs_space)  # type: ignore
-    n_relations = gym_utils.n_relations(obs_space)  # type: ignore
-    n_actions = gym_utils.n_actions(action_space)  # type: ignore
+    n_types = space_func.n_types(obs_space)  # type: ignore
+    n_relations = space_func.n_relations(obs_space)  # type: ignore
+    n_actions = space_func.n_actions(action_space)  # type: ignore
 
     config = AgentConfig(
         n_types,
         n_relations,
         n_actions,
-        arity=gym_utils.max_arity(obs_space),  # type: ignore
+        arity=space_func.max_arity(obs_space),  # type: ignore
         hyper_params=params,
     )
 

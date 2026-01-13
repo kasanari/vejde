@@ -3,7 +3,7 @@ from collections.abc import Sequence
 
 import numpy as np
 from numpy.typing import NDArray
-from regawa.data.actions import ActionMask
+from .actions import ActionMask
 from regawa.model import Grounding
 
 
@@ -92,19 +92,6 @@ class StringFactorGraph(NamedTuple, Generic[VariableDomain]):
     # distances: Distances
 
 
-class StackedStringFactorGraph(NamedTuple, Generic[VariableDomain]):
-    variables: StackedStringVariables[VariableDomain]
-    factors: StringFactors
-    edges: Edges
-    global_variables: StackedStringVariables[VariableDomain]
-    action_masks: ActionMask
-
-
-class HeteroGraph(NamedTuple):
-    numeric: StringFactorGraph[np.float32] | StackedStringFactorGraph[np.float32]
-    boolean: StringFactorGraph[np.bool_] | StackedStringFactorGraph[np.bool_]
-
-
 class Edges(NamedTuple):
     # mappings from grounding to object. Length matches var_value
     v_to_f: NDArray[EdgeIndexDomain]
@@ -114,10 +101,6 @@ class Edges(NamedTuple):
     edge_attr: NDArray[EdgeIndexDomain]
 
 
-GraphTypes = TypeVar(
-    "GraphTypes",
-    StringFactorGraph[np.bool_],
-    StackedStringFactorGraph[np.bool_],
-    StringFactorGraph[np.float32],
-    StackedStringFactorGraph[np.float32],
-)
+class Factors(NamedTuple):
+    types: NDArray[np.int64]  # object of grounding, e.g. "o"
+    n_factor: int  # number of objects/factors.

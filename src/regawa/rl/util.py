@@ -14,8 +14,8 @@ from regawa.data import (
     HeteroBatchData,
     Rollout,
     RolloutCollector,
-    single_obs_to_heterostatedata,
 )
+from regawa.data.batch_func import single_obs_to_heterostatedata
 from regawa.data.obs import HeteroObsData
 from regawa.model.base_grounded_model import GroundObs
 from regawa.policy import GraphAgent

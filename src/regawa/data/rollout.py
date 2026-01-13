@@ -1,10 +1,12 @@
 from collections import deque
+
+import numpy as np
+from numpy.typing import NDArray
 from regawa.data.buffer import HeteroGraphBuffer
 
 
 from typing import NamedTuple
 
-from regawa.data.data import Serializer
 from regawa.data.obs import HeteroObsData
 import json
 
@@ -14,6 +16,17 @@ class Rollout(NamedTuple):
     obs: HeteroGraphBuffer
     actions: list[tuple[int, ...]]
     values: list[float]
+
+
+class Serializer(json.JSONEncoder):
+    def default(self, o: object):
+        if isinstance(o, NDArray):  # type: ignore
+            return o.tolist()
+        if isinstance(o, np.bool_):
+            return bool(o)  # type: ignore
+        if isinstance(o, np.ndarray):
+            return o.tolist()
+        return super().default(o)
 
 
 def save_rollout(rollout: Rollout, path: str):

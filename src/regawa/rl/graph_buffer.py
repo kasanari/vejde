@@ -7,8 +7,8 @@ from torch import Tensor, as_tensor, device
 
 from regawa.data import (
     HeteroBatchData,
-    heterostatedata_from_obslist,
 )
+from regawa.data.batch_func import heterostatedata_from_obslist
 from regawa.data.obs import HeteroObsData
 from regawa.wrappers import n_actions
 

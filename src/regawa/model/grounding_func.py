@@ -1,14 +1,12 @@
 from functools import cache
-import itertools
 import logging
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from collections.abc import Sequence
 
 import numpy as np
 
-from regawa.model import GroundObs, Grounding
-from .graph import Edge, Object
-from regawa.model.null import NullConst
+from .base_grounded_model import GroundObs, Grounding
+from .null import NullConst
 
 logger = logging.getLogger(__name__)
 
@@ -21,22 +19,6 @@ def objects(key: Grounding) -> tuple[str, ...]:
 @cache
 def predicate(key: Grounding) -> str:
     return key[0]
-
-
-def fn_objects_with_type(relation_to_types: Callable[[str, int], str]):
-    """
-    Returns a function that takes a grounding and returns a list of Objects (object name, type).
-    """
-
-    @cache
-    def objects_with_type(
-        key: Grounding,
-    ) -> list[Object]:
-        p = predicate(key)
-        os = objects(key)
-        return [Object(o, relation_to_types(p, i)) for i, o in enumerate(os)]
-
-    return objects_with_type
 
 
 @cache
@@ -104,21 +86,6 @@ def to_dict_action(
     action_dict = {} if action_fluent == NullConst.action else {a: np.bool_(True)}
 
     return action_dict
-
-
-@cache
-def get_edges(key: Grounding) -> list[Edge]:
-    """
-    Returns a list of edges for a given grounding.
-    Each edge connects the predicate to one of its objects.
-    An edge is represented as a tuple (predicate, object, position).
-    """
-    return [Edge(key, object, pos) for pos, object in enumerate(objects(key))]
-
-
-def create_edges(d: Iterable[Grounding]) -> list[Edge]:
-    edges = [get_edges(key) for key in d]
-    return list(itertools.chain(*edges))
 
 
 def num_edges(groundings: list[Grounding], arities: Callable[[str], int]) -> int:

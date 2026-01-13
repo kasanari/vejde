@@ -1,5 +1,6 @@
 from gymnasium.spaces import Dict, MultiDiscrete
 from .space import HeteroStateSpace
+from gymnasium.vector.utils.space_utils import batch_differing_spaces  # type: ignore
 
 
 def max_arity(observation_space: Dict) -> int:
@@ -16,3 +17,8 @@ def n_relations(observation_space: HeteroStateSpace):
 
 def n_actions(action_space: MultiDiscrete):
     return int(action_space.nvec[0])
+
+
+@batch_differing_spaces.register(HeteroStateSpace)  # type: ignore
+def batch_differing_spaces(spaces: list[HeteroStateSpace]):
+    return spaces

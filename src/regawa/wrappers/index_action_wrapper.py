@@ -6,11 +6,11 @@ import gymnasium as gym
 from regawa.model import GroundObs, Grounding
 from regawa.model import BaseModel
 from regawa.model.null import NullConst
-from ..data.grounding_utils import to_dict_action
-from regawa.data import HeteroGraph
+from ..model.grounding_func import to_dict_action
+from regawa.data.heterograph import HeteroGraph
 from collections.abc import Callable
 import numpy as np
-from ..data.utils import idx_action_to_ground_value
+from ..data.actions import idx_action_to_ground_value
 from gymnasium.spaces import MultiDiscrete
 
 logger = logging.getLogger(__name__)

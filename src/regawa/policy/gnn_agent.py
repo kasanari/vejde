@@ -8,6 +8,7 @@ from torch import Tensor
 from regawa.data import TorchFactorGraph, heterostatedata_to_tensors
 from regawa.data import HeteroObsData
 
+from regawa.data.batch_func import single_obs_to_heterostatedata
 from regawa.data.torch import TorchHeteroBatchData
 from regawa.embedding import (
     NegativeBiasBooleanEmbedder,
@@ -20,7 +21,6 @@ from .node_then_action import NodeThenActionPolicy
 from .action_then_node import ActionThenNodePolicy
 from regawa.data import (
     HeteroBatchData,
-    single_obs_to_heterostatedata,
 )
 from regawa.gnn import BipartiteGNN
 from regawa.embedding import (

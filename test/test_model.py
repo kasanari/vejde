@@ -6,10 +6,10 @@ from regawa.model import BaseGroundedModel, GroundObs, Grounding
 from regawa.model import check_model
 from regawa.model.generic_model import GenericModel
 from regawa.model.utils import to_json
-from regawa.wrappers.graph_utils import fn_groundobs_to_heterograph
+from regawa.data.graph_func import fn_groundobs_to_heterograph
 from regawa.wrappers.index_obs_wrapper import fn_idx_obs
 from regawa.model.null import NullConst
-from regawa.wrappers.render_utils import render_lifted
+from regawa.data.render_utils import render_lifted
 
 
 class TestModel(BaseModel):

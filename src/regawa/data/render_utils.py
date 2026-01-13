@@ -6,17 +6,18 @@ import numpy as np
 from numpy.typing import NDArray
 
 from regawa.data.actions import ActionMask
+from regawa.data.stacked_graph import StackedStringFactorGraph
+from .graph_func import create_edges
 from regawa.model import Grounding
 from regawa.model import BaseModel
-from .grounding_utils import create_edges, objects
+from ..model.grounding_func import objects
 from regawa.data.graph import (
     Edges,
-    StackedStringFactorGraph,
     StringFactorGraph,
     StringFactors,
     StringVariables,
 )
-from .utils import translate_edges
+from .graph_func import translate_edges
 
 
 def to_graphviz_alt(

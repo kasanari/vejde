@@ -3,17 +3,9 @@ import numpy as np
 
 from typing import Generic, NamedTuple
 
-from numpy.typing import NDArray
 
-from regawa.data.actions import ActionMask
-from regawa.data.graph import Edges, Variables, VariableDomain
-
-# values can either be float32 or int8 (for boolean)
-
-
-class Factors(NamedTuple):
-    types: NDArray[np.int64]  # object of grounding, e.g. "o"
-    n_factor: int  # number of objects/factors.
+from .actions import ActionMask
+from .graph import Edges, Factors, Variables, VariableDomain
 
 
 class ObsData(NamedTuple, Generic[VariableDomain]):

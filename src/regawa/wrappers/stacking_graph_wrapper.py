@@ -2,9 +2,9 @@ import logging
 from typing import Any, SupportsFloat
 import gymnasium as gym
 from regawa import BaseModel, GroundObs, Grounding
-from ..data.graph import HeteroGraph
+from ..data.heterograph import HeteroGraph
 from regawa.model import StackedGroundObs
-from ..data.graph_utils import fn_groundobs_to_heterograph
+from ..data.graph_func import fn_groundobs_to_heterograph
 from ..data.render_utils import create_render_graph, to_graphviz
 from ..data.render_utils import RenderGraph
 

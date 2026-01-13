@@ -1,5 +1,6 @@
 import numpy as np
-from regawa.data.batch import BatchData, HeteroBatchData, batch
+from regawa.data.batch import BatchData, HeteroBatchData
+from regawa.data.batch_func import batch
 from regawa.data.graph import VariableDomain
 from regawa.data.obs import ObsData
 

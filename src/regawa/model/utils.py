@@ -89,6 +89,7 @@ def fn_valid_action_fluents_given_arity(model: BaseModel):
 
     return valid_action_fluents_given_arity
 
+
 def model_to_json(model: BaseModel) -> str:
     import json
 

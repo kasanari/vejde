@@ -29,7 +29,7 @@ def action_then_node_value_estimate(
     # Estimate value as the sum of the Q-values of the actions weighted by the probability of the actions
     # V(N) =  Σ_a p(a) Σ_(n) p(n|a) * Q(n|a)
     segsum = partial(segment_sum, index=p_n__a.indices, num_segments=num_graphs)
-    return (p_a * segsum(q_n__a.values * p_n__a.values)).sum(ACTION_DIM) 
+    return (p_a * segsum(q_n__a.values * p_n__a.values)).sum(ACTION_DIM)
 
 
 def node_then_action_value_estimate(
@@ -41,7 +41,7 @@ def node_then_action_value_estimate(
     # Estimate value as the sum of the Q-values of the actions weighted by the probability of the actions
     # V(N) =  Σ_n p(n) Σ_(a) p(a|n) * Q(a|n)
     segsum = partial(segment_sum, index=p_a__n.indices, num_segments=num_graphs)
-    return segsum(p_n * (q_a__n.values * p_a__n.values).sum(ACTION_DIM))  
+    return segsum(p_n * (q_a__n.values * p_a__n.values).sum(ACTION_DIM))
 
 
 def action_and_node_value_estimate(

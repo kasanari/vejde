@@ -55,7 +55,9 @@ class Object(NamedTuple):
     name: str
     type: str
 
+
 NullObject = Object(NullConst.id, NullConst.type)
+
 
 class StackedStringVariables(NamedTuple, Generic[VariableDomain]):
     types: Sequence[str]

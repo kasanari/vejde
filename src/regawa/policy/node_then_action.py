@@ -4,10 +4,10 @@ from functools import partial
 from torch import FloatTensor, Generator as Rngs
 from torch import Tensor, nn
 
-from gnn_policy.functional import eval_node_then_action  
-from gnn_policy.functional import sample_node_then_action  
-from gnn_policy.functional import segmented_softmax  
-from gnn_policy.functional import softmax  
+from gnn_policy.functional import eval_node_then_action
+from gnn_policy.functional import sample_node_then_action
+from gnn_policy.functional import segmented_softmax
+from gnn_policy.functional import softmax
 from gnn_policy.functional import mask_logits
 from regawa.data.torch import TorchActionMask
 from regawa.functional import node_then_action_value_estimate
@@ -24,14 +24,14 @@ class NodeThenActionPolicy(nn.Module):
     def __init__(
         self, num_actions: int, node_dim: int, rngs: Rngs, critic_heads: int = 2
     ):
-        super().__init__()   # type: ignore
+        super().__init__()  # type: ignore
 
         self.node_prob = nn.Linear(node_dim, 1, bias=False)
         self.action_given_node_prob = nn.Linear(node_dim, num_actions, bias=False)
 
         self.num_actions = num_actions
-        self.sample_func = sample_node_then_action  
-        self.eval_func = eval_node_then_action  
+        self.sample_func = sample_node_then_action
+        self.eval_func = eval_node_then_action
         self.q_action__node = nn.Linear(
             node_dim, num_actions * critic_heads, bias=False
         )  # Q(a|n)
@@ -52,7 +52,7 @@ class NodeThenActionPolicy(nn.Module):
         action_given_node_logits = h.map(self.action_given_node_prob)  # ~ln(p(a|n))
         n_g = n_nodes.shape[0]
 
-        actions, logprob, entropy, _, p_n = x(    # type: ignore
+        actions, logprob, entropy, _, p_n = x(  # type: ignore
             action_given_node_logits.values,
             node_logits,
             action_given_node_mask,
@@ -67,12 +67,12 @@ class NodeThenActionPolicy(nn.Module):
         p_a__n = action_given_node_logits.map(p_a__n_func)
         # action then node
         value = node_then_action_value_estimate(
-            p_a__n,  
+            p_a__n,
             h.map(self.q_func),
             p_n,  # type: ignore
-            n_g,  
+            n_g,
         )
-        return PolicyOutput(actions, logprob, entropy, value, p_n, p_a__n)  
+        return PolicyOutput(actions, logprob, entropy, value, p_n, p_a__n)
 
     def q_func(self, x: Tensor):
         q = self.q_action__node(x)
@@ -99,8 +99,8 @@ class NodeThenActionPolicy(nn.Module):
         action_masks: TorchActionMask,
         deterministic: bool = False,
     ):
-        p_func = partial(self.sample_func, deterministic=deterministic)  
-        return self.f(h, action_masks, n_nodes, p_func)  # type: ignore 
+        p_func = partial(self.sample_func, deterministic=deterministic)
+        return self.f(h, action_masks, n_nodes, p_func)  # type: ignore
 
     def value(
         self,
@@ -120,8 +120,8 @@ class NodeThenActionPolicy(nn.Module):
         p_a__n = action_given_node_logits.map(p_a__n_func)
 
         return node_then_action_value_estimate(
-            p_a__n,  
+            p_a__n,
             h.map(self.q_func),
-            p_n,  
-            n_g,  
+            p_n,
+            n_g,
         )

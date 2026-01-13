@@ -32,6 +32,7 @@ from .agent_config import ActionMode, AgentConfig
 from abc import ABC, abstractmethod
 from regawa.policy.types import PolicyOutput
 
+
 class GraphAgentInterface(ABC):
     @abstractmethod
     def __init__(self, config: AgentConfig, rngs: Rngs, device: str = "cpu"): ...

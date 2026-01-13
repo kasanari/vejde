@@ -44,7 +44,7 @@ class HeteroBatchData(NamedTuple):
     @property
     def n_graphs(self) -> np.int64:
         return self.boolean.n_graphs
-    
+
     @property
     def n_factor(self) -> NDArray[np.int64]:
         # The assumption at the moment is that both boolean and numeric use the same factors, even if one might have no variables.

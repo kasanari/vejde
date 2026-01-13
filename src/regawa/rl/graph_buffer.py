@@ -26,8 +26,6 @@ class ReplayBufferSamples(NamedTuple):
 def get_single_env(
     obs: dict[str, dict[str, tuple[Any, ...]]], i: int
 ) -> dict[str, HeteroObsData]:
-
-
     return obs[i]
 
 
@@ -59,7 +57,9 @@ class ReplayBuffer:
         self.full = False
         self.device = device
         self.n_envs = n_envs
-        self.rng = np.random.default_rng() if seed is None else np.random.default_rng(seed)
+        self.rng = (
+            np.random.default_rng() if seed is None else np.random.default_rng(seed)
+        )
 
         # Adjust buffer size
         self.buffer_size = max(buffer_size // n_envs, 1)
@@ -142,7 +142,11 @@ class ReplayBuffer:
             as_tensor(self.actions[batch_inds, env_indices, :], device=self.device),
             # Only use dones that are not due to timeouts
             # deactivated by default (timeouts is initialized as an array of False)
-            as_tensor(self.dones[batch_inds, env_indices].reshape(-1, 1), device=self.device),
-            as_tensor(self.rewards[batch_inds, env_indices].reshape(-1, 1), device=self.device),
+            as_tensor(
+                self.dones[batch_inds, env_indices].reshape(-1, 1), device=self.device
+            ),
+            as_tensor(
+                self.rewards[batch_inds, env_indices].reshape(-1, 1), device=self.device
+            ),
         )
         return data

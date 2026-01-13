@@ -21,4 +21,3 @@ class QValue(NamedTuple):
                 self.q1.min(other.q1),
                 self.q2.min(other.q2),
             )
-

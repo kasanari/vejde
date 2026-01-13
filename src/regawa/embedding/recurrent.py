@@ -130,6 +130,7 @@ def compress_time(
     _, variables = recurrent(custom_h_c)
     return variables
 
+
 class RNNLayer(nn.Module):
     def __init__(
         self,
@@ -184,7 +185,7 @@ class LSTMLayer(nn.Module):
     def forward(self, packed_sequence: PackedSequence) -> Tensor:
         _, (variables, _) = self.recurrent.forward(packed_sequence, None)
         return variables
-    
+
 
 class GRULayer(nn.Module):
     def __init__(
@@ -212,7 +213,6 @@ class GRULayer(nn.Module):
     def forward(self, packed_sequence: PackedSequence) -> Tensor:
         _, variables = self.recurrent.forward(packed_sequence, None)
         return variables
-
 
 
 class RecurrentEmbedder(nn.Module):

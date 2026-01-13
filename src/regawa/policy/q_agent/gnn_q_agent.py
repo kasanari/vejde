@@ -18,6 +18,7 @@ from regawa.embedding import (
     fn_embed_heterobatch,
 )
 
+
 class GraphQAgent(nn.Module):
     def __init__(
         self,
@@ -29,9 +30,7 @@ class GraphQAgent(nn.Module):
 
         hyper_params = config.hyper_params
         embed_dim = config.hyper_params.embedding_dim
-        factor_embedding = EmbeddingLayer(
-            config.num_object_classes, embed_dim, rngs
-        )
+        factor_embedding = EmbeddingLayer(config.num_object_classes, embed_dim, rngs)
 
         predicate_embedding = EmbeddingLayer(
             config.num_predicate_classes, embed_dim, rngs
@@ -87,7 +86,6 @@ class GraphQAgent(nn.Module):
             else QNodeThenAction
         )
         self.qfunc = qfunc(config.num_actions, embed_dim)
-
 
     def embed(self, data: HeteroBatchData) -> TorchFactorGraph:
         return self.message_pass(self.embed_heterobatch(data))

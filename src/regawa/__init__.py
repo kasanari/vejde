@@ -25,10 +25,10 @@ from gymnasium.vector import SyncVectorEnv, AsyncVectorEnv
 from typing import Literal
 from regawa.policy.q_agent.gnn_q_agent import GraphQAgent
 import torch
+
 _agent_classes = [GraphAgent, RecurrentGraphAgent, GraphQAgent]
-agent_classes = {
-    cls.__name__: cls for cls in _agent_classes
-}
+agent_classes = {cls.__name__: cls for cls in _agent_classes}
+
 
 def agent_from_env(
     agent_class_type: Literal["GraphAgent", "RecurrentGraphAgent", "GraphQAgent"],

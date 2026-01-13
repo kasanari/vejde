@@ -18,7 +18,7 @@ from regawa.data import (
     SparseTensor,
     sparsify,
 )
-from regawa.data.batch import BatchData, HeteroBatchData
+from regawa.data.batch import BatchData
 from regawa.data.torch import TorchBatchData, TorchHeteroBatchData, concat_sparse
 from regawa.embedding.positional import pos_emb, rotate
 from .recurrent import RecurrentEmbedder

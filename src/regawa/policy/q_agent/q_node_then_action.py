@@ -3,6 +3,7 @@ from torch import nn
 from regawa.data import SparseTensor
 from .q_value import QValue
 
+
 class QNodeThenAction(nn.Module):
     def __init__(self, num_actions: int, node_dim: int):
         super().__init__()  # type: ignore

@@ -3,8 +3,10 @@ from functools import cache, cached_property
 from collections.abc import Sequence
 from regawa import BaseModel
 
+
 class GenericModel(BaseModel):
     """A generic implementation of the BaseModel interface. Mainly intended for deserialization purposes."""
+
     def __init__(
         self,
         fluents: Sequence[str],
@@ -55,7 +57,7 @@ class GenericModel(BaseModel):
     @cache
     def action_to_idx(self, action: str) -> int:
         return self.action_fluents.index(action)
-    
+
     @cache
     def type_to_idx(self, type: str) -> int:
         return self._type_to_idx[type]
@@ -90,15 +92,11 @@ class GenericModel(BaseModel):
 
     @cached_property
     def _type_to_idx(self) -> dict[str, int]:
-        return {
-            symb: idx for idx, symb in enumerate(self._idx_to_type)
-        }  
+        return {symb: idx for idx, symb in enumerate(self._idx_to_type)}
 
     @cached_property
     def _rel_to_idx(self) -> dict[str, int]:
-        return {
-            symb: idx for idx, symb in enumerate(self.fluents)
-        } 
+        return {symb: idx for idx, symb in enumerate(self.fluents)}
 
     @cached_property
     def arities(self) -> dict[str, int]:
@@ -122,5 +120,7 @@ class GenericModel(BaseModel):
             types=data["types"],
             action_fluents=data["action_fluents"],
             fluent_params={k: tuple(v) for k, v in data["fluent_params"].items()},
-            fluent_ranges={k: string_to_type[v] for k, v in data["fluent_ranges"].items()},
+            fluent_ranges={
+                k: string_to_type[v] for k, v in data["fluent_ranges"].items()
+            },
         )

@@ -28,8 +28,8 @@ from .graph import (
     Object,
     StackedStringFactorGraph,
     StringFactorGraph,
-    GraphTypes, 
-    VariableDomain
+    GraphTypes,
+    VariableDomain,
 )
 
 

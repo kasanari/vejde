@@ -50,8 +50,8 @@ def test_packed_from_concatenated_sequences():
         list(chain(*[[i] * i for i in lengths])), dtype=torch.float32
     ).unsqueeze(-1)
     assert data.shape == (lengths.sum().item(), 1)
-    indices = torch.tensor([0, 0, 1, 1, 1], dtype=torch.long)
-    n_variables = torch.tensor([2, 3], dtype=torch.long)
+    # indices = torch.tensor([0, 0, 1, 1, 1], dtype=torch.long)
+    # n_variables = torch.tensor([2, 3], dtype=torch.long)
 
     d = packed_from_concatenated_sequences(
         data,

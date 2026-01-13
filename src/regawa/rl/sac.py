@@ -6,8 +6,6 @@ from gnn_policy.functional import segment_sum
 from torch import FloatTensor, Tensor
 
 
-
-
 def sac_node_then_action_value_estimate(
     p_a__n: SparseTensor[FloatTensor],  # p(a|n)
     q_a__n: SparseTensor[FloatTensor],  # Q(a|n)
@@ -24,7 +22,7 @@ def sac_node_then_action_value_estimate(
     return segsum(
         p_n.values
         * (
-            #(-alpha * logp_n.values) +
+            # (-alpha * logp_n.values) +
             (q_a__n.values - alpha * logp_a__n.values) * p_a__n.values
         ).sum(ACTION_DIM)
     )  # type: ignore
@@ -45,10 +43,11 @@ def sac_node_then_action_policy_loss(
     return segsum(
         p_n.values
         * (
-            #(alpha * logp_n.values) +
+            # (alpha * logp_n.values) +
             (alpha * logp_a__n.values - q_a__n.values) * p_a__n.values
         ).sum(ACTION_DIM)
     ).mean()  # type: ignore
+
 
 def sac_action_then_node_policy_loss(
     p_n__a: SparseTensor[FloatTensor],  # p(n|a)
@@ -67,13 +66,14 @@ def sac_action_then_node_policy_loss(
         (
             p_a
             * (
-                #(alpha * logp_a - q_a) + 
+                # (alpha * logp_a - q_a) +
                 segsum((alpha * logp_n__a.values - q_n__a.values) * p_n__a.values)
             )
         )
         .sum(ACTION_DIM)
         .mean()
     )  # type: ignore
+
 
 def sac_action_then_node_value_estimate(
     p_n__a: SparseTensor[FloatTensor],  # p(n|a)
@@ -92,7 +92,7 @@ def sac_action_then_node_value_estimate(
     return (
         p_a
         * (
-            #(q_a - alpha * logp_a) +
+            # (q_a - alpha * logp_a) +
             segsum((q_n__a.values - alpha * logp_n__a.values) * p_n__a.values)
         )
     ).sum(ACTION_DIM)  # type: ignore
@@ -114,7 +114,7 @@ def sac_action_then_node_entropy(
     entropy = (
         p_a.detach()
         * (
-            #-alpha * (logp_a + entropy_target_a).detach() + 
+            # -alpha * (logp_a + entropy_target_a).detach() +
             segsum(
                 -alpha.exp()
                 * (logp_n__a.values + entropy_target_n__a).detach()

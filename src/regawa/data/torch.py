@@ -110,7 +110,6 @@ class SparseTensor[V: Tensor](NamedTuple):
     def segment_mean(self) -> Tensor:
         num_segments = self.indices.max().item() + 1
         return scatter_mean(self.values, self.indices, dim=0, dim_size=num_segments)
-        
 
     def map(self, func: Callable[[Tensor], Tensor]) -> SparseTensor[V]:
         return SparseTensor(

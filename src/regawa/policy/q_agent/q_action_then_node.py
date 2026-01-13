@@ -5,6 +5,7 @@ from regawa.functional import num_graphs
 from regawa.data import SparseTensor
 from regawa.policy.q_agent.q_value import QValue
 
+
 class QActionThenNode(nn.Module):
     def __init__(self, num_actions: int, node_dim: int):
         super().__init__()  # type: ignore

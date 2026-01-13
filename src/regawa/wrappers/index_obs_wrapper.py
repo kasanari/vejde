@@ -13,16 +13,16 @@ from regawa.data.graph import (
 from regawa.data.obs import ObsData
 from regawa.model import GroundObs
 from regawa.model import BaseModel
-from regawa.wrappers.utils import (
+from regawa.data.utils import (
     factor_to_idx,
     fn_graph_to_obsdata,
     fn_variables_to_idx_with_time,
 )
 
-from regawa.wrappers.utils import fn_variables_to_idx
-from .graph_utils import fn_heterograph_to_heteroobs
-from .stacking_utils import flatten_stacked_graph
-from .space import HeteroStateSpace
+from regawa.data.utils import fn_variables_to_idx
+from ..data.graph_utils import fn_heterograph_to_heteroobs
+from ..data.stacking_utils import flatten_stacked_graph
+from ..data.space import HeteroStateSpace
 from regawa.data import HeteroGraph
 
 logger = logging.getLogger(__name__)

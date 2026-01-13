@@ -5,10 +5,10 @@ import numpy as np
 
 from regawa.data.graph import VariableDomain
 
-from ..data.obs import HeteroObsData
-from ..data.obs import ObsData
+from .obs import HeteroObsData
+from .obs import ObsData
+from .graph import Variables
 from gymnasium.vector.utils.space_utils import batch_differing_spaces
-from regawa.data import Variables
 
 
 BIG_NUMBER = 2000

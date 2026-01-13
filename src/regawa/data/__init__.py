@@ -18,6 +18,11 @@ from .graph import (
     Variables,
     StringVariables,
 )
+from .graph_utils import fn_groundobs_to_heterograph
+from .graph_utils import fn_heterograph_to_heteroobs
+from .render_utils import create_render_graph, to_graphviz
+from .gym_utils import n_actions
+from .render_utils import RenderGraph
 
 
 __all__ = [
@@ -45,4 +50,10 @@ __all__ = [
     "Edge",
     "Variables",
     "StringVariables",
+    "fn_groundobs_to_heterograph",
+    "fn_heterograph_to_heteroobs",
+    "create_render_graph",
+    "to_graphviz",
+    "RenderGraph",
+    "n_actions",
 ]

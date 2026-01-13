@@ -4,7 +4,6 @@ from typing import TypeVar
 
 import numpy as np
 
-from regawa.data.graph import GraphTypes, VariableDomain
 from regawa.model.base_grounded_model import Grounding
 from regawa import BaseModel
 from regawa import GroundObs
@@ -15,11 +14,7 @@ from .grounding_utils import (
     numeric_groundings,
     fn_objects_with_type,
 )
-from regawa.data import (
-    HeteroGraph,
-    Object,
-    StackedStringFactorGraph,
-    StringFactorGraph,
+from .obs import (
     HeteroObsData,
     ObsData,
 )
@@ -27,6 +22,14 @@ from .utils import (
     fn_action_masks,
     generate_bipartite_obs_func,
     object_list,
+)
+from .graph import (
+    HeteroGraph,
+    Object,
+    StackedStringFactorGraph,
+    StringFactorGraph,
+    GraphTypes, 
+    VariableDomain
 )
 
 

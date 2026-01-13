@@ -9,7 +9,7 @@ from typing import NamedTuple
 from torch import Tensor
 from regawa.wrappers import fn_groundobs_to_heterograph
 from regawa.wrappers import create_render_graph
-from regawa.wrappers.render_utils import RenderGraph
+from regawa.data.render_utils import RenderGraph
 import torch
 
 

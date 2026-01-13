@@ -7,7 +7,7 @@ from collections.abc import Sequence
 import numpy as np
 
 from regawa.model import GroundObs, Grounding
-from regawa.data import Edge, Object
+from .graph import Edge, Object
 from regawa.model.null import NullConst
 
 logger = logging.getLogger(__name__)

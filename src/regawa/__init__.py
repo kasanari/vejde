@@ -17,10 +17,10 @@ from .model import BaseModel
 from .wrappers import StackingGroundedGraphWrapper
 from .wrappers import GroundedGraphWrapper
 from .policy import GraphAgent, RecurrentGraphAgent
-from .wrappers import gym_utils
+from .data import gym_utils
 from .model import max_arity
 import gymnasium as gym
-from .wrappers.render_utils import to_graphviz
+from .data.render_utils import to_graphviz
 from gymnasium.vector import SyncVectorEnv, AsyncVectorEnv
 from typing import Literal
 from regawa.policy.q_agent.gnn_q_agent import GraphQAgent

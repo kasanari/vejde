@@ -3,9 +3,9 @@ from typing import Any, SupportsFloat
 import gymnasium as gym
 from regawa import BaseModel, GroundObs, Grounding
 from regawa.data import HeteroGraph
-from .graph_utils import fn_groundobs_to_heterograph
-from .render_utils import create_render_graph, to_graphviz
-from .render_utils import RenderGraph
+from ..data.graph_utils import fn_groundobs_to_heterograph
+from ..data.render_utils import create_render_graph, to_graphviz
+from ..data.render_utils import RenderGraph
 
 logger = logging.getLogger(__name__)
 

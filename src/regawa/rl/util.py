@@ -21,7 +21,7 @@ from regawa.model.base_grounded_model import GroundObs
 from regawa.policy import GraphAgent
 from regawa.data import heterostatedata_to_tensors
 from regawa.io import obs_to_json_friendly_obs
-from regawa.wrappers.render_utils import RenderGraph
+from regawa.data.render_utils import RenderGraph
 
 
 @th.no_grad()

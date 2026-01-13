@@ -4,9 +4,9 @@ import gymnasium as gym
 from regawa import BaseModel, GroundObs, Grounding
 from ..data.graph import HeteroGraph
 from regawa.model import StackedGroundObs
-from .graph_utils import fn_groundobs_to_heterograph
-from .render_utils import create_render_graph, to_graphviz
-from .render_utils import RenderGraph
+from ..data.graph_utils import fn_groundobs_to_heterograph
+from ..data.render_utils import create_render_graph, to_graphviz
+from ..data.render_utils import RenderGraph
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,4 @@
-from typing import Any
-
-import torch.nn as nn
-from torch import Tensor
+from torch import Tensor, nn
 
 from regawa.data import TorchHeteroBatchData
 from regawa.policy import GraphAgentInterface
@@ -13,7 +10,6 @@ class Agent(nn.Module):
     def __init__(
         self,
         agent: GraphAgentInterface,
-        **kwargs: dict[str, Any],
     ):
         super().__init__()  # type: ignore
         self.agent = agent

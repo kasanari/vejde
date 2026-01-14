@@ -1,8 +1,7 @@
 import logging
 
-import torch.nn as nn
 from torch import Generator as Rngs
-from torch import zeros
+from torch import nn, zeros
 
 from regawa.data import TorchFactorGraph
 
@@ -60,7 +59,6 @@ class BipartiteGNN(nn.Module):
                 variables=fg.variables.replace_val(variables),
                 factors=fg.factors.replace_val(factors),
             )
-
 
         logger.debug("Global Node\n%s", g)
         logger.debug("Message Passing Done\n")

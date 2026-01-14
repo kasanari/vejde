@@ -84,8 +84,10 @@ def test_merge_graph():
 
     merged = merge_graphs(boolean, numeric)
 
-    assert merged.n_variable.item() == 8
-    assert merged.n_factor.item() == 5
+    expected_n_var = 8
+    expected_n_factor = 5
+    assert merged.n_variable.item() == expected_n_var
+    assert merged.n_factor.item() == expected_n_factor
     assert merged.variables.values.shape == (8, 2)
     assert merged.factors.values.shape == (5, 2)
     assert merged.globals.values.shape == (1, 2)

@@ -82,9 +82,7 @@ def to_dict_action(
         else (NullConst.action, NullConst.id)
     )
 
-    action_dict = {} if action_fluent == NullConst.action else {a: np.bool_(True)}
-
-    return action_dict
+    return {} if action_fluent == NullConst.action else {a: np.bool_(True)}
 
 
 def num_edges(groundings: list[Grounding], arities: Callable[[str], int]) -> int:

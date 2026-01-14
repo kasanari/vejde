@@ -11,9 +11,7 @@ import gymnasium as gym
 import mlflow
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
 import tyro
 from gnn_policy.functional import (
     data_splits_and_starts,
@@ -22,6 +20,7 @@ from gnn_policy.functional import (
 )
 from gymnasium.spaces import Dict, MultiDiscrete
 from numpy.typing import NDArray
+from torch import nn, optim
 from tqdm import tqdm
 
 from regawa import GNNParams, agent_from_env
@@ -107,8 +106,7 @@ def make_env(
         env: gym.Env[Dict, MultiDiscrete] = gym.make(  # type: ignore
             env_id,
         )
-        env = gym.wrappers.RecordEpisodeStatistics(env)
-        return env
+        return gym.wrappers.RecordEpisodeStatistics(env)
 
     return thunk
 
@@ -165,10 +163,7 @@ def get_next_q_value(
         alpha,
         n_graphs=int(data.next_observations.n_graphs),
     )
-    next_q_value = (
-        data.rewards.flatten() + (1 - data.dones.flatten()) * gamma * vf_target
-    )
-    return next_q_value
+    return data.rewards.flatten() + (1 - data.dones.flatten()) * gamma * vf_target
 
 
 def update_q_net(
@@ -177,7 +172,7 @@ def update_q_net(
     q_net: DoubleQNetwork,
     q_optimizer: optim.Optimizer,
     next_q_value: torch.Tensor,
-    device: torch.device,
+    _device: torch.device,
 ):
     # use Q-values only for the taken actions
 
@@ -391,12 +386,12 @@ def log_to_mlflow(
         )
 
 
-def sample_action(obs: HeteroObsData):
+def sample_action(obs: HeteroObsData, rng: np.random.Generator) -> np.ndarray:
     a1_mask = obs.bool.action_masks.action_arity_mask
     a2_mask = obs.float.action_masks.action_type_mask
     mask = a1_mask & a2_mask
     action = np.flip(np.stack(np.where(mask)).T)
-    idx = np.random.choice(action.shape[0])
+    idx = rng.choice(action.shape[0])
     return action[idx]  # type: ignore
 
 
@@ -529,7 +524,7 @@ def train(args: SACArgs) -> GraphAgentInterface:
 
     # TRY NOT TO MODIFY: seeding
     random.seed(args.seed)
-    np.random.seed(args.seed)
+    _rng = np.random.default_rng(args.seed)
     torch.manual_seed(args.seed)  # type: ignore
     torch.backends.cudnn.deterministic = args.torch_deterministic
 

@@ -53,7 +53,7 @@ def fn_heterograph_to_heteroobs(
     def heterograph_to_heteroobs(heterogenous_graph: HeteroGraph) -> HeteroObsData:
         return HeteroObsData(
             bool=fn_graph_to_idx(
-                heterogenous_graph.boolean,  
+                heterogenous_graph.boolean,
                 np.int8,
             ),
             float=fn_graph_to_idx(
@@ -137,5 +137,3 @@ def fn_idx_obs(model: BaseModel, stacking: bool = False):
         return create_obs_dict_fn(g)
 
     return graph_to_obsdata
-
-

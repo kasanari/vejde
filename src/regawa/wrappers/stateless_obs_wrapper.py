@@ -61,5 +61,5 @@ class StateLessWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs]):
         GroundObs,
         dict[str, Any],
     ]:
-        obs, info = self.env.reset(seed=seed)
+        obs, info = self.env.reset(seed=seed, options=options)
         return self.transform(obs), info

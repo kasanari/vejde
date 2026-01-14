@@ -1,5 +1,4 @@
-import torch.nn as nn
-from torch import Tensor
+from torch import Tensor, nn
 
 from regawa.embedding.node_embedders import EmbeddingLayer
 
@@ -9,8 +8,8 @@ class NumericEmbedder(nn.Module):
 
     def __init__(
         self,
-        embedding_dim: int,
-        activation: nn.Module,
+        _embedding_dim: int,
+        _activation: nn.Module,
         predicate_embedding: EmbeddingLayer,
     ):
         super().__init__()  # type: ignore
@@ -23,5 +22,4 @@ class NumericEmbedder(nn.Module):
         var_type: Tensor,
     ) -> Tensor:
         preds = self.predicate_embedding(var_type.int())
-        h = preds * var_val.unsqueeze(-1)
-        return h
+        return preds * var_val.unsqueeze(-1)

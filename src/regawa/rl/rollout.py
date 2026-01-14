@@ -69,5 +69,4 @@ class RolloutCollector:
 
     @property
     def values(self) -> list[float]:
-        returns = [sum(list(self.rewards)[i:]) for i in range(len(self.rewards))]
-        return returns
+        return [sum(list(self.rewards)[i:]) for i in range(len(self.rewards))]

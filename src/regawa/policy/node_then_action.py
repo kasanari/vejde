@@ -39,6 +39,7 @@ class NodeThenActionPolicy(nn.Module):
             node_dim, num_actions * critic_heads, bias=False
         )  # Q(a|n)
         self.critic_heads = critic_heads
+        self.rngs = rngs
 
     def f(
         self,

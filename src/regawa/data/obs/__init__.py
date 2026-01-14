@@ -17,5 +17,5 @@ __all__ = [
     "fn_graph_to_obsdata",
     "fn_variables_to_idx",
     "fn_variables_to_idx_with_time",
-	"GraphTypes",
+    "GraphTypes",
 ]

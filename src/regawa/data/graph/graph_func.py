@@ -48,7 +48,7 @@ def object_list(
 ) -> Sequence[Object]:
     unique_objects = {obj for key in obs_keys for obj in objects_with_type(key)}
     # sorted_objects = unique_objects
-    return [NullObject] + list(unique_objects)
+    return [NullObject, *unique_objects]
 
 
 @cache
@@ -58,7 +58,7 @@ def get_edges(key: Grounding) -> list[Edge]:
     Each edge connects the predicate to one of its objects.
     An edge is represented as a tuple (predicate, object, position).
     """
-    return [Edge(key, object, pos) for pos, object in enumerate(objects(key))]
+    return [Edge(key, o, pos) for pos, o in enumerate(objects(key))]
 
 
 def create_edges(d: Iterable[Grounding]) -> list[Edge]:

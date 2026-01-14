@@ -171,9 +171,7 @@ def create_obs(obs: TemporalGroundObs) -> StackedGroundObs:
 
     new_obs = compress_stacked_obs(new_obs)
 
-    relative = obs_to_relative_time(new_obs)
-
-    return relative
+    return obs_to_relative_time(new_obs)
 
 
 class StackingWrapper(gym.Wrapper[StackedGroundObs, GroundObs, GroundObs, GroundObs]):
@@ -183,7 +181,7 @@ class StackingWrapper(gym.Wrapper[StackedGroundObs, GroundObs, GroundObs, Ground
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[StackedGroundObs, dict[str, Any]]:
-        obs, info = self.env.reset(seed=seed)
+        obs, info = self.env.reset(seed=seed, options=options)
         o = create_obs(obs)
 
         return o, info  # type: ignore

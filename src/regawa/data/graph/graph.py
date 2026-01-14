@@ -19,6 +19,7 @@ VariableDomain = TypeVar(
 VariableTypeDomain = np.int64
 EdgeIndexDomain = np.int64
 
+
 class ActionMask(NamedTuple):
     # mask that indicates which actions are valid for each factor, given the predicate type. Length matches factor.
     action_type_mask: NDArray[np.bool_]
@@ -83,7 +84,3 @@ class Edges(NamedTuple):
 
     # distance metrics, in a sparse format
     # distances: Distances
-
-
-
-

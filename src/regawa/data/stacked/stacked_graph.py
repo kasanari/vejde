@@ -16,12 +16,10 @@ class StackedStringVariables(NamedTuple, Generic[VariableDomain]):
     n_variable: int
     groundings: Sequence[Grounding]
 
+
 class StackedStringFactorGraph(NamedTuple, Generic[VariableDomain]):
     variables: StackedStringVariables[VariableDomain]
     factors: StringFactors
     edges: Edges
     global_variables: StackedStringVariables[VariableDomain]
     action_masks: ActionMask
-
-
-

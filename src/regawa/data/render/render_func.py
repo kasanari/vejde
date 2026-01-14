@@ -5,15 +5,15 @@ import numpy as np
 
 from regawa.data.factor_graph import StringFactorGraph
 from regawa.data.graph import (
+    ActionMask,
+    Edges,
     StringFactors,
     StringVariables,
     create_edges,
     translate_edges,
 )
-from regawa.data.graph.graph import ActionMask, Edges
 from regawa.data.stacked import StackedStringFactorGraph
-from regawa.model import BaseModel, Grounding
-from regawa.model.grounding_func import objects
+from regawa.model import BaseModel, Grounding, objects
 
 from .render_graph import RenderGraph
 
@@ -50,7 +50,6 @@ def to_graphviz_alt(
 
 def to_graphviz(
     fg: RenderGraph,
-    scaling: int = -20,
     pprint: bool = False,
     # numeric,
 ):
@@ -199,4 +198,4 @@ def render_lifted(model: BaseModel):
 
     return to_graphviz(render_g, scaling=0)
 
-    pass
+

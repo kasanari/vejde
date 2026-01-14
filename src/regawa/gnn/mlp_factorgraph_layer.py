@@ -1,8 +1,7 @@
 import logging
 
-import torch.nn as nn
 from torch import Generator as Rngs
-from torch import Tensor, concatenate
+from torch import Tensor, concatenate, nn
 from torch_scatter import scatter
 
 from regawa.data import TorchFactorGraph
@@ -18,9 +17,7 @@ def update(x: Tensor, y: Tensor, mlp: nn.Module, edge_attr: Tensor) -> Tensor:
 
 
 class MLPFactorGraphLayer(nn.Module):
-    def __init__(
-        self, embedding_dim: int, aggregation: str, activation: nn.Module, rngs: Rngs
-    ):
+    def __init__(self, embedding_dim: int, activation: nn.Module, rngs: Rngs):
         super().__init__()  # type: ignore
         self.variable_transform = MLPLayer(
             embedding_dim * 3, embedding_dim, activation, rngs

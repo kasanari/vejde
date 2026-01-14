@@ -3,9 +3,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-import torch.nn as nn
 from torch import Generator as Rngs
-from torch import Tensor
+from torch import Tensor, nn
 
 from regawa.data import (
     HeteroBatchData,

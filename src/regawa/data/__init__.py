@@ -26,7 +26,7 @@ from .obs import (
     fn_variables_to_idx,
     fn_variables_to_idx_with_time,
 )
-from .render import RenderGraph, create_render_graph, to_graphviz
+from .render import RenderGraph, create_render_graph, render_lifted, to_graphviz
 from .space import HeteroStateSpace, max_arity, n_actions
 from .sparse import SparseArray
 from .stacked import StackedStringFactorGraph
@@ -83,4 +83,5 @@ __all__ = [
     "concat_sparse",
     "VariableDomain",
     "max_arity",
+    "render_lifted",
 ]

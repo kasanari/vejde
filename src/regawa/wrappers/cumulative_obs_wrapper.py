@@ -46,7 +46,7 @@ class CumulativeObsWrapper[T: GroundObs | TemporalGroundObs](
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[T, dict[str, Any]]:
-        obs, info = self.env.reset(seed=seed)
+        obs, info = self.env.reset(seed=seed, options=options)
 
         self.prev_obs = obs
 

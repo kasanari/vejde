@@ -1,9 +1,8 @@
 import logging
 
-import torch.nn.init as init
 from torch import Generator as Rngs
 from torch import Tensor
-from torch.nn import Embedding, LayerNorm, Module, Sequential
+from torch.nn import Embedding, LayerNorm, Module, Sequential, init
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +57,7 @@ class EmbeddingLayer(Module):
         self.transform = Sequential(
             *params,
         )
+        self.rngs = rngs
 
     def forward(self, x: Tensor) -> Tensor:
         return self.transform(x)

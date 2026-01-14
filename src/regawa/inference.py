@@ -5,12 +5,11 @@ import torch
 from torch import Tensor
 
 from regawa import GroundObs
+from regawa.data import RenderGraph, create_render_graph, fn_groundobs_to_heterograph
 from regawa.data.obs import HeteroObsData
 from regawa.data.obs.obs_func import fn_idx_obs
-from regawa.data.render_utils import RenderGraph
 from regawa.model import BaseModel
 from regawa.policy import ActionMode, GraphAgent
-from regawa.wrappers import create_render_graph, fn_groundobs_to_heterograph
 
 
 class NodeThenActionAgentOutput(NamedTuple):
@@ -61,6 +60,9 @@ def fn_get_agent_output(
     return get_agent_output
 
 
+MIN_PROB = 1e-4
+
+
 def fn_action_then_node(
     agent: GraphAgent,
     model: BaseModel,
@@ -81,7 +83,7 @@ def fn_action_then_node(
             a: {
                 k: float(v)
                 for k, v in zip(objs, tensor_to_list(p_n__a[:, i]), strict=False)
-                if v > 1e-4
+                if v > MIN_PROB
             }
             for i, a in enumerate(model.action_fluents)
         }
@@ -93,14 +95,14 @@ def fn_action_then_node(
                 tensor_to_list(p_a),
                 strict=False,
             )
-            if v > 1e-4
+            if v > MIN_PROB
         }
 
         joint_probs = {
             (a, o): pa * po
             for a, pa in weight_by_action.items()
             for o, po in weight_by_factor[a].items()
-            if (pa * po) > 1e-4
+            if (pa * po) > MIN_PROB
         }
 
         return NodeThenActionAgentOutput(
@@ -144,7 +146,7 @@ def fn_node_then_action(
                     tensor_to_list(p_a__n[i, :]),
                     strict=False,
                 )
-                if v > 1e-4
+                if v > MIN_PROB
             }
             for i, o in enumerate(objs)
         }
@@ -153,7 +155,7 @@ def fn_node_then_action(
             (a, o): po * pa
             for o, po in weight_by_factor.items()
             for a, pa in weight_by_action[o].items()
-            if (po * pa) > 1e-4
+            if (po * pa) > MIN_PROB
         }
 
         return ActionThenNodeAgentOutput(

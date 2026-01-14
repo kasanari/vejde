@@ -2,9 +2,8 @@ from pathlib import Path
 from typing import TypeVar
 
 import numpy as np
-import torch.nn as nn
 from torch import Generator as Rngs
-from torch import Tensor
+from torch import Tensor, nn
 
 from regawa.data import (
     HeteroObsData,

@@ -61,8 +61,8 @@ class GenericModel(BaseModel):
         return self.action_fluents.index(action)
 
     @cache
-    def type_to_idx(self, type: str) -> int:
-        return self._type_to_idx[type]
+    def type_to_idx(self, _type: str) -> int:
+        return self._type_to_idx[_type]
 
     @cached_property
     def fluents(self) -> tuple[str, ...]:

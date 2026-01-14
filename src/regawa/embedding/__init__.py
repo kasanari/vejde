@@ -4,7 +4,6 @@ from typing import TypeVar
 
 import numpy as np
 import torch
-import torch.nn as nn
 from numpy.typing import NDArray
 from torch import (
     FloatTensor,
@@ -14,6 +13,7 @@ from torch import (
     as_tensor,
     concatenate,
     int64,
+    nn,
 )
 
 from regawa.data import (

@@ -1,9 +1,8 @@
 from collections.abc import Callable
 
 import torch
-import torch.nn as nn
-import torch.nn.init as init
-from torch import Tensor, arange
+from torch import Tensor, arange, nn
+from torch.nn import init
 from torch.nn.utils.rnn import PackedSequence
 
 from regawa.data.torch import SparseTensor
@@ -109,15 +108,16 @@ def packed_from_concatenated_sequences(
 
     packed_data = data.index_select(0, perm)
 
-    if include_sort_info:
-        return (
+    return (
+        (
             packed_data,
             batch_sizes,
             sorted_indices.to(data.device),
             unsorted_indices.to(data.device),
         )
-    else:
-        return (packed_data, batch_sizes, None, None)
+        if include_sort_info
+        else (packed_data, batch_sizes, None, None)
+    )
 
 
 def compress_time(

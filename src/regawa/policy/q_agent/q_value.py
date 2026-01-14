@@ -14,13 +14,14 @@ class QValue(NamedTuple):
     def min(self, other: QValue) -> QValue:
         is_action_then_node = isinstance(self.q1, Tensor)
 
-        if is_action_then_node:
-            return QValue(
+        return (
+            QValue(
                 min(self.q1, other.q1),
                 self.q2.min(other.q2),
             )
-        else:
-            return QValue(
+            if is_action_then_node
+            else QValue(
                 self.q1.min(other.q1),
                 self.q2.min(other.q2),
             )
+        )

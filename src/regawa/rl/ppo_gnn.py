@@ -24,13 +24,11 @@ import gymnasium as gym
 import mlflow
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
 import tyro
 import wandb
 from gymnasium.spaces import Dict, MultiDiscrete
 from numpy.typing import NDArray
-from torch import Tensor
+from torch import Tensor, nn, optim
 from tqdm import tqdm
 
 from regawa import (
@@ -87,13 +85,14 @@ def update_step(
     minibatch_size: int,
     update_func: Callable[[TorchHeteroBatchData, BatchData], UpdateData],
     device: str | npl.device,
+    rng: np.random.Generator,
 ):
     def _update_step(
         obs: HeteroGraphBuffer,
         b: BatchData,
         b_inds: NDArray[np.int32],
     ):
-        np.random.shuffle(b_inds)
+        rng.shuffle(b_inds)
         u_datas: list[UpdateData] = []
         stop_training = False
         num_updates = 0  # count number of gradient updates
@@ -203,7 +202,7 @@ def iteration_step(
         # plt.close()
 
         flattened_b = BatchData(
-            b.actions.reshape((-1,) + envs.single_action_space.shape),  # type: ignore
+            b.actions.reshape((-1, *envs.single_action_space.shape)),  # type: ignore
             b.logprobs.reshape(-1),
             b_advantages,
             b_returns,
@@ -251,10 +250,12 @@ def make_env(
         env: gym.Env[Dict, MultiDiscrete] = gym.make(  # type: ignore
             env_id,
         )
-        env = gym.wrappers.RecordEpisodeStatistics(env)
-        return env
+        return gym.wrappers.RecordEpisodeStatistics(env)
 
     return thunk
+
+
+EXPECTED_NUM_ACTION_PARAMS = 2
 
 
 def rollout(
@@ -282,7 +283,7 @@ def rollout(
             s = heterostatedata(obs)
             s = heterostatedata_to_tensors(s, device)
             action, logprob, _, value = agent.sample_action_and_value(s)
-            assert action.dim() == 2
+            assert action.dim() == EXPECTED_NUM_ACTION_PARAMS
             assert action.shape[0] == num_envs
             assert logprob.dim() == 1
 
@@ -399,6 +400,9 @@ def calculate_loss(agent: Agent, params: PPOParams):
     return f
 
 
+MAX_ALLOWED_GRAD_NORM = 100.0
+
+
 def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
     loss_func = calculate_loss(agent, params)
 
@@ -429,7 +433,7 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
             (loss.approx_kl > 1.5 * params.target_kl).item()
         )
 
-        if grad_norm.item() > 100.0:
+        if grad_norm.item() > MAX_ALLOWED_GRAD_NORM:
             logger.warning(f"grad_norm: {grad_norm.item()}")
             # logger.warning(f"per_param_grad: {per_param_grad}")
 
@@ -450,6 +454,7 @@ def main(
     args: Args,
     device: str | npl.device,
     graph_agent: GraphAgentInterface,
+    rng: np.random.Generator,
 ):
     batch_size = int(args.num_envs * args.rollout_length)
     minibatch_size = int(batch_size // args.num_minibatches)
@@ -515,6 +520,7 @@ def main(
                     args.target_kl,
                 ),
             ),
+            rng=rng,
         ),
         lambda_return.lambda_returns(args.gamma, args.gae_lambda),
         device=device,
@@ -522,7 +528,7 @@ def main(
     )
 
     actions = npl.zeros(
-        (args.rollout_length, args.num_envs) + envs.single_action_space.shape  # type: ignore
+        (args.rollout_length, args.num_envs, *envs.single_action_space.shape)  # type: ignore
     ).to(device)
     b = BatchData(
         actions,
@@ -703,7 +709,7 @@ AGENT_CLASSES: dict[str, type[GraphAgentInterface]] = {
 def train(args: Args | None = None, batch_id: str | None = None):
     args = tyro.cli(Args) if args is None else args
     random.seed(args.seed)
-    np.random.seed(args.seed)
+    rng = np.random.default_rng(args.seed)
     npl.manual_seed(args.seed)  # type: ignore
     npl.backends.cudnn.deterministic = args.torch_deterministic
     run_name = f"{args.env_id}__ppo"
@@ -775,7 +781,7 @@ def train(args: Args | None = None, batch_id: str | None = None):
         run_id = mlflow.active_run().info.run_id  # type: ignore
 
         try:
-            agent = main(envs, run_name, args, device, agent)
+            agent = main(envs, run_name, args, device, agent, rng=rng)
         except Exception as e:
             logger.exception("Exception during training:")
             raise e
@@ -784,7 +790,7 @@ def train(args: Args | None = None, batch_id: str | None = None):
         mlflow.log_artifact(str(run_folder / f"{run_name}.pth"))
 
         # print(f"avg_reward: {avg_mean_reward}")
-        stats, data = eval(agent.agent, args.env_id, device)
+        stats, data = evaluate_agent(agent.agent, args.env_id, device)
         for k, v in stats.items():
             if k != "returns":
                 mlflow.log_metric(f"train_eval/{k}", v)
@@ -800,7 +806,7 @@ def train(args: Args | None = None, batch_id: str | None = None):
     return stats, agent.agent
 
 
-def eval(agent: GraphAgentInterface, env_id: str, device: str):
+def evaluate_agent(agent: GraphAgentInterface, env_id: str, device: str):
     eval_env = gym.make(  # type: ignore
         env_id,
     )

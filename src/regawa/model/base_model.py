@@ -47,7 +47,7 @@ class BaseModel(ABC):
 
     @abstractmethod
     @cache
-    def type_to_idx(self, type: str) -> int:
+    def type_to_idx(self, _type: str) -> int:
         """
         A mapping from object type to an index.
         This should be consistent across all instances of the same domain.

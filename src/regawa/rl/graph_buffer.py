@@ -86,7 +86,7 @@ class ReplayBuffer:
         action: npt.NDArray[np.int32],
         reward: npt.NDArray[np.float32],
         done: npt.NDArray[np.float32],
-        infos: list[dict[str, Any]],
+        _infos: list[dict[str, Any]],
     ) -> None:
         # Reshape to handle multi-dim and discrete action spaces, see GH #970 #1392
         action = action.reshape((self.n_envs, self.action_dim))
@@ -130,13 +130,19 @@ class ReplayBuffer:
             self.observations[(batch_inds + 1) % self.buffer_size][env_indices]
             if self.optimize_memory_usage
             else heterostatedata_from_obslist(
-                [self.next_observations[b][e] for b, e in zip(batch_inds, env_indices, strict=False)]
+                [
+                    self.next_observations[b][e]
+                    for b, e in zip(batch_inds, env_indices, strict=False)
+                ]
             )
         )
 
-        data = ReplayBufferSamples(
+        return ReplayBufferSamples(
             heterostatedata_from_obslist(
-                [self.observations[b][e] for b, e in zip(batch_inds, env_indices, strict=False)]
+                [
+                    self.observations[b][e]
+                    for b, e in zip(batch_inds, env_indices, strict=False)
+                ]
             ),
             next_obs,
             as_tensor(self.actions[batch_inds, env_indices, :], device=self.device),
@@ -149,4 +155,3 @@ class ReplayBuffer:
                 self.rewards[batch_inds, env_indices].reshape(-1, 1), device=self.device
             ),
         )
-        return data

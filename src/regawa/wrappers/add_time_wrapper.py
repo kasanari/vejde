@@ -45,7 +45,7 @@ class AddTimeWrapper(gym.Wrapper[TemporalGroundObs, GroundObs, GroundObs, Ground
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[TemporalGroundObs, dict[str, Any]]:
-        obs, info = self.env.reset(seed=seed)
+        obs, info = self.env.reset(seed=seed, options=options)
 
         new_obs = add_time_to_obs(obs, 0)
 

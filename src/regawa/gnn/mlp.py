@@ -1,7 +1,6 @@
-import torch.nn.init as init
 from torch import Generator as Rngs
 from torch import Tensor
-from torch.nn import LayerNorm, Linear, Module, Sequential
+from torch.nn import LayerNorm, Linear, Module, Sequential, init
 
 
 class MLPLayer(Module):
@@ -27,6 +26,7 @@ class MLPLayer(Module):
         self.transform = Sequential(
             *layers,
         )
+        self.rngs = rngs
 
     def forward(self, x: Tensor) -> Tensor:
         return self.transform(x)

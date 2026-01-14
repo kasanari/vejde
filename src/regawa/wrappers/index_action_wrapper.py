@@ -65,7 +65,7 @@ class IndexActionWrapper(
         )
 
     @action_space.setter
-    def action_space(self, space: gym.Space[MultiDiscrete]) -> None:  # type: ignore
+    def action_space(self, _space: gym.Space[MultiDiscrete]) -> None:  # type: ignore
         raise AttributeError("Can't set attribute")
 
     def step(
@@ -106,7 +106,7 @@ class IndexActionWrapper(
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[HeteroGraph, dict[str, Any]]:
-        graph, info = self.env.reset(seed=seed)
+        graph, info = self.env.reset(seed=seed, options=options)
 
         info["action_fluents"] = self.model.action_fluents
 

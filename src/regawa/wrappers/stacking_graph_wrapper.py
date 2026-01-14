@@ -40,6 +40,7 @@ class StackingGroundedGraphWrapper(
         )
 
         self.add_render_graph_to_info = add_render_graph_to_info
+        self.render_mode = render_mode
 
     def render(self):
         return to_graphviz(self.last_g, scaling=10) if self.last_g is not None else None
@@ -66,7 +67,7 @@ class StackingGroundedGraphWrapper(
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[HeteroGraph, dict[str, Any]]:
-        rddl_obs, info = self.env.reset(seed=seed)
+        rddl_obs, info = self.env.reset(seed=seed, options=options)
         graph = self.create_graphs(rddl_obs)  # type: ignore
         info_update, combined_graph = self._prepare_info(
             rddl_obs,  # type: ignore

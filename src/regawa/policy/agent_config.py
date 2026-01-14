@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 
-import torch.nn as nn
+from torch import nn
 
 
 class ActionMode(Enum):

@@ -9,8 +9,7 @@ from regawa.model import BaseGroundedModel, Grounding, GroundingRange, GroundObs
 def add_actions_to_obs(
     obs: dict[Grounding, GroundingRange], actions: dict[Grounding, GroundingRange]
 ) -> GroundObs:
-    obs_with_actions = actions | obs
-    return obs_with_actions
+    return actions | obs
 
 
 def fn_add_actions_to_obs(grounded_model: BaseGroundedModel):
@@ -23,8 +22,7 @@ def fn_add_actions_to_obs(grounded_model: BaseGroundedModel):
             k: boolean_actions.get(k) for k in action_groundings if k not in obs
         }
 
-        obs_with_actions = add_actions_to_obs(obs, new_actions)  # type: ignore
-        return obs_with_actions
+        return add_actions_to_obs(obs, new_actions)  # type: ignore
 
     return add_actions_to_obs
 
@@ -33,8 +31,7 @@ def dynamic_add_actions_to_obs(
     obs: dict[Grounding, GroundingRange], actions: GroundObs
 ) -> GroundObs:
     boolean_actions = {k: np.bool_(v) for k, v in actions.items()}
-    obs_with_actions = add_actions_to_obs(obs, boolean_actions)  # type: ignore
-    return obs_with_actions
+    return add_actions_to_obs(obs, boolean_actions)  # type: ignore
 
 
 class AddActionWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs]):
@@ -80,7 +77,7 @@ class AddActionWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs]):
         GroundObs,
         dict[str, Any],
     ]:
-        obs, info = self.env.reset(seed=seed)
+        obs, info = self.env.reset(seed=seed, options=options)
 
         obs_with_actions = self.add_action_func(obs, {})  # type: ignore
 

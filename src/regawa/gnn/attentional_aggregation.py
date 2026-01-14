@@ -1,8 +1,7 @@
 import logging
 
-import torch.nn as nn
 from gnn_policy.functional import segment_sum, segmented_softmax
-from torch import Tensor
+from torch import Tensor, nn
 
 from regawa.data import SparseTensor
 
@@ -26,5 +25,4 @@ class AttentionalAggregation(nn.Module):
         x = self.gate(nodes.values)
         x = segmented_softmax(x, nodes.indices, num_graphs)
         x = x * self.attn(nodes.values)
-        x = segment_sum(x, nodes.indices, num_graphs)
-        return x
+        return segment_sum(x, nodes.indices, num_graphs)

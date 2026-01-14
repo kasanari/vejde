@@ -19,6 +19,7 @@ from .torch import (
 
 V = torch.dtype | str | int | float | bool
 
+
 def tuple_to_tensors[T: NamedTuple](
     data: NamedTuple, output_class: type[T], device: str | torch.device
 ) -> T:

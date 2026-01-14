@@ -79,5 +79,19 @@ select = [
     "SIM",
     # isort
     "I",
+    "RUF",
+    "PL",
+    "PERF",
+    "FLY",
+    "W",
+    #"FBT",
+    "A",
+    "Q",
+    "RET",
+    "ARG",
+    "NPY",
+    "FURB",
+    #"TRY",
+    #"C90",
 ]
-ignore = ["B019", "E501"]
+ignore = ["B019", "E501", "RUF003", "PLR0913", "PLR0915"]

@@ -14,12 +14,12 @@ from .stacked_graph import StackedStringFactorGraph
 
 def flatten(
     vals: Sequence[Sequence[VariableDomain]],
-    vars: Sequence[str],
+    var: Sequence[str],
     groundings: Sequence[Grounding],
 ) -> StringVariables[VariableDomain]:
     # Flatten the list of node history lists to account for different node history lengths
     flat_vals = list(chain(*vals))
-    v = [[vars[i] for _ in v] for i, v in enumerate(vals)]  # expand the variable names
+    v = [[var[i] for _ in v] for i, v in enumerate(vals)]  # expand the variable names
     flat_vars = list(chain(*v))
     lengths = [len(v) for v in vals]  # lengths of each variable history
     n_variable = len(lengths)  # number of unique variables

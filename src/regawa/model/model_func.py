@@ -33,7 +33,7 @@ def fn_fluents_of_arity(model: BaseModel):
     """
     Returns a function that takes an arity and returns a tuple of fluents with that arity.
     """
-    arities = set(model.arity(fluent) for fluent in model.fluents)  # type: ignore
+    arities = {model.arity(fluent) for fluent in model.fluents}  # type: ignore
 
     d: dict[int, tuple[str, ...]] = {
         arity: tuple([f for f in model.fluents if model.arity(f) == arity])

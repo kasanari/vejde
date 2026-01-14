@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from .agent_config import AgentConfig
 

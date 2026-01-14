@@ -1,6 +1,6 @@
 # type: ignore
-import torch.nn as nn
 from torch import Generator as Rngs
+from torch import nn
 
 from regawa.data import HeteroBatchData, TorchFactorGraph
 from regawa.embedding import (

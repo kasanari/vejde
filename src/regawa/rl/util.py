@@ -136,7 +136,7 @@ def grad_norm_(
     ] = _group_tensors_by_device_and_dtype([grads])  # type: ignore[assignment]
 
     norms: list[Tensor] = []
-    for (_, _), ([device_grads], _) in grouped_grads.items():  # type: ignore[assignment]
+    for [device_grads], _ in grouped_grads.values():  # type: ignore[assignment]
         norms.extend([th.linalg.vector_norm(g, norm_type) for g in device_grads])  # type: ignore[operator]
 
     total_norm = th.linalg.vector_norm(  # type: ignore[call-arg]
@@ -237,8 +237,7 @@ def calc_loss(l2_norms: list[Tensor], logprob: Tensor) -> Tensor:
     l2_weight = 0.0
     l2_norm = sum(l2_norms) / 2  # divide by 2 to cancel with gradient of square
     l2_loss = l2_weight * l2_norm
-    loss = -logprob.mean() + l2_loss
-    return loss
+    return -logprob.mean() + l2_loss
 
 
 def rollout(

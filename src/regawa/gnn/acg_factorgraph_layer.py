@@ -1,8 +1,7 @@
 import logging
 
-import torch.nn as nn
 from torch import Generator as Rngs
-from torch import Tensor, concatenate, zeros_like
+from torch import Tensor, concatenate, nn, zeros_like
 
 from regawa.data import TorchFactorGraph
 

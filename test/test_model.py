@@ -1,5 +1,5 @@
 from functools import cache, cached_property
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 from regawa import BaseModel
@@ -23,7 +23,7 @@ class TestModel(BaseModel):
     _fluents = (NullConst.action, "at", "on", "weight", "pickup", "put")
     _actions = (NullConst.action, "pickup", "put")
 
-    _params = {
+    _params: ClassVar = {
         NullConst.action: (),
         "at": ("block", "table"),
         "on": ("block", "block"),
@@ -32,7 +32,7 @@ class TestModel(BaseModel):
         "weight": ("block",),
     }
 
-    _ranges = {
+    _ranges: ClassVar = {
         NullConst.action: bool,
         "at": bool,
         "on": bool,
@@ -73,8 +73,8 @@ class TestModel(BaseModel):
         return len(self._fluents)
 
     @cache
-    def type_to_idx(self, type: str) -> int:
-        return self._types.index(type)
+    def type_to_idx(self, _type: str) -> int:
+        return self._types.index(_type)
 
     @cache
     def idx_to_type(self, idx: int) -> str:
@@ -120,7 +120,7 @@ class TestGroundedModel(BaseGroundedModel):
         "table2",
     )
 
-    _object_types: dict[str, str] = {
+    _object_types: ClassVar[dict[str, str]] = {
         "block1": "block",
         "block2": "block",
         "block3": "block",
@@ -128,7 +128,7 @@ class TestGroundedModel(BaseGroundedModel):
         "table2": "table",
     }
 
-    _constants: GroundObs = {
+    _constants: ClassVar[GroundObs] = {
         ("weight", "block1"): 1.0,
         ("weight", "block2"): 2.0,
         ("weight", "block3"): 3.0,

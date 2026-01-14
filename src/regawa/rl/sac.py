@@ -12,7 +12,7 @@ def sac_node_then_action_value_estimate(
     q_a__n: SparseTensor[FloatTensor],  # Q(a|n)
     p_n: SparseTensor[FloatTensor],  # p(n)
     logp_a__n: SparseTensor[FloatTensor],  # log p(a|n)
-    logp_n: SparseTensor[FloatTensor],  # log p(n)
+    _logp_n: SparseTensor[FloatTensor],  # log p(n)
     alpha: float,  # entropy coefficient
     n_graphs: int,
 ) -> Tensor:
@@ -34,7 +34,7 @@ def sac_node_then_action_policy_loss(
     q_a__n: SparseTensor[FloatTensor],  # Q(a|n)
     p_n: SparseTensor[FloatTensor],  # p(n)
     logp_a__n: SparseTensor[FloatTensor],  # log p(a|n)
-    logp_n: SparseTensor[FloatTensor],  # log p(n)
+    _logp_n: SparseTensor[FloatTensor],  # log p(n)
     alpha: float,  # entropy coefficient
     n_graphs: int,
 ) -> Tensor:
@@ -54,8 +54,8 @@ def sac_action_then_node_policy_loss(
     p_n__a: SparseTensor[FloatTensor],  # p(n|a)
     q_n__a: SparseTensor[FloatTensor],  # Q(n|a)
     p_a: Tensor,  # p(a)
-    q_a: Tensor,  # Q(a)
-    logp_a: Tensor,  # log p(a)
+    _q_a: Tensor,  # Q(a)
+    _logp_a: Tensor,  # log p(a)
     logp_n__a: SparseTensor[FloatTensor],  # log p(n|a)
     alpha: float,  # entropy coefficient
     num_graphs: int,
@@ -80,8 +80,8 @@ def sac_action_then_node_value_estimate(
     p_n__a: SparseTensor[FloatTensor],  # p(n|a)
     q_n__a: SparseTensor[FloatTensor],  # Q(n|a)
     p_a: Tensor,  # p(a)
-    q_a: Tensor,  # Q(a)
-    logp_a: Tensor,  # log p(a)
+    _q_a: Tensor,  # Q(a)
+    _logp_a: Tensor,  # log p(a)
     logp_n__a: SparseTensor[FloatTensor],  # log p(n|a)
     alpha: float,  # entropy coefficient
     n_graphs: int,
@@ -102,10 +102,10 @@ def sac_action_then_node_value_estimate(
 def sac_action_then_node_entropy(
     p_n__a: SparseTensor[FloatTensor],  # p(n|a)
     p_a: Tensor,  # p(a)
-    logp_a: Tensor,  # log p(a)
+    _logp_a: Tensor,  # log p(a)
     logp_n__a: SparseTensor[FloatTensor],  # log p(n|a)
     alpha: Tensor,  # entropy coefficient
-    entropy_target_a: Tensor,
+    _entropy_target_a: Tensor,
     entropy_target_n__a: Tensor,
     n_graphs: int,
 ) -> Tensor:

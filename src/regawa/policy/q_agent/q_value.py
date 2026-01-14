@@ -16,12 +16,12 @@ class QValue(NamedTuple):
 
         return (
             QValue(
-                min(self.q1, other.q1),
-                self.q2.min(other.q2),
+                min(self.q1, other.q1),  # type: ignore
+                self.q2.min(other.q2),  # type: ignore
             )
             if is_action_then_node
             else QValue(
-                self.q1.min(other.q1),
-                self.q2.min(other.q2),
+                self.q1.min(other.q1),  # type: ignore
+                self.q2.min(other.q2),  # type: ignore
             )
         )

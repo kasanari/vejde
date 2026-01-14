@@ -21,11 +21,11 @@ from pathlib import Path
 from typing import TypeVar
 
 import gymnasium as gym
-import mlflow
+import mlflow  # type: ignore
 import numpy as np
 import torch
 import tyro
-import wandb
+import wandb  # type: ignore
 from gymnasium.spaces import Dict, MultiDiscrete
 from numpy.typing import NDArray
 from torch import Tensor, nn, optim

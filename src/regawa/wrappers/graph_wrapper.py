@@ -24,7 +24,7 @@ class GroundedGraphWrapper(
         self,
         env: gym.Env[GroundObs, GroundObs | tuple[int, ...]],
         model: BaseModel,
-        render_mode: str = "human",
+        _render_mode: str = "human",
         add_render_graph_to_info: bool = True,
     ) -> None:
         super().__init__(env)
@@ -34,10 +34,9 @@ class GroundedGraphWrapper(
         self.create_graphs = fn_groundobs_to_heterograph(model, stacking=False)
 
         self.add_render_graph_to_info = add_render_graph_to_info
-        self.render_mode = render_mode
 
     def render(self):
-        return to_graphviz(self.last_g, scaling=10) if self.last_g is not None else None
+        return to_graphviz(self.last_g) if self.last_g is not None else None
 
     def _prepare_info(
         self,

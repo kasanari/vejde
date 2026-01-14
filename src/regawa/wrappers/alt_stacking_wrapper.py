@@ -154,7 +154,7 @@ def compress_stacked_obs(
     grounding2: str, [(start_time1: int, end_time1: Any), ...]),
     """
 
-    new_obs: StackedGroundObs = {
+    new_obs: StackedGroundObs = {  # type: ignore
         grounding: compress_stack(values) for grounding, values in obs.items()
     }
 
@@ -164,7 +164,7 @@ def compress_stacked_obs(
 def create_obs(obs: TemporalGroundObs) -> StackedGroundObs:
     sorted_obs = sorted(obs.items(), key=lambda x: x[0][1])
 
-    new_obs: StackedGroundObs = {
+    new_obs: StackedGroundObs = {  # type: ignore
         grounding: tuple([(time, value) for (time, _), value in values])
         for grounding, values in groupby(sorted_obs, key=lambda x: x[0][1])
     }

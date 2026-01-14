@@ -34,7 +34,7 @@ def tuple_to_tensors[T: NamedTuple](
         )
         for key, attr in data._asdict().items()
     )
-    return output_class(*params)
+    return output_class(*params)  # type: ignore
 
 
 def statedata_to_tensors(

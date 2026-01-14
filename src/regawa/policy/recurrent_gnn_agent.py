@@ -44,7 +44,7 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
 
         gnn_params = config.hyper_params
 
-        self.config = config
+        self._config = config
         factor_embedding = EmbeddingLayer(
             config.num_object_classes,
             gnn_params.embedding_dim,
@@ -135,6 +135,10 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
     @property
     def device(self) -> str:
         return self._device
+
+    @property
+    def config(self) -> AgentConfig:
+        return self._config
 
     @device.setter
     def device(self, device: str) -> None:

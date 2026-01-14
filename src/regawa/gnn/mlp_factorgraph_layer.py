@@ -13,7 +13,7 @@ render_logger = logging.getLogger("message_pass_render")
 
 
 def update(x: Tensor, y: Tensor, mlp: nn.Module, edge_attr: Tensor) -> Tensor:
-    return mlp(concatenate((x, y, edge_attr), axis=-1))
+    return mlp(concatenate((x, y, edge_attr), axis=-1))  # type: ignore
 
 
 class MLPFactorGraphLayer(nn.Module):

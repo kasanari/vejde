@@ -8,7 +8,7 @@ from collections.abc import Iterable
 from typing import NamedTuple
 
 import gymnasium as gym
-import mlflow
+import mlflow  # type: ignore
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -26,9 +26,9 @@ from tqdm import tqdm
 from regawa import GNNParams, agent_from_env
 from regawa.data import (
     HeteroBatchData,
+    heterostatedata,
     heterostatedata_to_tensors,
 )
-from regawa.data.batch_func import heterostatedata
 from regawa.data.obs import HeteroObsData
 from regawa.data.torch import SparseTensor, TorchHeteroBatchData
 from regawa.policy.gnn_agent import GraphAgentInterface
@@ -327,8 +327,8 @@ def update_models(
         alpha_loss = torch.tensor(0.0)
 
     average_next_q_value = next_q_value.mean().item()
-    q1_mean = qf_values.q1.mean().item()
-    q2_mean = qf_values.q2.segment_mean().mean().item()
+    q1_mean = qf_values.q1.mean().item()  # type: ignore
+    q2_mean = qf_values.q2.segment_mean().mean().item()  # type: ignore
     return UpdateModelsOutput(
         new_alpha,
         alpha_loss,
@@ -409,6 +409,7 @@ def step_fn(
     envs: gym.vector.VectorEnv[HeteroBatchData, NDArray[np.int64], NDArray[np.int64]],
     pbar: tqdm,
     args: SACArgs,
+    rng: np.random.Generator,
 ):
     def step(
         obs: Iterable[HeteroObsData],
@@ -419,7 +420,7 @@ def step_fn(
         alpha: float,
     ):
         if global_step < args.learning_starts:
-            actions = np.array([sample_action(o) for o in obs])
+            actions = np.array([sample_action(o, rng) for o in obs])
         else:
             actions, *_ = actor.sample(
                 heterostatedata_to_tensors(heterostatedata(obs), device=device)
@@ -444,7 +445,7 @@ def step_fn(
         rb.add(obs, next_obs, actions, rewards, dones, infos)
 
         # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
-        obs = next_obs
+        obs = next_obs  # type: ignore
 
         update_data = UpdateModelsOutput(
             new_alpha=alpha,
@@ -593,7 +594,7 @@ def train(args: SACArgs) -> GraphAgentInterface:
 
     # Since the number of actions per node is constant, we can precompute the target entropy
     target_a = -args.target_entropy_scale_a1 * torch.log(
-        1 / torch.tensor(envs.single_action_space.nvec[0])
+        1 / torch.tensor(envs.single_action_space.nvec[0])  # type: ignore
     )
 
     step = step_fn(
@@ -610,6 +611,7 @@ def train(args: SACArgs) -> GraphAgentInterface:
         envs,
         pbar,
         args,
+        rng=_rng,
     )
 
     obs: Iterable[HeteroObsData]

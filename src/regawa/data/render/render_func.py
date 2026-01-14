@@ -196,6 +196,4 @@ def render_lifted(model: BaseModel):
 
     render_g = create_render_graph(graph, n_graph)
 
-    return to_graphviz(render_g, scaling=0)
-
-
+    return to_graphviz(render_g)

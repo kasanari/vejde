@@ -82,7 +82,7 @@ def fn_action_then_node(
         weight_by_factor = {
             a: {
                 k: float(v)
-                for k, v in zip(objs, tensor_to_list(p_n__a[:, i]), strict=False)
+                for k, v in zip(objs, tensor_to_list(p_n__a.values[:, i]), strict=False)
                 if v > MIN_PROB
             }
             for i, a in enumerate(model.action_fluents)
@@ -143,7 +143,7 @@ def fn_node_then_action(
                 k: float(v)
                 for k, v in zip(
                     model.action_fluents,
-                    tensor_to_list(p_a__n[i, :]),
+                    tensor_to_list(p_a__n.values[i, :]),
                     strict=False,
                 )
                 if v > MIN_PROB

@@ -56,7 +56,7 @@ class BipartiteGNNConvVariableToFactor(nn.Module):
         # combine target and aggregated message
         # also, check for empty aggr_m
         x = (factors, aggr_m) if aggr_m.shape[0] > 0 else (factors, zeros_like(factors))
-        x = concatenate(x, axis=-1)
+        x = concatenate(x, axis=-1)  # type: ignore
         x = self.combine(x)
 
         render_logger.debug(
@@ -108,7 +108,7 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
 
         # combine target and aggregated message
         x = (variables, aggr_m)
-        x = concatenate(x, axis=-1)
+        x = concatenate(x, axis=-1)  # type: ignore
         x = self.combine(x)
 
         # skip connection. I am not sure why this helps, but it does.

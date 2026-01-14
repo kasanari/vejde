@@ -95,3 +95,8 @@ select = [
     #"C90",
 ]
 ignore = ["B019", "E501", "RUF003", "PLR0913", "PLR0915"]
+
+[tool.pyright]
+reportArgumentType = "none"
+reportReturnType = "none"
+reportInvalidTypeArguments = "none"

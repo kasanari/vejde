@@ -39,7 +39,7 @@ class CumulativeObsWrapper[T: GroundObs | TemporalGroundObs](
 
         new_obs = merge_obs(obs, self.prev_obs or {})
 
-        self.prev_obs = new_obs
+        self.prev_obs = new_obs  # type: ignore
 
         return new_obs, reward, terminated, truncated, info
 

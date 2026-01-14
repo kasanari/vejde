@@ -7,7 +7,6 @@ from torch import Generator as Rngs
 from torch import Tensor, nn
 
 from regawa.data import (
-    HeteroBatchData,
     HeteroObsData,
     TorchFactorGraph,
     TorchHeteroBatchData,
@@ -73,6 +72,10 @@ class GraphAgentInterface(ABC):
     @abstractmethod
     def device(self, device: str) -> None: ...
 
+    @abstractmethod
+    @property
+    def config(self) -> AgentConfig: ...
+
 
 class GraphAgent(nn.Module, GraphAgentInterface):
     def __init__(
@@ -85,7 +88,7 @@ class GraphAgent(nn.Module, GraphAgentInterface):
 
         gnn_params = config.hyper_params
 
-        self.config = config
+        self._config = config
         factor_embedding = EmbeddingLayer(
             config.num_object_classes,
             gnn_params.embedding_dim,
@@ -159,6 +162,10 @@ class GraphAgent(nn.Module, GraphAgentInterface):
     def embed(self, data: TorchHeteroBatchData) -> TorchFactorGraph:
         return self.message_pass(self.embed_heterobatch(data))
 
+    @property
+    def config(self) -> AgentConfig:
+        return self._config
+
     def forward(self, actions: Tensor, data: TorchHeteroBatchData):
         fg = self.embed(data)
         return self.policy(
@@ -186,7 +193,7 @@ class GraphAgent(nn.Module, GraphAgentInterface):
             deterministic,
         )
 
-    def value(self, data: HeteroBatchData):
+    def value(self, data: TorchHeteroBatchData):
         fg = self.embed(data)
         return self.policy.value(
             fg.factors,

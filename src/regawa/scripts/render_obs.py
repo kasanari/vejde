@@ -2,8 +2,7 @@ from pathlib import Path
 
 import tyro
 
-from regawa.data.graph_func import fn_groundobs_to_heterograph
-from regawa.data.render_utils import create_render_graph, to_graphviz
+from regawa.data import create_render_graph, fn_groundobs_to_heterograph, to_graphviz
 from regawa.io import step_from_json
 from regawa.model.base_grounded_model import GroundObs
 from regawa.model.base_model import BaseModel

@@ -67,7 +67,7 @@ def agent_from_env(
         agent_config_from_space(obs_space, action_space, params),
         Generator(),
         device=device,
-    ).to(device)
+    ).to(device)  # type: ignore
 
 
 def agent_from_model(
@@ -91,7 +91,7 @@ def agent_from_model(
 
     rng = Generator()
 
-    return agent_class(config, rng, device).to(device)
+    return agent_class(config, rng, device).to(device)  # type: ignore
 
 
 def step_func(agent: GraphAgent, env: gym.Env[Any, Any], deterministic: bool = True):

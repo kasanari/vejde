@@ -35,8 +35,8 @@ def get_by_type(t: str, buffer):
 
 
 class ReplayBuffer:
-    observations: list[tuple[HeteroObsData]]
-    next_observations: list[tuple[HeteroObsData]]
+    observations: list[tuple[HeteroObsData] | None]
+    next_observations: list[tuple[HeteroObsData] | None]
     actions: npt.NDArray[np.int32]
     rewards: npt.NDArray[np.float32]
     dones: npt.NDArray[np.float32]
@@ -73,7 +73,7 @@ class ReplayBuffer:
             self.next_observations = [None] * self.buffer_size
 
         self.actions = np.zeros(
-            (self.buffer_size, self.n_envs, self.action_dim), dtype=action_space.dtype
+            (self.buffer_size, self.n_envs, self.action_dim), dtype=np.int32
         )
 
         self.rewards = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
@@ -127,8 +127,10 @@ class ReplayBuffer:
         env_indices = self.rng.integers(0, high=self.n_envs, size=(len(batch_inds),))
 
         next_obs = (
-            self.observations[(batch_inds + 1) % self.buffer_size][env_indices]
+            x[env_indices]
             if self.optimize_memory_usage
+            and (x := self.observations[(batch_inds + 1) % self.buffer_size])
+            is not None
             else heterostatedata_from_obslist(
                 [
                     self.next_observations[b][e]

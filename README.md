@@ -90,3 +90,20 @@ This lets you experiment with many of the problems in the [library of RDDL probl
   - `wrappers` - Functions to transform and filter observations to the graph format used by the GNNs.  
 
 - `test` - Scripts and actual tests to run various parts of the library.
+
+
+## Citing
+
+If you use Vejde in your work, please cite it using the following information:
+```
+@article{
+  nyberg2026vejde,
+  title={Vejde: A Framework for Inductive Deep Reinforcement Learning Based on Factor Graph Color Refinement},
+  author={Jakob Nyberg and Pontus Johnson},
+  journal={Transactions on Machine Learning Research},
+  issn={2835-8856},
+  year={2026},
+  url={https://openreview.net/forum?id=EFSZmL1W1Z},
+  note={}
+}
+```

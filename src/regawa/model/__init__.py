@@ -1,4 +1,4 @@
-from .action_func import to_dict_action, from_dict_action
+from .action_func import from_dict_action, to_dict_action
 from .base_grounded_model import (
     BaseGroundedModel,
     Grounding,

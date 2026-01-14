@@ -38,7 +38,7 @@ You are free to use all these components, or exchange some components with other
 
 ### Installation
 
-This project uses [uv](https://docs.astral.sh/uv/) for dependency management. Run `uv sync --extra cu124` for PyTorch compiled with CUDA 12.4 and `uv sync --extra cpu` for CPU only. 
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management. Run `uv sync --extra cu128` for PyTorch compiled with CUDA 12.8 and `uv sync --extra cpu` for CPU only. 
 
 ### Define the relational model
 

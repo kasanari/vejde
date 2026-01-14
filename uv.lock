@@ -706,7 +706,7 @@ wheels = [
 [[package]]
 name = "gnn-policy"
 version = "0.0.2"
-source = { git = "ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy#9a0bba6a85581fb3795954dde3a06fb6feba372c" }
+source = { git = "ssh://git@github.com/kasanari/GNN#cbcf2690d545d3a4835427f259583d09c7972d86" }
 dependencies = [
     { name = "numpy" },
 ]
@@ -2550,7 +2550,7 @@ dev = [
 requires-dist = [
     { name = "flax", marker = "extra == 'jax-cpu'" },
     { name = "flax", marker = "extra == 'jax-gpu'" },
-    { name = "gnn-policy", git = "ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy" },
+    { name = "gnn-policy", git = "ssh://git@github.com/kasanari/GNN" },
     { name = "gymnasium", specifier = ">=1.1.1" },
     { name = "jax", marker = "extra == 'jax-cpu'" },
     { name = "jax", extras = ["cuda12"], marker = "extra == 'jax-gpu'" },

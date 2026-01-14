@@ -1,4 +1,4 @@
-from .action_func import from_dict_action, to_dict_action
+from .action_func import from_dict_action, idx_action_to_ground_value, to_dict_action
 from .base_grounded_model import (
     BaseGroundedModel,
     Grounding,
@@ -41,6 +41,7 @@ __all__ = [
     "max_arity",
     "fn_valid_action_fluents_given_arity",
     "fn_valid_action_fluents_given_type",
+    "idx_action_to_ground_value",
     "check_model",
     "bool_groundings",
     "fn_is_bool",

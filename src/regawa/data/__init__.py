@@ -1,4 +1,3 @@
-from .action import idx_action_to_ground_value
 from .batch import (
     BatchData,
     HeteroBatchData,
@@ -75,7 +74,6 @@ __all__ = [
     "n_actions",
     "fn_idx_obs",
     "HeteroStateSpace",
-    "idx_action_to_ground_value",
     "TorchHeteroBatchData",
     "factor_to_idx",
     "fn_graph_to_obsdata",

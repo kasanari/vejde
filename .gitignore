@@ -11,7 +11,6 @@ mlartifacts
 *.egg-info
 *.txt
 *.json
-*.md
 *.yml
 build
 rendered_graphs

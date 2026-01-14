@@ -100,3 +100,6 @@ ignore = ["B019", "E501", "RUF003", "PLR0913", "PLR0915"]
 reportArgumentType = "none"
 reportReturnType = "none"
 reportInvalidTypeArguments = "none"
+ignore = [
+    "mlruns",
+]

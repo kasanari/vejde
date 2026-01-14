@@ -14,6 +14,7 @@ from .graph import (
     StringVariables,
     VariableDomain,
     Variables,
+	object_list,
 )
 from .heterograph import HeteroGraph, fn_groundobs_to_heterograph
 from .obs import (
@@ -46,6 +47,7 @@ __all__ = [
     "TorchActionMask",
     "TorchFactorGraph",
     "SparseTensor",
+	"object_list",
     "HeteroObsData",
     "ObsData",
     "heterostatedata",

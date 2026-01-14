@@ -1,3 +1,4 @@
+from .action_func import to_dict_action, from_dict_action
 from .base_grounded_model import (
     BaseGroundedModel,
     Grounding,
@@ -18,7 +19,7 @@ from .grounding_func import (
     numeric_groundings,
     objects,
     predicate,
-    to_dict_action,
+    remove_false,
 )
 from .model_checker import check_model
 from .model_func import (
@@ -52,4 +53,6 @@ __all__ = [
     "GenericModel",
     "TemporalGroundObs",
     "to_dict_action",
+    "from_dict_action",
+    "remove_false",
 ]

@@ -5,7 +5,6 @@ from functools import cache
 import numpy as np
 
 from .base_grounded_model import Grounding, GroundObs
-from .null import NullConst
 
 logger = logging.getLogger(__name__)
 
@@ -24,65 +23,6 @@ def predicate(key: Grounding) -> str:
 def arity(grounding: Grounding) -> int:
     o = objects(grounding)
     return len(o)
-
-
-def has_valid_parameters(
-    action: Grounding,
-    obj_to_type: Callable[[str], str],  # maps object to its type
-    fluent_params: Callable[
-        [str], tuple[str, ...]
-    ],  # maps fluent to its parameter types
-) -> bool:
-    """
-    Checks if the parameters of an action are valid based on the fluent's parameter types.
-    """
-    action_fluent = predicate(action)
-    param_types = fluent_params(action_fluent)
-    params: tuple[str, ...] = objects(action)
-
-    if len(param_types) != len(params):
-        return False
-
-    for intended_param, param in zip(param_types, params, strict=False):
-        if intended_param != obj_to_type(param):
-            return False
-
-    return True
-
-
-def to_dict_action(
-    action: Grounding,
-    obj_to_type: Callable[[str], str],
-    fluent_params: Callable[[str], tuple[str, ...]],
-) -> GroundObs:
-    """
-    Converts an action (Grounding) to a dictionary representation. Going from (predicate, obj1, obj2) to {(predicate, obj1, obj2): True}.
-    If the action has invalid parameters, it is converted to a no-op action (i.e. "NOP" predicate).
-    No-op actions are represented as an empty dictionary.
-    """
-    action_fluent = predicate(action)
-    num_params = len(fluent_params(action_fluent))
-    action_arity = len(fluent_params(action_fluent))
-
-    if action_fluent == NullConst.action:
-        return {}
-
-    if action_arity == 0:
-        return {(action_fluent,): np.bool_(True)}
-
-    has_valid_param = has_valid_parameters(action, obj_to_type, fluent_params)
-    action_fluent = NullConst.action if not has_valid_param else action_fluent
-
-    if not has_valid_param:
-        logger.warning(f"Invalid parameters for action {action}")
-
-    a = (
-        (action_fluent, *objects(action)[:num_params])
-        if has_valid_param
-        else (NullConst.action, NullConst.id)
-    )
-
-    return {} if action_fluent == NullConst.action else {a: np.bool_(True)}
 
 
 def num_edges(groundings: list[Grounding], arities: Callable[[str], int]) -> int:

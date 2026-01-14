@@ -34,11 +34,27 @@ name = "pytorch-cu128"
 url = "https://download.pytorch.org/whl/cu128"
 explicit = true
 
+[[tool.uv.index]]
+name = "pyg-cu128"
+url = "https://data.pyg.org/whl/torch-2.8.0+cu128.html"
+ignore-error-codes = [403]
+format = "flat"
+
+[[tool.uv.index]]
+name = "pyg-cpu"
+url = "https://data.pyg.org/whl/torch-2.8.0+cpu.html"
+ignore-error-codes = [403]
+format = "flat"
+
 
 [tool.uv.sources]
 torch = [
   { index = "pytorch-cpu", extra = "cpu" },
   { index = "pytorch-cu128", extra = "cu128" },
+]
+torch-scatter = [
+  { index = "pyg-cu128", extra = "cu128" }, 
+  { index = "pyg-cpu", extra = "cpu" }
 ]
 regawa = { workspace = true }
 gnn-policy = { git = "git+ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy" }

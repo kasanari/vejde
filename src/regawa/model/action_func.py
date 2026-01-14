@@ -4,12 +4,12 @@ from collections.abc import Callable, Sequence
 import numpy as np
 from gymnasium.spaces import Dict
 
-from regawa.model import (
+from .base_grounded_model import (
     Grounding,
     GroundObs,
 )
-from regawa.model.grounding_func import logger, objects, predicate
-from regawa.model.null import NullConst
+from .grounding_func import logger, objects, predicate
+from .null import NullConst
 
 
 def from_dict_action(

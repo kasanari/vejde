@@ -72,8 +72,8 @@ class GraphAgentInterface(ABC):
     @abstractmethod
     def device(self, device: str) -> None: ...
 
-    @abstractmethod
     @property
+    @abstractmethod
     def config(self) -> AgentConfig: ...
 
 

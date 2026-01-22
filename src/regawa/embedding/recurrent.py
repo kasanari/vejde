@@ -38,12 +38,12 @@ def _batch_sizes_from_lengths(lengths: Tensor) -> Tensor:
     return batch_sizes.to("cpu")
 
 
-@torch.jit.script  # type: ignore
+@torch.jit.script
 def packed_from_concatenated_sequences(
     data: Tensor,
     lengths: Tensor,
     include_sort_info: bool = True,
-):
+) -> tuple[Tensor, Tensor, Tensor | None, Tensor | None]:
     """
     Build a PackedSequence when rows are concatenated per sequence (sequence-major order).
     Example row order: [s0:t0, s0:t1, ..., s0:tL0-1, s1:t0, ..., sN-1:tL(N-1)-1]
@@ -72,9 +72,9 @@ def packed_from_concatenated_sequences(
     if B == 0:
         empty = torch.zeros(0, dtype=torch.long)
         return (
-            PackedSequence(data, empty, empty.to(data.device), empty.to(data.device))
+            (data, empty, empty.to(data.device), empty.to(data.device))
             if include_sort_info
-            else PackedSequence(data, empty, None, None)
+            else (data, empty, None, None)
         )
 
     # --- 1) Sort sequences by length (desc) and build the inverse permutation (rank) ---
@@ -118,16 +118,6 @@ def packed_from_concatenated_sequences(
         if include_sort_info
         else (packed_data, batch_sizes, None, None)
     )
-
-
-def compress_time(
-    recurrent: Callable[[PackedSequence], tuple[Tensor, Tensor]],
-    h: Tensor,
-    length: Tensor,
-) -> Tensor:
-    custom_h_c = packed_from_concatenated_sequences(h, length, include_sort_info=True)
-    _, variables = recurrent(custom_h_c)
-    return variables
 
 
 class RNNLayer(nn.Module):

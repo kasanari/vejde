@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, TypeVar
 
 import gymnasium as gym
 import torch
@@ -46,7 +46,10 @@ def agent_config_from_space(
     )
 
 
-def agent_from_env[V: GraphAgentInterface](
+V = TypeVar("V", bound=GraphAgentInterface)
+
+
+def agent_from_env(
     agent_class: V,
     env: gym.Env[HeteroObsData, MultiDiscrete]
     | gym.vector.SyncVectorEnv
@@ -67,7 +70,7 @@ def agent_from_env[V: GraphAgentInterface](
     ).to(device)  # type: ignore
 
 
-def agent_from_model[V: GraphAgentInterface](
+def agent_from_model(
     agent_class: type[V],
     model: BaseModel,
     params: GNNParams,

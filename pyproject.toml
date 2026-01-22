@@ -118,4 +118,5 @@ reportReturnType = "none"
 reportInvalidTypeArguments = "none"
 ignore = [
     "mlruns",
+    "misc_py",
 ]

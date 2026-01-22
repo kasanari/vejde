@@ -20,3 +20,5 @@ frames
 old_code
 *.png
 misc_py
+target
+python

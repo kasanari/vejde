@@ -12,7 +12,7 @@ from regawa.model import (
     GroundObs,
     NullConst,
     check_model,
-    to_json,
+    model_to_json,
 )
 
 
@@ -135,6 +135,10 @@ class TestGroundedModel(BaseGroundedModel):
     }
 
     @cached_property
+    def objects(self) -> tuple[str, ...]:
+        return self._objects
+
+    @cached_property
     def groundings(self) -> tuple[Grounding, ...]:
         return tuple(
             [
@@ -241,7 +245,7 @@ def test_render_lifted():
 
 def test_serialization():
     model = TestModel()
-    json_data = to_json(model)
+    json_data = model_to_json(model)
 
     new_model = GenericModel.from_json(json_data)
 

@@ -19,7 +19,7 @@ from regawa.embedding.recurrent import packed_from_concatenated_sequences
 from torch import Tensor
 
 
-def get_packed(h: Tensor, length: Tensor) -> Tensor:
+def get_packed(h: Tensor, length: Tensor):
     from torch import cumsum, roll, zeros
     from torch.nn.utils.rnn import pack_padded_sequence
 
@@ -30,7 +30,7 @@ def get_packed(h: Tensor, length: Tensor) -> Tensor:
         device=h.device,
     )
 
-    offsets = roll(cumsum(length, axis=0), 1, 0)
+    offsets = roll(cumsum(length, axis=0), 1, 0)  # type: ignore
     offsets[0] = 0
     for i, node_l in enumerate(length):
         padded[i, : node_l.item()] = h[offsets[i] : offsets[i] + node_l.item()]

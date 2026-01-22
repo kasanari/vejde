@@ -4,6 +4,7 @@ from .gnn_agent import GraphAgent, GraphAgentInterface
 from .load import load_agent
 from .node_then_action import NodeThenActionPolicy
 from .recurrent_gnn_agent import RecurrentGraphAgent
+from .save import save_agent
 
 __all__ = [
     "NodeThenActionPolicy",
@@ -15,4 +16,5 @@ __all__ = [
     "GNNParams",
     "GraphAgentInterface",
     "load_agent",
+    "save_agent",
 ]

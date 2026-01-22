@@ -7,7 +7,7 @@ from regawa.model.null import NullConst
 from .base_model import BaseModel
 
 
-def max_arity(model: BaseModel):
+def max_fluent_arity(model: BaseModel):
     return max(model.arity(fluent) for fluent in model.fluents)  # type: ignore
 
 

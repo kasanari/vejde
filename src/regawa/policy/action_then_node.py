@@ -12,11 +12,11 @@ from torch import FloatTensor, Tensor, nn
 from torch import Generator as Rngs
 
 from regawa.data import SparseTensor, TorchActionMask
-from regawa.functional import (
+
+from .functional import (
     action_then_node_value_estimate,
     num_graphs,
 )
-
 from .types import PolicyOutput
 
 PolicyFunc = Callable[

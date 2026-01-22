@@ -3,9 +3,9 @@ from pathlib import Path
 import tyro
 
 from regawa.data import create_render_graph, fn_groundobs_to_heterograph, to_graphviz
-from regawa.io import step_from_json
 from regawa.model.base_grounded_model import GroundObs
 from regawa.model.base_model import BaseModel
+from regawa.model.io import step_from_json
 from regawa.model.model_func import model_from_json
 
 # test_model_path = "tyrLang_regawa_model.json"

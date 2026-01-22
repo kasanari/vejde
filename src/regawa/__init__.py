@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any
 
 import gymnasium as gym
 import torch
@@ -8,7 +8,6 @@ from torch import Generator
 
 from regawa.data.space import n_actions, n_relations, n_types
 from regawa.policy.gnn_agent import GraphAgentInterface
-from regawa.policy.q_agent.gnn_q_agent import GraphQAgent
 
 from .data.obs import HeteroObsData
 from .data.render import to_graphviz
@@ -21,6 +20,7 @@ from .model import (
     GroundObs,
     ObservableGroundingRange,
     ObservableGroundObs,
+    max_fluent_arity,
 )
 from .policy import (
     ActionMode,
@@ -29,11 +29,9 @@ from .policy import (
     GraphAgent,
     RecurrentGraphAgent,
     load_agent,
+    save_agent,
 )
 from .wrappers import GroundedGraphWrapper, StackingGroundedGraphWrapper
-
-_agent_classes = [GraphAgent, RecurrentGraphAgent, GraphQAgent]
-agent_classes = {cls.__name__: cls for cls in _agent_classes}
 
 
 def agent_config_from_space(
@@ -48,15 +46,14 @@ def agent_config_from_space(
     )
 
 
-def agent_from_env(
-    agent_class_type: Literal["GraphAgent", "RecurrentGraphAgent", "GraphQAgent"],
+def agent_from_env[V: GraphAgentInterface](
+    agent_class: V,
     env: gym.Env[HeteroObsData, MultiDiscrete]
     | gym.vector.SyncVectorEnv
     | gym.vector.AsyncVectorEnv,
     params: GNNParams,
     device: str | torch.device = "cpu",
-):
-    agent_class: type[GraphAgentInterface] = agent_classes[agent_class_type]
+) -> V:
     obs_space, action_space = (
         (env.observation_space, env.action_space)
         if not isinstance(env, SyncVectorEnv | AsyncVectorEnv)
@@ -70,16 +67,16 @@ def agent_from_env(
     ).to(device)  # type: ignore
 
 
-def agent_from_model(
-    agent_class: type[GraphAgentInterface],
+def agent_from_model[V: GraphAgentInterface](
+    agent_class: type[V],
     model: BaseModel,
     params: GNNParams,
     device: str = "cpu",
-) -> GraphAgentInterface:
+) -> V:
     n_types = model.num_types
     n_relations = model.num_fluents
     n_actions = model.num_actions
-    arity = max_arity(model)
+    arity = max_fluent_arity(model)
 
     config = AgentConfig(
         n_types,
@@ -94,7 +91,9 @@ def agent_from_model(
     return agent_class(config, rng, device).to(device)  # type: ignore
 
 
-def step_func(agent: GraphAgent, env: gym.Env[Any, Any], deterministic: bool = True):
+def step_func(
+    agent: GraphAgentInterface, env: gym.Env[Any, Any], deterministic: bool = True
+):
     def f(
         obs: dict[str, Any],
     ) -> tuple[dict[str, Any], float, bool, bool, dict[str, Any]]:
@@ -127,5 +126,6 @@ __all__ = [
     "GroundObs",
     "GroundingRange",
     "load_agent",
+    "save_agent",
     "GraphAgentInterface",
 ]

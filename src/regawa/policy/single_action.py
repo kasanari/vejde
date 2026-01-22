@@ -5,7 +5,7 @@ from gnn_policy.functional import (
 )
 from torch import Tensor, log, nn
 
-from regawa.functional import num_graphs
+from .functional import num_graphs
 
 
 class SingleActionGNNPolicy(nn.Module):

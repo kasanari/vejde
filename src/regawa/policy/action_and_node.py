@@ -9,7 +9,11 @@ from gnn_policy.functional import (
 from torch import FloatTensor, Tensor, nn
 
 from regawa.data import SparseTensor
-from regawa.functional import action_and_node_value_estimate, num_graphs, predicate_mask
+from regawa.policy.functional import (
+    action_and_node_value_estimate,
+    num_graphs,
+    predicate_mask,
+)
 
 PolicyFunc = Callable[
     [Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor],

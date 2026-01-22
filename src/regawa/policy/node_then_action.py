@@ -13,8 +13,8 @@ from torch import Generator as Rngs
 
 from regawa.data import SparseTensor
 from regawa.data.torch import TorchActionMask
-from regawa.functional import node_then_action_value_estimate
 
+from .functional import node_then_action_value_estimate
 from .types import PolicyOutput
 
 PolicyFunc = Callable[

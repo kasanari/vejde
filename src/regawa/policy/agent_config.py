@@ -9,8 +9,8 @@ class ActionMode(Enum):
     NODE_THEN_ACTION = 1
     ACTION_AND_NODE = 2
 
-
-@dataclass
+# dataclasses for easy serialization
+@dataclass(frozen=True)
 class GNNParams:
     embedding_dim: int
     layers: int
@@ -19,8 +19,21 @@ class GNNParams:
     action_mode: ActionMode
     recurrent = False
 
+    # custom equality check for activation function since pytorch is dumb
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, GNNParams):
+            return False
+        return (
+            self.embedding_dim == value.embedding_dim
+            and self.layers == value.layers
+            and self.aggregation == value.aggregation
+            and isinstance(self.activation, type(value.activation))
+            and self.action_mode == value.action_mode
+            and self.recurrent == value.recurrent
+        )
 
-@dataclass
+
+@dataclass(frozen=True)
 class AgentConfig:
     # environment parameters
     num_object_classes: int

@@ -25,7 +25,7 @@ from .model_checker import check_model
 from .model_func import (
     fn_valid_action_fluents_given_arity,
     fn_valid_action_fluents_given_type,
-    max_arity,
+    max_fluent_arity,
     model_to_json,
 )
 from .null import NullConst
@@ -39,7 +39,7 @@ __all__ = [
     "ObservableGroundObs",
     "BaseModel",
     "BaseGroundedModel",
-    "max_arity",
+    "max_fluent_arity",
     "fn_valid_action_fluents_given_arity",
     "fn_valid_action_fluents_given_type",
     "idx_action_to_ground_value",

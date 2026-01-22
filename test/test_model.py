@@ -1,14 +1,11 @@
-from functools import cache, cached_property
-from typing import Any, ClassVar
+from itertools import groupby
 
 import pytest
 from regawa import BaseModel
 from regawa.data import fn_groundobs_to_heterograph, render_lifted
 from regawa.data.obs.obs_func import fn_idx_obs
 from regawa.model import (
-    BaseGroundedModel,
     GenericModel,
-    Grounding,
     GroundObs,
     NullConst,
     check_model,
@@ -16,186 +13,22 @@ from regawa.model import (
 )
 
 
-class TestModel(BaseModel):
-    """Sample model for testing purposes. Loosely based on block stacking problems."""
+def create_obs(model: BaseModel, rddl_obs: GroundObs):
+    graph = fn_groundobs_to_heterograph(
+        model,
+        stacking=False,
+    )(rddl_obs)
 
-    _types = (NullConst.type, "block", "table")
-    _fluents = (NullConst.action, "at", "on", "weight", "pickup", "put")
-    _actions = (NullConst.action, "pickup", "put")
+    obs = fn_idx_obs(model)(graph)
 
-    _params: ClassVar = {
-        NullConst.action: (),
-        "at": ("block", "table"),
-        "on": ("block", "block"),
-        "pickup": ("block",),
-        "put": ("block", "table"),
-        "weight": ("block",),
-    }
-
-    _ranges: ClassVar = {
-        NullConst.action: bool,
-        "at": bool,
-        "on": bool,
-        "pickup": bool,
-        "put": bool,
-        "weight": float,
-    }
-
-    @cached_property
-    def num_types(self) -> int:
-        return len(self._types)
-
-    @cached_property
-    def num_actions(self) -> int:
-        return len(self._actions)
-
-    @cache
-    def fluent_range(self, fluent: str) -> type:
-        return self._ranges[fluent]
-
-    @cache
-    def fluent_params(self, fluent: str) -> tuple[str, ...]:
-        try:
-            return self._params[fluent]
-        except KeyError as e:
-            raise KeyError(f"Fluent {fluent} not found in model parameters.") from e
-
-    @cache
-    def fluent_param(self, fluent: str, position: int) -> str:
-        return self._params[fluent][position]
-
-    @cached_property
-    def action_fluents(self) -> tuple[str, ...]:
-        return self._actions
-
-    @cached_property
-    def num_fluents(self) -> int:
-        return len(self._fluents)
-
-    @cache
-    def type_to_idx(self, _type: str) -> int:
-        return self._types.index(_type)
-
-    @cache
-    def idx_to_type(self, idx: int) -> str:
-        return self._types[idx]
-
-    @cache
-    def fluent_to_idx(self, relation: str) -> int:
-        return self._fluents.index(relation)
-
-    @cached_property
-    def fluents(self) -> tuple[str, ...]:
-        return self._fluents
-
-    @cached_property
-    def types(self) -> tuple[str, ...]:
-        return self._types
-
-    @cache
-    def idx_to_fluent(self, idx: int) -> str:
-        return self._fluents[idx]
-
-    @cache
-    def idx_to_action(self, idx: int) -> str:
-        return self._actions[idx]
-
-    @cache
-    def action_to_idx(self, action: str) -> int:
-        return self._actions.index(action)
-
-    @cache
-    def arity(self, fluent: str) -> int:
-        return len(self._params[fluent])
+    return obs, graph
 
 
-class TestGroundedModel(BaseGroundedModel):
-    _model: BaseModel = TestModel()
-
-    _objects = (
-        "block1",
-        "block2",
-        "block3",
-        "table1",
-        "table2",
-    )
-
-    _object_types: ClassVar[dict[str, str]] = {
-        "block1": "block",
-        "block2": "block",
-        "block3": "block",
-        "table1": "table",
-        "table2": "table",
-    }
-
-    _constants: ClassVar[GroundObs] = {
-        ("weight", "block1"): 1.0,
-        ("weight", "block2"): 2.0,
-        ("weight", "block3"): 3.0,
-    }
-
-    @cached_property
-    def objects(self) -> tuple[str, ...]:
-        return self._objects
-
-    @cached_property
-    def groundings(self) -> tuple[Grounding, ...]:
-        return tuple(
-            [
-                (relation, *objects)
-                for relation in self._model.fluents
-                for objects in zip(
-                    *[
-                        (obj,)
-                        for obj in self._objects
-                        for i in range(self._model.arity(relation))
-                        if self._model.fluent_param(relation, i)
-                        == self._object_types[obj]
-                    ],
-                    strict=False,
-                )
-            ]
-        )
-
-    @cached_property
-    def action_groundings(self) -> tuple[Grounding, ...]:
-        """groundings of action fluents/variables.
-        on the form: (relation, object1, object2,..., objectN)
-        """
-        ...
-
-    @cached_property
-    def constant_groundings(self) -> tuple[Grounding, ...]:
-        """Groundings assumed to be constant in the model."""
-        return (
-            ("weight", "block1"),
-            ("weight", "block2"),
-            ("weight", "block3"),
-        )
-
-    @cache
-    def constant_value(self, constant_grounding: Grounding) -> Any:
-        return self._constants[constant_grounding]
-
-    def create_obs(self, rddl_obs: GroundObs):
-        graph = fn_groundobs_to_heterograph(
-            self._model,
-            stacking=False,
-        )(rddl_obs)
-
-        obs = fn_idx_obs(self._model)(graph)
-
-        return obs, graph
+def test_model_check(test_model: BaseModel):
+    assert check_model(test_model)
 
 
-def test_model_check():
-    model = TestModel()
-
-    assert check_model(model)
-
-
-def test_sample_obs():
-    model = TestGroundedModel()
+def test_sample_obs(test_model: BaseModel):
     rddl_obs = {
         ("at", "block1", "table1"): True,
         ("at", "block2", "table2"): True,
@@ -205,7 +38,7 @@ def test_sample_obs():
         ("weight", "block3"): 3.0,
     }
 
-    _, graph = model.create_obs(rddl_obs)
+    _, graph = create_obs(test_model, rddl_obs)
 
     assert graph.boolean.factors == graph.numeric.factors
 
@@ -218,14 +51,14 @@ def test_sample_obs():
         "table1",
     }
 
-    assert list(graph.boolean.factors.types) == [
-        NullConst.type,
-        "block",
-        "block",
-        "table",
-        "block",
-        "table",
-    ]
+    # since multisets are not in python, count the occurrences of each type
+    counts = groupby(sorted(graph.boolean.factors.types))
+    type_counts = {k: len(list(v)) for k, v in counts}
+    assert type_counts == {
+        NullConst.type: 1,
+        "block": 3,
+        "table": 2,
+    }
 
     assert set(graph.boolean.variables.values) == {True, False}
     assert set(graph.numeric.variables.values) == {1.0, 3.0, 2.0}
@@ -235,16 +68,16 @@ def test_sample_obs():
     pass
 
 
-def test_render_lifted():
-    graph = render_lifted(TestModel())
+def test_render_lifted(test_model: BaseModel):
+    graph = render_lifted(test_model)
 
     with open("test_lifted.dot", "w") as f:
         f.write(graph)
     assert graph is not None
 
 
-def test_serialization():
-    model = TestModel()
+def test_serialization(test_model: BaseModel):
+    model = test_model
     json_data = model_to_json(model)
 
     new_model = GenericModel.from_json(json_data)

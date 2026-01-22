@@ -4,8 +4,8 @@ from gnn_policy.functional import segment_sum
 from torch import FloatTensor, Tensor
 
 from regawa.data.torch import SparseTensor
-from regawa.functional import ACTION_DIM
 
+ACTION_DIM = 1
 
 def sac_node_then_action_value_estimate(
     p_a__n: SparseTensor[FloatTensor],  # p(a|n)

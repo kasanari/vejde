@@ -17,8 +17,8 @@ from regawa.data import (
     heterostatedata_to_tensors,
     single_obs_to_heterostatedata,
 )
-from regawa.io import obs_to_json_friendly_obs
 from regawa.model import GroundObs
+from regawa.model.io import obs_to_json_friendly_obs
 from regawa.policy import GraphAgent
 
 from .rollout import (

@@ -1,8 +1,8 @@
 from itertools import chain
 
 import torch
+from torch.nn.utils.rnn import PackedSequence
 from regawa.embedding.recurrent import packed_from_concatenated_sequences
-
 # def test_segmented_sort():
 #     lengths = torch.tensor([3, 2, 5, 4, 3], dtype=torch.long)
 #     indices = torch.tensor([0, 0, 1, 1, 1], dtype=torch.long)
@@ -52,6 +52,7 @@ def test_packed_from_concatenated_sequences():
         lengths,
         include_sort_info=True,
     )
+    d = PackedSequence(*d)
 
     expected = get_packed(data, lengths)
 

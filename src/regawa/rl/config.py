@@ -26,8 +26,8 @@ class Args:
     """the wandb's project name"""
     wandb_entity: str | None = None
     """the entity (team) of wandb's project"""
-    mlflow_tracking_uri: str = ""
-    """the tracking uri for mlflow. If empty, mlflow will log locally"""
+    mlflow_tracking_uri: str = "sqlite:///mlruns.db"
+    """the tracking uri for mlflow. If not set, mlflow will log locally to SQLite database mlruns.db"""
     # Algorithm specific arguments
     total_timesteps: int | None = None
     """total timesteps of the experiments"""

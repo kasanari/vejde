@@ -11,7 +11,7 @@ from torch import nn
 
 from regawa.model.base_model import BaseModel
 from regawa.model.model_func import model_to_json
-
+import numpy as np
 from .agent_config import AgentConfig
 
 activation_to_str = {
@@ -32,6 +32,8 @@ class Encoder(json.JSONEncoder):
             if act_type in activation_to_str:
                 return activation_to_str[act_type]
             return str(o)
+        if isinstance(o, np.int64):
+            return int(o)
         return super().default(o)
 
 

@@ -73,8 +73,6 @@ def save_agent_as_zip(
     state_dict = agent.state_dict()
     config_json = json.dumps(asdict(config), cls=Encoder)
 
-    model_json = model_to_json(model)
-
     temp_path = Path(tempfile.mkstemp(suffix=".pt")[1])
     torch.save(state_dict, temp_path)
 
@@ -82,6 +80,7 @@ def save_agent_as_zip(
         zipf.write(temp_path, arcname="agent.pt")
         zipf.writestr("config.json", config_json)
         if model is not None:
+            model_json = model_to_json(model)
             zipf.writestr("model.json", model_json)
 
     temp_path.unlink()

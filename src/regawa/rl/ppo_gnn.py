@@ -746,7 +746,7 @@ def train(args: Args | None = None, batch_id: str | None = None):
     if args.resume_from:
         agent, _ = load_agent(agent_class, args.resume_from, device)
     else:
-        agent = agent_from_env(args.agent_class, envs, args.agent_config, device)
+        agent = agent_from_env(agent_class, envs, args.agent_config, device)
 
     logged_config = vars(args) | asdict(agent.config)
     if args.track:

@@ -30,7 +30,7 @@ class VariableSpace(Space[Variables[VariableDomain]]):
 
     def __contains__(self, item: Any) -> bool:
         """Check whether `item` is in this space."""
-        if isinstance(item, Variables):
+        if not isinstance(item, Variables):
             return False
 
         results = [

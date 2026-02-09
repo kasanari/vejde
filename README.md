@@ -13,7 +13,7 @@ It includes:
 - Functions to filter and manipulate tuple dicts.
 - Functions to convert tuple dicts to biparitite graphs.
 - Functions for neural message passing over biparitite graphs.
-- A PPO implementation (with some extra features) that handles the batchign of the variable sized states. 
+- A PPO implementation (with some extra features) that handles batching the variable sized states. 
 
 Functions related to sparse sampling of actions is stored in [this library](https://github.com/kasanari/GNN)
 

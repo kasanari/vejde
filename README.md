@@ -66,6 +66,11 @@ This will yield a graph like this:
 
 <img width="632" height="352" alt="319cd805-c4ba-4628-8f66-62363ed27a8d" src="https://github.com/user-attachments/assets/ecc28251-e33a-4611-97d0-91c2283688bf" />
 
+### 3. Train an agent
+
+Once you have set up the environment, you can train an agent with the provided PPO implementation. This repository does not contain a domain-agnostic example yet, but you 
+are advised to take a look at the [RDDL examples](https://gitr.sys.kth.se/jaknyb/vejde-rddl/blob/main/test/test_rl_alt.py)
+
 ## I want examples!
 
 The most developed extension of Vejde is the [RDDL extension](https://github.com/kasanari/vejde-rddl). 

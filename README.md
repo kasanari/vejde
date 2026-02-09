@@ -4,35 +4,44 @@
 
 For more detailed explanations and comparisons, there is also [the TMLR paper](https://openreview.net/forum?id=EFSZmL1W1Z).
 
-## Intro
+## What is this?
 
-The purpose of this code library is to train deep reinforcement learning agents with problems where the data conforms to a relational data model (or the data can be made to follow one). One way to think of it is that if that state of your problem can be represented by a variale number of discrete objects with properties and relations to other objects, this might be useful for you. The primary data structure used to represent states/observations is a `Dict[tuple[str, ...]: float | int | bool]`. Each key is a predicate on the form `P(X, ...)`, where the first element is always the predicate, and the rest of the tuple are its object arguments. This ostensibly represents a database.
+This is a code library to train deep reinforcement learning agents with problems where the data conforms to a relational data model (or the data can be made to follow one). 
+One way to think of it is that if that state of your problem can be represented by a variable number of discrete objects with properties and relations to other objects, this might be useful for you. 
+The primary data structure used to represent states/observations is a `Dict[tuple[str, ...]: float | int | bool]`. 
+Each key in the `dict` has the form `(P, X, ...)`, where the first element is always a predicate, and the rest of the tuple are its object arguments. 
 
-It includes:
+The library includes:
 
-- Functions to filter and manipulate tuple dicts.
-- Functions to convert tuple dicts to biparitite graphs.
-- Functions for neural message passing over biparitite graphs.
-- A PPO implementation (with some extra features) that handles batching the variable sized states. 
+- Filter and manipulate tuple dicts.
+- Convert tuple dicts to biparitite graphs.
+- Run neural message passing over biparitite graphs.
+- Train an RL agent using a PPO implementation (with some extra features) that handles batching the variable sized states.
+    - Functions related to sparse sampling of actions is stored separately in [this library](https://github.com/kasanari/GNN) 
 
-Functions related to sparse sampling of actions is stored in [this library](https://github.com/kasanari/GNN)
+## How do it use this?
 
-You are free to use all these components, or exchange some components with other libraries, like Torch Geometric for message passing or Stable Baselines 3 for RL. 
+### 0. Install the package
 
-## How to use
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management. 
+Run `uv sync --extra cu128` for PyTorch compiled with CUDA 12.8 and `uv sync --extra cpu` for CPU only. 
 
-### Installation
+### 1. Define the relational model
 
-This project uses [uv](https://docs.astral.sh/uv/) for dependency management. Run `uv sync --extra cu128` for PyTorch compiled with CUDA 12.8 and `uv sync --extra cpu` for CPU only. 
+Vejde is built around the idea of a problem belonging to a given data domain, or conforming to a given data schema. This schema is used to define the number of embeddings and actions the agent
+should use. One agent is assumed to be applicable to the entire domain, even if the number of entities in a given problem instance may vary. For example, a computer network model might have two asset
+`Host` and `Network`, but we can instatiate many different networks with different numbers of hosts.
 
-### Define the relational model
+The class `BaseModel` represents the schema and defines the functions needed to use the library with an environment. It is deliberately agnostic to how the underlying implementation works, however.
+The `BaseModel` class represents a lifted relational model of your domain, meaning that it should not contain information specific to particular instances. It is also assumed to be static while the problem
+is running. An example of an instatiated model can be found in the [vejde-rdll implementation](https://gitr.sys.kth.se/jaknyb/vejde-rddl/blob/main/src/vejde_rddl/rddl_model.py).
 
-The class `BaseModel` is used to define the functions that your environment needs to provide for this library to function. The `BaseModel` class represents a lifted relational model of your domain, meaning that it should not contain information specific to particular instances.
+The class `BaseGroundedModel` enables extended functionality for instance specific information, such as including known constants. 
+This class is only used for certain wrappers and does not directly impact the design of an agent.
 
-The class `BaseGroundedModel` allows for some extended functionality in regards to instance specific information, such as including constants. This class is only used for wrappers and does not directly impact the agent.
+### 2. Provide observations in the right format
 
-### Provide observations in the right format
-
+Once you have defined a `BaseModel` class, you also need to make sure your environment provides observations in a relational format. 
 States/Observations should be provided in the following format:
 
 ```

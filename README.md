@@ -100,5 +100,6 @@ If you use Vejde in your work, please cite it using the following information:
 - [Entity Gym](https://github.com/entity-neural-network/entity-gym) - Similiar goals of variable-sized observations/states, but without explicit relations.
 - [SR-DRL](github.com/jaromiru/sr-drl) - Also uses RDDL. The action selection method is largely based on this project.
 - [ORACLE Sage](https://github.com/AndrewPaulChester/oracle-sage) - Similar to SR-DRL, but with an additional planning component.
+- [Learning General Optimal Policies with Graph Neural Networks: Expressive Power, Transparency, and Limits](https://zenodo.org/records/6353141) - Also uses a factor graph to represent the state, but in a deterministic planning context.
 
 

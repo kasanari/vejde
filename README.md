@@ -93,4 +93,11 @@ If you use Vejde in your work, please cite it using the following information:
   url={https://openreview.net/forum?id=EFSZmL1W1Z},
   note={}
 }
+
+## Related Work
+
+- [Entity Gym](https://github.com/entity-neural-network/entity-gym) - Similiar goals of variable-sized observations/states, but without explicit relations.
+- [SR-DRL](github.com/jaromiru/sr-drl) - Also uses RDDL. The action selection method is largely based on this project.
+- [ORACLE Sage](https://github.com/AndrewPaulChester/oracle-sage) - Similar to SR-DRL, but with an additional planning component.
+
 ```

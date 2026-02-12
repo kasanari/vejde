@@ -1,8 +1,6 @@
-
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"
 
 [project]
 
@@ -22,7 +20,7 @@ cpu = ["torch==2.8.0", "torch_scatter==2.1.2+pt28cpu"]
 cu128 = ["torch==2.8.0", "torch_scatter==2.1.2+pt28cu128", "nvidia-ml-py"]
 jax_cpu = ["jax", "optax", "flax"]
 jax_gpu = ["jax[cuda12]", "optax", "flax"]
-rl = ["mlflow>=2.21.0", "wandb>=0.19.8", "psutil"]
+rl = ["mlflow>=2.21.0", "psutil"]
 
 [[tool.uv.index]]
 name = "pytorch-cpu"

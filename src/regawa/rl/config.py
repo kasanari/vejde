@@ -1,7 +1,13 @@
 from dataclasses import dataclass
+from enum import Enum
 from typing import Literal
 
 from regawa import GNNParams
+
+
+class ConcurrencySetting(Enum):
+    MULTI = "multiprocess"
+    SINGLE = "threading"
 
 
 @dataclass
@@ -9,10 +15,9 @@ class Args:
     env_id: str
     agent_class: Literal["GraphAgent", "RecurrentGraphAgent"]
     agent_config: GNNParams
-    resume_from: str | None = None
-    multiprocess: bool = False
     """path to a model checkpoint to resume from"""
-    debug: bool = False
+    resume_from: str | None = None
+    multiprocess: ConcurrencySetting = ConcurrencySetting.SINGLE
     """the name of this experiment"""
     seed: int = 0
     """seed of the experiment"""
@@ -22,12 +27,6 @@ class Args:
     """if toggled, cuda will be enabled by default"""
     track: bool = False
     """if toggled, this experiment will be tracked with Weights and Biases"""
-    wandb_project_name: str = "cleanRL"
-    """the wandb's project name"""
-    wandb_entity: str | None = None
-    """the entity (team) of wandb's project"""
-    mlflow_tracking_uri: str = "sqlite:///mlruns.db"
-    """the tracking uri for mlflow. If not set, mlflow will log locally to SQLite database mlruns.db"""
     # Algorithm specific arguments
     total_timesteps: int | None = None
     """total timesteps of the experiments"""

@@ -1,4 +1,5 @@
 # docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/ppo/#ppopy
+from functools import partial
 import logging
 import os
 
@@ -21,11 +22,11 @@ from pathlib import Path
 from typing import TypeVar
 
 import gymnasium as gym
+from gymnasium.vector import AsyncVectorEnv, SyncVectorEnv
 import mlflow  # type: ignore
 import numpy as np
 import torch
 import tyro
-import wandb  # type: ignore
 from gymnasium.spaces import Dict, MultiDiscrete
 from numpy.typing import NDArray
 from torch import Tensor, nn, optim
@@ -41,7 +42,7 @@ from regawa import (
 
 from . import lambda_return
 from .agent import Agent
-from .config import Args
+from .config import Args, ConcurrencySetting
 from .gae import gae
 from .symexp import symlog
 from .types import (
@@ -52,7 +53,7 @@ from .types import (
     RolloutData,
     UpdateData,
 )
-from .util import evaluate, save_eval_data
+from .util import evaluate, save_eval_data, writable_eval_data
 
 logger = logging.getLogger(__name__)
 
@@ -549,9 +550,6 @@ def main(
         0,
     )
 
-    if args.track:
-        wandb.watch(agent, log_freq=10, log="all")  # type: ignore
-
     for iteration in range(1, num_rollouts + 1):
         (
             r_data,
@@ -586,25 +584,26 @@ def main(
         pbar.set_description(desc)
         pbar.update(1)
 
-        mlflow_log(
-            artifact_name,
-            optimizer.param_groups[0]["lr"],
-            u_data,
-            total_loss,
-            grad_norm,
-            value_loss,
-            pg_loss,
-            entropy_loss,
-            explained_var,
-            return_scale,
-            carry,
-            b,
-            r,
-            length,
-            carry.global_step,
-            start_time,
-            carry.num_updates,
-        )
+        if mlflow.active_run() is not None:  # type: ignore
+            mlflow_log(
+                artifact_name,
+                optimizer.param_groups[0]["lr"],
+                u_data,
+                total_loss,
+                grad_norm,
+                value_loss,
+                pg_loss,
+                entropy_loss,
+                explained_var,
+                return_scale,
+                carry,
+                b,
+                r,
+                length,
+                carry.global_step,
+                start_time,
+                carry.num_updates,
+            )
 
     envs.close()
     return agent
@@ -706,14 +705,23 @@ AGENT_CLASSES: dict[str, type[GraphAgentInterface]] = {
 }
 
 
-def train(args: Args | None = None, batch_id: str | None = None):
+env_settings = {
+    ConcurrencySetting.MULTI: partial(
+        AsyncVectorEnv,
+        shared_memory=False,
+    ),
+    ConcurrencySetting.SINGLE: SyncVectorEnv,
+}
+
+
+def train(args: Args | None = None):
     args = tyro.cli(Args) if args is None else args
     random.seed(args.seed)
     rng = np.random.default_rng(args.seed)
     npl.manual_seed(args.seed)  # type: ignore
     npl.backends.cudnn.deterministic = args.torch_deterministic
+    torch.use_deterministic_algorithms(args.torch_deterministic)
     run_name = f"{args.env_id}__ppo"
-    run_name = run_name + "__debug" if args.debug else run_name
     run_folder = create_run_folder(run_name)
     logger.addHandler(logging.FileHandler(run_folder / f"{run_name}.log", mode="w"))
     logger.info("Attempting to connect to mlflow...")
@@ -722,87 +730,36 @@ def train(args: Args | None = None, batch_id: str | None = None):
     )
     logger.info(f"Using device: {device}")
     agent_class = AGENT_CLASSES[args.agent_class]
-    envs = (
-        gym.vector.AsyncVectorEnv(
-            [
-                make_env(
-                    args.env_id,
-                )
-                for _ in range(args.num_envs)
-            ],
-            shared_memory=False,
-        )
-        if args.multiprocess
-        else gym.vector.SyncVectorEnv(
-            [
-                make_env(
-                    args.env_id,
-                )
-                for _ in range(args.num_envs)
-            ]
-        )
+
+    envs = env_settings[args.multiprocess](
+        make_env(args.env_id) for _ in range(args.num_envs)
     )
 
     if args.resume_from:
-        agent, _ = load_agent(agent_class, args.resume_from, device)
+        agent, *_ = load_agent(agent_class, args.resume_from, device)
     else:
         agent = agent_from_env(agent_class, envs, args.agent_config, device)
 
     logged_config = vars(args) | asdict(agent.config)
-    if args.track:
-        wandb.init(  # type: ignore
-            project=args.wandb_project_name,
-            entity=args.wandb_entity,
-            config=logged_config,
-            name=run_name,
-            save_code=True,
-        )
 
-    mlflow.enable_system_metrics_logging()
-    mlflow.set_tracking_uri(uri=args.mlflow_tracking_uri)
+    try:
+        agent = main(envs, run_name, args, device, agent, rng=rng)
+    except Exception as e:
+        logger.exception("Exception during training:")
+        raise e
 
-    with contextlib.suppress(mlflow.MlflowException):
-        mlflow.create_experiment(run_name)
-
-    mlflow.set_experiment(run_name)
-
-    with mlflow.start_run():
-        logger.info(f"Connected to mlflow at {args.mlflow_tracking_uri}")
-        mlflow.log_param("using_edge_attr", True)
-        mlflow.log_param("using_scaling", True)
-        mlflow.log_params(logged_config)
-        mlflow.log_artifact(__file__)
-        if Path("uv.lock").exists():
-            mlflow.log_artifact("uv.lock")
-        if Path("pyproject.toml").exists():
-            mlflow.log_artifact("pyproject.toml")
-        if batch_id:
-            mlflow.log_param("batch_id", batch_id)
-        run_id = mlflow.active_run().info.run_id  # type: ignore
-
-        try:
-            agent = main(envs, run_name, args, device, agent, rng=rng)
-        except Exception as e:
-            logger.exception("Exception during training:")
-            raise e
-
-        agent.agent.save_agent(run_folder / f"{run_name}.pth")
-        mlflow.log_artifact(str(run_folder / f"{run_name}.pth"))
-
-        # print(f"avg_reward: {avg_mean_reward}")
-        stats, data = evaluate_agent(agent.agent, args.env_id, device)
-        for k, v in stats.items():
-            if k != "returns":
-                mlflow.log_metric(f"train_eval/{k}", v)
+    # print(f"avg_reward: {avg_mean_reward}")
+    stats, data = evaluate_agent(agent.agent, args.env_id, device)
 
     stats = stats | {
         "env_id": args.env_id,
+        "config": logged_config,
         "run_name": run_name,
         "seed": args.seed,
-        "run_id": run_id,
-        "weights_path": str(run_folder / f"{run_name}.pth"),
+        "run_folder": str(run_folder),
+        "eval_data": writable_eval_data(data),
     }
-    save_eval_data(data, run_folder / f"{run_name}.json")
+
     return stats, agent.agent
 
 

@@ -15,6 +15,7 @@ from regawa.model import (
 def test_model() -> BaseModel:
     return TestModel()
 
+
 @pytest.fixture
 def grounded_model() -> BaseGroundedModel:
     return TestGroundedModel()
@@ -180,4 +181,3 @@ class TestGroundedModel(BaseGroundedModel):
     @cache
     def constant_value(self, constant_grounding: Grounding) -> Any:
         return self._constants[constant_grounding]
-

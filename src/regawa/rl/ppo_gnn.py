@@ -1,7 +1,7 @@
 # docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/ppo/#ppopy
-from functools import partial
 import logging
 import os
+from functools import partial
 
 from regawa.data import (
     HeteroGraphBuffer,
@@ -12,7 +12,6 @@ from regawa.data import (
 )
 
 os.environ["DO_NOT_TRACK"] = "true"
-import contextlib
 import random
 import time
 from collections import deque
@@ -22,12 +21,12 @@ from pathlib import Path
 from typing import TypeVar
 
 import gymnasium as gym
-from gymnasium.vector import AsyncVectorEnv, SyncVectorEnv
 import mlflow  # type: ignore
 import numpy as np
 import torch
 import tyro
 from gymnasium.spaces import Dict, MultiDiscrete
+from gymnasium.vector import AsyncVectorEnv, SyncVectorEnv
 from numpy.typing import NDArray
 from torch import Tensor, nn, optim
 from tqdm import tqdm
@@ -53,7 +52,7 @@ from .types import (
     RolloutData,
     UpdateData,
 )
-from .util import evaluate, save_eval_data, writable_eval_data
+from .util import evaluate, writable_eval_data
 
 logger = logging.getLogger(__name__)
 

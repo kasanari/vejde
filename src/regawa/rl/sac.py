@@ -7,6 +7,7 @@ from regawa.data.torch import SparseTensor
 
 ACTION_DIM = 1
 
+
 def sac_node_then_action_value_estimate(
     p_a__n: SparseTensor[FloatTensor],  # p(a|n)
     q_a__n: SparseTensor[FloatTensor],  # Q(a|n)

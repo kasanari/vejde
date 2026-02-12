@@ -19,6 +19,7 @@ T = TypeVar("T", bound=GraphAgent | RecurrentGraphAgent)
 
 str_to_activation = {v: k for k, v in activation_to_str.items()}
 
+
 def load_agent(
     cls: type[T],
     path: str | Path,

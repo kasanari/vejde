@@ -1,4 +1,4 @@
-from .space import HeteroStateSpace, FactorGraphSpace
+from .space import FactorGraphSpace, HeteroStateSpace
 from .space_func import max_arity, n_actions, n_relations, n_types
 
 __all__ = [

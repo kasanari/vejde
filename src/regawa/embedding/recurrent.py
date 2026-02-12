@@ -1,5 +1,3 @@
-from collections.abc import Callable
-
 import torch
 from torch import Tensor, arange, nn
 from torch.nn import init

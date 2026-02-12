@@ -1,5 +1,3 @@
-
-
 import tempfile
 
 import torch as th
@@ -14,15 +12,15 @@ from regawa import (
 from regawa.model.base_model import BaseModel
 
 params = GNNParams(
-        layers=4,
-        embedding_dim=4,
-        activation=th.nn.Mish(),
-        aggregation="max",
-        action_mode=ActionMode.NODE_THEN_ACTION,
-    )
+    layers=4,
+    embedding_dim=4,
+    activation=th.nn.Mish(),
+    aggregation="max",
+    action_mode=ActionMode.NODE_THEN_ACTION,
+)
+
 
 def test_save_load_agent(test_model: BaseModel):
-
     agent = agent_from_model(GraphAgent, test_model, params, device="cpu")
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -39,5 +37,3 @@ def test_save_load_agent(test_model: BaseModel):
     assert model.num_actions == test_model.num_actions
     assert model.fluents == test_model.fluents
     assert config == agent.config
-
-

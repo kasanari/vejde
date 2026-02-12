@@ -9,6 +9,7 @@ class ActionMode(Enum):
     NODE_THEN_ACTION = 1
     ACTION_AND_NODE = 2
 
+
 # dataclasses for easy serialization
 @dataclass(frozen=True)
 class GNNParams:

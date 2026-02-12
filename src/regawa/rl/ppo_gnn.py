@@ -731,7 +731,7 @@ def train(args: Args | None = None):
     agent_class = AGENT_CLASSES[args.agent_class]
 
     envs = env_settings[args.multiprocess](
-        make_env(args.env_id) for _ in range(args.num_envs)
+        [make_env(args.env_id) for _ in range(args.num_envs)]
     )
 
     if args.resume_from:

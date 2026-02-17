@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import tyro
@@ -16,22 +17,43 @@ def render_obs(model: BaseModel, obs: GroundObs):
     obs_to_graph = fn_groundobs_to_heterograph(model, False)
     hetero_graph = obs_to_graph(obs)
     render_graph = create_render_graph(hetero_graph.boolean, hetero_graph.numeric)
-    return to_graphviz(render_graph, pprint=True)
+    return to_graphviz(render_graph, pprint=False)
 
 
-def main(test_model_path: Path, test_obs_path: Path):
-    with open(test_model_path) as f:
+def filter_obs(obs: GroundObs):
+    return {
+        k: v for k, v in obs.items() if "Identity" not in k[0] and "Vuln" not in k[0]
+    }
+
+
+def main(model_path: Path, obs_path: Path):
+    with open(model_path) as f:
         model_json = f.read()
     model = model_from_json(model_json)
 
-    with open(test_obs_path) as f:
-        test_data = f.read()
+    # check if json or jsonl
+    multi_line = obs_path.suffix == ".jsonl"
+    # print to stderr
+    print(
+        f"Loading observations from {'multiple lines' if multi_line else 'single line'}",
+        file=sys.stderr,
+    )
 
-    ground_obs = step_from_json(test_data)["obs"]
+    with open(obs_path) as f:
+        test_data = [f.read()] if not multi_line else f.readlines()
 
-    rendered_obs = render_obs(model, ground_obs)
-    print(rendered_obs)
+    ground_obs = [step_from_json(x)["obs"] for x in test_data]
+
+    ground_obs = [filter_obs(o) for o in ground_obs]
+    rendered_obs = [render_obs(model, g) for g in ground_obs]
+
+    for x in rendered_obs:
+        print(x)
 
 
 def cli():
     tyro.cli(main)
+
+
+if __name__ == "__main__":
+    cli()

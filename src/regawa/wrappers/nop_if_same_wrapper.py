@@ -37,6 +37,7 @@ class NoOpIfSameWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs])
         super().__init__(env)
         self.last_obs: GroundObs | None = None
         self.discount = discount
+        self.actual_timestep = 0
 
     def step(
         self,
@@ -65,6 +66,9 @@ class NoOpIfSameWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs])
         if skipped_steps > 1:
             logger.debug(f"Skipped steps: {skipped_steps}")
 
+        self.actual_timestep += skipped_steps + 1
+        info["nop_if_same/skipped_steps"] = skipped_steps
+        info["nop_if_same/actual_timestep"] = self.actual_timestep
         return obs, accumulated_reward, terminated, truncated, info
 
     def reset(
@@ -73,5 +77,6 @@ class NoOpIfSameWrapper(gym.Wrapper[GroundObs, GroundObs, GroundObs, GroundObs])
         obs, info = self.env.reset(seed=seed, options=options)
 
         self.last_obs = obs
+        self.actual_timestep = 0
 
         return obs, info

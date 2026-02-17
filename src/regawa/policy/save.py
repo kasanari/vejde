@@ -21,6 +21,7 @@ activation_to_str = {
     nn.SiLU: "silu",
     nn.Mish: "mish",
     nn.LeakyReLU: "leaky_relu",
+    nn.Tanh: "tanh",
 }
 
 

@@ -10,6 +10,7 @@ from regawa.data import (
     heterostatedata,
     heterostatedata_to_tensors,
 )
+from regawa.rl.ppo import update
 
 os.environ["DO_NOT_TRACK"] = "true"
 import random
@@ -28,7 +29,7 @@ import tyro
 from gymnasium.spaces import Dict, MultiDiscrete
 from gymnasium.vector import AsyncVectorEnv, SyncVectorEnv
 from numpy.typing import NDArray
-from torch import Tensor, nn, optim
+from torch import Tensor, optim
 from tqdm import tqdm
 
 from regawa import (
@@ -47,12 +48,10 @@ from .symexp import symlog
 from .types import (
     BatchData,
     IterationCarry,
-    LossData,
     PPOParams,
     RolloutData,
     UpdateData,
 )
-from .util import evaluate, writable_eval_data
 
 logger = logging.getLogger(__name__)
 
@@ -326,126 +325,68 @@ def rollout(
     return _rollout
 
 
-@npl.no_grad()  # type: ignore
-def approximate_kl(logprob_new: Tensor, logprob_old: Tensor) -> tuple[Tensor, Tensor]:
-    # calculate approx_kl http://joschu.net/blog/kl-approx.html
-    log_ratio = logprob_new - logprob_old
-    ratio = npl.exp(log_ratio)
-    old_approx_kl = npl.mean(-log_ratio)
-    approx_kl = npl.mean((ratio - 1) - log_ratio)
-    return old_approx_kl, approx_kl
+def logging_and_saving(
+    agent: GraphAgentInterface,
+    optimizer: optim.Optimizer,
+    start_time: float,
+    batch_size: int,
+    run_name: str,
+    iteration: int,
+    r_data: RolloutData,
+    u_data: list[UpdateData],
+    explained_var: float,
+    return_scale: Tensor,
+    carry: IterationCarry,
+    b: BatchData,
+    checkpoint_period: int,
+    pbar: tqdm,
+):
+    artifact_name = None
+    if checkpoint_period > 0 and iteration % checkpoint_period == 0:
+        artifact_name = f"runs/{run_name}/checkpoint_{iteration*batch_size}.pth"
+        agent.save_agent(artifact_name)
+        # hard link to "checkpoint_latest.pth"
+        latest_path = f"runs/{run_name}/checkpoint_latest.pth"
+        if os.path.exists(latest_path):
+            os.remove(latest_path)
+        os.link(artifact_name, latest_path)
 
+    r = float(np.mean(r_data.returns)) if r_data.returns else None
+    length = float(np.mean(r_data.lengths)) if r_data.lengths else None
 
-def calculate_loss(agent: Agent, params: PPOParams):
-    def f(s: TorchHeteroBatchData, b: BatchData):
-        actions, logprob_old, advantages, returns, values_old, _, _ = b
-        (
-            clip_coef,
-            norm_adv,
-            clip_range_vf,
-            ent_coef,
-            vf_coef,
-            _,
-            _,
-        ) = params
+    loss_data = [u.loss for u in u_data]
+    grad_norm = float(np.mean([u.grad_norm.item() for u in u_data]))
+    total_loss = float(np.mean([u.loss.item() for u in loss_data]))
+    entropy_loss = float(np.mean([u.entropy_loss.item() for u in loss_data]))
+    value_loss = float(np.mean([u.v_loss.item() for u in loss_data]))
+    pg_loss = float(np.mean([u.pg_loss.item() for u in loss_data]))
 
-        logprob_new, entropy, values_new = agent.evaluate_action_and_value(
-            actions,
-            s,
-            # npl.ones_like(obs.action_mask),
-            # npl.ones_like(obs.node_mask),
-        )
-        assert not logprob_new.isinf().any()
-        assert logprob_new.dim() == 1
-        assert entropy.dim() == 1
+    disp_r = f"{r:.2f}" if r is not None else "N/A"
+    disp_l = f"{length:.2f}" if length is not None else "N/A"
+    desc = f"R:{disp_r} | L:{disp_l} | ENT:{entropy_loss:.2f} | V: {value_loss:.2f} | PG: {pg_loss:.2f} | EXPL_VARIANCE:{explained_var:.2f}"
+    pbar.set_description(desc)
+    pbar.update(1)
 
-        old_approx_kl, approx_kl = approximate_kl(logprob_new, logprob_old)
-
-        if norm_adv:
-            advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
-
-        # Policy loss
-        ratio = npl.exp(logprob_new - logprob_old)
-        pg_loss1 = advantages * ratio
-        pg_loss2 = advantages * npl.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
-        pg_loss = -npl.min(pg_loss1, pg_loss2).mean()
-        clipfrac = ((ratio - 1.0).abs() > clip_coef).float().mean().item()
-
-        # Value loss
-        if clip_range_vf is None:
-            # No clipping
-            values_pred = values_new
-        else:
-            values_pred = values_old + npl.clamp(
-                values_new - values_old, -clip_range_vf, clip_range_vf
-            )
-
-        # Value loss using the TD(gae_lambda) target
-        value_loss = nn.functional.mse_loss(returns, values_pred)
-
-        entropy_loss = entropy.mean()
-        loss = pg_loss - ent_coef * entropy_loss + value_loss * vf_coef
-
-        assert not npl.isnan(loss).any(), loss
-        return LossData(
-            loss,
-            pg_loss,
-            value_loss,
-            entropy_loss,
-            old_approx_kl,
-            approx_kl,
-            clipfrac,
-        )
-
-    return f
-
-
-MAX_ALLOWED_GRAD_NORM = 100.0
-
-
-def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
-    loss_func = calculate_loss(agent, params)
-
-    def _update(
-        s: TorchHeteroBatchData,
-        b: BatchData,
-    ) -> UpdateData:
-        loss = loss_func(s, b)
-
-        assert not npl.isnan(loss.loss).any(), loss
-
-        optimizer.zero_grad()
-        loss.loss.backward()  # type: ignore
-
-        # per_param_grad = {
-        #         k: v.grad for k, v in dict(agent.named_parameters()).items()
-        #     }
-        # per_param_grad_norm = {k: v.norm().item() if v is not None else None for k, v in per_param_grad.items()}
-        # sorted_per_param_grad = sorted(
-        #         per_param_grad_norm.items(), key=lambda item: item[1] if item[1] is not None else -1, reverse=True
-        # )
-
-        grad_norm = nn.utils.clip_grad_norm_(
-            agent.parameters(), params.max_grad_norm, error_if_nonfinite=True
-        )
-
-        stop_training = params.target_kl is not None and bool(
-            (loss.approx_kl > 1.5 * params.target_kl).item()
-        )
-
-        if grad_norm.item() > MAX_ALLOWED_GRAD_NORM:
-            logger.warning(f"grad_norm: {grad_norm.item()}")
-            # logger.warning(f"per_param_grad: {per_param_grad}")
-
-        optimizer.step()
-
-        return UpdateData(
-            loss,
+    if mlflow.active_run() is not None:  # type: ignore
+        mlflow_log(
+            artifact_name,
+            optimizer.param_groups[0]["lr"],
+            u_data,
+            total_loss,
             grad_norm,
-            stop_training,
+            value_loss,
+            pg_loss,
+            entropy_loss,
+            explained_var,
+            return_scale,
+            carry,
+            b,
+            r,
+            length,
+            carry.global_step,
+            start_time,
+            carry.num_updates,
         )
-
-    return _update
 
 
 def main(
@@ -473,7 +414,6 @@ def main(
     pbar = tqdm(total=num_rollouts)
     checkpoint_period = args.checkpoint_period // batch_size
     start_time = time.time()
-    artifact_name = None
 
     mlflow.log_params(  # type: ignore
         {
@@ -548,64 +488,37 @@ def main(
         0,
         0,
     )
-
-    for iteration in range(1, num_rollouts + 1):
-        (
-            r_data,
-            u_data,
-            explained_var,
-            return_scale,
-            carry,
-        ) = iter_step_func(iteration, carry)
-
-        if checkpoint_period > 0 and iteration % checkpoint_period == 0:
-            artifact_name = f"runs/{run_name}/checkpoint_{iteration*batch_size}.pth"
-            agent.agent.save_agent(artifact_name)
-            # hard link to "checkpoint_latest.pth"
-            latest_path = f"runs/{run_name}/checkpoint_latest.pth"
-            if os.path.exists(latest_path):
-                os.remove(latest_path)
-            os.link(artifact_name, latest_path)
-
-        r = float(np.mean(r_data.returns)) if r_data.returns else None
-        length = float(np.mean(r_data.lengths)) if r_data.lengths else None
-
-        loss_data = [u.loss for u in u_data]
-        grad_norm = float(np.mean([u.grad_norm.item() for u in u_data]))
-        total_loss = float(np.mean([u.loss.item() for u in loss_data]))
-        entropy_loss = float(np.mean([u.entropy_loss.item() for u in loss_data]))
-        value_loss = float(np.mean([u.v_loss.item() for u in loss_data]))
-        pg_loss = float(np.mean([u.pg_loss.item() for u in loss_data]))
-
-        disp_r = f"{r:.2f}" if r is not None else "N/A"
-        disp_l = f"{length:.2f}" if length is not None else "N/A"
-        desc = f"R:{disp_r} | L:{disp_l} | ENT:{entropy_loss:.2f} | V: {value_loss:.2f} | PG: {pg_loss:.2f} | EXPL_VARIANCE:{explained_var:.2f}"
-        pbar.set_description(desc)
-        pbar.update(1)
-
-        if mlflow.active_run() is not None:  # type: ignore
-            mlflow_log(
-                artifact_name,
-                optimizer.param_groups[0]["lr"],
+    try:
+        for iteration in range(1, num_rollouts + 1):
+            (
+                r_data,
                 u_data,
-                total_loss,
-                grad_norm,
-                value_loss,
-                pg_loss,
-                entropy_loss,
+                explained_var,
+                return_scale,
+                carry,
+            ) = iter_step_func(iteration, carry)
+            logging_and_saving(
+                agent,
+                optimizer,
+                start_time,
+                batch_size,
+                run_name,
+                iteration,
+                r_data,
+                u_data,
                 explained_var,
                 return_scale,
                 carry,
                 b,
-                r,
-                length,
-                carry.global_step,
-                start_time,
-                carry.num_updates,
+                checkpoint_period,
+                pbar,
             )
-
-    envs.close()
-    return agent
+    except KeyboardInterrupt:
+        logger.info("Training interrupted by user. Returning agent as is...")
+        return agent.agent
+    finally:
+        envs.close()
+    return agent.agent
 
 
 def mlflow_log(
@@ -723,7 +636,6 @@ def train(args: Args | None = None):
     run_name = f"{args.env_id}__ppo"
     run_folder = create_run_folder(run_name)
     logger.addHandler(logging.FileHandler(run_folder / f"{run_name}.log", mode="w"))
-    logger.info("Attempting to connect to mlflow...")
     device = npl.device(
         "cuda:0" if npl.cuda.is_available() and args.cuda else npl.device("cpu")
     )
@@ -747,44 +659,12 @@ def train(args: Args | None = None):
         logger.exception("Exception during training:")
         raise e
 
-    # print(f"avg_reward: {avg_mean_reward}")
-    stats, data = evaluate_agent(agent.agent, args.env_id, device)
-
-    stats = stats | {
+    stats = {
         "env_id": args.env_id,
         "config": logged_config,
         "run_name": run_name,
         "seed": args.seed,
         "run_folder": str(run_folder),
-        "eval_data": writable_eval_data(data),
     }
 
-    return stats, agent.agent
-
-
-def evaluate_agent(agent: GraphAgentInterface, env_id: str, device: str):
-    eval_env = gym.make(  # type: ignore
-        env_id,
-    )
-
-    seeds = range(10)
-
-    data = [
-        evaluate(eval_env, agent, seed, deterministic=True, device=device)
-        for seed in seeds
-    ]
-    rewards, *_ = zip(*data, strict=False)
-    avg_mean_reward = np.mean([np.mean(r) for r in rewards])
-    returns = [np.sum(r).item() for r in rewards]
-
-    stats = {
-        "return_mean": np.mean(returns).item(),
-        "return_median": np.median(returns).item(),
-        "return_min": np.min(returns).item(),
-        "return_max": np.max(returns).item(),
-        "return_std": np.std(returns).item(),
-        "mean_reward": avg_mean_reward.item(),
-    }
-
-    stats["returns"] = returns
-    return stats, data
+    return stats, agent

@@ -1,5 +1,5 @@
 from .config import Args
-from .ppo_gnn import train
+from .train_agent import train
 
 __all__ = [
     "train",

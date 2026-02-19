@@ -498,7 +498,7 @@ def main(
                 carry,
             ) = iter_step_func(iteration, carry)
             logging_and_saving(
-                agent,
+                agent.agent,
                 optimizer,
                 start_time,
                 batch_size,

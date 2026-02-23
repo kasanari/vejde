@@ -193,8 +193,8 @@ def iteration_step(
         # plt.savefig("returns.png")
         # plt.close()
 
-        b_returns = symlog(b_returns)
-        b_values = symlog(b_values)
+        symlogged_b_returns = symlog(b_returns)
+        symlogged_b_values = symlog(b_values)
 
         # plt.hist(b_returns.cpu().numpy(), bins=100)
         # plt.savefig("returns_symlog.png")
@@ -204,8 +204,8 @@ def iteration_step(
             b.actions.reshape((-1, *envs.single_action_space.shape)),  # type: ignore
             b.logprobs.reshape(-1),
             b_advantages,
-            b_returns,
-            b_values,
+            symlogged_b_returns,
+            symlogged_b_values,
             b.rewards.reshape(-1),
             b.dones.reshape(-1),
         )
@@ -237,7 +237,7 @@ def iteration_step(
             low_ema,
             high_ema,
         )
-        return r_data, u_datas, explained_variance(b_values, b_returns), s, carry
+        return (r_data, u_datas, explained_variance(b_values, b_returns), s, carry)
 
     return _iteration_step
 
@@ -597,6 +597,13 @@ def mlflow_log(
     mlflow.log_metric("losses/explained_variance", explained_var, global_step)  # type: ignore
     mlflow.log_metric(
         "charts/SPS", int(global_step / (time.time() - start_time)), global_step
+    )
+    mlflow.log_metric("rollout/advantage_mean", b.advantages.mean().item(), global_step)
+    mlflow.log_metric(
+        "rollout/return_targets_mean", b.returns.mean().item(), global_step
+    )
+    mlflow.log_metric(
+        "rollout/predicted_values_mean", b.returns.mean().item(), global_step
     )
 
 

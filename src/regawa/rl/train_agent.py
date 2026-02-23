@@ -229,7 +229,15 @@ def iteration_step(
                 )
 
         carry = IterationCarry(
-            b,
+            BatchData(
+                b.actions,
+                b.logprobs,
+                b_advantages,
+                b_returns,
+                b.values,
+                b.rewards,
+                b.dones,
+            ),
             r_data.last_obs,
             r_data.last_done,
             r_data.global_step,
@@ -509,7 +517,7 @@ def main(
                 explained_var,
                 return_scale,
                 carry,
-                b,
+                carry.b,
                 checkpoint_period,
                 pbar,
             )

@@ -525,7 +525,10 @@ def main(
         logger.info("Training interrupted by user. Returning agent as is...")
         return agent.agent
     finally:
-        envs.close()
+        try:
+            envs.close()
+        except Exception as e:
+            logger.warning(f"Exception while closing environments: {e}")
     return agent.agent
 
 

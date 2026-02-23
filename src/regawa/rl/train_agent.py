@@ -389,8 +389,8 @@ def logging_and_saving(
             return_scale,
             carry,
             b,
-            r,
-            length,
+            r_data.returns,
+            r_data.lengths,
             carry.global_step,
             start_time,
             carry.num_updates,
@@ -542,8 +542,8 @@ def mlflow_log(
     return_scale: Tensor,
     carry: IterationCarry,
     b: BatchData,
-    r: float | None,
-    length: float | None,
+    r: NDArray[np.float32] | None,
+    length: NDArray[np.float32] | None,
     global_step: int,
     start_time: float,
     gradient_steps: int,
@@ -565,9 +565,14 @@ def mlflow_log(
     mlflow.log_metric("rollout/num_resets", b.dones.sum().item(), global_step)
 
     if r is not None:
-        mlflow.log_metric("rollout/mean_episodic_return", r, global_step)  # type: ignore
+        mlflow.log_metric("rollout/mean_episodic_return", r.mean(), global_step)  # type: ignore
+        mlflow.log_metric("rollout/max_episodic_return", r.max(), global_step)  # type: ignore
+        mlflow.log_metric("rollout/min_episodic_return", r.min(), global_step)  # type: ignore
     if length is not None:
-        mlflow.log_metric("rollout/mean_episodic_length", length, global_step)  # type: ignore
+        mlflow.log_metric("rollout/mean_episodic_length", length.mean(), global_step)  # type: ignore
+        mlflow.log_metric("rollout/max_episodic_length", length.max(), global_step)  # type: ignore
+        mlflow.log_metric("rollout/min_episodic_length", length.min(), global_step)  # type: ignore
+
     mlflow.log_metric(
         "losses/total_loss",
         total_loss,  # type: ignore

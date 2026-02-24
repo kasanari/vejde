@@ -46,8 +46,8 @@ class Args:
     """the discount factor gamma"""
     gae_lambda: float = 0.0
     """the lambda for the general advantage estimation"""
-    num_minibatches: int = 10
-    """the number of mini-batches"""
+    minibatch_size: int = 64
+    """the size of mini-batches. Must be a divisor of (num_envs * rollout_length)"""
     update_epochs: int = 8
     """the K epochs to update the policy"""
     norm_adv: bool = False

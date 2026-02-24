@@ -406,7 +406,10 @@ def main(
     rng: np.random.Generator,
 ):
     batch_size = int(args.num_envs * args.rollout_length)
-    minibatch_size = int(batch_size // args.num_minibatches)
+    minibatch_size = args.minibatch_size
+    assert (
+        batch_size % minibatch_size == 0
+    ), "batch_size must be divisible by minibatch_size"
     num_rollouts = 0
 
     if args.total_timesteps:

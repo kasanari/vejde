@@ -351,13 +351,14 @@ def logging_and_saving(
 ):
     artifact_name = None
     if checkpoint_period > 0 and iteration % checkpoint_period == 0:
-        artifact_name = f"runs/{run_name}/checkpoint_{iteration*batch_size}.pth"
+        artifact_name = f"runs/{run_name}/checkpoint_{iteration*batch_size}.zip"
         agent.save_agent(artifact_name)
         # hard link to "checkpoint_latest.pth"
-        latest_path = f"runs/{run_name}/checkpoint_latest.pth"
+        latest_path = f"runs/{run_name}/checkpoint_latest.zip"
         if os.path.exists(latest_path):
             os.remove(latest_path)
         os.link(artifact_name, latest_path)
+        mlflow.log_artifact(latest_path, artifact_path="checkpoints")  # type: ignore
 
     r = float(np.mean(r_data.returns)) if r_data.returns else None
     length = float(np.mean(r_data.lengths)) if r_data.lengths else None

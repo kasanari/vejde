@@ -26,7 +26,9 @@ from .graph import (
 type StrToInt = Callable[[str], int]
 
 
-def fn_objects_with_type(relation_to_types: Callable[[str, int], str]):
+def fn_objects_with_type(
+    relation_to_types: Callable[[str, int], str],
+) -> Callable[[Grounding], Sequence[Object]]:
     """
     Returns a function that takes a grounding and returns a list of Objects (object name, type).
     """
@@ -34,10 +36,10 @@ def fn_objects_with_type(relation_to_types: Callable[[str, int], str]):
     @cache
     def objects_with_type(
         key: Grounding,
-    ) -> list[Object]:
+    ) -> Sequence[Object]:
         p = predicate(key)
         os = objects(key)
-        return [Object(o, relation_to_types(p, i)) for i, o in enumerate(os)]
+        return tuple(Object(o, relation_to_types(p, i)) for i, o in enumerate(os))
 
     return objects_with_type
 

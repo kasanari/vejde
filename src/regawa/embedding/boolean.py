@@ -11,7 +11,7 @@ class BooleanEmbedder(nn.Module):
         self,
         embedding_dim: int,
         predicate_embedding: EmbeddingLayer,
-        rngs: Rngs,
+        rngs: Rngs | None = None,
     ):
         super().__init__()  # type: ignore
 

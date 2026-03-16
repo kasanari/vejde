@@ -32,7 +32,7 @@ class EmbeddingLayer(Module):
         self,
         num_embeddings: int,
         embedding_dim: int,
-        rngs: Rngs,
+        rngs: Rngs | None = None,
         use_layer_norm: bool = True,
         use_padding: bool = True,
     ):

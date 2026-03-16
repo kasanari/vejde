@@ -184,8 +184,8 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
             data.boolean.action_masks,
         )
 
-    def save_agent(self, path: str | Path):
-        save_agent(self, self.config, path)
+    def save_agent(self, path: str | Path, model: BaseModel | None = None):
+        save_agent(self, self.config, path, model=model)
 
     def num_trainable_params(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)

@@ -3,6 +3,7 @@
 from collections.abc import Callable
 from functools import cache
 
+from . import check_model
 from regawa.model.null import NullConst
 
 from .base_model import BaseModel
@@ -98,6 +99,11 @@ def fn_valid_action_fluents_given_arity(
 
 def model_to_json(model: BaseModel) -> str:
     import json
+
+    try:
+        check_model(model)
+    except Exception as e:
+        raise ValueError(f"Model does not pass check: {e}") from e
 
     model_dict = {
         "types": model.types,

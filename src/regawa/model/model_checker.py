@@ -24,6 +24,31 @@ def _check_model(model: BaseModel) -> bool:
     assert (
         model.types[NullConst.idx] == NullConst.type
     ), "First type must be 'None' for padding."
+
+    for i, fluent in enumerate(model.fluents):
+        assert (
+            model.fluent_to_idx(fluent) == i
+        ), f"Fluent '{fluent}' does not map to its correct index {i}."
+        assert (
+            model.idx_to_fluent(i) == fluent
+        ), f"Index {i} does not map back to fluent '{fluent}'."
+
+    for i, action in enumerate(model.action_fluents):
+        assert (
+            model.action_to_idx(action) == i
+        ), f"Action fluent '{action}' does not map to its correct index {i}."
+        assert (
+            model.idx_to_action(i) == action
+        ), f"Index {i} does not map back to action fluent '{action}'."
+
+    for i, obj_type in enumerate(model.types):
+        assert (
+            model.type_to_idx(obj_type) == i
+        ), f"Type '{obj_type}' does not map to its correct index {i}."
+        assert (
+            model.idx_to_type(i) == obj_type
+        ), f"Index {i} does not map back to type '{obj_type}'."
+
     return True
 
 

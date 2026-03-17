@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from functools import cache, cached_property
 
-from . import check_model
 from .base_model import BaseModel
+from .model_checker import check_model
 
 
 class GenericModel(BaseModel):

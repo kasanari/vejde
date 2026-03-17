@@ -1,13 +1,14 @@
-from regawa.data import TorchHeteroBatchData
-from regawa.rl.agent import Agent
-import torch as npl
-from regawa.rl.types import BatchData, LossData, PPOParams, UpdateData
 import logging
+
+import torch as npl
 from torch import Tensor, nn, optim
 
+from regawa.data import TorchHeteroBatchData
+
+from .agent import Agent
+from .types import BatchData, LossData, PPOParams, UpdateData
 
 logger = logging.getLogger(__name__)
-
 
 
 @npl.no_grad()  # type: ignore
@@ -130,5 +131,3 @@ def update(agent: Agent, optimizer: optim.Optimizer, params: PPOParams):
         )
 
     return _update
-
-

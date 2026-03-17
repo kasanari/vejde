@@ -6,12 +6,9 @@ from gymnasium.spaces import MultiDiscrete
 from gymnasium.vector import AsyncVectorEnv, SyncVectorEnv
 from torch import Generator
 
-from regawa.data.space import n_actions, n_relations, n_types
-from regawa.policy.gnn_agent import GraphAgentInterface
-
 from .data.obs import HeteroObsData
 from .data.render import to_graphviz
-from .data.space import max_arity
+from .data.space import max_arity, n_actions, n_relations, n_types
 from .model import (
     BaseGroundedModel,
     BaseModel,
@@ -27,6 +24,7 @@ from .policy import (
     AgentConfig,
     GNNParams,
     GraphAgent,
+    GraphAgentInterface,
     RecurrentGraphAgent,
     load_agent,
     save_agent,

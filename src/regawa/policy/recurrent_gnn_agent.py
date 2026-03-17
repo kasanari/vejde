@@ -26,7 +26,7 @@ from regawa.model import BaseModel
 
 from . import ActionMode, AgentConfig
 from .action_then_node import ActionThenNodePolicy
-from .gnn_agent import GraphAgentInterface
+from .graph_agent_interface import GraphAgentInterface
 from .node_then_action import NodeThenActionPolicy
 from .save import save_agent
 

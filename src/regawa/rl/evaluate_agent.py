@@ -1,9 +1,8 @@
-from regawa import GraphAgentInterface
-from regawa.rl.util import evaluate
-
-
 import gymnasium as gym
 import numpy as np
+
+from regawa import GraphAgentInterface
+from regawa.rl.util import evaluate
 
 
 def evaluate_agent(agent: GraphAgentInterface, env_id: str, device: str):

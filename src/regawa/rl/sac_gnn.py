@@ -31,7 +31,7 @@ from regawa.data import (
 )
 from regawa.data.obs import HeteroObsData
 from regawa.data.torch import SparseTensor, TorchHeteroBatchData
-from regawa.policy.gnn_agent import GraphAgentInterface
+from regawa.policy import GraphAgentInterface
 from regawa.policy.q_agent.gnn_q_agent import GraphQAgent
 from regawa.policy.q_agent.q_value import QValue
 from regawa.policy.types import PolicyOutput

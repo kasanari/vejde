@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from functools import cache, cached_property
 
+from . import check_model
 from .base_model import BaseModel
 
 
@@ -117,7 +118,7 @@ class GenericModel(BaseModel):
             "bool": bool,
         }
 
-        return cls(
+        model = cls(
             fluents=data["fluents"],
             types=data["types"],
             action_fluents=data["action_fluents"],
@@ -126,3 +127,8 @@ class GenericModel(BaseModel):
                 k: string_to_type[v] for k, v in data["fluent_ranges"].items()
             },
         )
+        try:
+            check_model(model)
+        except Exception as e:
+            raise ValueError(f"Deserialized model does not pass check: {e}") from e
+        return model

@@ -3,9 +3,9 @@
 from collections.abc import Callable
 from functools import cache
 
-from . import check_model
 from regawa.model.null import NullConst
 
+from . import check_model
 from .base_model import BaseModel
 
 

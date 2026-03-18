@@ -347,6 +347,7 @@ def logging_and_saving(
     carry: IterationCarry,
     b: BatchData,
     checkpoint_period: int,
+    highest_return: float,
     pbar: tqdm,
 ):
     artifact_name = None
@@ -359,6 +360,19 @@ def logging_and_saving(
             os.remove(latest_path)
         os.link(artifact_name, latest_path)
         mlflow.log_artifact(latest_path, artifact_path="checkpoints")  # type: ignore
+
+        # use ema return scale to determine best model
+        if carry.high_ema.item() > highest_return:
+            new_highest_return = carry.high_ema.item()
+            best_path = f"runs/{run_name}/checkpoint_best.zip"
+            if os.path.exists(best_path):
+                os.remove(best_path)
+            os.link(artifact_name, best_path)
+            mlflow.log_artifact(best_path, artifact_path="checkpoints")  # type: ignore
+        else:
+            new_highest_return = highest_return
+    else:
+        new_highest_return = highest_return
 
     r = float(np.mean(r_data.returns)) if r_data.returns else None
     length = float(np.mean(r_data.lengths)) if r_data.lengths else None
@@ -396,6 +410,7 @@ def logging_and_saving(
             start_time,
             carry.num_updates,
         )
+    return new_highest_return
 
 
 def main(
@@ -500,6 +515,7 @@ def main(
         0,
         0,
     )
+    highest_return: float | None = -float("inf")
     try:
         for iteration in range(1, num_rollouts + 1):
             (
@@ -509,7 +525,7 @@ def main(
                 return_scale,
                 carry,
             ) = iter_step_func(iteration, carry)
-            logging_and_saving(
+            highest_return = logging_and_saving(
                 agent.agent,
                 optimizer,
                 start_time,
@@ -523,6 +539,7 @@ def main(
                 carry,
                 carry.b,
                 checkpoint_period,
+                highest_return,
                 pbar,
             )
     except KeyboardInterrupt:

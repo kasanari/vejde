@@ -16,7 +16,7 @@ from regawa.data import (
     RenderGraph,
     heterostatedata_to_tensors,
 )
-from regawa.data.batch.batch import single_obs_to_heterostatedata
+from regawa.data.batch.batch_func import single_obs_to_heterostatedata
 from regawa.model import GroundObs
 from regawa.model.io import obs_to_json_friendly_obs
 from regawa.policy import GraphAgent

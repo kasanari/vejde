@@ -8,9 +8,9 @@ from torch import Tensor, as_tensor, device
 from regawa.data import (
     HeteroBatch,
     HeteroIndexedFactorGraph,
-    heterobatch,
     n_actions,
 )
+from regawa.data.batch.batch_func import heterobatch
 
 V = TypeVar("V", np.float32, np.bool_, np.int64)
 

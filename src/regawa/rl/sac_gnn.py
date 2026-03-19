@@ -28,7 +28,7 @@ from regawa.data import (
     HeteroBatch,
     heterostatedata_to_tensors,
 )
-from regawa.data.batch.batch import heterobatch
+from regawa.data.batch.batch_func import heterobatch
 from regawa.data.obs import HeteroIndexedFactorGraph
 from regawa.data.torch import SparseTensor, TorchHeteroBatchData
 from regawa.policy import GraphAgentInterface

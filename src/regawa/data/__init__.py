@@ -2,7 +2,7 @@ from .batch import (
     Batch,
     HeteroBatch,
 )
-from .batch.batch import (
+from .batch.batch_func import (
     heterobatch,
     single_obs_to_heterostatedata,
 )

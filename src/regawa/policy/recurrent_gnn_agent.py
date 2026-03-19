@@ -11,7 +11,7 @@ from regawa.data import (
     TorchHeteroBatchData,
     heterostatedata_to_tensors,
 )
-from regawa.data.batch.batch import single_obs_to_heterostatedata
+from regawa.data.batch.batch_func import single_obs_to_heterostatedata
 from regawa.embedding import (
     EmbeddingLayer,
     NumericEmbedder,

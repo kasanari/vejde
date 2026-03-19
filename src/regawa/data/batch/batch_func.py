@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from itertools import chain
 
 import numpy as np
@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 
 from regawa.data.graph import VariableDomain
 from regawa.data.graph.graph import ActionMask, Edges
-from regawa.data.obs import IndexedFactorGraph
+from regawa.data.obs import HeteroIndexedFactorGraph, IndexedFactorGraph
 from regawa.data.sparse import SparseArray
 
 from .batch import (
@@ -14,6 +14,7 @@ from .batch import (
     Batch,
     BatchedFactors,
     BatchedVariables,
+    HeteroBatch,
 )
 
 
@@ -190,3 +191,25 @@ def obs_to_batch(obs: IndexedFactorGraph[VariableDomain]) -> Batch[VariableDomai
 
 def batch_from_buffer(buf: Sequence[tuple[IndexedFactorGraph[VariableDomain], ...]]):
     return batch(list(chain(*buf)))
+
+
+def heterobatch(
+    obs: Iterable[HeteroIndexedFactorGraph],
+) -> HeteroBatch:
+    return HeteroBatch(
+        boolean=batch([o.bool for o in obs]),
+        numeric=batch([o.float for o in obs]),
+    )
+
+
+def heterostatedata_from_buffer(
+    obs: dict[str, list[tuple[IndexedFactorGraph[VariableDomain], ...]]],
+) -> HeteroBatch:
+    return HeteroBatch(
+        boolean=batch_from_buffer(obs["bool"]),  # type: ignore
+        numeric=batch_from_buffer(obs["float"]),  # type: ignore
+    )
+
+
+def single_obs_to_heterostatedata(obs: HeteroIndexedFactorGraph) -> HeteroBatch:
+    return heterobatch([obs])

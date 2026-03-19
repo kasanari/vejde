@@ -24,13 +24,11 @@ class GraphAgentInterface(ABC):
     def sample_from_obs(
         self,
         obs: HeteroIndexedFactorGraph,
-        deterministic: bool = False,
+        rng: Rngs | None,
     ) -> PolicyOutput: ...
 
     @abstractmethod
-    def sample(
-        self, data: TorchHeteroBatchData, deterministic: bool = False
-    ) -> PolicyOutput: ...
+    def sample(self, data: TorchHeteroBatchData, rng: Rngs | None) -> PolicyOutput: ...
 
     @abstractmethod
     def value(self, data: TorchHeteroBatchData) -> Tensor: ...

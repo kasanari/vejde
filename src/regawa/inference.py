@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import NamedTuple
 
 import torch
-from torch import Tensor
+from torch import Generator, Tensor
 
 from regawa import GroundObs
 from regawa.data import RenderGraph, create_render_graph, fn_groundobs_to_heterograph
@@ -38,7 +38,7 @@ def fn_get_agent_output(
     model: BaseModel,
     wrapper_func: Callable[[GroundObs], GroundObs],
     action_mode: ActionMode,
-    deterministic: bool = True,
+    rng: Generator | None,
     stacking: bool = False,
 ):
     obs_to_graph = fn_groundobs_to_heterograph(model, stacking)
@@ -49,7 +49,7 @@ def fn_get_agent_output(
         ActionMode.ACTION_THEN_NODE: fn_action_then_node,
     }
 
-    fn = modes[action_mode](agent, model, deterministic)
+    fn = modes[action_mode](agent, model, rng)
 
     def get_agent_output(ground_obs: GroundObs):
         hetero_graph = obs_to_graph(wrapper_func(ground_obs))
@@ -66,7 +66,7 @@ MIN_PROB = 1e-4
 def fn_action_then_node(
     agent: GraphAgent,
     model: BaseModel,
-    deterministic: bool = True,
+    rng: Generator | None,
 ):
     def action_then_node(
         o: HeteroIndexedFactorGraph,
@@ -74,9 +74,7 @@ def fn_action_then_node(
     ):
         objs = g.factor_labels
 
-        action, _, _, _, p_a, p_n__a = agent.sample_from_obs(
-            o, deterministic=deterministic
-        )
+        action, _, _, _, p_a, p_n__a = agent.sample_from_obs(o, rng=rng)
         action_tup: tuple[int, int] = tuple(action.squeeze().detach().cpu().numpy())  # type: ignore
 
         weight_by_factor = {
@@ -119,7 +117,7 @@ def fn_action_then_node(
 def fn_node_then_action(
     agent: GraphAgent,
     model: BaseModel,
-    deterministic: bool = True,
+    rng: Generator | None,
 ):
     def node_then_action(
         o: HeteroIndexedFactorGraph,
@@ -128,7 +126,8 @@ def fn_node_then_action(
         objs = g.factor_labels
 
         action, _, _, _, p_n, p_a__n = agent.sample_from_obs(
-            o, deterministic=deterministic
+            o,
+            rng=rng,
         )
         action_tup: tuple[int, int] = tuple(action.squeeze().detach().cpu().numpy())  # type: ignore
 

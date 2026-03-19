@@ -8,11 +8,11 @@ from gnn_policy.functional import (
     segmented_softmax,
     softmax,
 )
-from torch import FloatTensor, Tensor, nn
-from torch import Generator as Rngs
+from torch import FloatTensor, Generator, Tensor, nn
 
 from regawa.data import SparseTensor
 from regawa.data.torch import TorchActionMask
+from regawa.nn import linear_reset_parameters
 
 from .functional import node_then_action_value_estimate
 from .types import PolicyOutput
@@ -25,12 +25,12 @@ PolicyFunc = Callable[
 
 class NodeThenActionPolicy(nn.Module):
     def __init__(
-        self, num_actions: int, node_dim: int, rngs: Rngs, critic_heads: int = 2
+        self, num_actions: int, node_dim: int, rngs: Generator, critic_heads: int = 2
     ):
         super().__init__()  # type: ignore
-
-        self.node_prob = nn.Linear(node_dim, 1, bias=False)
-        self.action_given_node_prob = nn.Linear(node_dim, num_actions, bias=False)
+        init = partial(linear_reset_parameters, rng=rngs)  # type: ignore
+        self.node_prob = init(nn.Linear(node_dim, 1, bias=False))
+        self.action_given_node_prob = init(nn.Linear(node_dim, num_actions, bias=False))
 
         self.num_actions = num_actions
         self.sample_func = sample_node_then_action
@@ -38,6 +38,7 @@ class NodeThenActionPolicy(nn.Module):
         self.q_action__node = nn.Linear(
             node_dim, num_actions * critic_heads, bias=False
         )  # Q(a|n)
+        nn.init.constant_(self.q_action__node.weight, 0.0)
         self.critic_heads = critic_heads
         self.rngs = rngs
 
@@ -101,9 +102,9 @@ class NodeThenActionPolicy(nn.Module):
         h: SparseTensor[FloatTensor],
         n_nodes: Tensor,
         action_masks: TorchActionMask,
-        deterministic: bool = False,
+        rng: Generator,
     ):
-        p_func = partial(self.sample_func, deterministic=deterministic)
+        p_func = partial(self.sample_func, rng=rng)
         return self.f(h, action_masks, n_nodes, p_func)  # type: ignore
 
     def value(

@@ -135,19 +135,19 @@ class GraphAgent(nn.Module, GraphAgentInterface):
     def sample_from_obs(
         self,
         obs: HeteroIndexedFactorGraph,
-        deterministic: bool = False,
+        rng: Rngs | None,
     ):
         s = single_obs_to_heterostatedata(obs)
         s = heterostatedata_to_tensors(s, device=self.device)
-        return self.sample(s, deterministic=deterministic)
+        return self.sample(s, rng=rng)
 
-    def sample(self, data: TorchHeteroBatchData, deterministic: bool = False):
+    def sample(self, data: TorchHeteroBatchData, rng: Rngs | None):
         fg = self.embed(data)
         return self.policy.sample(
             fg.factors,
             fg.n_factor,
             data.boolean.action_masks,
-            deterministic,
+            rng=rng,
         )
 
     def value(self, data: TorchHeteroBatchData):

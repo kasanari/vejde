@@ -1,4 +1,4 @@
-from torch import Tensor, nn
+from torch import Generator, Tensor, nn
 
 from regawa.data import TorchHeteroBatchData
 from regawa.policy import GraphAgentInterface
@@ -21,10 +21,8 @@ class Agent(nn.Module):
         value = self.agent.value(s)
         return symexp(value)
 
-    def sample_action_and_value(self, s: TorchHeteroBatchData):
-        action, logprob, entropy, value, *_ = self.agent.sample(
-            s,
-        )
+    def sample_action_and_value(self, s: TorchHeteroBatchData, rng: Generator | None):
+        action, logprob, entropy, value, *_ = self.agent.sample(s, rng=rng)
         return action, logprob, entropy, symexp(value)
 
     def evaluate_action_and_value(

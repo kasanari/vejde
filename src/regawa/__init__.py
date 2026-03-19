@@ -95,14 +95,14 @@ def agent_from_model(
 
 
 def step_func(
-    agent: GraphAgentInterface, env: gym.Env[Any, Any], deterministic: bool = True
+    agent: GraphAgentInterface, env: gym.Env[Any, Any], rng: Generator | None
 ):
     def f(
         obs: dict[str, Any],
     ) -> tuple[dict[str, Any], float, bool, bool, dict[str, Any]]:
         action, *_ = agent.sample_from_obs(
             obs,
-            deterministic=deterministic,
+            rng=rng,
         )
         next_obs, reward, terminated, truncated, info = env.step(action.squeeze(0))  # type: ignore
         return next_obs, action, reward, terminated, truncated, info

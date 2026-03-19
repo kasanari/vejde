@@ -29,7 +29,7 @@ class BipartiteGNN(nn.Module):
             return FactorGraphLayer(embedding_dim, aggregation, activation, rngs)
 
         self.convs = nn.ModuleList([f(i) for i in range(layers)])
-        self.pre_aggr = AttentionalAggregation(embedding_dim)
+        self.pre_aggr = AttentionalAggregation(embedding_dim, rngs)
         self.hidden_size = embedding_dim
 
     def forward(

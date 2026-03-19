@@ -7,7 +7,7 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 import torch as th
-from torch import Tensor
+from torch import Generator, Tensor
 from torch.utils._foreach_utils import _group_tensors_by_device_and_dtype
 
 from regawa.data import (
@@ -32,7 +32,7 @@ def evaluate(
     env: gym.Env,
     agent: GraphAgent,
     seed: int,
-    deterministic: bool = True,
+    rng: Generator | None,
     device: str = "cpu",
 ):
     obs, info = env.reset(seed=seed)
@@ -58,7 +58,7 @@ def evaluate(
 
         action, *_, p_a, p_n__a = agent.sample(
             s,
-            deterministic=deterministic,
+            rng=rng,
         )
 
         next_obs, reward, terminated, truncated, info = env.step(action.squeeze(0))  # type: ignore

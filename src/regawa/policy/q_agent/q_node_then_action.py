@@ -1,15 +1,19 @@
-from torch import nn
+from functools import partial
+
+from torch import Generator, nn
 
 from regawa.data import SparseTensor
+from regawa.nn import linear_reset_parameters
 
 from .q_value import QValue
 
 
 class QNodeThenAction(nn.Module):
-    def __init__(self, num_actions: int, node_dim: int):
+    def __init__(self, num_actions: int, node_dim: int, rngs: Generator):
         super().__init__()  # type: ignore
-        self.q_node = nn.Linear(node_dim, 1)  # Q(n)
-        self.q_action__node = nn.Linear(node_dim, num_actions)  # Q(a|n)
+        init = partial(linear_reset_parameters, rng=rngs)
+        self.q_node = init(nn.Linear(node_dim, 1))  # Q(n)
+        self.q_action__node = init(nn.Linear(node_dim, num_actions))  # Q(a|n)
 
     def forward(
         self,

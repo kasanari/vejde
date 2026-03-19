@@ -1,17 +1,21 @@
+from functools import partial
+
 from gnn_policy.functional import segment_sum  # type: ignore
-from torch import Tensor, nn
+from torch import Generator, Tensor, nn
 
 from regawa.data import SparseTensor
 from regawa.policy.q_agent.q_value import QValue
 
+from ...nn import linear_reset_parameters
 from ..functional import num_graphs
 
 
 class QActionThenNode(nn.Module):
-    def __init__(self, num_actions: int, node_dim: int):
+    def __init__(self, num_actions: int, node_dim: int, rngs: Generator):
         super().__init__()  # type: ignore
-        self.q_node__action = nn.Linear(node_dim, num_actions)  # Q(n|a)
-        self.q_action__node = nn.Linear(node_dim, num_actions)  # Q(a|n)
+        init = partial(linear_reset_parameters, rng=rngs)
+        self.q_node__action = init(nn.Linear(node_dim, num_actions))  # Q(n|a)
+        self.q_action__node = init(nn.Linear(node_dim, num_actions))  # Q(a|n)
 
     def forward(
         self,

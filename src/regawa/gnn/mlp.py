@@ -14,7 +14,7 @@ class MLPLayer(Module):
     ):
         super().__init__()  # type: ignore
         linear = Linear(in_features, out_features)
-        init.orthogonal_(linear.weight)  # type: ignore
+        init.orthogonal_(linear.weight, generator=rngs)  # type: ignore
         init.constant_(linear.bias, 0.0)
 
         layer_norm = LayerNorm(out_features, elementwise_affine=False)

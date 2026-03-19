@@ -8,11 +8,12 @@ from gnn_policy.functional import (
     sample_action_then_node,
     segment_softmax,
 )
-from torch import FloatTensor, Tensor, nn, softmax
-from torch import Generator as Rngs
+
+from torch import FloatTensor, Generator, Tensor, nn, softmax
 
 from regawa.data import SparseTensor, TorchActionMask
 
+from ..nn import linear_reset_parameters
 from .functional import (
     action_then_node_value_estimate,
     num_graphs,
@@ -27,13 +28,16 @@ PolicyFunc = Callable[
 
 class ActionThenNodePolicy(nn.Module):
     def __init__(
-        self, num_actions: int, node_dim: int, rngs: Rngs, critic_heads: int = 2
+        self, num_actions: int, node_dim: int, rngs: Generator, critic_heads: int = 2
     ):
         super().__init__()  # type: ignore
 
-        self.node_prob = nn.Linear(node_dim, 1, bias=False)
-        self.action_given_node_prob = nn.Linear(node_dim, num_actions, bias=False)
-        self.node_given_action_prob = nn.Linear(node_dim, num_actions, bias=False)
+        init = partial(linear_reset_parameters, rng=rngs)
+        self.node_prob = init(nn.Linear(node_dim, 1, bias=False))
+        self.action_given_node_prob = init(
+            nn.Linear(node_dim, num_actions, bias=False), rngs
+        )
+        self.node_given_action_prob = init(nn.Linear(node_dim, num_actions, bias=False))
 
         self.num_actions = num_actions
         self.sample_func = sample_action_then_node  # type: ignore
@@ -41,7 +45,8 @@ class ActionThenNodePolicy(nn.Module):
 
         self.q_node__action = nn.Linear(
             node_dim, num_actions * critic_heads, bias=False
-        )  # Q(n|a)
+        )
+        # Q(n|a)
         self.critic_heads = critic_heads
         self.rngs = rngs
 
@@ -114,9 +119,9 @@ class ActionThenNodePolicy(nn.Module):
         h: SparseTensor[FloatTensor],
         n_nodes: Tensor,
         action_masks: TorchActionMask,
-        deterministic: bool = False,
+        rng: Generator,
     ):
-        p_func = partial(self.sample_func, deterministic=deterministic)  # type: ignore
+        p_func = partial(self.sample_func, rng=rng)  # type: ignore
         return self.f(h, action_masks, n_nodes, p_func)
 
     def value(

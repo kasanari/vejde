@@ -42,7 +42,7 @@ class EmbeddingLayer(Module):
             if use_padding
             else Embedding(num_embeddings, embedding_dim)
         )
-        init.orthogonal_(embedding.weight)  # type: ignore
+        init.orthogonal_(embedding.weight, generator=rngs)  # type: ignore
 
         if use_padding:
             embedding._fill_padding_idx_with_zero()  # type: ignore

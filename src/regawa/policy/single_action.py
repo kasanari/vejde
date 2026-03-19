@@ -1,17 +1,22 @@
+from functools import partial
+
 from gnn_policy.functional import (
     masked_entropy,  # type: ignore
     node_probs,  # type: ignore
     sample_node,  # type: ignore
 )
-from torch import Tensor, log, nn
+from torch import Generator, Tensor, log, nn
+
+from regawa.nn import linear_reset_parameters
 
 from .functional import num_graphs
 
 
 class SingleActionGNNPolicy(nn.Module):
-    def __init__(self, embedding_dim: int):
+    def __init__(self, embedding_dim: int, rng: Generator):
         super().__init__()  # type: ignore
-        self.node_prob = nn.Linear(embedding_dim, 1)
+        init = partial(linear_reset_parameters, rng=rng)
+        self.node_prob = init(nn.Linear(embedding_dim, 1))
 
     def forward(
         self, actions: Tensor, h: Tensor, batch_idx: Tensor

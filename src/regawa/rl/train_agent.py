@@ -29,7 +29,7 @@ import tyro
 from gymnasium.spaces import Dict, MultiDiscrete
 from gymnasium.vector import AsyncVectorEnv, SyncVectorEnv
 from numpy.typing import NDArray
-from torch import Tensor, optim
+from torch import Generator, Tensor, optim
 from tqdm import tqdm
 
 from regawa import (
@@ -274,6 +274,7 @@ def rollout(
     ],
     num_steps: int,
     num_envs: int,
+    rng: Generator,
     device: npl.device | str,
 ):
     @npl.inference_mode()
@@ -293,7 +294,7 @@ def rollout(
         for step in range(0, num_steps):
             s = heterobatch(obs)
             s = heterostatedata_to_tensors(s, device)
-            action, logprob, _, value = agent.sample_action_and_value(s)
+            action, logprob, _, value = agent.sample_action_and_value(s, rng=rng)
             assert action.dim() == EXPECTED_NUM_ACTION_PARAMS
             assert action.shape[0] == num_envs
             assert logprob.dim() == 1
@@ -366,7 +367,7 @@ def logging_and_saving(
         mlflow.log_artifact(latest_path, artifact_path="checkpoints")  # type: ignore
 
         # use ema return scale to determine best model
-        if carry.high_ema.item() > highest_return:
+        if carry.high_ema and carry.high_ema.item() > highest_return:
             new_highest_return = carry.high_ema.item()
             best_path = f"runs/{run_name}/checkpoint_best.zip"
             if os.path.exists(best_path):
@@ -423,7 +424,8 @@ def main(
     args: Args,
     device: str | npl.device,
     graph_agent: GraphAgentInterface,
-    rng: np.random.Generator,
+    np_rng: np.random.Generator,
+    torch_rng: Generator,
 ):
     batch_size = int(args.num_envs * args.rollout_length)
     minibatch_size = args.minibatch_size
@@ -472,7 +474,14 @@ def main(
         optimizer,
         args.learning_rate,
         num_rollouts,
-        rollout(agent, envs, args.rollout_length, args.num_envs, device),
+        rollout(
+            agent,
+            envs,
+            args.rollout_length,
+            args.num_envs,
+            rng=torch_rng,
+            device=device,
+        ),
         gae(args.rollout_length, args.gamma, args.gae_lambda, device),
         update_step(
             batch_size,
@@ -491,7 +500,7 @@ def main(
                     args.target_kl,
                 ),
             ),
-            rng=rng,
+            rng=np_rng,
         ),
         lambda_return.lambda_returns(args.gamma, args.gae_lambda),
         device=device,
@@ -677,16 +686,20 @@ env_settings = {
 def train(args: Args | None = None):
     args = tyro.cli(Args) if args is None else args
     random.seed(args.seed)
-    rng = np.random.default_rng(args.seed)
     npl.manual_seed(args.seed)  # type: ignore
     npl.backends.cudnn.deterministic = args.torch_deterministic
     torch.use_deterministic_algorithms(args.torch_deterministic)
+
+    np_rng = np.random.default_rng(args.seed)
+
     run_name = f"{args.env_id}__ppo"
     run_folder = create_run_folder(run_name)
     logger.addHandler(logging.FileHandler(run_folder / f"{run_name}.log", mode="w"))
     device = npl.device(
         "cuda:0" if npl.cuda.is_available() and args.cuda else npl.device("cpu")
     )
+    torch_rng = torch.Generator(device).manual_seed(args.seed)
+    init_rng = torch.Generator("cpu").manual_seed(args.seed)
     logger.info(f"Using device: {device}")
     agent_class = AGENT_CLASSES[args.agent_class]
 
@@ -697,12 +710,14 @@ def train(args: Args | None = None):
     if args.resume_from:
         agent, *_ = load_agent(agent_class, args.resume_from, device)
     else:
-        agent = agent_from_env(agent_class, envs, args.agent_config, device)
+        agent = agent_from_env(agent_class, envs, args.agent_config, device, init_rng)
 
     logged_config = vars(args) | asdict(agent.config)
 
     try:
-        agent = main(envs, run_name, args, device, agent, rng=rng)
+        agent = main(
+            envs, run_name, args, device, agent, np_rng=np_rng, torch_rng=torch_rng
+        )
     except Exception as e:
         logger.exception("Exception during training:")
         raise e

@@ -6,7 +6,7 @@ from gnn_policy.functional import (
     sample_action_and_node,
     segment_sum,
 )
-from torch import FloatTensor, Tensor, nn
+from torch import FloatTensor, Generator, Tensor, nn
 
 from regawa.data import SparseTensor
 from regawa.policy.functional import (
@@ -15,6 +15,8 @@ from regawa.policy.functional import (
     predicate_mask,
 )
 
+from .action_then_node import linear_reset_parameters
+
 PolicyFunc = Callable[
     [Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor],
     tuple[Tensor, Tensor, Tensor, Tensor, Tensor],
@@ -22,19 +24,23 @@ PolicyFunc = Callable[
 
 
 class ActionThenNodePolicy(nn.Module):
-    def __init__(self, num_actions: int, node_dim: int):
+    def __init__(self, num_actions: int, node_dim: int, rngs: Generator):
         super().__init__()  # type: ignore
 
-        self.node_prob = nn.Linear(node_dim, 1, bias=False)
-        self.action_given_node_prob = nn.Linear(node_dim, num_actions, bias=False)
-        self.node_given_action_prob = nn.Linear(node_dim, num_actions)
+        init = partial(linear_reset_parameters, rng=rngs)
+
+        self.node_prob = init(nn.Linear(node_dim, 1, bias=False))
+        self.action_given_node_prob = init(
+            nn.Linear(node_dim, num_actions, bias=False), rngs
+        )
+        self.node_given_action_prob = init(nn.Linear(node_dim, num_actions))
 
         self.num_actions = num_actions
         self.sample_func = sample_action_and_node  # type: ignore
         self.eval_func = eval_action_and_node  # type: ignore
 
-        self.q_action__node = nn.Linear(node_dim, num_actions)  # Q(a|n)
-        self.q_node = nn.Linear(node_dim, 1)  # Q(n)
+        self.q_action__node = init(nn.Linear(node_dim, num_actions))  # Q(a|n)
+        self.q_node = init(nn.Linear(node_dim, 1))  # Q(n)
 
     def f(
         self,
@@ -92,7 +98,7 @@ class ActionThenNodePolicy(nn.Module):
         h: SparseTensor[FloatTensor],
         n_nodes: Tensor,
         action_mask: Tensor,
-        deterministic: bool = False,
+        rng: Generator | None,
     ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
-        p_func = partial(self.sample_func, deterministic=deterministic)  # type: ignore
+        p_func = partial(self.sample_func, rng=rng)  # type: ignore
         return self.f(h, action_mask, n_nodes, p_func)  # type: ignore

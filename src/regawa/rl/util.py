@@ -11,12 +11,12 @@ from torch import Tensor
 from torch.utils._foreach_utils import _group_tensors_by_device_and_dtype
 
 from regawa.data import (
-    HeteroBatchData,
-    HeteroObsData,
+    HeteroBatch,
+    HeteroIndexedFactorGraph,
     RenderGraph,
     heterostatedata_to_tensors,
-    single_obs_to_heterostatedata,
 )
+from regawa.data.batch.batch import single_obs_to_heterostatedata
 from regawa.model import GroundObs
 from regawa.model.io import obs_to_json_friendly_obs
 from regawa.policy import GraphAgent
@@ -171,7 +171,7 @@ def grad_norm_(
 def update_vf_agent(
     agent: GraphAgent,
     optimizer: th.optim.Optimizer,
-    s: HeteroBatchData,
+    s: HeteroBatch,
     values: list[float],
 ):
     value = agent.value(
@@ -194,7 +194,7 @@ def update(
     agent: GraphAgent,
     optimizer: th.optim.Optimizer,
     actions: Tensor,
-    s: HeteroBatchData,
+    s: HeteroBatch,
     max_grad_norm: float = 100.0,
 ):
     # b = th.stack([d.var_value for d in obs])
@@ -241,7 +241,7 @@ def calc_loss(l2_norms: list[Tensor], logprob: Tensor) -> Tensor:
 
 
 def rollout(
-    env: gym.Env[HeteroObsData, tuple[int, ...]],
+    env: gym.Env[HeteroIndexedFactorGraph, tuple[int, ...]],
     seed: int,
     expert_policy: Callable[[GroundObs, Callable[[str], int]], tuple[int, ...]],
     expected_return: float,

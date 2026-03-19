@@ -5,7 +5,7 @@ from gymnasium import Space
 from gymnasium.spaces import Box, Discrete, Sequence
 
 from regawa.data.graph import VariableDomain, Variables
-from regawa.data.obs import HeteroObsData, ObsData
+from regawa.data.obs import HeteroIndexedFactorGraph, IndexedFactorGraph
 
 BIG_NUMBER = 2000
 
@@ -42,7 +42,7 @@ class VariableSpace(Space[Variables[VariableDomain]]):
         return all(results)
 
 
-class FactorGraphSpace(Space[ObsData[VariableDomain]]):
+class FactorGraphSpace(Space[IndexedFactorGraph[VariableDomain]]):
     def __init__(
         self,
         num_relations: int,
@@ -86,9 +86,9 @@ class FactorGraphSpace(Space[ObsData[VariableDomain]]):
         ]
         return all(results)
 
-    def __contains__(self, item: ObsData[VariableDomain]) -> bool:
+    def __contains__(self, item: IndexedFactorGraph[VariableDomain]) -> bool:
         """Check whether `item` is in this space."""
-        if not isinstance(item, ObsData):  # type: ignore
+        if not isinstance(item, IndexedFactorGraph):  # type: ignore
             return False
 
         results = [
@@ -105,7 +105,7 @@ class FactorGraphSpace(Space[ObsData[VariableDomain]]):
         return all(results)
 
 
-class HeteroStateSpace(Space[HeteroObsData]):
+class HeteroStateSpace(Space[HeteroIndexedFactorGraph]):
     def __init__(
         self,
         num_types: int,
@@ -142,9 +142,9 @@ class HeteroStateSpace(Space[HeteroObsData]):
 
         return all(results)
 
-    def __contains__(self, item: HeteroObsData) -> bool:
+    def __contains__(self, item: HeteroIndexedFactorGraph) -> bool:
         """Check whether `item` is in this space."""
-        if not isinstance(item, HeteroObsData):  # type: ignore
+        if not isinstance(item, HeteroIndexedFactorGraph):  # type: ignore
             return False
 
         return item.bool in self.bool and item.float in self.float

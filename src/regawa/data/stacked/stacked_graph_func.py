@@ -6,7 +6,7 @@ from regawa.data.graph import (
     StringVariables,
     VariableDomain,
 )
-from regawa.data.obs.obs import ObsData
+from regawa.data.obs.obs import IndexedFactorGraph
 from regawa.model import Grounding
 
 from .stacked_graph import StackedStringFactorGraph
@@ -61,13 +61,13 @@ def flatten_stacked_graph(
 
 def fn_flatten_then_map_graph_to_idx(
     map_graph_to_idx: Callable[
-        [StringFactorGraph[VariableDomain], type], ObsData[VariableDomain]
+        [StringFactorGraph[VariableDomain], type], IndexedFactorGraph[VariableDomain]
     ],
 ):
     def flatten_map_graph_to_idx(
         factorgraph: StackedStringFactorGraph[VariableDomain],
         var_val_dtype: type,
-    ) -> ObsData[VariableDomain]:
+    ) -> IndexedFactorGraph[VariableDomain]:
         return map_graph_to_idx(
             flatten_stacked_graph(factorgraph),
             var_val_dtype,

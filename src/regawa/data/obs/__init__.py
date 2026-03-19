@@ -1,4 +1,4 @@
-from .obs import GraphTypes, HeteroObsData, ObsData
+from .obs import GraphTypes, HeteroIndexedFactorGraph, IndexedFactorGraph
 from .obs_func import (
     factor_to_idx,
     fn_graph_to_obsdata,
@@ -9,8 +9,8 @@ from .obs_func import (
 )
 
 __all__ = [
-    "HeteroObsData",
-    "ObsData",
+    "HeteroIndexedFactorGraph",
+    "IndexedFactorGraph",
     "fn_heterograph_to_heteroobs",
     "fn_idx_obs",
     "factor_to_idx",

@@ -4,7 +4,7 @@ from pathlib import Path
 from torch import Generator as Rngs
 from torch import Tensor
 
-from ..data import HeteroObsData, TorchFactorGraph, TorchHeteroBatchData
+from ..data import HeteroIndexedFactorGraph, TorchFactorGraph, TorchHeteroBatchData
 from ..model import BaseModel
 from .agent_config import AgentConfig
 from .types import PolicyOutput
@@ -23,7 +23,7 @@ class GraphAgentInterface(ABC):
     @abstractmethod
     def sample_from_obs(
         self,
-        obs: HeteroObsData,
+        obs: HeteroIndexedFactorGraph,
         deterministic: bool = False,
     ) -> PolicyOutput: ...
 

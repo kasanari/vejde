@@ -5,11 +5,11 @@ from functools import partial
 
 from regawa.data import (
     HeteroGraphBuffer,
-    HeteroObsData,
+    HeteroIndexedFactorGraph,
     TorchHeteroBatchData,
-    heterostatedata,
     heterostatedata_to_tensors,
 )
+from regawa.data.batch.batch import heterobatch
 from regawa.rl.ppo import update
 
 os.environ["DO_NOT_TRACK"] = "true"
@@ -126,12 +126,14 @@ def iteration_step(
     agent: Agent,
     batch_size: int,
     update_epochs: int,
-    envs: gym.vector.VectorEnv[HeteroObsData, NDArray[np.int32], NDArray[np.int32]],
+    envs: gym.vector.VectorEnv[
+        HeteroIndexedFactorGraph, NDArray[np.int32], NDArray[np.int32]
+    ],
     optimizer: npl.optim.Optimizer,
     learning_rate: float,
     num_iterations: int,
     rollout_func: Callable[
-        [dict[str, list[HeteroObsData]], Tensor, BatchData, int],
+        [dict[str, list[HeteroIndexedFactorGraph]], Tensor, BatchData, int],
         tuple[RolloutData, BatchData],
     ],
     gae_func: Callable[[Tensor, Tensor, Tensor, Tensor, Tensor], tuple[Tensor, Tensor]],
@@ -163,7 +165,7 @@ def iteration_step(
         # bootstrap value if not done
         with npl.no_grad():
             next_obs_batch = heterostatedata_to_tensors(
-                heterostatedata(r_data.last_obs), device
+                heterobatch(r_data.last_obs), device
             )
             advantages, returns = gae_func(
                 b.rewards,
@@ -267,14 +269,16 @@ EXPECTED_NUM_ACTION_PARAMS = 2
 
 def rollout(
     agent: Agent,
-    envs: gym.vector.VectorEnv[HeteroObsData, NDArray[np.int32], NDArray[np.int32]],
+    envs: gym.vector.VectorEnv[
+        HeteroIndexedFactorGraph, NDArray[np.int32], NDArray[np.int32]
+    ],
     num_steps: int,
     num_envs: int,
     device: npl.device | str,
 ):
     @npl.inference_mode()
     def _rollout(
-        prev_obs: Mapping[str, list[HeteroObsData]],
+        prev_obs: Mapping[str, list[HeteroIndexedFactorGraph]],
         prev_is_final: Tensor,
         b: BatchData,
         global_step: int,
@@ -285,9 +289,9 @@ def rollout(
 
         is_final = prev_is_final
         obs = prev_obs
-        next_obs: HeteroObsData
+        next_obs: HeteroIndexedFactorGraph
         for step in range(0, num_steps):
-            s = heterostatedata(obs)
+            s = heterobatch(obs)
             s = heterostatedata_to_tensors(s, device)
             action, logprob, _, value = agent.sample_action_and_value(s)
             assert action.dim() == EXPECTED_NUM_ACTION_PARAMS

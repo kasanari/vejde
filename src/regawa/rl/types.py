@@ -3,12 +3,12 @@ from typing import NamedTuple
 from torch import Tensor
 
 from regawa.data import HeteroGraphBuffer
-from regawa.data.obs import HeteroObsData
+from regawa.data.obs import HeteroIndexedFactorGraph
 
 
 class RolloutData(NamedTuple):
     obs: HeteroGraphBuffer
-    last_obs: dict[str, list[HeteroObsData]]
+    last_obs: dict[str, list[HeteroIndexedFactorGraph]]
     last_done: Tensor
     global_step: int
     returns: list[float]
@@ -53,7 +53,7 @@ class PPOParams(NamedTuple):
 
 class IterationCarry(NamedTuple):
     b: BatchData
-    next_obs: dict[str, list[HeteroObsData]]
+    next_obs: dict[str, list[HeteroIndexedFactorGraph]]
     next_done: Tensor
     global_step: int
     num_updates: int

@@ -6,7 +6,7 @@ from gymnasium.spaces import MultiDiscrete
 from gymnasium.vector import AsyncVectorEnv, SyncVectorEnv
 from torch import Generator
 
-from .data.obs import HeteroObsData
+from .data.obs import HeteroIndexedFactorGraph
 from .data.render import to_graphviz
 from .data.space import max_arity, n_actions, n_relations, n_types
 from .model import (
@@ -33,7 +33,9 @@ from .wrappers import GroundedGraphWrapper, StackingGroundedGraphWrapper
 
 
 def agent_config_from_space(
-    obs_space: HeteroObsData, action_space: MultiDiscrete, gnn_params: GNNParams
+    obs_space: HeteroIndexedFactorGraph,
+    action_space: MultiDiscrete,
+    gnn_params: GNNParams,
 ) -> AgentConfig:
     return AgentConfig(
         n_types(obs_space),  # type: ignore
@@ -49,7 +51,7 @@ V = TypeVar("V", bound=GraphAgentInterface)
 
 def agent_from_env(
     agent_class: V,
-    env: gym.Env[HeteroObsData, MultiDiscrete]
+    env: gym.Env[HeteroIndexedFactorGraph, MultiDiscrete]
     | gym.vector.SyncVectorEnv
     | gym.vector.AsyncVectorEnv,
     params: GNNParams,

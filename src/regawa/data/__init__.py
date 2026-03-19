@@ -1,8 +1,9 @@
 from .batch import (
-    BatchData,
-    HeteroBatchData,
-    heterostatedata,
-    heterostatedata_from_obslist,
+    Batch,
+    HeteroBatch,
+)
+from .batch.batch import (
+    heterobatch,
     single_obs_to_heterostatedata,
 )
 from .buffer import HeteroGraphBuffer
@@ -17,8 +18,8 @@ from .graph import (
 )
 from .heterograph import HeteroGraph, fn_groundobs_to_heterograph
 from .obs import (
-    HeteroObsData,
-    ObsData,
+    HeteroIndexedFactorGraph,
+    IndexedFactorGraph,
     factor_to_idx,
     fn_graph_to_obsdata,
     fn_heterograph_to_heteroobs,
@@ -47,19 +48,18 @@ __all__ = [
     "TorchFactorGraph",
     "SparseTensor",
     "object_list",
-    "HeteroObsData",
-    "ObsData",
-    "heterostatedata",
-    "HeteroBatchData",
+    "HeteroIndexedFactorGraph",
+    "IndexedFactorGraph",
+    "heterobatch",
+    "HeteroBatch",
     "SparseArray",
     "Variables",
-    "heterostatedata_from_obslist",
-    "BatchData",
+    "Batch",
     "single_obs_to_heterostatedata",
     "sparsify",
     "heterostatedata_to_tensors",
     "HeteroGraph",
-    "ObsData",
+    "IndexedFactorGraph",
     "Object",
     "StackedStringFactorGraph",
     "StringFactorGraph",

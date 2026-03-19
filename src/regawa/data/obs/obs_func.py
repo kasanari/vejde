@@ -13,7 +13,7 @@ from regawa.data.heterograph import HeteroGraph
 from regawa.data.stacked.stacked_graph_func import fn_flatten_then_map_graph_to_idx
 from regawa.model import BaseModel
 
-from .obs import Factors, GraphTypes, HeteroObsData, ObsData
+from .obs import Factors, GraphTypes, HeteroIndexedFactorGraph, IndexedFactorGraph
 
 
 def fn_graph_to_obsdata(
@@ -25,8 +25,8 @@ def fn_graph_to_obsdata(
     def map_graph_to_idx(
         g: StringFactorGraph[VariableDomain],
         var_val_dtype: type,
-    ) -> ObsData[VariableDomain]:
-        return ObsData(
+    ) -> IndexedFactorGraph[VariableDomain]:
+        return IndexedFactorGraph(
             var=variables_to_idx(g.variables, var_val_dtype),
             factor=factor_to_idx(g.factors),
             edges=g.edges,
@@ -43,15 +43,17 @@ def fn_heterograph_to_heteroobs(
             GraphTypes,
             VariableDomain,
         ],
-        ObsData[VariableDomain],
+        IndexedFactorGraph[VariableDomain],
     ],
 ):
     """
-    Returns a function that takes a HeteroGraph and returns a HeteroObsData (for use in GNNs).
+    Returns a function that takes a HeteroGraph and returns a HeteroIndexedFactorGraph (for use in GNNs).
     """
 
-    def heterograph_to_heteroobs(heterogenous_graph: HeteroGraph) -> HeteroObsData:
-        return HeteroObsData(
+    def heterograph_to_heteroobs(
+        heterogenous_graph: HeteroGraph,
+    ) -> HeteroIndexedFactorGraph:
+        return HeteroIndexedFactorGraph(
             bool=fn_graph_to_idx(
                 heterogenous_graph.boolean,
                 np.int8,
@@ -133,7 +135,7 @@ def fn_idx_obs(model: BaseModel, stacking: bool = False):
     idx_func = fn_flatten_then_map_graph_to_idx(f) if stacking else f
     create_obs_dict_fn = fn_heterograph_to_heteroobs(idx_func)
 
-    def graph_to_obsdata(g: HeteroGraph) -> HeteroObsData:
+    def graph_to_obsdata(g: HeteroGraph) -> HeteroIndexedFactorGraph:
         return create_obs_dict_fn(g)
 
     return graph_to_obsdata

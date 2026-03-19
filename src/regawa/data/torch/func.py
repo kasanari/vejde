@@ -4,7 +4,7 @@ from typing import NamedTuple
 import torch
 from torch import Tensor, as_tensor
 
-from regawa.data.batch import BatchData, HeteroBatchData
+from regawa.data.batch import Batch, HeteroBatch
 from regawa.data.sparse import SparseArray
 
 from .torch import (
@@ -38,7 +38,7 @@ def tuple_to_tensors[T: NamedTuple](
 
 
 def statedata_to_tensors(
-    data: BatchData[V], device: str | torch.device = "cpu"
+    data: Batch[V], device: str | torch.device = "cpu"
 ) -> TorchBatchData[V]:
     return TorchBatchData(
         tuple_to_tensors(data.factor, TorchBatchedFactors, device),
@@ -60,7 +60,7 @@ def sparsify(
 
 
 def heterostatedata_to_tensors(
-    data: HeteroBatchData, device: str | torch.device = "cpu"
+    data: HeteroBatch, device: str | torch.device = "cpu"
 ) -> TorchHeteroBatchData:
     return TorchHeteroBatchData(
         statedata_to_tensors(data.boolean, device),

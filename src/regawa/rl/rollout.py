@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from regawa.data.buffer import HeteroGraphBuffer
-from regawa.data.obs import HeteroObsData
+from regawa.data.obs import HeteroIndexedFactorGraph
 
 
 class Rollout(NamedTuple):
@@ -49,7 +49,7 @@ class RolloutCollector:
         self.actions = deque()
 
     def add_single(
-        self, obs: HeteroObsData, action: tuple[int, ...], reward: float
+        self, obs: HeteroIndexedFactorGraph, action: tuple[int, ...], reward: float
     ) -> None:
         self.rewards.append(reward)
         self.obs.add_single_dict(obs)

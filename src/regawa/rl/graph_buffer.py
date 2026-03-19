@@ -6,9 +6,9 @@ from gymnasium import spaces
 from torch import Tensor, as_tensor, device
 
 from regawa.data import (
-    HeteroBatchData,
-    HeteroObsData,
-    heterostatedata_from_obslist,
+    HeteroBatch,
+    HeteroIndexedFactorGraph,
+    heterobatch,
     n_actions,
 )
 
@@ -16,8 +16,8 @@ V = TypeVar("V", np.float32, np.bool_, np.int64)
 
 
 class ReplayBufferSamples(NamedTuple):
-    observations: HeteroBatchData
-    next_observations: HeteroBatchData
+    observations: HeteroBatch
+    next_observations: HeteroBatch
     actions: Tensor
     dones: Tensor
     rewards: Tensor
@@ -25,7 +25,7 @@ class ReplayBufferSamples(NamedTuple):
 
 def get_single_env(
     obs: dict[str, dict[str, tuple[Any, ...]]], i: int
-) -> dict[str, HeteroObsData]:
+) -> dict[str, HeteroIndexedFactorGraph]:
     return obs[i]
 
 
@@ -35,8 +35,8 @@ def get_by_type(t: str, buffer):
 
 
 class ReplayBuffer:
-    observations: list[tuple[HeteroObsData] | None]
-    next_observations: list[tuple[HeteroObsData] | None]
+    observations: list[tuple[HeteroIndexedFactorGraph] | None]
+    next_observations: list[tuple[HeteroIndexedFactorGraph] | None]
     actions: npt.NDArray[np.int32]
     rewards: npt.NDArray[np.float32]
     dones: npt.NDArray[np.float32]
@@ -81,8 +81,8 @@ class ReplayBuffer:
 
     def add(
         self,
-        obs: tuple[HeteroObsData],
-        next_obs: tuple[HeteroObsData],
+        obs: tuple[HeteroIndexedFactorGraph],
+        next_obs: tuple[HeteroIndexedFactorGraph],
         action: npt.NDArray[np.int32],
         reward: npt.NDArray[np.float32],
         done: npt.NDArray[np.float32],
@@ -131,7 +131,7 @@ class ReplayBuffer:
             if self.optimize_memory_usage
             and (x := self.observations[(batch_inds + 1) % self.buffer_size])
             is not None
-            else heterostatedata_from_obslist(
+            else heterobatch(
                 [
                     self.next_observations[b][e]
                     for b, e in zip(batch_inds, env_indices, strict=False)
@@ -140,7 +140,7 @@ class ReplayBuffer:
         )
 
         return ReplayBufferSamples(
-            heterostatedata_from_obslist(
+            heterobatch(
                 [
                     self.observations[b][e]
                     for b, e in zip(batch_inds, env_indices, strict=False)

@@ -25,11 +25,11 @@ from tqdm import tqdm
 
 from regawa import GNNParams, agent_from_env
 from regawa.data import (
-    HeteroBatchData,
-    heterostatedata,
+    HeteroBatch,
     heterostatedata_to_tensors,
 )
-from regawa.data.obs import HeteroObsData
+from regawa.data.batch.batch import heterobatch
+from regawa.data.obs import HeteroIndexedFactorGraph
 from regawa.data.torch import SparseTensor, TorchHeteroBatchData
 from regawa.policy import GraphAgentInterface
 from regawa.policy.q_agent.gnn_q_agent import GraphQAgent
@@ -386,7 +386,9 @@ def log_to_mlflow(
         )
 
 
-def sample_action(obs: HeteroObsData, rng: np.random.Generator) -> np.ndarray:
+def sample_action(
+    obs: HeteroIndexedFactorGraph, rng: np.random.Generator
+) -> np.ndarray:
     a1_mask = obs.bool.action_masks.action_arity_mask
     a2_mask = obs.float.action_masks.action_type_mask
     mask = a1_mask & a2_mask
@@ -406,13 +408,13 @@ def step_fn(
     device: torch.device,
     target_a: torch.Tensor,
     actor_optimizer: optim.Optimizer,
-    envs: gym.vector.VectorEnv[HeteroBatchData, NDArray[np.int64], NDArray[np.int64]],
+    envs: gym.vector.VectorEnv[HeteroBatch, NDArray[np.int64], NDArray[np.int64]],
     pbar: tqdm,
     args: SACArgs,
     rng: np.random.Generator,
 ):
     def step(
-        obs: Iterable[HeteroObsData],
+        obs: Iterable[HeteroIndexedFactorGraph],
         rb: ReplayBuffer,
         global_step: int,
         returns: deque[float],
@@ -423,7 +425,7 @@ def step_fn(
             actions = np.array([sample_action(o, rng) for o in obs])
         else:
             actions, *_ = actor.sample(
-                heterostatedata_to_tensors(heterostatedata(obs), device=device)
+                heterostatedata_to_tensors(heterobatch(obs), device=device)
             )
             actions = actions.detach().cpu().numpy()
 
@@ -536,9 +538,7 @@ def train(args: SACArgs) -> GraphAgentInterface:
     pbar = tqdm(range(args.total_timesteps), dynamic_ncols=True)
 
     # env setup
-    envs: gym.vector.VectorEnv[
-        HeteroBatchData, NDArray[np.int64], NDArray[np.int64]
-    ] = (
+    envs: gym.vector.VectorEnv[HeteroBatch, NDArray[np.int64], NDArray[np.int64]] = (
         gym.vector.AsyncVectorEnv(
             [
                 make_env(
@@ -614,7 +614,7 @@ def train(args: SACArgs) -> GraphAgentInterface:
         rng=_rng,
     )
 
-    obs: Iterable[HeteroObsData]
+    obs: Iterable[HeteroIndexedFactorGraph]
     obs, _ = envs.reset(seed=args.seed)
     for global_step in range(args.total_timesteps):
         obs, alpha, returns, lengths = step(

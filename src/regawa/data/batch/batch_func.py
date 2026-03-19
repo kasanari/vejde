@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Sequence
 from itertools import chain
 
 import numpy as np
@@ -6,15 +6,14 @@ from numpy.typing import NDArray
 
 from regawa.data.graph import VariableDomain
 from regawa.data.graph.graph import ActionMask, Edges
-from regawa.data.obs import HeteroObsData, ObsData
+from regawa.data.obs import IndexedFactorGraph
 from regawa.data.sparse import SparseArray
 
 from .batch import (
     ArrayDomain,
-    BatchData,
+    Batch,
     BatchedFactors,
     BatchedVariables,
-    HeteroBatchData,
 )
 
 
@@ -27,7 +26,9 @@ def add_to_array(
     arr[start : start + length] = to_add
 
 
-def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
+def batch(
+    graphs: Sequence[IndexedFactorGraph[VariableDomain]],
+) -> Batch[VariableDomain]:
     """
     This is a big ugly function that batches multiple factor graphs into a single one.
     Its uglyness comes from a need for speed and memory efficiency in this particular function, as it is called many times during training.
@@ -150,7 +151,7 @@ def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
         globals_offset += flat_globals_len
         num_globals_offset += num_globals_vars
 
-    return BatchData(
+    return Batch(
         variables=BatchedVariables(
             var_value=SparseArray(var_value, var_batch),
             var_type=SparseArray(var_type, var_batch),
@@ -177,47 +178,15 @@ def batch(graphs: list[ObsData[VariableDomain]]) -> BatchData[VariableDomain]:
     )
 
 
-def obslist_to_statedata(
-    obs: list[ObsData[VariableDomain]],
-) -> BatchData[VariableDomain]:
+def obslist_to_batch(
+    obs: Sequence[IndexedFactorGraph[VariableDomain]],
+) -> Batch[VariableDomain]:
     return batch(obs)
 
 
-def obs_to_statedata(obs: ObsData[VariableDomain]) -> BatchData[VariableDomain]:
-    return obslist_to_statedata([obs])
+def obs_to_batch(obs: IndexedFactorGraph[VariableDomain]) -> Batch[VariableDomain]:
+    return obslist_to_batch([obs])
 
 
-def heterostatedata(
-    obs: Iterable[HeteroObsData],
-) -> HeteroBatchData:
-    return HeteroBatchData(
-        boolean=batch([o.bool for o in obs]),
-        numeric=batch([o.float for o in obs]),
-    )
-
-
-def statedata_from_buffer(buf: list[tuple[ObsData[VariableDomain], ...]]):
+def batch_from_buffer(buf: Sequence[tuple[IndexedFactorGraph[VariableDomain], ...]]):
     return batch(list(chain(*buf)))
-
-
-def heterostatedata_from_buffer(
-    obs: dict[str, list[tuple[ObsData[VariableDomain], ...]]],
-) -> HeteroBatchData:
-    return HeteroBatchData(
-        boolean=statedata_from_buffer(obs["bool"]),  # type: ignore
-        numeric=statedata_from_buffer(obs["float"]),  # type: ignore
-    )
-
-
-def heterostatedata_from_obslist(obs: Iterable[HeteroObsData]) -> HeteroBatchData:
-    boolean_data = [d.bool for d in obs]
-    numeric_data = [d.float for d in obs]
-
-    return HeteroBatchData(
-        boolean=batch(boolean_data),
-        numeric=batch(numeric_data),
-    )
-
-
-def single_obs_to_heterostatedata(obs: HeteroObsData) -> HeteroBatchData:
-    return heterostatedata([obs])

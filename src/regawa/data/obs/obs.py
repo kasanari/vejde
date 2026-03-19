@@ -22,9 +22,9 @@ class Factors(NamedTuple):
     n_factor: int  # number of objects/factors.
 
 
-class ObsData(NamedTuple, Generic[VariableDomain]):
+class IndexedFactorGraph(NamedTuple, Generic[VariableDomain]):
     """
-    This class represents a factor graph of groundings and objects.
+    This class represents an factor graph of groundings and objects with numeric indexes as identifiers.
     Assume a grounding p(o) = v.
     """
 
@@ -35,10 +35,10 @@ class ObsData(NamedTuple, Generic[VariableDomain]):
     action_masks: ActionMask  # action masks
 
 
-class HeteroObsData(NamedTuple):
+class HeteroIndexedFactorGraph(NamedTuple):
     """
-    This class represents a heterogeneous observation with boolean and float features.
+    This class represents a heterogeneous factor graph with boolean and float features.
     """
 
-    bool: ObsData[np.int8]  # boolean ObsData
-    float: ObsData[np.float32]  # numeric ObsData
+    bool: IndexedFactorGraph[np.int8]  # boolean Obs
+    float: IndexedFactorGraph[np.float32]  # numeric Obs

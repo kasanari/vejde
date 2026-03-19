@@ -6,7 +6,7 @@ from torch import Tensor
 
 from regawa import GroundObs
 from regawa.data import RenderGraph, create_render_graph, fn_groundobs_to_heterograph
-from regawa.data.obs import HeteroObsData
+from regawa.data.obs import HeteroIndexedFactorGraph
 from regawa.data.obs.obs_func import fn_idx_obs
 from regawa.model import BaseModel
 from regawa.policy import ActionMode, GraphAgent
@@ -69,7 +69,7 @@ def fn_action_then_node(
     deterministic: bool = True,
 ):
     def action_then_node(
-        o: HeteroObsData,
+        o: HeteroIndexedFactorGraph,
         g: RenderGraph,
     ):
         objs = g.factor_labels
@@ -122,7 +122,7 @@ def fn_node_then_action(
     deterministic: bool = True,
 ):
     def node_then_action(
-        o: HeteroObsData,
+        o: HeteroIndexedFactorGraph,
         g: RenderGraph,
     ):
         objs = g.factor_labels

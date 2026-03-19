@@ -6,7 +6,7 @@ import gymnasium as gym
 
 from regawa.data import (
     HeteroGraph,
-    HeteroObsData,
+    HeteroIndexedFactorGraph,
     HeteroStateSpace,
     fn_idx_obs,
 )
@@ -17,14 +17,14 @@ logger = logging.getLogger(__name__)
 
 class IndexObsWrapper(
     gym.Wrapper[
-        HeteroObsData,
+        HeteroIndexedFactorGraph,
         GroundObs | tuple[int, ...],
         HeteroGraph,
         GroundObs | tuple[int, ...],
     ]
 ):
     """
-    Converts HeteroGraph to index-based HeteroObsData
+    Converts HeteroGraph to index-based HeteroIndexedFactorGraph
     """
 
     def __init__(
@@ -56,7 +56,7 @@ class IndexObsWrapper(
         self,
         action: GroundObs | tuple[int, ...],
     ) -> tuple[
-        HeteroObsData,
+        HeteroIndexedFactorGraph,
         SupportsFloat,
         bool,
         bool,
@@ -78,7 +78,7 @@ class IndexObsWrapper(
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[HeteroObsData, dict[str, Any]]:
+    ) -> tuple[HeteroIndexedFactorGraph, dict[str, Any]]:
         graph, info = self.env.reset(seed=seed, options=options)
 
         info["idx_to_object"] = graph.boolean.factors.names

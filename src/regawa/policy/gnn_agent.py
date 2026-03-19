@@ -6,12 +6,12 @@ from torch import Generator as Rngs
 from torch import Tensor, nn
 
 from regawa.data import (
-    HeteroObsData,
+    HeteroIndexedFactorGraph,
     TorchFactorGraph,
     TorchHeteroBatchData,
     heterostatedata_to_tensors,
-    single_obs_to_heterostatedata,
 )
+from regawa.data.batch.batch import single_obs_to_heterostatedata
 from regawa.embedding import (
     EmbeddingLayer,
     NegativeBiasBooleanEmbedder,
@@ -129,7 +129,7 @@ class GraphAgent(nn.Module, GraphAgentInterface):
 
     def sample_from_obs(
         self,
-        obs: HeteroObsData,
+        obs: HeteroIndexedFactorGraph,
         deterministic: bool = False,
     ):
         s = single_obs_to_heterostatedata(obs)

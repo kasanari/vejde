@@ -2,7 +2,7 @@
 from torch import Generator as Rngs
 from torch import nn
 
-from regawa.data import HeteroBatchData, TorchFactorGraph
+from regawa.data import HeteroBatch, TorchFactorGraph
 from regawa.embedding import (
     EmbeddingLayer,
     fn_embed_graph,
@@ -85,8 +85,8 @@ class GraphQAgent(nn.Module):
         )
         self.qfunc = qfunc(config.num_actions, embed_dim)
 
-    def embed(self, data: HeteroBatchData) -> TorchFactorGraph:
+    def embed(self, data: HeteroBatch) -> TorchFactorGraph:
         return self.message_pass(self.embed_heterobatch(data))
 
-    def forward(self, data: HeteroBatchData):
+    def forward(self, data: HeteroBatch):
         return self.qfunc.forward(self.embed(data).factors)

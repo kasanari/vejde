@@ -49,6 +49,13 @@ def fn_fluents_of_arity(model: BaseModel) -> Callable[[int], tuple[str, ...]]:
     return fluents_of_arity
 
 
+"""
+The two valid_* function use different criteria for determining whether an action fluent is valid for an object type.
+fn_valid_action_fluents_given_type checks if the object type is in the fluent's parameter types,
+while fn_valid_action_fluents_given_arity checks if the fluent has arity greater than 0 (i.e. it takes at least one object parameter).
+"""
+
+
 def fn_valid_action_fluents_given_type(
     model: BaseModel,
 ) -> Callable[[str], tuple[bool, ...]]:
@@ -76,9 +83,8 @@ def fn_valid_action_fluents_given_arity(
 ) -> Callable[[str], tuple[bool, ...]]:
     """
     Returns a function that takes an object type and returns a tuple of booleans indicating
-    whether each action fluent is valid for that object based on the arity of the predicate.
+    whether each action fluent in the model is valid for that object based on the arity of the fluent.
     Nullary predicates do not take any object parameters, so they are never valid for any object type, except the null object.
-    The null object is assumed to be a valid object type for all fluents.
     """
 
     @cache
@@ -86,8 +92,8 @@ def fn_valid_action_fluents_given_arity(
         return (
             True
             if model.arity(fluent) > 0
-            else o_t
-            == NullConst.type  # Assume NULL_TYPE is a valid object type for 0-arity fluents
+            # Assume NULL_TYPE is the only valid object type for 0-arity fluents
+            else o_t == NullConst.type
         )
 
     @cache

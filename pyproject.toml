@@ -77,7 +77,8 @@ conflicts = [[{ extra = "cpu" }, { extra = "cu128" }]]
 
 
 [project.scripts]
-render_obs = "scripts:render_obs.cli"
+render_obs = "regawa.scripts:render_obs.cli"
+
 
 [tool.ruff.lint]
 select = [

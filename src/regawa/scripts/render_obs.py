@@ -9,24 +9,20 @@ from regawa.model.base_model import BaseModel
 from regawa.model.io import step_from_json
 from regawa.model.model_func import model_from_json
 
-# test_model_path = "tyrLang_regawa_model.json"
-# test_obs_path = "single_obs.json"
 
-
-def render_obs(model: BaseModel, obs: GroundObs):
+def render_obs(model: BaseModel, obs: GroundObs, pprint: bool = False) -> str:
     obs_to_graph = fn_groundobs_to_heterograph(model, False)
     hetero_graph = obs_to_graph(obs)
     render_graph = create_render_graph(hetero_graph.boolean, hetero_graph.numeric)
-    return to_graphviz(render_graph, pprint=False)
+    return to_graphviz(render_graph, pprint=pprint)
 
 
 def filter_obs(obs: GroundObs):
-    return {
-        k: v for k, v in obs.items() if "Identity" not in k[0] and "Vuln" not in k[0]
-    }
+    # breakpoint()
+    return {k: v for k, v in obs.items() if any("weborder" in o for o in k[1:])}
 
 
-def main(model_path: Path, obs_path: Path):
+def main(model_path: Path, obs_path: Path, pprint: bool = False):
     with open(model_path) as f:
         model_json = f.read()
     model = model_from_json(model_json)
@@ -44,8 +40,8 @@ def main(model_path: Path, obs_path: Path):
 
     ground_obs = [step_from_json(x)["obs"] for x in test_data]
 
-    ground_obs = [filter_obs(o) for o in ground_obs]
-    rendered_obs = [render_obs(model, g) for g in ground_obs]
+    # ground_obs = [filter_obs(o) for o in ground_obs]
+    rendered_obs = [render_obs(model, g, pprint) for g in ground_obs]
 
     for x in rendered_obs:
         print(x)

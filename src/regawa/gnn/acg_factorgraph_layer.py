@@ -1,5 +1,6 @@
 import logging
 
+from torch import ones
 from torch import Generator as Rngs
 from torch import Tensor, concatenate, nn, zeros_like
 
@@ -78,6 +79,7 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
 
         self.combine = MLPLayer(out_channels * 2, out_channels, activation, rngs)
         self.mp = MessagePass(in_channels, out_channels, aggr, activation, rngs)
+        self.gate = nn.Parameter(ones(out_channels) * 0.5)
 
         logger.info("Factor to Variable\n")
         logger.info("Combine Function\n%s", self.combine)
@@ -112,7 +114,7 @@ class BipartiteGNNConvFactorToVariable(nn.Module):
         x = self.combine(x)
 
         # skip connection. I am not sure why this helps, but it does.
-        x = variables + x
+        x = variables + x * self.gate
         render_logger.debug(
             "%s",
             Lazy(

@@ -8,7 +8,7 @@ import torch
 from regawa.model.base_model import BaseModel
 from regawa.model.generic_model import GenericModel
 
-from .agent_config import ActionMode, AgentConfig, GNNParams
+from .agent_config import ActionMode, AgentConfig, BooleanEmbedderType, GNNParams
 from .gnn_agent import GraphAgent
 from .recurrent_gnn_agent import RecurrentGraphAgent
 from .save import SaveFormat, activation_to_str
@@ -73,6 +73,10 @@ def load_agent_from_zip(
     hyper_params = config_dict["hyper_params"]
     hyper_params["action_mode"] = ActionMode(ActionMode[hyper_params["action_mode"]])
     hyper_params["activation"] = str_to_activation[hyper_params["activation"]]()
+    hyper_params["boolean_embedder_type"] = BooleanEmbedderType[
+        hyper_params["boolean_embedder_type"]
+    ]
+
     config_dict["hyper_params"] = GNNParams(**hyper_params)
 
     config = AgentConfig(**config_dict)

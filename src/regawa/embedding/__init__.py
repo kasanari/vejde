@@ -27,7 +27,7 @@ from regawa.data import (
 from regawa.embedding.positional import pos_emb, rotate
 
 from .boolean import (
-    BooleanEmbedder,
+    BooleanEmbeddingBooleanEmbedder,
     NegativeBiasBooleanEmbedder,
     PositiveNegativeBooleanEmbedder,
 )
@@ -38,7 +38,7 @@ from .numeric import NumericEmbedder
 from .recurrent import RecurrentEmbedder
 
 __all__ = [
-    "BooleanEmbedder",
+    "BooleanEmbeddingBooleanEmbedder",
     "NegativeBiasBooleanEmbedder",
     "NumericEmbedder",
     "RecurrentEmbedder",

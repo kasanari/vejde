@@ -19,6 +19,7 @@ from regawa.embedding import (
     fn_embed_graph,
     fn_embed_heterobatch,
 )
+from ..embedding.boolean import ENUM_TO_CLASS
 from regawa.gnn import BipartiteGNN
 from regawa.model import BaseModel
 
@@ -57,7 +58,11 @@ class GraphAgent(nn.Module, GraphAgentInterface):
             config.arity, gnn_params.embedding_dim, rngs, use_padding=False
         )
 
-        boolean_embedder = NegativeBiasBooleanEmbedder(
+        embedder_class = ENUM_TO_CLASS[
+            gnn_params.boolean_embedder_type
+        ]  # check validity of boolean embedding type
+
+        boolean_embedder = embedder_class(
             gnn_params.embedding_dim,
             predicate_embedding,
             rngs,

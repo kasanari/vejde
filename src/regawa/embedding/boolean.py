@@ -1,10 +1,20 @@
+from __future__ import annotations
+
+from enum import Enum
+
 from torch import Generator as Rngs
 from torch import Tensor, as_tensor, nn, zeros
 
 from regawa.embedding.node_embedders import EmbeddingLayer, logger
 
 
-class BooleanEmbedder(nn.Module):
+class BooleanEmbedderType(Enum):
+    BOOLEAN_EMBEDDING = "boolean_embedding"
+    NEGATIVE_BIAS = "negative_bias"
+    SEPARATE = "separate"
+
+
+class BooleanEmbeddingBooleanEmbedder(nn.Module):
     """Embedder that uses separate embeddings for boolean True and False, and multiplies by the predicate embeddings."""
 
     def __init__(
@@ -107,3 +117,15 @@ class PositiveNegativeBooleanEmbedder(nn.Module):
             var_val.unsqueeze(1) * postive_preds
             + as_tensor(1 - var_val).unsqueeze(1) * negative_preds
         )
+
+
+ENUM_TO_CLASS: dict[
+    BooleanEmbedderType,
+    type[BooleanEmbeddingBooleanEmbedder]
+    | type[NegativeBiasBooleanEmbedder]
+    | type[PositiveNegativeBooleanEmbedder],
+] = {
+    BooleanEmbedderType.BOOLEAN_EMBEDDING: BooleanEmbeddingBooleanEmbedder,
+    BooleanEmbedderType.NEGATIVE_BIAS: NegativeBiasBooleanEmbedder,
+    BooleanEmbedderType.SEPARATE: PositiveNegativeBooleanEmbedder,
+}

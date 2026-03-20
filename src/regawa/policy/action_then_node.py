@@ -3,12 +3,12 @@ from functools import partial
 
 from gnn_policy.functional import (
     eval_action_then_node,
-    marginalize,
+    marginalize_log,
     mask_logits,
     sample_action_then_node,
     segment_softmax,
 )
-from torch import FloatTensor, Tensor, nn
+from torch import FloatTensor, Tensor, nn, softmax
 from torch import Generator as Rngs
 
 from regawa.data import SparseTensor, TorchActionMask
@@ -135,12 +135,13 @@ class ActionThenNodePolicy(nn.Module):
         )
 
         n_g = n_nodes.shape[0]
-        p_a = marginalize(
+        p_a = marginalize_log(
             node_logits,
             mask_logits(action_given_node_logits.values, action_given_node_mask),
             h.indices,
             n_g,
         )
+        p_a = softmax(p_a, dim=-1)
 
         def p_n_given_a(x: Tensor):
             return segment_softmax(

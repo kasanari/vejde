@@ -706,7 +706,7 @@ wheels = [
 [[package]]
 name = "gnn-policy"
 version = "0.0.2"
-source = { git = "ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy#80f0b0b0b2be08e65d4e11d081df45bef2c8f12a" }
+source = { git = "ssh://git@gitr.sys.kth.se/jaknyb/gnn_policy#9a0bba6a85581fb3795954dde3a06fb6feba372c" }
 dependencies = [
     { name = "numpy" },
 ]

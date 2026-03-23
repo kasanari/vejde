@@ -1,6 +1,5 @@
 from collections import deque
 from collections.abc import Iterable
-from typing import Generic
 
 import numpy as np
 
@@ -18,26 +17,26 @@ from regawa.data.obs import (
 )
 
 
-class GraphBuffer(Generic[VariableDomain]):
+class GraphBuffer[T: VariableDomain]:
     def __init__(self) -> None:
-        self.data: deque[IndexedFactorGraph[VariableDomain]] = deque()
+        self.data: deque[IndexedFactorGraph[T]] = deque()
 
-    def extend(self, obs: Iterable[IndexedFactorGraph[VariableDomain]]) -> None:
+    def extend(self, obs: Iterable[IndexedFactorGraph[T]]) -> None:
         self.data.extend(obs)
 
-    def add_single(self, obs: IndexedFactorGraph[VariableDomain]) -> None:
+    def add_single(self, obs: IndexedFactorGraph[T]) -> None:
         self.data.append(obs)
 
-    def add_single_dict(self, obs: IndexedFactorGraph[VariableDomain]) -> None:
+    def add_single_dict(self, obs: IndexedFactorGraph[T]) -> None:
         self.data.append(obs)
 
-    def batch(self) -> Batch[VariableDomain]:
+    def batch(self) -> Batch[T]:
         return create_batch(list(self.data))
 
-    def __getitem__(self, index: int) -> IndexedFactorGraph[VariableDomain]:
+    def __getitem__(self, index: int) -> IndexedFactorGraph[T]:
         return self.data[index]
 
-    def minibatch(self, indices: Iterable[int]) -> Batch[VariableDomain]:
+    def minibatch(self, indices: Iterable[int]) -> Batch[T]:
         return create_batch([self.data[i] for i in indices])
 
 

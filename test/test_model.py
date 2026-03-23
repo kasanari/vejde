@@ -42,28 +42,28 @@ def test_state_dependent_action_mask(test_model: BaseModel):
 
     assert action_mask.shape == (len(object_to_idx), len(test_model.action_fluents))
     assert (
-        action_mask[object_to_idx["block1"], test_model.action_to_idx("pickup")] == True
+        action_mask[object_to_idx["block1"], test_model.action_to_idx("pickup")] is True
     )
     assert (
-        action_mask[object_to_idx["block2"], test_model.action_to_idx("pickup")] == True
+        action_mask[object_to_idx["block2"], test_model.action_to_idx("pickup")] is True
     )
     assert (
         action_mask[object_to_idx["block3"], test_model.action_to_idx("pickup")]
-        == False
+        is False
     )
     assert (
         action_mask[object_to_idx["table1"], test_model.action_to_idx("pickup")]
-        == False
+        is False
     )
     assert (
         action_mask[object_to_idx["table2"], test_model.action_to_idx("pickup")]
-        == False
+        is False
     )
-    assert action_mask[object_to_idx["block1"], test_model.action_to_idx("NOP")] == True
-    assert action_mask[object_to_idx["block2"], test_model.action_to_idx("NOP")] == True
-    assert action_mask[object_to_idx["block3"], test_model.action_to_idx("NOP")] == True
-    assert action_mask[object_to_idx["table1"], test_model.action_to_idx("NOP")] == True
-    assert action_mask[object_to_idx["table2"], test_model.action_to_idx("NOP")] == True
+    assert action_mask[object_to_idx["block1"], test_model.action_to_idx("NOP")] is True
+    assert action_mask[object_to_idx["block2"], test_model.action_to_idx("NOP")] is True
+    assert action_mask[object_to_idx["block3"], test_model.action_to_idx("NOP")] is True
+    assert action_mask[object_to_idx["table1"], test_model.action_to_idx("NOP")] is True
+    assert action_mask[object_to_idx["table2"], test_model.action_to_idx("NOP")] is True
 
     pass
 

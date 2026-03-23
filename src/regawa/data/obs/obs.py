@@ -1,4 +1,4 @@
-from typing import Generic, NamedTuple, TypeVar
+from typing import NamedTuple, TypeVar
 
 import numpy as np
 from numpy.typing import NDArray
@@ -22,16 +22,16 @@ class Factors(NamedTuple):
     n_factor: int  # number of objects/factors.
 
 
-class IndexedFactorGraph(NamedTuple, Generic[VariableDomain]):
+class IndexedFactorGraph[T: VariableDomain](NamedTuple):
     """
     This class represents an factor graph of groundings and objects with numeric indexes as identifiers.
     Assume a grounding p(o) = v.
     """
 
-    var: Variables[VariableDomain]  # grounding variables
+    var: Variables[T]  # grounding variables
     factor: Factors  # grounding factors/objects
     edges: Edges  # edges between groundings and objects
-    global_var: Variables[VariableDomain]  # global grounding variables
+    global_var: Variables[T]  # global grounding variables
     action_masks: ActionMask  # action masks
 
 

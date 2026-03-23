@@ -1,8 +1,8 @@
 from collections.abc import Callable, Sequence
 from functools import partial
+from typing import TypeVar
 
 import numpy as np
-from pyparsing import TypeVar
 
 from regawa.data.factor_graph import StringFactorGraph
 from regawa.data.func import generate_bipartite_obs_func

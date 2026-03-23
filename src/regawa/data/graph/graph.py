@@ -1,19 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Generic, NamedTuple, TypeVar
+from typing import NamedTuple
 
 import numpy as np
 from numpy.typing import NDArray
 
 from regawa.model import Grounding, NullConst
 
-VariableDomain = TypeVar(
-    "VariableDomain",
-    np.float32,
-    np.bool_,
-    np.int8,
-)
+VariableDomain = np.float32 | np.bool_ | np.int8
 
 
 VariableTypeDomain = np.int64
@@ -35,12 +30,12 @@ class Distances(NamedTuple):
     # distances: Distances
 
 
-class Variables(NamedTuple, Generic[VariableDomain]):
+class Variables[T: VariableDomain](NamedTuple):
     # predicate of grounding, e.g. "p". Length matches var_value.
     types: NDArray[VariableTypeDomain]
     # number of repetitions per grounding. This is only not 1 when using stacking. Length matches var_value
     # value of groundings, e.g. "v". This can be bool or float
-    value: NDArray[VariableDomain]
+    value: NDArray[T]
     length: NDArray[VariableTypeDomain]
     # number of groundings/variables. Will match len(length), even with stacking. Will match len(var_value) without stacking.
     n_variable: int  # number of groundings/variables. Will match len(length), even with stacking. Will match len(var_value) without stacking.
@@ -61,9 +56,9 @@ class Object(NamedTuple):
 NullObject = Object(NullConst.id, NullConst.type)
 
 
-class StringVariables(NamedTuple, Generic[VariableDomain]):
+class StringVariables[T: VariableDomain](NamedTuple):
     types: Sequence[str]
-    values: Sequence[VariableDomain]
+    values: Sequence[T]
     length: Sequence[int]
     n_variable: int  # number of groundings/variables. Will match len(length),
     groundings: Sequence[Grounding]

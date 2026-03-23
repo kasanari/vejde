@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Generic, NamedTuple
+from typing import NamedTuple
 
 from regawa.data.graph import (
     StringFactors,
@@ -9,17 +9,17 @@ from regawa.data.graph.graph import ActionMask, Edges
 from regawa.model import Grounding
 
 
-class StackedStringVariables(NamedTuple, Generic[VariableDomain]):
+class StackedStringVariables[T: VariableDomain](NamedTuple):
     types: Sequence[str]
-    values: Sequence[Sequence[VariableDomain]]
+    values: Sequence[Sequence[T]]
     length: Sequence[int]
     n_variable: int
     groundings: Sequence[Grounding]
 
 
-class StackedStringFactorGraph(NamedTuple, Generic[VariableDomain]):
-    variables: StackedStringVariables[VariableDomain]
+class StackedStringFactorGraph[T: VariableDomain](NamedTuple):
+    variables: StackedStringVariables[T]
     factors: StringFactors
     edges: Edges
-    global_variables: StackedStringVariables[VariableDomain]
+    global_variables: StackedStringVariables[T]
     action_masks: ActionMask

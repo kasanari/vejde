@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from typing import Generic, NamedTuple, TypeVar
+from typing import NamedTuple
 
 import numpy as np
 from numpy.typing import NDArray
 
-V = TypeVar("V", np.float32, np.bool_, np.int64, np.int8)
+from .func import VariableDomain
 
 
-class SparseArray(NamedTuple, Generic[V]):
+class SparseArray[T: VariableDomain](NamedTuple):
     """
     This is a simple sparse COOrdinate array representation.
     index is the position of the values in the original dense array, e.g. the graph the node belongs to
@@ -18,14 +18,14 @@ class SparseArray(NamedTuple, Generic[V]):
     indices = [0, 0, 0, 1, 1, 2, 2, 2, 2]
     """
 
-    values: NDArray[V]
+    values: NDArray[T]
     indices: NDArray[np.int64]
 
     @property
     def shape(self):
         return self.values.shape
 
-    def concat(self, other: SparseArray[V]) -> SparseArray[V]:
+    def concat(self, other: SparseArray[T]) -> SparseArray[T]:
         return SparseArray(
             np.concatenate((self.values, other.values)),
             np.concatenate((self.indices, other.indices)),

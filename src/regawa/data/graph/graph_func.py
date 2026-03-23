@@ -119,3 +119,39 @@ def fn_action_masks(
         )
 
     return f
+
+
+def fn_action_mask_from_groundings(
+    model: BaseModel,
+):
+    def f(
+        valid_actions: Sequence[Grounding], object_to_idx: Mapping[str, int]
+    ) -> np.typing.NDArray[np.bool_]:
+        valid_combinations = set(
+            itertools.chain(
+                *(
+                    [
+                        (predicate(g), o)
+                        for o in (
+                            objects(g) if len(objects(g)) > 0 else object_to_idx
+                        )  # if action has not objects, all objects are valid
+                    ]
+                    for g in valid_actions
+                )
+            )
+        )
+
+        valid_combinations_idx = [
+            (model.action_to_idx(p), object_to_idx[o]) for p, o in valid_combinations
+        ]
+
+        base_array = np.zeros(
+            (len(object_to_idx), len(model.action_fluents)), dtype=np.bool_
+        )
+
+        for action_idx, object_idx in valid_combinations_idx:
+            base_array[object_idx, action_idx] = True
+
+        return base_array
+
+    return f

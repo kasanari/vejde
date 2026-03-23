@@ -3,6 +3,7 @@ from itertools import groupby
 import pytest
 from regawa import BaseModel
 from regawa.data import fn_groundobs_to_heterograph, render_lifted
+from regawa.data.graph.graph_func import fn_action_mask_from_groundings
 from regawa.data.obs.obs_func import fn_idx_obs
 from regawa.model import (
     GenericModel,
@@ -26,6 +27,45 @@ def create_obs(model: BaseModel, rddl_obs: GroundObs):
 
 def test_model_check(test_model: BaseModel):
     assert check_model(test_model)
+
+
+def test_state_dependent_action_mask(test_model: BaseModel):
+    valid_actions = {
+        ("pickup", "block1"),
+        ("pickup", "block2"),
+        ("NOP",),
+    }
+    object_to_idx = {"block1": 0, "block2": 1, "block3": 2, "table1": 3, "table2": 4}
+
+    mask_fn = fn_action_mask_from_groundings(test_model)
+    action_mask = mask_fn(valid_actions, object_to_idx)
+
+    assert action_mask.shape == (len(object_to_idx), len(test_model.action_fluents))
+    assert (
+        action_mask[object_to_idx["block1"], test_model.action_to_idx("pickup")] == True
+    )
+    assert (
+        action_mask[object_to_idx["block2"], test_model.action_to_idx("pickup")] == True
+    )
+    assert (
+        action_mask[object_to_idx["block3"], test_model.action_to_idx("pickup")]
+        == False
+    )
+    assert (
+        action_mask[object_to_idx["table1"], test_model.action_to_idx("pickup")]
+        == False
+    )
+    assert (
+        action_mask[object_to_idx["table2"], test_model.action_to_idx("pickup")]
+        == False
+    )
+    assert action_mask[object_to_idx["block1"], test_model.action_to_idx("NOP")] == True
+    assert action_mask[object_to_idx["block2"], test_model.action_to_idx("NOP")] == True
+    assert action_mask[object_to_idx["block3"], test_model.action_to_idx("NOP")] == True
+    assert action_mask[object_to_idx["table1"], test_model.action_to_idx("NOP")] == True
+    assert action_mask[object_to_idx["table2"], test_model.action_to_idx("NOP")] == True
+
+    pass
 
 
 def test_sample_obs(test_model: BaseModel):

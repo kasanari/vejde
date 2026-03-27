@@ -34,9 +34,7 @@ class ActionThenNodePolicy(nn.Module):
 
         init = partial(linear_reset_parameters, rng=rngs)
         self.node_prob = init(nn.Linear(node_dim, 1, bias=False))
-        self.action_given_node_prob = init(
-            nn.Linear(node_dim, num_actions, bias=False), rngs
-        )
+        self.action_given_node_prob = init(nn.Linear(node_dim, num_actions, bias=False))
         self.node_given_action_prob = init(nn.Linear(node_dim, num_actions, bias=False))
 
         self.num_actions = num_actions

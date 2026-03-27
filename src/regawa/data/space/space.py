@@ -42,7 +42,7 @@ class VariableSpace(Space[Variables[VariableDomain]]):
         return all(results)
 
 
-class FactorGraphSpace(Space[IndexedFactorGraph[VariableDomain]]):
+class FactorGraphSpace[T: VariableDomain](Space[IndexedFactorGraph[T]]):
     def __init__(
         self,
         num_relations: int,

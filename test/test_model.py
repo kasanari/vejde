@@ -12,6 +12,7 @@ from regawa.model import (
     check_model,
     model_to_json,
 )
+import numpy as np
 
 
 def create_obs(model: BaseModel, rddl_obs: GroundObs):
@@ -42,28 +43,45 @@ def test_state_dependent_action_mask(test_model: BaseModel):
 
     assert action_mask.shape == (len(object_to_idx), len(test_model.action_fluents))
     assert (
-        action_mask[object_to_idx["block1"], test_model.action_to_idx("pickup")] is True
+        action_mask[object_to_idx["block1"], test_model.action_to_idx("pickup")]
+        is np.True_
     )
     assert (
-        action_mask[object_to_idx["block2"], test_model.action_to_idx("pickup")] is True
+        action_mask[object_to_idx["block2"], test_model.action_to_idx("pickup")]
+        is np.True_
     )
     assert (
         action_mask[object_to_idx["block3"], test_model.action_to_idx("pickup")]
-        is False
+        is np.False_
     )
     assert (
         action_mask[object_to_idx["table1"], test_model.action_to_idx("pickup")]
-        is False
+        is np.False_
     )
     assert (
         action_mask[object_to_idx["table2"], test_model.action_to_idx("pickup")]
-        is False
+        is np.False_
     )
-    assert action_mask[object_to_idx["block1"], test_model.action_to_idx("NOP")] is True
-    assert action_mask[object_to_idx["block2"], test_model.action_to_idx("NOP")] is True
-    assert action_mask[object_to_idx["block3"], test_model.action_to_idx("NOP")] is True
-    assert action_mask[object_to_idx["table1"], test_model.action_to_idx("NOP")] is True
-    assert action_mask[object_to_idx["table2"], test_model.action_to_idx("NOP")] is True
+    assert (
+        action_mask[object_to_idx["block1"], test_model.action_to_idx("NOP")]
+        is np.True_
+    )
+    assert (
+        action_mask[object_to_idx["block2"], test_model.action_to_idx("NOP")]
+        is np.True_
+    )
+    assert (
+        action_mask[object_to_idx["block3"], test_model.action_to_idx("NOP")]
+        is np.True_
+    )
+    assert (
+        action_mask[object_to_idx["table1"], test_model.action_to_idx("NOP")]
+        is np.True_
+    )
+    assert (
+        action_mask[object_to_idx["table2"], test_model.action_to_idx("NOP")]
+        is np.True_
+    )
 
     pass
 

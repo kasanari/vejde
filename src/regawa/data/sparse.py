@@ -5,7 +5,7 @@ from typing import NamedTuple
 import numpy as np
 from numpy.typing import NDArray
 
-from .func import VariableDomain
+from .graph import VariableDomain
 
 
 class SparseArray[T: VariableDomain](NamedTuple):

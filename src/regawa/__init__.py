@@ -56,6 +56,7 @@ def agent_from_env(
     | gym.vector.AsyncVectorEnv,
     params: GNNParams,
     device: str | torch.device = "cpu",
+    rng: Generator | None = None,
 ) -> V:
     obs_space, action_space = (
         (env.observation_space, env.action_space)
@@ -65,7 +66,7 @@ def agent_from_env(
 
     return agent_class(
         agent_config_from_space(obs_space, action_space, params),
-        Generator(),
+        rng=rng if rng is not None else Generator(),
         device=device,
     ).to(device)  # type: ignore
 
@@ -75,6 +76,7 @@ def agent_from_model(
     model: BaseModel,
     params: GNNParams,
     device: str = "cpu",
+    rng: Generator | None = None,
 ) -> V:
     n_types = model.num_types
     n_relations = model.num_fluents
@@ -89,7 +91,7 @@ def agent_from_model(
         hyper_params=params,
     )
 
-    rng = Generator()
+    rng = rng if rng is not None else Generator()
 
     return agent_class(config, rng, device).to(device)  # type: ignore
 

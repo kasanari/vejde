@@ -66,7 +66,7 @@ def agent_from_env(
 
     return agent_class(
         agent_config_from_space(obs_space, action_space, params),
-        rng=rng if rng is not None else Generator(),
+        rngs=rng if rng is not None else Generator(),
         device=device,
     ).to(device)  # type: ignore
 
@@ -93,7 +93,7 @@ def agent_from_model(
 
     rng = rng if rng is not None else Generator()
 
-    return agent_class(config, rng, device).to(device)  # type: ignore
+    return agent_class(config, rngs=rng, device=device).to(device)  # type: ignore
 
 
 def step_func(

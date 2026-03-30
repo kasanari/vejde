@@ -78,6 +78,7 @@ def agent_from_model(
     device: str = "cpu",
     rng: Generator | None = None,
 ) -> V:
+    """Instantiate an agent from a model by inferring the necessary configuration from the model's attributes."""
     n_types = model.num_types
     n_relations = model.num_fluents
     n_actions = model.num_actions

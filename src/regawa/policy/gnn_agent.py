@@ -14,15 +14,14 @@ from regawa.data import (
 from regawa.data.batch.batch_func import single_obs_to_heterostatedata
 from regawa.embedding import (
     EmbeddingLayer,
-    NegativeBiasBooleanEmbedder,
     NumericEmbedder,
     fn_embed_graph,
     fn_embed_heterobatch,
 )
-from ..embedding.boolean import ENUM_TO_CLASS
 from regawa.gnn import BipartiteGNN
 from regawa.model import BaseModel
 
+from ..embedding.boolean import ENUM_TO_CLASS
 from .action_then_node import ActionThenNodePolicy
 from .agent_config import ActionMode, AgentConfig
 from .graph_agent_interface import GraphAgentInterface

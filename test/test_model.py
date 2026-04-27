@@ -1,5 +1,6 @@
 from itertools import groupby
 
+import numpy as np
 import pytest
 from regawa import BaseModel
 from regawa.data import fn_groundobs_to_heterograph, render_lifted
@@ -12,7 +13,6 @@ from regawa.model import (
     check_model,
     model_to_json,
 )
-import numpy as np
 
 
 def create_obs(model: BaseModel, rddl_obs: GroundObs):

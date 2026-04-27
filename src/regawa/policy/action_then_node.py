@@ -8,7 +8,6 @@ from gnn_policy.functional import (
     sample_action_then_node,
     segment_softmax,
 )
-
 from torch import FloatTensor, Generator, Tensor, nn, softmax
 
 from regawa.data import SparseTensor, TorchActionMask

@@ -19,7 +19,6 @@ from regawa.data.graph import (
     object_list,
     translate_edges,
 )
-from ..obs import GraphTypes
 from regawa.data.stacked import StackedStringFactorGraph
 from regawa.model import (
     BaseModel,
@@ -32,6 +31,7 @@ from regawa.model import (
     numeric_groundings,
 )
 
+from ..obs import GraphTypes
 from .heterograph import HeteroGraph
 
 BooleanGraphTypes = TypeVar(

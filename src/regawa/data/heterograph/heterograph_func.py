@@ -122,7 +122,12 @@ def generate_bipartite_obs_func(
     return f
 
 
-def fn_groundobs_to_graph_numeric(model: BaseModel, graph_cls: type[NumericGraphTypes]):
+def fn_groundobs_to_graph_numeric[
+    NumericGraphTypes: (
+        StringFactorGraph[np.float32],
+        StackedStringFactorGraph[np.float32],
+    )
+](model: BaseModel, graph_cls: type[NumericGraphTypes]):
     generate_bipartite_obs_numeric = generate_bipartite_obs_func(
         graph_cls, fn_action_masks(model)
     )
@@ -146,7 +151,7 @@ def fn_groundobs_to_graph_numeric(model: BaseModel, graph_cls: type[NumericGraph
     return obsdict_to_graph
 
 
-def fn_groundobs_to_graph_boolean(
+def fn_groundobs_to_graph_boolean[BooleanGraphTypes: (StringFactorGraph[np.bool_], StackedStringFactorGraph[np.bool_])](
     model: BaseModel,
     graph_cls: type[BooleanGraphTypes],
 ):

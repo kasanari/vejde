@@ -140,7 +140,7 @@ def fn_embed_graph(
     return embed_graph
 
 
-def fn_compress_time(
+def fn_compress_time[V: np.float32 | np.bool_](
     recurrent: Callable[
         [SparseTensor[FloatTensor], NDArray[np.int64]], SparseTensor[FloatTensor]
     ],

@@ -6,7 +6,7 @@ build-backend = "uv_build"
 
 name = "regawa"
 version = "0.1.0"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
   "gnn-policy",
   "gymnasium>=1.1.1",
@@ -109,7 +109,7 @@ select = [
     #"TRY",
     #"C90",
 ]
-ignore = ["B019", "E501", "RUF003", "PLR0913", "PLR0915"]
+ignore = ["B019", "E501", "RUF003", "PLR0913", "PLR0915", "PLR0917"]
 
 [tool.pyright]
 reportArgumentType = "none"

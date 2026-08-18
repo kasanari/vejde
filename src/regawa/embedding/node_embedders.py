@@ -1,5 +1,6 @@
 import logging
 
+import matplotlib.pyplot as plt
 from torch import Generator as Rngs
 from torch import Tensor
 from torch.nn import Embedding, LayerNorm, Module, Sequential, init
@@ -8,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 
 def plot_embeddings(num_embeddings: int, embedding: Embedding):
-    import matplotlib.pyplot as plt
 
     for i in range(num_embeddings):
         plt.scatter(embedding.weight[i][0].item(), embedding.weight[i][1].item())  # type: ignore

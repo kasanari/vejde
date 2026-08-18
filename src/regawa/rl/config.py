@@ -68,3 +68,6 @@ class Args:
     """period in number of iterations to save a checkpoint, 0 means no checkpoint"""
     ema_decay: float = 0.99
     """decay for the exponential moving average of the returns scale"""
+
+
+EXPECTED_NUM_ACTION_PARAMS = 2

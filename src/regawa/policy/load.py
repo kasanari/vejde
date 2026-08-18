@@ -1,7 +1,6 @@
 import json
 import zipfile
 from pathlib import Path
-from typing import TypeVar
 
 import torch
 
@@ -13,14 +12,12 @@ from .gnn_agent import GraphAgent
 from .recurrent_gnn_agent import RecurrentGraphAgent
 from .save import SaveFormat, activation_to_str
 
-T = TypeVar("T", bound=GraphAgent | RecurrentGraphAgent)
-
 ## TODO check that the size of the loaded model matches the basemodel used
 
 str_to_activation = {v: k for k, v in activation_to_str.items()}
 
 
-def load_agent(
+def load_agent[T: GraphAgent | RecurrentGraphAgent](
     cls: type[T],
     path: str | Path,
     device: str = "cpu",
@@ -33,7 +30,7 @@ def load_agent(
     return agent, config, None
 
 
-def load_agent_legacy(
+def load_agent_legacy[T: GraphAgent | RecurrentGraphAgent](
     cls: type[T], path: str | Path, device: str = "cpu"
 ) -> tuple[T, AgentConfig]:
     data = torch.load(path, weights_only=False, map_location=device)  # type: ignore
@@ -49,7 +46,7 @@ def load_agent_legacy(
     return agent, config
 
 
-def load_agent_from_zip(
+def load_agent_from_zip[T: GraphAgent | RecurrentGraphAgent](
     cls: type[T],
     path: str,
     device: str = "cpu",

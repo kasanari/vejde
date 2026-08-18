@@ -50,14 +50,14 @@ V = TypeVar("V", bound=GraphAgentInterface)
 
 
 def agent_from_env(
-    agent_class: V,
+    agent_class: GraphAgentInterface,
     env: gym.Env[HeteroIndexedFactorGraph, MultiDiscrete]
     | gym.vector.SyncVectorEnv
     | gym.vector.AsyncVectorEnv,
     params: GNNParams,
     device: str | torch.device = "cpu",
     rng: Generator | None = None,
-) -> V:
+) -> GraphAgent | RecurrentGraphAgent:
     obs_space, action_space = (
         (env.observation_space, env.action_space)
         if not isinstance(env, SyncVectorEnv | AsyncVectorEnv)
@@ -71,7 +71,7 @@ def agent_from_env(
     ).to(device)  # type: ignore
 
 
-def agent_from_model(
+def agent_from_model[V: GraphAgentInterface](
     agent_class: type[V],
     model: BaseModel,
     params: GNNParams,

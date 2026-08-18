@@ -5,6 +5,8 @@ from pathlib import Path
 
 import mlflow
 
+from regawa import BaseModel
+
 from .config import Args
 from .train_agent import train
 
@@ -12,7 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 def train_with_mlflow(
-    args: Args, mlflow_tracking_uri: str, run_name: str, batch_id: str | None = None
+    args: Args,
+    mlflow_tracking_uri: str,
+    run_name: str,
+    batch_id: str | None = None,
+    model: BaseModel | None = None,
 ):
     mlflow.enable_system_metrics_logging()
     mlflow.set_tracking_uri(uri=mlflow_tracking_uri)
@@ -44,7 +50,7 @@ def train_with_mlflow(
         logged_config = vars(args) | asdict(agent.config)
         mlflow.log_params(logged_config)
 
-        agent.save_agent(stats["run_folder"] / f"{run_name}.zip")
+        agent.save_agent(stats["run_folder"] / f"{run_name}.zip", model)
         mlflow.log_artifact(str(stats["run_folder"] / f"{run_name}.zip"))
 
         for k, v in stats.items():

@@ -16,6 +16,9 @@ class VariableSpace(Space[Variables[VariableDomain]]):
         self.var_value = Sequence(var_value_space, stack=True)
         self.length = Sequence(Discrete(BIG_NUMBER), stack=True)
 
+    def __hash__(self) -> int:
+        return super().__hash__()
+
     def __eq__(self, other: Any) -> bool:
         """Check whether `other` is equivalent to this instance. Doesn't check dtype equivalence."""
         if not isinstance(other, VariableSpace):
@@ -68,6 +71,9 @@ class FactorGraphSpace[T: VariableDomain](Space[IndexedFactorGraph[T]]):
 
         self.global_var = VariableSpace(num_relations, var_value_space)
         super().__init__(None, None, seed)
+
+    def __hash__(self) -> int:
+        return super().__hash__()
 
     def __eq__(self, other: Any) -> bool:
         """Check whether `other` is equivalent to this instance. Doesn't check dtype equivalence."""
@@ -127,6 +133,9 @@ class HeteroStateSpace(Space[HeteroIndexedFactorGraph]):
             num_relations, num_types, max_arity, num_actions, number_space
         )
         super().__init__(None, None, seed)
+
+    def __hash__(self) -> int:
+        return super().__hash__()
 
     def __eq__(self, other: Any) -> bool:
         """Check whether `other` is equivalent to this instance. Doesn't check dtype equivalence."""

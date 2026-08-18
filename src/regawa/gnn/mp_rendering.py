@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 
+import graphviz
 from torch import Tensor, norm
 
 
@@ -21,7 +22,7 @@ def to_graphviz_bp(
     f_to_v: Tensor,
     v_to_f: Tensor,
 ):
-    import graphviz
+
 
     output = "digraph G {\n"
 

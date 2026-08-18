@@ -15,15 +15,13 @@ import torch
 #     sort, new_indices = sort_segments(lengths, n_variables)
 #     assert torch.equal(sort, torch.tensor([5, 4, 3, 3, 2], dtype=torch.long))
 #     assert torch.equal(new_indices, torch.tensor([0, 3, 1, 4, 2], dtype=torch.long))
-from torch import Tensor
-from torch.nn.utils.rnn import PackedSequence
+from torch import Tensor, cumsum, roll, zeros
+from torch.nn.utils.rnn import PackedSequence, pack_padded_sequence
 
 from regawa.embedding.recurrent import packed_from_concatenated_sequences
 
 
 def get_packed(h: Tensor, length: Tensor):
-    from torch import cumsum, roll, zeros
-    from torch.nn.utils.rnn import pack_padded_sequence
 
     padded = zeros(
         length.size(0),

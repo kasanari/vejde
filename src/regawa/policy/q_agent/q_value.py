@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import NamedTuple
 
-from torch import FloatTensor, Tensor, min
+import torch
+from torch import FloatTensor, Tensor
 
 from regawa.data import SparseTensor
 
@@ -16,7 +17,7 @@ class QValue(NamedTuple):
 
         return (
             QValue(
-                min(self.q1, other.q1),  # type: ignore
+                torch.min(self.q1, other.q1),  # type: ignore
                 self.q2.min(other.q2),  # type: ignore
             )
             if is_action_then_node

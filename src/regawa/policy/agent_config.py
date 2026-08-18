@@ -38,6 +38,19 @@ class GNNParams:
             and self.boolean_embedder_type == value.boolean_embedder_type
         )
 
+    def __hash__(self) -> int:
+        return hash(
+            (
+                self.embedding_dim,
+                self.layers,
+                self.aggregation,
+                type(self.activation),
+                self.action_mode,
+                self.recurrent,
+                self.boolean_embedder_type,
+            )
+        )
+
 
 @dataclass(frozen=True)
 class AgentConfig:

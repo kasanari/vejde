@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from functools import cache, cached_property
 
@@ -107,7 +108,7 @@ class GenericModel(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> GenericModel:
-        import json
+
 
         data = json.loads(json_str)
 

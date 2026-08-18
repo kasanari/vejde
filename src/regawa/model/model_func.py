@@ -1,5 +1,6 @@
 """Utility functions for models"""
 
+import json
 from collections.abc import Callable
 from functools import cache
 
@@ -7,6 +8,7 @@ from regawa.model.null import NullConst
 
 from . import check_model
 from .base_model import BaseModel
+from .generic_model import GenericModel
 
 
 def max_fluent_arity(model: BaseModel):
@@ -104,7 +106,7 @@ def fn_valid_action_fluents_given_arity(
 
 
 def model_to_json(model: BaseModel) -> str:
-    import json
+
 
     try:
         check_model(model)
@@ -122,6 +124,4 @@ def model_to_json(model: BaseModel) -> str:
 
 
 def model_from_json(model_json: str) -> BaseModel:
-    from regawa.model.generic_model import GenericModel
-
     return GenericModel.from_json(model_json)

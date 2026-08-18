@@ -112,9 +112,9 @@ def generate_bipartite_obs_func(
         )
 
         if edges:
-            assert v_to_f.max() < len(
-                g.variables.values
-            ), "Senders index out of bounds."
+            assert v_to_f.max() < len(g.variables.values), (
+                "Senders index out of bounds."
+            )
             assert f_to_v.max() < len(object_types), "Receivers index out of bounds."
 
         return g

@@ -191,12 +191,12 @@ class RecurrentGraphAgent(nn.Module, GraphAgentInterface):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
     def check_compatability(self, model: BaseModel):
-        assert (
-            self.config.num_object_classes == model.num_types
-        ), f"Mismatch in number of variable types, agent expects {self.config.num_object_classes}, model has {model.num_types}"
-        assert (
-            self.config.num_predicate_classes == model.num_fluents
-        ), f"Mismatch in number of predicates, agent expects {self.config.num_predicate_classes}, model has {model.num_fluents}"
-        assert (
-            self.config.num_actions == model.num_actions
-        ), f"Mismatch in number of action types, agent expects {self.config.num_actions}, model has {model.num_actions}"
+        assert self.config.num_object_classes == model.num_types, (
+            f"Mismatch in number of variable types, agent expects {self.config.num_object_classes}, model has {model.num_types}"
+        )
+        assert self.config.num_predicate_classes == model.num_fluents, (
+            f"Mismatch in number of predicates, agent expects {self.config.num_predicate_classes}, model has {model.num_fluents}"
+        )
+        assert self.config.num_actions == model.num_actions, (
+            f"Mismatch in number of action types, agent expects {self.config.num_actions}, model has {model.num_actions}"
+        )

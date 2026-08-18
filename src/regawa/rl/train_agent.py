@@ -357,7 +357,7 @@ def logging_and_saving(
 ):
     artifact_name = None
     if checkpoint_period > 0 and iteration % checkpoint_period == 0:
-        artifact_name = f"runs/{run_name}/checkpoint_{iteration*batch_size}.zip"
+        artifact_name = f"runs/{run_name}/checkpoint_{iteration * batch_size}.zip"
         agent.save_agent(artifact_name)
         # hard link to "checkpoint_latest.pth"
         latest_path = f"runs/{run_name}/checkpoint_latest.zip"
@@ -429,9 +429,9 @@ def main(
 ):
     batch_size = int(args.num_envs * args.rollout_length)
     minibatch_size = args.minibatch_size
-    assert (
-        batch_size % minibatch_size == 0
-    ), "batch_size must be divisible by minibatch_size"
+    assert batch_size % minibatch_size == 0, (
+        "batch_size must be divisible by minibatch_size"
+    )
     num_rollouts = 0
 
     if args.total_timesteps:
@@ -439,9 +439,9 @@ def main(
 
     if args.total_updates:
         inner_updates = (batch_size // minibatch_size) * args.update_epochs
-        assert (
-            args.total_updates % inner_updates == 0
-        ), "total_updates must be multiple of (batch_size / minibatch_size) * update_epochs"
+        assert args.total_updates % inner_updates == 0, (
+            "total_updates must be multiple of (batch_size / minibatch_size) * update_epochs"
+        )
         num_rollouts = args.total_updates // inner_updates
 
     pbar = tqdm(total=num_rollouts)

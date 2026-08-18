@@ -47,14 +47,17 @@ class StackingWrapper(gym.Wrapper[StackedGroundObs, GroundObs, GroundObs, Ground
         self,
         action: GroundObs,
     ) -> tuple[StackedGroundObs, SupportsFloat, bool, bool, dict[str, Any]]:
-        """""
+        (
+            """""
         Stacks observations
         obs= {
             "key1" [t1, t2, t3, t4],
             "key2" [t1, t2, t3, t4],
             "key3" [None, None, t3, t4],
         }
-        """ ""
+        """
+            ""
+        )
 
         next_obs, reward, terminated, truncated, info = self.env.step(action)
 

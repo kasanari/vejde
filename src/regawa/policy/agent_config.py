@@ -51,6 +51,4 @@ class AgentConfig:
     arity: int
 
 
-
-
 __all__ = ["ActionMode", "AgentConfig", "BooleanEmbedderType", "GNNParams"]

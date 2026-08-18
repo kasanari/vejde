@@ -67,12 +67,12 @@ class IndexObsWrapper(
         info["idx_to_object"] = graph.boolean.factors.names
         obs = self.create_obs_dict(graph)
 
-        assert obs.bool.var.length.sum() == len(
-            obs.bool.var.value
-        ), f"Expected {obs.bool.var.length.sum()} but got {len(obs.bool.var.value)}"
-        assert obs.float.var.length.sum() == len(
-            obs.float.var.value
-        ), f"Expected {obs.float.var.length.sum()} but got {len(obs.float.var.value)}"
+        assert obs.bool.var.length.sum() == len(obs.bool.var.value), (
+            f"Expected {obs.bool.var.length.sum()} but got {len(obs.bool.var.value)}"
+        )
+        assert obs.float.var.length.sum() == len(obs.float.var.value), (
+            f"Expected {obs.float.var.length.sum()} but got {len(obs.float.var.value)}"
+        )
 
         return obs, r, term, trunc, info
 

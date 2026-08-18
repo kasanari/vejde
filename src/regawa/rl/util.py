@@ -264,9 +264,9 @@ def rollout(
         time += 1
 
     if seed == 0:
-        assert (
-            collector.return_ == expected_return
-        ), f"Expert policy failed: {collector.return_}"
+        assert collector.return_ == expected_return, (
+            f"Expert policy failed: {collector.return_}"
+        )
 
     return collector.export(), time
 

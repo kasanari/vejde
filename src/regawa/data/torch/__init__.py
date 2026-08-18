@@ -9,12 +9,12 @@ from .torch import (
 )
 
 __all__ = [
-    "TorchFactorGraph",
     "SparseTensor",
-    "sparsify",
-    "heterostatedata_to_tensors",
-    "TorchHeteroBatchData",
     "TorchActionMask",
     "TorchBatchData",
+    "TorchFactorGraph",
+    "TorchHeteroBatchData",
     "concat_sparse",
+    "heterostatedata_to_tensors",
+    "sparsify",
 ]

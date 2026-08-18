@@ -53,4 +53,4 @@ class AgentConfig:
 
 
 
-__all__ = ["AgentConfig", "ActionMode", "BooleanEmbedderType", "GNNParams"]
+__all__ = ["ActionMode", "AgentConfig", "BooleanEmbedderType", "GNNParams"]

@@ -1,6 +1,7 @@
 import tempfile
 
 import torch as th
+
 from regawa import (
     ActionMode,
     GNNParams,

@@ -11,9 +11,9 @@ from .batch_func import (
 )
 
 __all__ = [
-    "heterobatch",
-    "single_obs_to_heterostatedata",
     "Batch",
     "HeteroBatch",
     "create_batch",
+    "heterobatch",
+    "single_obs_to_heterostatedata",
 ]

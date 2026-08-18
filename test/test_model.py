@@ -2,6 +2,7 @@ from itertools import groupby
 
 import numpy as np
 import pytest
+
 from regawa import BaseModel
 from regawa.data import fn_groundobs_to_heterograph, render_lifted
 from regawa.data.graph.graph_func import fn_action_mask_from_groundings

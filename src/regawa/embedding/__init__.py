@@ -39,11 +39,11 @@ from .recurrent import RecurrentEmbedder
 
 __all__ = [
     "BooleanEmbeddingBooleanEmbedder",
+    "EmbeddingLayer",
     "NegativeBiasBooleanEmbedder",
     "NumericEmbedder",
-    "RecurrentEmbedder",
-    "EmbeddingLayer",
     "PositiveNegativeBooleanEmbedder",
+    "RecurrentEmbedder",
 ]
 
 

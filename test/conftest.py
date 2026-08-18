@@ -2,6 +2,7 @@ from functools import cache, cached_property
 from typing import Any, ClassVar
 
 import pytest
+
 from regawa import BaseModel
 from regawa.model import (
     BaseGroundedModel,

@@ -8,14 +8,14 @@ from .recurrent_gnn_agent import RecurrentGraphAgent
 from .save import save_agent
 
 __all__ = [
-    "NodeThenActionPolicy",
-    "ActionThenNodePolicy",
     "ActionMode",
-    "GraphAgent",
-    "RecurrentGraphAgent",
+    "ActionThenNodePolicy",
     "AgentConfig",
     "GNNParams",
+    "GraphAgent",
     "GraphAgentInterface",
+    "NodeThenActionPolicy",
+    "RecurrentGraphAgent",
     "load_agent",
     "save_agent",
 ]
